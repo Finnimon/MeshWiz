@@ -1,0 +1,85 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
+using System.Text;
+using MeshWiz.Math;
+using MeshWiz.Utility.Extensions;
+
+namespace MeshWiz.IO.Stl;
+
+[SuppressMessage("ReSharper", "ClassNeverInstantiated.Global")]
+public sealed class SafeStlReader<TNum> : IMeshReader<TNum>
+    where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
+{
+    private SafeStlReader() { }
+
+    public static Mesh3<TNum> Read(Stream stream, bool leaveOpen = false)
+    {
+        try
+        {
+            return ReadInternal(stream);
+        }
+        finally
+        {
+            if (!leaveOpen) stream.Dispose();
+        }
+    }
+
+    private static Mesh3<TNum> ReadInternal(Stream stream)
+    {
+        var solid = new byte[5];
+        stream.ReadExactly(solid);
+        var isAscii = Encoding.ASCII.GetString(solid).Equals(nameof(solid), StringComparison.OrdinalIgnoreCase);
+        stream.Seek(-solid.Length, SeekOrigin.Current);
+        return isAscii ? ReadAscii(stream) : ReadBinary(stream);
+    }
+
+    private const int Stride = 50;
+    private const int TriangleOffset = 12;
+    private const int HeaderLength = 80;
+    private const int TotalHeaderLength = HeaderLength + sizeof(uint);
+
+    private static Mesh3<TNum> ReadBinary(Stream stream)
+    {
+        var remainingLength = stream.Length - stream.Position;
+        if (remainingLength < TotalHeaderLength)
+            throw new InvalidDataException(
+                $"Stream does not provide minimum length of {TotalHeaderLength} bytes for the binary stl header but was {remainingLength}.");
+        stream.Seek(HeaderLength, SeekOrigin.Current);
+        using BinaryReader binary = new(stream, Encoding.ASCII, true);
+
+        var triangleCount = binary.ReadUInt32();
+        var expectedRemainingLength = triangleCount * Stride;
+        remainingLength -= TotalHeaderLength;
+        if (remainingLength < expectedRemainingLength)
+            throw new InvalidDataException(
+                $"Expected stream length {expectedRemainingLength} but was {remainingLength}");
+        var facets = new Triangle3<TNum>[triangleCount];
+        var facetFloats = new TNum[3, 3];
+        for (uint facet = 0; facet < triangleCount; facet++)
+        {
+            stream.Seek(12, SeekOrigin.Current);
+
+            for (int vertex = 0; vertex < 3; vertex++)
+            for (var floatIndex = 0; floatIndex < 3; floatIndex++)
+                facetFloats[vertex, floatIndex] = TNum.CreateTruncating(binary.ReadSingle());
+
+            facets[facet] = new Triangle3<TNum>(
+                new Vector3<TNum>(facetFloats[0, 0], facetFloats[0, 1], facetFloats[0, 2]),
+                new Vector3<TNum>(facetFloats[1, 0], facetFloats[1, 1], facetFloats[1, 2]),
+                new Vector3<TNum>(facetFloats[2, 0], facetFloats[2, 1], facetFloats[2, 2])
+            );
+
+            stream.Seek(2, SeekOrigin.Current);
+        }
+
+        return new Mesh3<TNum>(facets);
+    }
+
+    private static Mesh3<TNum> ReadAscii(Stream stream)
+        => ReadAsciiInternal(stream);
+
+    internal static Mesh3<TNum> ReadAsciiInternal(Stream stream)
+    {
+        throw new NotImplementedException();
+    }
+}

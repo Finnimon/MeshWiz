@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>MeshWiz.Math.Benchmark.VectorGenericBenchmark-20250701-190031</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.2, Linux EndeavourOS
+Intel Core i7-4712MQ CPU 2.30GHz (Haswell), 1 CPU, 8 logical and 4 physical cores
+.NET SDK 10.0.100-preview.5.25277.114
+  [Host]     : .NET 10.0.0 (10.0.25.27814), X64 RyuJIT AVX2
+  DefaultJob : .NET 10.0.0 (10.0.25.27814), X64 RyuJIT AVX2
+</code></pre>
+<pre><code></code></pre>
+
+<table>
+<thead><tr><th>Method       </th><th>Mean</th><th>Error</th><th>StdDev</th>
+</tr>
+</thead><tbody><tr><td>GenericsAdd</td><td>134.4 ns</td><td>0.44 ns</td><td>0.39 ns</td>
+</tr><tr><td>NonGenericsAdd</td><td>134.6 ns</td><td>0.40 ns</td><td>0.38 ns</td>
+</tr><tr><td>GenericsMultiply</td><td>440.6 ns</td><td>1.35 ns</td><td>1.13 ns</td>
+</tr><tr><td>NonGenericsMultiply</td><td>451.2 ns</td><td>6.22 ns</td><td>5.20 ns</td>
+</tr></tbody></table>
+</body>
+</html>

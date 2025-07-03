@@ -1,0 +1,66 @@
+﻿<Solution>
+  <Configurations>
+    <Platform Name="Any CPU " />
+    <Platform Name="x64 " />
+    <Platform Name="x86 " />
+  </Configurations>
+  <Project Path="MeshWiz.Contracts/MeshWiz.Contracts.csproj" />
+  <Project Path="MeshWiz.IO.Stl.Tests\MeshWiz.IO.Stl.Tests.csproj" Type="Classic C#">
+    <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x86 " Project="Debug|Any CPU" />
+    <Configuration Solution="Release|Any CPU " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
+  </Project>
+  <Project Path="MeshWiz.IO.Stl\MeshWiz.IO.Stl.csproj" Type="Classic C#">
+    <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x86 " Project="Debug|Any CPU" />
+    <Configuration Solution="Release|Any CPU " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
+  </Project>
+  <Project Path="MeshWiz.IO\MeshWiz.IO.csproj" Type="Classic C#">
+    <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x86 " Project="Debug|Any CPU" />
+    <Configuration Solution="Release|Any CPU " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
+  </Project>
+  <Project Path="MeshWiz.Math.Benchmark\MeshWiz.Math.Benchmark.csproj" Type="Classic C#">
+    <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x86 " Project="Debug|Any CPU" />
+    <Configuration Solution="Release|Any CPU " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
+  </Project>
+  <Project Path="MeshWiz.Math.Tests\MeshWiz.Math.Tests.csproj" Type="Classic C#">
+    <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x86 " Project="Debug|Any CPU" />
+    <Configuration Solution="Release|Any CPU " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
+  </Project>
+  <Project Path="MeshWiz.Math/MeshWiz.Math.csproj" />
+  <Project Path="MeshWiz.TestConsole\MeshWiz.TestConsole.csproj" Type="Classic C#">
+    <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x86 " Project="Debug|Any CPU" />
+    <Configuration Solution="Release|Any CPU " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
+  </Project>
+  <Project Path="MeshWiz.Utility.Tests\MeshWiz.Utility.Tests.csproj" Type="Classic C#">
+    <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x86 " Project="Debug|Any CPU" />
+    <Configuration Solution="Release|Any CPU " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
+  </Project>
+  <Project Path="MeshWiz.Utility/MeshWiz.Utility.csproj" />
+</Solution>
