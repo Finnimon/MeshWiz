@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Numerics;
 using System.Text;
 using MeshWiz.Math;
@@ -80,6 +81,47 @@ public sealed class SafeStlReader<TNum> : IMeshReader<TNum>
 
     internal static Mesh3<TNum> ReadAsciiInternal(Stream stream)
     {
-        throw new NotImplementedException();
+        using var reader = new StreamReader(stream, leaveOpen: true);
+        var headerLine = reader.ReadLine()?.Trim().Split(' ') ?? [];
+        var name = headerLine.Length >= 2 ? headerLine[1] : "";
+        var header = headerLine.Length < 3 ? "" : string.Join(' ', headerLine[2..headerLine.Length]);
+        var facetBlocks = ReadLineBlocks(reader, new string[7]);
+        var facets = facetBlocks.Select(ExtractAsciiFacet);
+        return new Mesh3<TNum>([..facets]);
     }
+    private static IEnumerable<string[]> ReadLineBlocks(StreamReader reader, string[] buffer)
+    {
+        var pos = 0;
+        string? line;
+        while ((line = reader.ReadLine()) is not null)
+        {
+            if(line.StartsWith("endsolid",StringComparison.OrdinalIgnoreCase))
+                yield break;
+            buffer[pos] = line;
+            pos++;
+            var blockComplete = pos >= buffer.Length;
+            if (!blockComplete) continue;
+            pos = 0;
+            yield return buffer;
+        }
+    }
+    
+    
+    private static Triangle3<TNum> ExtractAsciiFacet(string[] asciiFacet)
+    {
+        var a = ExtractAsciiVertex(asciiFacet[2]);
+        var b = ExtractAsciiVertex(asciiFacet[3]);
+        var c = ExtractAsciiVertex(asciiFacet[4]);
+        return  new Triangle3<TNum>(a, b, c);
+    }
+
+    private static Vector3<TNum> ExtractAsciiVertex(string asciiVertex)
+    {
+        var split = asciiVertex.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var x = TNum.Parse(split[1], NumberStyles.Float, CultureInfo.InvariantCulture);
+        var y = TNum.Parse(split[2], NumberStyles.Float, CultureInfo.InvariantCulture);
+        var z = TNum.Parse(split[3], NumberStyles.Float, CultureInfo.InvariantCulture);
+        return new Vector3<TNum>(x, y, z);
+    }
+
 }

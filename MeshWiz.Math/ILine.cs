@@ -4,7 +4,7 @@ namespace MeshWiz.Math;
 
 public interface ILine<TVector, TNum>
     : IDiscreteCurve<TVector, TNum>
-    where TVector : IFloatingVector<TVector, TNum>
+    where TVector :unmanaged, IFloatingVector<TVector, TNum>
     where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
 {
     TVector Direction => End.Subtract(Start);

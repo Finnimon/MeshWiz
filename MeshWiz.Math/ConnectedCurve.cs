@@ -5,7 +5,7 @@ namespace MeshWiz.Math;
 
 public sealed record ConnectedCurve<TVector,TNum>(IDiscreteCurve<TVector,TNum>[] Children) 
     : IDiscreteCurve<TVector,TNum>
-    where TVector : IFloatingVector<TVector, TNum>
+    where TVector :unmanaged, IFloatingVector<TVector, TNum>
     where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
 {
     

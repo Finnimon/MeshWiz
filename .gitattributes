@@ -3,3 +3,5 @@ MeshWiz.IO.Stl.Tests/Assets/big-ascii.stl filter=lfs diff=lfs merge=lfs -text
 MeshWiz.IO.Stl.Tests/Assets/big-binary.stl filter=lfs diff=lfs merge=lfs -text
 MeshWiz.IO.Stl.Tests/Assets/cube-ascii.stl filter=lfs diff=lfs merge=lfs -text
 MeshWiz.IO.Stl.Tests/Assets/cube-binary.stl filter=lfs diff=lfs merge=lfs -text
+MeshWiz.IO.Stl.Benchmark/Assets/big-binary.stl filter=lfs diff=lfs merge=lfs -text
+MeshWiz.IO.Stl.Benchmark/Assets/cube-binary.stl filter=lfs diff=lfs merge=lfs -text

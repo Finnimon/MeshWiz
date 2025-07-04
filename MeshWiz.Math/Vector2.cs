@@ -22,7 +22,8 @@ public readonly struct Vector2<TNum> : IVector2<Vector2<TNum>, TNum>
     public Vector2<TNum> Normalized => this / Length;
     public TNum AlignedSquareVolume => X * Y;
     public static Vector2<TNum> FromXY(TNum x, TNum y) => new(x, y);
-
+    public static Vector2<TNum> FromComponents(TNum[] array) =>new(array[0], array[1]);
+    public static Vector2<TNum> FromComponents(ReadOnlySpan<TNum> array)=> new(array[0], array[1]);
     public Vector2(TNum x, TNum y)
     {
         X = x;

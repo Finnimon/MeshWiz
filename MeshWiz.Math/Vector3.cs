@@ -11,10 +11,8 @@ namespace MeshWiz.Math;
 public readonly struct Vector3<TNum> : IVector3<Vector3<TNum>, TNum>
 where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
 {
-    #region Fields
     public readonly TNum X, Y, Z;
-    #endregion
-    #region computed props
+
     public static unsafe int ByteSize => sizeof(TNum)*3;
     public int Count => 3;
     static uint IVector<Vector3<TNum>, TNum>.Dimensions => 3;
@@ -29,8 +27,6 @@ where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
 
     public TNum AlignedCuboidVolume => TNum.Abs(X * Y * Z);
 
-    #endregion
-    #region ctor
     public Vector3(TNum x , TNum y , TNum z)
     {
         X = x;
@@ -39,6 +35,9 @@ where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
     }
     public static Vector3<TNum> FromXYZ(TNum x, TNum y, TNum z)
         => new(x, y, z);
+    public static Vector3<TNum> FromComponents(TNum[] components)=>new(components[0], components[1],components[2]);
+    public static Vector3<TNum> FromComponents(ReadOnlySpan<TNum> components)=>new(components[0], components[1],components[2]);
+    
     public Vector3<TNum> ZYX=>new(Z,Y,Y);
     public Vector3<TNum> YZX=>new(Y,Z,Y);
     public Vector3<TNum> YXZ=>new(Y,Y,Z);
@@ -47,13 +46,8 @@ where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
     public static Vector3<TNum> Zero => new(TNum.Zero, TNum.Zero, TNum.Zero);
     public static Vector3<TNum> One => new(TNum.One, TNum.One, TNum.One);
     public static Vector3<TNum> NaN => new(TNum.NaN, TNum.NaN, TNum.NaN);
-    #endregion
 
 
-
-    #region arithmetic
-
-    #region operators
 
     [Pure]
     public static Vector3<TNum> operator +(in Vector3<TNum> left, in Vector3<TNum> right)
@@ -96,7 +90,6 @@ where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
     public static bool operator !=(in Vector3<TNum> left, in Vector3<TNum> right)
         => left.X != right.X || left.Y != right.Y || left.Z != right.Z;
 
-    #endregion
 
     #region functions
 
@@ -126,13 +119,6 @@ where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
     [Pure]
     public Vector3<TNum> Cross(in Vector3<TNum> other) => this ^ other;
     
-    #endregion
-
-    #endregion
-
-    #region functions
-
-    #region general
 
     [Pure]
     public bool Equals(Vector3<TNum> other)
@@ -154,12 +140,6 @@ where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
 
     [Pure]
     public override int GetHashCode() => HashCode.Combine(X, Y, Z);
-
-    #endregion
-
-    #endregion
-
-    #region IReadOnlyList
 
     [Pure]
     public unsafe TNum this[int index]

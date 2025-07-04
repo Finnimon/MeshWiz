@@ -10,13 +10,12 @@ public interface IVector<TSelf, TNum>
     : IReadOnlyList<TNum>,
         IEquatable<TSelf>,
         IComparable<TSelf>,
-        IByteSize,
         IUnmanagedDataVector<TNum>
     where TNum : unmanaged, INumber<TNum>
     where TSelf : IVector<TSelf, TNum>
 {
-    
-    static unsafe int IByteSize.ByteSize => (int)(sizeof(TNum)*TSelf.Dimensions);
+    static abstract TSelf FromComponents(TNum[] components);
+    static abstract TSelf FromComponents(ReadOnlySpan<TNum> components);
     static abstract TSelf Zero { get; }
     static abstract TSelf One { get; }
     [Pure] static abstract uint Dimensions { get; }

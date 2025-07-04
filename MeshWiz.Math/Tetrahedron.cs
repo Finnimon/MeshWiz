@@ -12,6 +12,36 @@ public readonly struct Tetrahedron<TNum> : IBody<TNum>
     public TNum Volume => CalculateVolume();
     public TNum SurfaceArea => CalculateSurf();
     public IFace<Vector3<TNum>, TNum>[] Surface => [..TessellatedSurface];
+    public BBox3<TNum> BBox => GetBBox();
+
+    private BBox3<TNum> GetBBox()
+    {
+        var(xMin,yMin,zMin) = A;
+        var(xMax,yMax,zMax) = A;
+        var (x, y, z) = B;
+        xMin=TNum.Min(xMin,x);
+        yMin=TNum.Min(yMin,y);
+        zMin=TNum.Min(zMin,z);
+        xMax=TNum.Max(xMax,x);
+        yMax=TNum.Max(yMax,y);
+        zMax=TNum.Max(zMax,z);
+        (x, y, z) = C;
+        xMin=TNum.Min(xMin,x);
+        yMin=TNum.Min(yMin,y);
+        zMin=TNum.Min(zMin,z);
+        xMax=TNum.Max(xMax,x);
+        yMax=TNum.Max(yMax,y);
+        zMax=TNum.Max(zMax,z);
+        (x, y, z) = D;
+        xMin=TNum.Min(xMin,x);
+        yMin=TNum.Min(yMin,y);
+        zMin=TNum.Min(zMin,z);
+        xMax=TNum.Max(xMax,x);
+        yMax=TNum.Max(yMax,y);
+        zMax=TNum.Max(zMax,z);
+        
+        return new BBox3<TNum>(new Vector3<TNum>(xMin,yMin,zMin), new Vector3<TNum>(xMax,yMax,zMax));
+    }
 
     public Triangle3<TNum>[] TessellatedSurface => [
         new(A, B, C),

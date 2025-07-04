@@ -1,11 +1,12 @@
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using MeshWiz.Contracts;
 
 namespace MeshWiz.Math;
 
-public interface IFloatingVector<TSelf, TNum> : IVector<TSelf, TNum>
+public interface IFloatingVector<TSelf, TNum> : IVector<TSelf, TNum>, IByteSize
     where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
-    where TSelf : IFloatingVector<TSelf, TNum>
+    where TSelf : unmanaged, IFloatingVector<TSelf, TNum>
 {
     [Pure]
     static abstract TSelf NaN { get; }

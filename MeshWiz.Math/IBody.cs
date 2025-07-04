@@ -10,4 +10,5 @@ public interface IBody<TNum>
     TNum SurfaceArea { get; }
     IFace<Vector3<TNum>, TNum>[] Surface { get; }
     Triangle3<TNum>[] TessellatedSurface { get; }
+    BBox3<TNum> BBox { get; }
 }
