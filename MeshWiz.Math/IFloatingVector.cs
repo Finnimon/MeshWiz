@@ -5,7 +5,7 @@ using MeshWiz.Contracts;
 namespace MeshWiz.Math;
 
 public interface IFloatingVector<TSelf, TNum> : IVector<TSelf, TNum>, IByteSize
-    where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
+    where TNum : unmanaged, IFloatingPointIeee754<TNum>
     where TSelf : unmanaged, IFloatingVector<TSelf, TNum>
 {
     [Pure]

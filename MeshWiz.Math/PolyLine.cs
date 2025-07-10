@@ -1,29 +1,57 @@
 using System.Collections;
+using System.Drawing;
 using System.Numerics;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
-public sealed record PolyLine<TVector, TNum>(TVector[] Points) 
+public sealed record PolyLine<TVector, TNum>(TVector[] Points)
     : IDiscreteCurve<TVector, TNum>, IReadOnlyList<Line<TVector, TNum>>
     where TVector : unmanaged, IFloatingVector<TVector, TNum>
-    where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
+    where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
+    private TVector? _centroid;
     public TVector Start => Points[0];
     public TVector End => Points[^1];
-    public int Count => Points.Length-1;
+    public int Count => Points.Length - 1;
+    public static PolyLine<TVector, TNum> Empty { get; } = new([]);
 
     public Line<TVector, TNum> this[int index]
     {
         get
         {
-            if (index.InsideInclusiveRange(0, Count))
+            if (index.InsideInclusiveRange(0, Count - 1))
                 return new Line<TVector, TNum>(Points[index], Points[index + 1]);
             throw new IndexOutOfRangeException();
         }
     }
 
-    public bool IsClosed => End.Equals(Start);
+    public TVector Centroid => _centroid ??= GetCentroid();
+
+    private TVector GetCentroid()
+    {
+        var centroid = TVector.Zero;
+
+        if (Count <= 0)
+        {
+            return centroid;
+        }
+
+        if (IsClosed)
+        {
+            for (var i = 0; i < Points.Length-1; i++) centroid += Points[i];
+            return centroid / TNum.CreateTruncating(Count);
+        }
+
+        for (var i = 1; i < Points.Length - 1; i++) centroid += Points[i];
+        centroid*=TNum.CreateTruncating(2);        
+        centroid += Points[0];
+        centroid += Points[^1];
+        var divisor=TNum.CreateTruncating(2*Count-2);
+        return centroid / divisor;
+    }
+
+    public bool IsClosed => Count > 0 && Points[0] == Points[^1];
 
     public TNum Length
     {

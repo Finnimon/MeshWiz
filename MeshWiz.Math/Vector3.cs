@@ -9,9 +9,10 @@ namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct Vector3<TNum> : IVector3<Vector3<TNum>, TNum>
-where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
+where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly TNum X, Y, Z;
+
 
     public static unsafe int ByteSize => sizeof(TNum)*3;
     public int Count => 3;
@@ -37,7 +38,7 @@ where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
         => new(x, y, z);
     public static Vector3<TNum> FromComponents(TNum[] components)=>new(components[0], components[1],components[2]);
     public static Vector3<TNum> FromComponents(ReadOnlySpan<TNum> components)=>new(components[0], components[1],components[2]);
-    
+
     public Vector3<TNum> ZYX=>new(Z,Y,Y);
     public Vector3<TNum> YZX=>new(Y,Z,Y);
     public Vector3<TNum> YXZ=>new(Y,Y,Z);
@@ -46,7 +47,11 @@ where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
     public static Vector3<TNum> Zero => new(TNum.Zero, TNum.Zero, TNum.Zero);
     public static Vector3<TNum> One => new(TNum.One, TNum.One, TNum.One);
     public static Vector3<TNum> NaN => new(TNum.NaN, TNum.NaN, TNum.NaN);
-
+    public static Vector3<TNum> UnitX=>new(TNum.One,TNum.Zero,TNum.Zero);
+    public static Vector3<TNum> UnitY=>new(TNum.Zero,TNum.One,TNum.Zero);
+    public static Vector3<TNum> UnitZ=>new(TNum.Zero,TNum.Zero,TNum.One);
+    public Vector3<TOther> To<TOther>() where TOther : unmanaged, IFloatingPointIeee754<TOther>
+        => new(TOther.CreateTruncating(X), TOther.CreateTruncating(Y),TOther.CreateTruncating(Z));
 
 
     [Pure]
@@ -68,6 +73,8 @@ where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
     [Pure]
     public static Vector3<TNum> operator *(TNum scalar, in Vector3<TNum> vec)
         => new(vec.X * scalar, vec.Y * scalar, vec.Z * scalar);
+    [Pure]
+    public static Vector3<TNum> operator - (in Vector3<TNum> vec)=>new(-vec.X, -vec.Y, -vec.Z);
 
     [Pure]
     public static Vector3<TNum> operator /(in Vector3<TNum> vec, TNum divisor)
@@ -109,7 +116,7 @@ where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
     public Vector3<TNum> Divide(in TNum divisor)
         => this / divisor;
 
-    
+
     [Pure]
     public TNum Dot(in Vector3<TNum> other) => this * other;
 
@@ -118,7 +125,15 @@ where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
 
     [Pure]
     public Vector3<TNum> Cross(in Vector3<TNum> other) => this ^ other;
+
     
+    [Pure]
+    public bool IsParallelTo(in Vector3<TNum> other, TNum tolerance) 
+        => tolerance>=TNum.Abs(Normalized * other.Normalized);
+
+    [Pure]
+    public bool IsParallelTo(in Vector3<TNum> other)
+        =>IsParallelTo(other, TNum.Epsilon);
 
     [Pure]
     public bool Equals(Vector3<TNum> other)
@@ -177,11 +192,20 @@ where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
     }
 
     #endregion
-    
+
     public static Vector3<TNum> Lerp(in Vector3<TNum> from, in Vector3<TNum> to, TNum normalDistance)
         =>(to-from)*normalDistance+from;
     
-    
+    public static Vector3<TNum> SineLerp(in Vector3<TNum> from, in Vector3<TNum> to, TNum normalDistance)
+    {
+        var two = TNum.CreateTruncating(2);
+        normalDistance = normalDistance.Wrap(TNum.Zero, two);
+        var sineDistance= TNum.Sin(normalDistance * TNum.Pi / two);
+        sineDistance = TNum.Clamp(sineDistance, TNum.Zero, TNum.One);
+        return Lerp(from, to, sineDistance);
+    }
+
+
     [SuppressMessage("ReSharper", "UseStringInterpolation")]
     public override string ToString()
         => string.Format("{{X:{0:F3} Y:{1:F3} Z:{2:F3}}}", X, Y, Z);

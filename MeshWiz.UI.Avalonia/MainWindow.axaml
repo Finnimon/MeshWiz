@@ -2,8 +2,18 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:gl="clr-namespace:MeshWiz.Abstraction.OpenTK;assembly=MeshWiz.Abstraction.OpenTK"
+        xmlns:ava-abst="clr-namespace:MeshWiz.Abstraction.Avalonia;assembly=MeshWiz.Abstraction.Avalonia"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="MeshWiz.UI.Avalonia.MainWindow"
         Title="MeshWiz.UI.Avalonia">
-    Welcome to Avalonia!
+        <ava-abst:OpenGLParent x:Name="GlParent">
+                <ava-abst:AvaloniaGLBackground Color="DarkSlateBlue"/>
+                <ava-abst:GLWrapper x:Name="LineViewWrapper0" x:TypeArguments="gl:LineView">
+                        <gl:LineView/>
+                </ava-abst:GLWrapper>
+                <ava-abst:GLWrapper x:Name="LineViewWrapper1" x:TypeArguments="gl:LineView">
+                        <gl:LineView LineWidth="2"/>
+                </ava-abst:GLWrapper>
+        </ava-abst:OpenGLParent>
 </Window>

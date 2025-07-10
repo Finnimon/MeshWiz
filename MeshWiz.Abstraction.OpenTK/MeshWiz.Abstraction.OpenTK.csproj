@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+
+    <ItemGroup>
+        <PackageReference Include="OpenTK" Version="4.9.4" />
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="../MeshWiz.Math/MeshWiz.Math.csproj"/>
+    </ItemGroup>
+    <ItemGroup>
+      <None Update="Shaders\blinn_phong\blinn_phong.frag">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Shaders\blinn_phong\blinn_phong.vert">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Shaders\solid_color\solid_color.frag">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Shaders\solid_color\solid_color.vert">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+</Project>

@@ -50,6 +50,10 @@ public interface IVector<TSelf, TNum>
     static virtual TSelf operator /(in TSelf vector, in TNum divisor) => vector.Divide(divisor);
     static virtual bool operator ==(in TSelf vector, in TSelf divisor) => vector.Equals(divisor);
     static virtual bool operator !=(in TSelf vector, in TSelf divisor) => !vector.Equals(divisor);
+    static virtual TSelf operator -(in TSelf vector) => vector.Scale(-TNum.One);
     static virtual TSelf Lerp(in TSelf from, in TSelf to, TNum normalDistance)
     =>(to-from)*normalDistance+from;
+
+    bool IsParallelTo(in TSelf other);
+    bool IsParallelTo(in TSelf other, TNum tolerance);
 }

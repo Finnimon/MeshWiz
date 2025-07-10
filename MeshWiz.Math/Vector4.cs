@@ -9,7 +9,7 @@ namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
-    where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
+    where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly TNum X, Y, Z, W;
 
@@ -24,6 +24,8 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
     [Pure]
     public TNum SquaredLength
         => X * X + Y * Y + Z * Z + W * W;
+
+    public Vector3<TNum> XYZ => new(X, Y, Z);
 
 
     public Vector4(TNum x, TNum y, TNum z, TNum w)
@@ -55,7 +57,8 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
     [Pure]
     public static Vector4<TNum> operator -(in Vector4<TNum> left, in Vector4<TNum> right)
         => new(left.X - right.X, left.Y - right.Y, left.Z - right.Z, left.W - right.W);
-
+    [Pure]
+    public static Vector4<TNum> operator -(in Vector4<TNum> vec)=>new(-vec.X,-vec.Y,-vec.Z,-vec.W);
     [Pure]
     public static TNum operator *(in Vector4<TNum> left, in Vector4<TNum> right)
         => left.X * right.X + left.Y * right.Y + left.Z * right.Z + right.W * right.W;
@@ -107,7 +110,14 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
     [Pure]
     public TNum Distance(in Vector4<TNum> other) => (this - other).Length;
 
+    
+    [Pure]
+    public bool IsParallelTo(in Vector4<TNum> other, TNum tolerance) 
+        => tolerance>=TNum.Abs(Normalized * other.Normalized);
 
+    [Pure]
+    public bool IsParallelTo(in Vector4<TNum> other)
+        =>IsParallelTo(other, TNum.Epsilon);
     [Pure]
     public bool Equals(Vector4<TNum> other)
         => this == other;
@@ -169,6 +179,15 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
 
     public static Vector4<TNum> Lerp(in Vector4<TNum> from, in Vector4<TNum> to, TNum normalDistance)
         => (to - from) * normalDistance + from;
+
+    public static Vector4<TNum> SineLerp(in Vector4<TNum> from, in Vector4<TNum> to, TNum normalDistance)
+    {
+        var two = TNum.CreateTruncating(2);
+        normalDistance = normalDistance.Wrap(TNum.Zero, two);
+        var sineDistance= TNum.Sin(normalDistance * TNum.Pi / two);
+        sineDistance = TNum.Clamp(sineDistance, TNum.Zero, TNum.One);
+        return Lerp(from, to, sineDistance);
+    }
 
 
     [SuppressMessage("ReSharper", "UseStringInterpolation")]

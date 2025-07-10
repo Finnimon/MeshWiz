@@ -4,44 +4,22 @@ using System.Runtime.InteropServices;
 namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-public readonly struct Tetrahedron<TNum> : IBody<TNum>
-    where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
+public readonly struct Tetrahedron<TNum> : IBody<TNum>, IFace<Vector3<TNum>, TNum>
+    where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly Vector3<TNum> A, B, C, D;
     public Vector3<TNum> Centroid => (A + B + C + D)/TNum.CreateTruncating(4);
     public TNum Volume => CalculateVolume();
     public TNum SurfaceArea => CalculateSurf();
-    public IFace<Vector3<TNum>, TNum>[] Surface => [..TessellatedSurface];
+    public IFace<Vector3<TNum>, TNum> Surface => this;
     public BBox3<TNum> BBox => GetBBox();
 
-    private BBox3<TNum> GetBBox()
-    {
-        var(xMin,yMin,zMin) = A;
-        var(xMax,yMax,zMax) = A;
-        var (x, y, z) = B;
-        xMin=TNum.Min(xMin,x);
-        yMin=TNum.Min(yMin,y);
-        zMin=TNum.Min(zMin,z);
-        xMax=TNum.Max(xMax,x);
-        yMax=TNum.Max(yMax,y);
-        zMax=TNum.Max(zMax,z);
-        (x, y, z) = C;
-        xMin=TNum.Min(xMin,x);
-        yMin=TNum.Min(yMin,y);
-        zMin=TNum.Min(zMin,z);
-        xMax=TNum.Max(xMax,x);
-        yMax=TNum.Max(yMax,y);
-        zMax=TNum.Max(zMax,z);
-        (x, y, z) = D;
-        xMin=TNum.Min(xMin,x);
-        yMin=TNum.Min(yMin,y);
-        zMin=TNum.Min(zMin,z);
-        xMax=TNum.Max(xMax,x);
-        yMax=TNum.Max(yMax,y);
-        zMax=TNum.Max(zMax,z);
-        
-        return new BBox3<TNum>(new Vector3<TNum>(xMin,yMin,zMin), new Vector3<TNum>(xMax,yMax,zMax));
-    }
+    private BBox3<TNum> GetBBox() 
+        => BBox3<TNum>.NegativeInfinity
+            .CombineWith(A)
+            .CombineWith(B)
+            .CombineWith(C)
+            .CombineWith(D);
 
     public Triangle3<TNum>[] TessellatedSurface => [
         new(A, B, C),

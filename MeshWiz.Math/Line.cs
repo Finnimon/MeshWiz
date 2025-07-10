@@ -4,14 +4,19 @@ using System.Runtime.InteropServices;
 namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
+public readonly struct Line<TVector, TNum>(TVector start, TVector end)
     : ILine<TVector, TNum>
     where TVector : unmanaged, IFloatingVector<TVector, TNum>
-    where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
+    where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
+    private readonly TVector _start=start;
+    private readonly TVector _end=end;
+    public TVector Start => _start;
+    public TVector End => _end;
+    public TVector MidPoint => (_start + _end)/TNum.CreateTruncating(2);
     bool ICurve<TVector, TNum>.IsClosed => false;
     public TNum Length => Direction.Length;
-    public TVector Direction => End.Subtract(Start);
+    public TVector Direction => _end.Subtract(_start);
     public TVector NormalDirection => Direction.Normalized;
     TNum IDiscreteCurve<TVector,TNum>.Length => Direction.Length;
     
@@ -21,8 +26,9 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
     
     
     public TVector Traverse(TNum distance)
-        =>NormalDirection.Scale(scalar: distance).Add(Start);
+        =>NormalDirection.Scale(scalar: distance).Add(_start);
 
     public TVector TraverseOnCurve(TNum distance) 
         => Traverse(TNum.Clamp(distance, TNum.Zero, Length));
+
 }

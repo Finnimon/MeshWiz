@@ -6,12 +6,12 @@ namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
 
-public readonly struct Triangle3<TNum>:IFace<Vector3<TNum>, TNum>, IFlat<Vector3<TNum>>, IByteSize
-    where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
+public readonly struct Triangle3<TNum>:IFace<Vector3<TNum>, TNum>, IFlat<TNum>, IByteSize
+    where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly Vector3<TNum> A,B,C;
     public Vector3<TNum> Normal => ((B - A)^(C-A)).Normalized;
-    
+    public Plane3<TNum> ToPlane => new(in this);
     public Triangle3(in Vector3<TNum> a,in Vector3<TNum> b,in Vector3<TNum> c)
     {
         A = a;
@@ -45,4 +45,12 @@ public readonly struct Triangle3<TNum>:IFace<Vector3<TNum>, TNum>, IFlat<Vector3
         b = B;
         c = C;
     }
+    public (TNum dAB, TNum dBC, TNum dCA) EdgeLengths()
+    {
+        var ab = B.Subtract(A).Length;
+        var bc = C.Subtract(B).Length;
+        var ca = A.Subtract(B).Length;
+        return (ab,bc,ca);
+    }
+
 }

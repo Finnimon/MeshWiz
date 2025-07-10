@@ -2,8 +2,8 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 namespace MeshWiz.Math;
 [StructLayout(LayoutKind.Sequential)]
-public readonly struct BBox3<TNum> : IBody<TNum>
-    where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
+public readonly struct BBox3<TNum> : IBody<TNum>,IFace<Vector3<TNum>, TNum>
+    where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public static BBox3<TNum> NegativeInfinity=>new(
         new(TNum.PositiveInfinity, TNum.PositiveInfinity, TNum.PositiveInfinity),
@@ -19,7 +19,7 @@ public readonly struct BBox3<TNum> : IBody<TNum>
 
     public TNum SurfaceArea => CalculateSurfaceArea();
 
-    public IFace<Vector3<TNum>, TNum>[] Surface => [..TessellatedSurface];
+    public IFace<Vector3<TNum>, TNum> Surface => this;
 
     public Triangle3<TNum>[] TessellatedSurface => GetFaces();
 
@@ -60,10 +60,6 @@ public readonly struct BBox3<TNum> : IBody<TNum>
             new(p010, p011, p111), new(p010, p111, p110),
         ];
     }
-
-    public bool Intersect(ICurve<Vector3<TNum>, TNum> curve) => throw new NotImplementedException();
-    public bool Contains(Vector3<TNum> point) => throw new NotImplementedException();
-    public bool Intersect(IBody<TNum> body) => throw new NotImplementedException();
 
     public static BBox3<TNum> Combine(in BBox3<TNum> a,in BBox3<TNum> b)
     {

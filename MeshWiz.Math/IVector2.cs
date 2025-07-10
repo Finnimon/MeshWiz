@@ -4,7 +4,7 @@ using System.Numerics;
 namespace MeshWiz.Math;
 
 public interface IVector2<TSelf, TNum> : IFloatingVector<TSelf, TNum>
-    where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
+    where TNum : unmanaged, IFloatingPointIeee754<TNum>
     where TSelf : unmanaged, IVector2<TSelf, TNum>
 {
     [Pure]static uint IVector<TSelf, TNum>.Dimensions => 2;

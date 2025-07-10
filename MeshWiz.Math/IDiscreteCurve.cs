@@ -4,7 +4,7 @@ namespace MeshWiz.Math;
 
 public interface IDiscreteCurve<TVector, TNum> : ICurve<TVector, TNum>
     where TVector : unmanaged, IFloatingVector<TVector, TNum>
-    where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
+    where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     TVector Start { get; }
     TVector End { get; }

@@ -9,13 +9,16 @@ namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct Vector2<TNum> : IVector2<Vector2<TNum>, TNum>
-    where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
+    where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public static Vector2<TNum> Zero => new(TNum.Zero, TNum.Zero);
     public static Vector2<TNum> One => new(TNum.One, TNum.One);
     public static Vector2<TNum> NaN => new(TNum.NaN, TNum.NaN);
-
     public Vector2<TNum> YX => new(Y, X);
+
+    public Vector2<TOther> To<TOther>() where TOther : unmanaged, IFloatingPointIeee754<TOther>
+        => new(TOther.CreateTruncating(X), TOther.CreateTruncating(Y));
+    
     public readonly TNum X, Y;
     public static unsafe int ByteSize => sizeof(TNum) * 2;
     public int Count => 2;
@@ -49,6 +52,9 @@ public readonly struct Vector2<TNum> : IVector2<Vector2<TNum>, TNum>
     [Pure]
     public static Vector2<TNum> operator -(in Vector2<TNum> left, in Vector2<TNum> right)
         => new(left.X - right.X, left.Y - right.Y);
+
+    [Pure]
+    public static Vector2<TNum> operator -(in Vector2<TNum> vec) => new(-vec.X, -vec.Y);
 
     [Pure]
     public static TNum operator *(in Vector2<TNum> left, in Vector2<TNum> right)
@@ -111,6 +117,14 @@ public readonly struct Vector2<TNum> : IVector2<Vector2<TNum>, TNum>
 
     [Pure]
     public int CrossSign(in Vector2<TNum> other) => TNum.Sign(Cross(in other));
+    
+    [Pure]
+    public bool IsParallelTo(in Vector2<TNum> other, TNum tolerance) 
+        => tolerance>=TNum.Abs(Normalized * other.Normalized);
+
+    [Pure]
+    public bool IsParallelTo(in Vector2<TNum> other)
+    =>IsParallelTo(other, TNum.Epsilon);
 
     #endregion
 
@@ -185,6 +199,15 @@ public readonly struct Vector2<TNum> : IVector2<Vector2<TNum>, TNum>
     }
     public static Vector2<TNum> Lerp(in Vector2<TNum> from, in Vector2<TNum> to, TNum normalDistance)
     =>(to-from)*normalDistance+from;
+    
+    public static Vector2<TNum> SineLerp(in Vector2<TNum> from, in Vector2<TNum> to, TNum normalDistance)
+    {
+        var two = TNum.CreateTruncating(2);
+        normalDistance = normalDistance.Wrap(TNum.Zero, two);
+        var sineDistance= TNum.Sin(normalDistance * TNum.Pi / two);
+        sineDistance = TNum.Clamp(sineDistance, TNum.Zero, TNum.One);
+        return Lerp(from, to, sineDistance);
+    }
 
     [SuppressMessage("ReSharper", "UseStringInterpolation")]
     public override string ToString()

@@ -1,5 +1,6 @@
 ﻿using Avalonia;
 using System;
+using System.Collections.ObjectModel;
 
 namespace MeshWiz.UI.Avalonia;
 
@@ -16,6 +17,7 @@ class Program
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
-            .WithInterFont()
+            .With(new Win32PlatformOptions
+                { RenderingMode = new Collection<Win32RenderingMode> { Win32RenderingMode.Wgl } })
             .LogToTrace();
 }

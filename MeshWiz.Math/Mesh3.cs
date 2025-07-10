@@ -1,21 +1,27 @@
+using System.Collections;
 using System.Numerics;
 
 namespace MeshWiz.Math;
 
-public sealed record Mesh3<TNum>(Triangle3<TNum>[] TessellatedSurface)
-    : IBody<TNum>
-    where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
+public sealed record Mesh3<TNum>(Triangle3<TNum>[] TessellatedSurface) : IMesh3<TNum>
+    where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public Vector3<TNum> Centroid => VolumeCentroid;
+    TNum IFace<Vector3<TNum>,TNum>.SurfaceArea => SurfaceArea;
+
     public Vector3<TNum> VertexCentroid => _vertexCentroid ??= CalculateVertexCentroid(TessellatedSurface);
     public Vector3<TNum> SurfaceCentroid => _surfaceCentroid ??= CalculateAreaCentroid(TessellatedSurface);
     public Vector3<TNum> VolumeCentroid => _volumeCentroid ??= CalculateVolumeCentroid(TessellatedSurface);
     public TNum Volume => _volume ??= CalculateVolume(TessellatedSurface);
+
+    Vector3<TNum> IFace<Vector3<TNum>,TNum>.Centroid => SurfaceCentroid;
+
     public TNum SurfaceArea => _surfaceArea ??= CalculateSurfaceArea(TessellatedSurface);
-    public IFace<Vector3<TNum>, TNum>[] Surface => _surface ??= [..TessellatedSurface];
+
+    public IndexedMesh3<TNum> Indexed()=>new(this);
+    public IFace<Vector3<TNum>, TNum> Surface => this;
     public BBox3<TNum> BBox =>_bBox??=GetBBox(TessellatedSurface);
 
-    private IFace<Vector3<TNum>, TNum>[]? _surface;
     private TNum? _surfaceArea;
     private TNum? _volume;
     private Vector3<TNum>? _vertexCentroid;
@@ -138,4 +144,11 @@ public sealed record Mesh3<TNum>(Triangle3<TNum>[] TessellatedSurface)
         }
         return bbox;
     }
+
+    public IEnumerator<Triangle3<TNum>> GetEnumerator() => ((IEnumerable<Triangle3<TNum>>)TessellatedSurface).GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator() => TessellatedSurface.GetEnumerator();
+    public int Count => TessellatedSurface.Length;
+
+    public Triangle3<TNum> this[int index] => TessellatedSurface[index];
 }

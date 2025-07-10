@@ -19,9 +19,8 @@
         <PackageReference Include="OpenTK" Version="4.9.4" />
     </ItemGroup>
     <ItemGroup>
-        <Using Include="OpenTK.Graphis.OpenGL" />
-    </ItemGroup>
-    <ItemGroup>
+      <ProjectReference Include="..\MeshWiz.Abstraction.Avalonia\MeshWiz.Abstraction.Avalonia.csproj" />
+      <ProjectReference Include="..\MeshWiz.Abstraction.OpenTK\MeshWiz.Abstraction.OpenTK.csproj" />
       <ProjectReference Include="..\MeshWiz.Math\MeshWiz.Math.csproj" />
     </ItemGroup>
 </Project>

@@ -5,7 +5,7 @@ namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct Triangle2<TNum>:IFace<Vector2<TNum>, TNum>
-    where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
+    where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly Vector2<TNum> A,B,C;
     public int Up  => (B - A).CrossSign(C-A);
@@ -34,4 +34,19 @@ public readonly struct Triangle2<TNum>:IFace<Vector2<TNum>, TNum>
     
     public static implicit operator Triangle2<TNum>(Triangle<Vector2<TNum>,TNum> dimensionless)
         =>new(dimensionless.A,dimensionless.B,dimensionless.C);
+
+    public (TNum dAB, TNum dBC, TNum dCA) EdgeLengths()
+    {
+        var ab = B.Subtract(A).Length;
+        var bc = C.Subtract(B).Length;
+        var ca = A.Subtract(B).Length;
+        return (ab,bc,ca);
+    }
+
+    public void Deconstruct(out Vector2<TNum> a, out Vector2<TNum> b, out Vector2<TNum> c)
+    {
+        a = A;
+        b = B;
+        c = C;
+    }
 }
