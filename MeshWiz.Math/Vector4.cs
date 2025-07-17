@@ -36,6 +36,8 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
         W = w;
     }
 
+    public Vector4(Vector3<TNum> xyz, TNum w) => ((X, Y, Z), W) = (xyz, w);
+
     public static Vector4<TNum> FromXYZW(TNum x, TNum y, TNum z, TNum w)
         => new(x, y, z, w);
 
@@ -51,72 +53,72 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
 
 
     [Pure]
-    public static Vector4<TNum> operator +(in Vector4<TNum> left, in Vector4<TNum> right)
+    public static Vector4<TNum> operator +(Vector4<TNum> left, Vector4<TNum> right)
         => new(left.X + right.X, left.Y + right.Y, left.Z + right.Z, left.W + right.W);
 
     [Pure]
-    public static Vector4<TNum> operator -(in Vector4<TNum> left, in Vector4<TNum> right)
+    public static Vector4<TNum> operator -(Vector4<TNum> left, Vector4<TNum> right)
         => new(left.X - right.X, left.Y - right.Y, left.Z - right.Z, left.W - right.W);
     [Pure]
-    public static Vector4<TNum> operator -(in Vector4<TNum> vec)=>new(-vec.X,-vec.Y,-vec.Z,-vec.W);
+    public static Vector4<TNum> operator -(Vector4<TNum> vec)=>new(-vec.X,-vec.Y,-vec.Z,-vec.W);
     [Pure]
-    public static TNum operator *(in Vector4<TNum> left, in Vector4<TNum> right)
+    public static TNum operator *(Vector4<TNum> left, Vector4<TNum> right)
         => left.X * right.X + left.Y * right.Y + left.Z * right.Z + right.W * right.W;
 
     [Pure]
-    public static Vector4<TNum> operator *(in Vector4<TNum> vec, TNum scalar)
+    public static Vector4<TNum> operator *(Vector4<TNum> vec, TNum scalar)
         => new(x: vec.X * scalar, y: vec.Y * scalar, z: vec.Z * scalar, vec.W * scalar);
 
     [Pure]
-    public static Vector4<TNum> operator *(TNum scalar, in Vector4<TNum> vec)
+    public static Vector4<TNum> operator *(TNum scalar, Vector4<TNum> vec)
         => new(vec.X * scalar, vec.Y * scalar, vec.Z * scalar, vec.W * scalar);
 
     [Pure]
-    public static Vector4<TNum> operator /(in Vector4<TNum> vec, TNum divisor)
+    public static Vector4<TNum> operator /(Vector4<TNum> vec, TNum divisor)
         => vec * (TNum.One / divisor);
 
 
     [Pure, SuppressMessage("ReSharper", "CompareOfTNumsByEqualityOperator")]
-    public static bool operator ==(in Vector4<TNum> left, in Vector4<TNum> right)
+    public static bool operator ==(Vector4<TNum> left, Vector4<TNum> right)
         => left.X == right.X && left.Y == right.Y && left.Z == right.Z;
 
     [Pure, SuppressMessage("ReSharper", "CompareOfTNumsByEqualityOperator")]
-    public static bool operator !=(in Vector4<TNum> left, in Vector4<TNum> right)
+    public static bool operator !=(Vector4<TNum> left, Vector4<TNum> right)
         => left.X != right.X || left.Y != right.Y || left.Z != right.Z;
 
 
     #region functions
 
     [Pure]
-    public Vector4<TNum> Add(in Vector4<TNum> other)
+    public Vector4<TNum> Add(Vector4<TNum> other)
         => this + other;
 
     [Pure]
-    public Vector4<TNum> Subtract(in Vector4<TNum> other)
+    public Vector4<TNum> Subtract(Vector4<TNum> other)
         => this - other;
 
     [Pure]
-    public Vector4<TNum> Scale(in TNum scalar)
+    public Vector4<TNum> Scale(TNum scalar)
         => this * scalar;
 
     [Pure]
-    public Vector4<TNum> Divide(in TNum divisor)
+    public Vector4<TNum> Divide(TNum divisor)
         => this / divisor;
 
 
     [Pure]
-    public TNum Dot(in Vector4<TNum> other) => this * other;
+    public TNum Dot(Vector4<TNum> other) => this * other;
 
     [Pure]
-    public TNum Distance(in Vector4<TNum> other) => (this - other).Length;
+    public TNum Distance(Vector4<TNum> other) => (this - other).Length;
 
     
     [Pure]
-    public bool IsParallelTo(in Vector4<TNum> other, TNum tolerance) 
+    public bool IsParallelTo(Vector4<TNum> other, TNum tolerance) 
         => tolerance>=TNum.Abs(Normalized * other.Normalized);
 
     [Pure]
-    public bool IsParallelTo(in Vector4<TNum> other)
+    public bool IsParallelTo(Vector4<TNum> other)
         =>IsParallelTo(other, TNum.Epsilon);
     [Pure]
     public bool Equals(Vector4<TNum> other)
@@ -177,20 +179,22 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
 
     #endregion
 
-    public static Vector4<TNum> Lerp(in Vector4<TNum> from, in Vector4<TNum> to, TNum normalDistance)
+    public static Vector4<TNum> Lerp(Vector4<TNum> from, Vector4<TNum> to, TNum normalDistance)
         => (to - from) * normalDistance + from;
 
-    public static Vector4<TNum> SineLerp(in Vector4<TNum> from, in Vector4<TNum> to, TNum normalDistance)
+    public static Vector4<TNum> CosineLerp(Vector4<TNum> from, Vector4<TNum> to, TNum normalDistance)
     {
         var two = TNum.CreateTruncating(2);
         normalDistance = normalDistance.Wrap(TNum.Zero, two);
-        var sineDistance= TNum.Sin(normalDistance * TNum.Pi / two);
-        sineDistance = TNum.Clamp(sineDistance, TNum.Zero, TNum.One);
-        return Lerp(from, to, sineDistance);
+        var cosDistance = (-TNum.Cos(normalDistance * TNum.Pi) + TNum.One)/two;
+        return Lerp(from, to, cosDistance);
     }
 
 
     [SuppressMessage("ReSharper", "UseStringInterpolation")]
     public override string ToString()
         => string.Format("{{X:{0:F4} Y:{1:F4} Z:{2:F4} W:{3:F4}}}", X, Y, Z, W);
+    
+    public static bool IsNaN(Vector4<TNum> vec)
+        => TNum.IsNaN(vec.X)||TNum.IsNaN(vec.Y)||TNum.IsNaN(vec.Z)||TNum.IsNaN(vec.W);
 }

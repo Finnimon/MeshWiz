@@ -8,7 +8,7 @@ public interface ICamera
 {
     public Vector3<float> UnitUp { get; set; }
     public float FovRad { get; set; }
-    public void MoveToSides(float signedMovementScale);
+    public void MoveRight(float signedMovementScale);
     public void LookRight(float signedMovementScale);
     public void LookUp(float signedMovementScale);
     public void MoveForwards(float signedMovementScale);

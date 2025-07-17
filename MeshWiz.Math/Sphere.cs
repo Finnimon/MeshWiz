@@ -65,12 +65,13 @@ public readonly record struct Sphere<TNum>(Vector3<TNum> Centroid, TNum Radius)
                 var first = i * (slices + 1) + j;
                 var second = first + slices + 1;
 
-                // Two triangles per quad
-                tris[t++] = new Triangle3<TNum>(verts[first], verts[second], verts[first + 1]);
-                tris[t++] = new Triangle3<TNum>(verts[second], verts[second + 1], verts[first + 1]);
+                // Two triangles per quad with CCW winding
+                tris[t++] = new Triangle3<TNum>(verts[first], verts[first + 1], verts[second]);
+                tris[t++] = new Triangle3<TNum>(verts[second], verts[first + 1], verts[second + 1]);
             }
         }
 
         return tris;
     }
+
 }

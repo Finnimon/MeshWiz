@@ -22,6 +22,10 @@ public sealed record ShaderProgram(int Handle)
         Delete();
     }
     public int GetUniformLocation(string name) => GL.GetUniformLocation(Handle, name);
+    public int GetResourceLocation(string name,ProgramInterface programInterface=ProgramInterface.ShaderStorageBlock) 
+        => GL.GetProgramResourceLocation(Handle,programInterface,name);
+    public int GetResourceIndex(string name, ProgramInterface programInterface=ProgramInterface.ShaderStorageBlock)
+    =>GL.GetProgramResourceIndex(Handle, programInterface,name);
     public ShaderProgram SetUniform(string name,in Vector4 vec)
     {
         var loc = GetUniformLocation(name);

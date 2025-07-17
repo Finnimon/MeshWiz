@@ -1,9 +1,9 @@
 # Intro
-This entire repo is meant to provide various utilities around [Meshes](./MeshWiz.Math/Mesh3.cs).
+This entire repo is meant to provide various utilities around [Meshes](./MeshWiz.Math/IMesh3.cs).
 
 # Features
 ## Interface
-- [ ] Avalonia + OpenGL based GUI
+- [ ] Avalonia + OpenGL based 3d
   - [ ] 3d geometry
   - [ ] Slicing lines
   - [ ] Realtime slicing visualization
@@ -20,5 +20,21 @@ This entire repo is meant to provide various utilities around [Meshes](./MeshWiz
 - [ ] Planar Slicing
 - [ ] Non Planar Slicing
 - [ ] Flat segmentation slicing
-- [ ] Mesh generation (ie "meshwiz gen sphere --radius 1 --centroid 0 0 0")
+- [ ] Mesh generation (ie "meshwiz gen sphere --radius ~~~~1 --centroid 0 0 0")
 - [ ] geometry streaming from other services~~~~
+
+# Roadmap
+- [X] STL IO
+- [X] Experimental 3d viewer 
+- [ ] Mesh computation
+  - [X] Indexing
+  - [ ] **BVH** (CURRENT WIP)
+- [ ] CLI interface
+- [ ] Basic CAM
+  - [ ] Planar Slicing
+  - [ ] G-Code postprocessor
+  - [ ] Triangle flat packing (Assembling parts from flat cut triangles)
+- [ ] Other filetypes
+- [ ] GUI
+
+# Credits

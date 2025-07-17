@@ -85,12 +85,11 @@ public class LineView : IOpenGLControl
         OpenGLHelper.LogGlError(nameof(LineView),nameof(UpdateShader));
     }
 
-    private void RotateCamera() => Camera.MoveToSides(0.001f);
+    private void RotateCamera() => Camera.MoveRight(0.001f);
 
     private void UploadLine()
     {
         _newLine = false;
-        Camera.LookAt = PolyLine.Centroid;
         _vao!.Bind();
         _vbo?.Unbind();
         _vbo?.Dispose();

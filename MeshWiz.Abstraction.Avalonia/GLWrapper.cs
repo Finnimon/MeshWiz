@@ -8,11 +8,11 @@ public sealed class GLWrapper<TWrapped> : Control, IOpenGLControl
 where TWrapped : IOpenGLControl
 {
     [Content]
-    public required TWrapped Wrapped { get; init; }
-    public void Dispose() => Wrapped.Dispose();
-    public void Init() => Wrapped.Init();
-    public void Update(float aspectRatio) => Wrapped.Update(aspectRatio);
-    public void Render() => Wrapped.Render();
-    public bool GLInitialized=> Wrapped.GLInitialized;
+    public required TWrapped Unwrap { get; init; }
+    public void Dispose() => Unwrap.Dispose();
+    public void Init() => Unwrap.Init();
+    public void Update(float aspectRatio) => Unwrap.Update(aspectRatio);
+    public void Render() => Unwrap.Render();
+    public bool GLInitialized=> Unwrap.GLInitialized;
     
 }

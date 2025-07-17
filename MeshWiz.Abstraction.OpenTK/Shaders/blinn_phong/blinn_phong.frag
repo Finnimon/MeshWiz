@@ -1,4 +1,4 @@
-#version 330 core
+#version 430 core
 
 in vec3 fragNormal;
 in vec3 fragPos;
@@ -13,6 +13,8 @@ uniform vec3 viewPos;
 uniform float ambientStrength;
 uniform float specularStrength;
 uniform float shininess;
+
+
 
 void main()
 {

@@ -15,4 +15,8 @@ public static class OpenGLHelper
     public static int ByteSize<T>(T[] array)
         where T : unmanaged,IByteSize =>
         T.ByteSize*array.Length;
+    public static unsafe int UnsafeByteSize<T>(T[] array)
+        where T : unmanaged =>
+        sizeof(T)*array.Length;
+
 }

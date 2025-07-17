@@ -6,14 +6,55 @@
         xmlns:ava-abst="clr-namespace:MeshWiz.Abstraction.Avalonia;assembly=MeshWiz.Abstraction.Avalonia"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="MeshWiz.UI.Avalonia.MainWindow"
-        Title="MeshWiz.UI.Avalonia">
-        <ava-abst:OpenGLParent x:Name="GlParent">
-                <ava-abst:AvaloniaGLBackground Color="DarkSlateBlue"/>
-                <ava-abst:GLWrapper x:Name="LineViewWrapper0" x:TypeArguments="gl:LineView">
-                        <gl:LineView/>
-                </ava-abst:GLWrapper>
-                <ava-abst:GLWrapper x:Name="LineViewWrapper1" x:TypeArguments="gl:LineView">
-                        <gl:LineView LineWidth="2"/>
-                </ava-abst:GLWrapper>
-        </ava-abst:OpenGLParent>
+        Title="MeshWiz.UI.Avalonia" Focusable="true">
+        <DockPanel LastChildFill="True" Focusable="False">
+                <Menu DockPanel.Dock="Top">
+                        <MenuItem Header="_Load Mesh" Click="LoadMesh"/>
+                        <MenuItem Header="_Render Mode">
+                                <MenuItem Header="Wireframe" x:Name="Wireframe" Click="SetRenderMode"/>
+                                <MenuItem Header="Solid" x:Name="Solid" Click="SetRenderMode"/>
+                                <MenuItem Header="WireframedSolid" x:Name="WireframedSolid" Click="SetRenderMode"/>
+                        </MenuItem>
+                        <MenuItem Header="_Export">
+                                <MenuItem Header="STL">
+                                        <MenuItem Header="BINARY" Click="ExportBinary"/>
+                                        <MenuItem Header="ASCII" Click="ExportAscii"/>
+                                </MenuItem>
+                        </MenuItem>
+                        <MenuItem Header="_Color Settings">
+                                <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto">
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Background" VerticalAlignment="Center"/>
+                                        <ColorPicker Grid.Row="0" Grid.Column="1" x:Name="BackgroundColorPicker"
+                                                     VerticalAlignment="Center" ColorChanged="ColorSettingsChanged"/>
+
+                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Wireframe" VerticalAlignment="Center"/>
+                                        <ColorPicker Grid.Row="1" Grid.Column="1" x:Name="WireframeColorPicker"
+                                                     VerticalAlignment="Center" ColorChanged="ColorSettingsChanged"/>
+
+                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Solid" VerticalAlignment="Center"/>
+                                        <ColorPicker Grid.Row="2" Grid.Column="1" x:Name="SolidColorPicker"
+                                                     VerticalAlignment="Center" ColorChanged="ColorSettingsChanged"/>
+                                </Grid>
+                        </MenuItem>
+                </Menu>
+                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="50">
+                        <TextBlock x:Name="CentroidBlock"/>
+                        <TextBlock x:Name="VolumeBlock"/>
+                        <TextBlock x:Name="SurfBlock"/>
+                </StackPanel>
+                <ava-abst:OpenGLParent x:Name="GlParent" Focusable="False" DockPanel.Dock="Top">
+                        <ava-abst:GLWrapper x:TypeArguments="gl:ColorChangingBackground" x:Name="BgWrapper">
+                                <gl:ColorChangingBackground/>
+                        </ava-abst:GLWrapper>
+                        <ava-abst:GLWrapper x:Name="MeshViewWrap" x:TypeArguments="gl:HarshMeshView">
+                                <gl:HarshMeshView RenderModeFlags="Solid"/>
+                        </ava-abst:GLWrapper>
+                        <ava-abst:GLWrapper x:Name="BBoxWrap" x:TypeArguments="gl:BBoxView">
+                                <gl:BBoxView/>
+                        </ava-abst:GLWrapper>
+                        <ava-abst:GLWrapper x:Name="LineViewWrapper" x:TypeArguments="gl:LineView">
+                                <gl:LineView LineWidth="2"/>
+                        </ava-abst:GLWrapper>
+                </ava-abst:OpenGLParent>
+        </DockPanel>
 </Window>

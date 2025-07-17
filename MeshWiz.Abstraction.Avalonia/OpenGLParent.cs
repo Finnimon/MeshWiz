@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Specialized;
+using System.Diagnostics;
 using Avalonia;
 using Avalonia.Collections;
 using Avalonia.Controls;
@@ -8,6 +9,7 @@ using Avalonia.OpenGL.Controls;
 using Avalonia.Threading;
 using MeshWiz.Abstraction.OpenTK;
 using MeshWiz.Math;
+using MeshWiz.Utility.Extensions;
 using OpenTK.Graphics.OpenGL;
 
 namespace MeshWiz.Abstraction.Avalonia;
@@ -18,11 +20,20 @@ public sealed class OpenGLParent : OpenGlControlBase, IDisposable
     private double RenderScale => _renderScale ??= (TopLevel.GetTopLevel(this)?.RenderScaling ?? 1);
     private double? _renderScale;
     private AvaloniaGLContext? _context;
+    private bool _disposed = false;
     public float Fps { get; private set; }
 
     public OpenGLParent()
     {
         Children = [];
+        Children.CollectionChanged += ChildrenChangeHandler;
+    }
+
+    private void ChildrenChangeHandler(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if(e.Action is NotifyCollectionChangedAction.Add or NotifyCollectionChangedAction.Move)
+            return;
+        e.OldItems?.OfType<IDisposable>().ForEach(dispo => dispo.Dispose());
     }
 
 
@@ -30,6 +41,11 @@ public sealed class OpenGLParent : OpenGlControlBase, IDisposable
     {
         _context = new AvaloniaGLContext(gl);
         GL.LoadBindings(_context);
+        Console.WriteLine("GL Version: " + GL.GetString(StringName.Version));
+        Console.WriteLine("GLSL Version: " + GL.GetString(StringName.ShadingLanguageVersion));
+        Console.WriteLine("GL Renderer: " + GL.GetString(StringName.Renderer));
+        Console.WriteLine("GL Vendor: " + GL.GetString(StringName.Vendor));
+
     }
     private readonly Stopwatch _sw=Stopwatch.StartNew();
     private const int TickerMax = 30;
@@ -47,14 +63,13 @@ public sealed class OpenGLParent : OpenGlControlBase, IDisposable
     {
         _millis+= _sw.ElapsedMilliseconds;
         _sw.Restart();
-        
-        if(_ticker==0)
-        {
-            Fps = ((float)TickerMax) / _millis * 1000;
-            _millis = 0;
-            _ticker = TickerMax;
-        }
         _ticker--;
+
+        if (_ticker >= 0) return;
+        Fps = ((float)TickerMax) / _millis * 1000;
+        _millis = 0;
+        _ticker = TickerMax;
+        Console.WriteLine(Fps);
     }
 
     private (bool visible, float aspectratio) UpdateViewport()
@@ -66,30 +81,27 @@ public sealed class OpenGLParent : OpenGlControlBase, IDisposable
 
     private void RenderChildren(float aspectRatio)
     {
-        int childIdx = 0;
+        GL.Enable(EnableCap.DepthTest);
         foreach (var child in Children)
         {
-            if (!child.GLInitialized)
-            {
-                child.Init();
-            }
+            if (!child.GLInitialized) child.Init();
             child.Update(aspectRatio);
             child.Render();
         }
+        GL.Disable(EnableCap.DepthTest);
     }
+    
+    
 
-    protected override void OnOpenGlDeinit(GlInterface gl)
-    {
-        Dispose();
-    }
+    protected override void OnOpenGlDeinit(GlInterface gl) => Dispose();
 
-    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        Dispose();
-    }
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e) => Dispose();
 
     public void Dispose()
     {
         foreach (var openGLControl in Children) openGLControl.Dispose();
+        if (_disposed) return;
+        _disposed = true;
+        _context?.AvaloniaInterface.Finish();
     }
 }

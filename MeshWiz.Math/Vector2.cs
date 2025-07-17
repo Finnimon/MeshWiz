@@ -46,43 +46,43 @@ public readonly struct Vector2<TNum> : IVector2<Vector2<TNum>, TNum>
     #region operators
 
     [Pure]
-    public static Vector2<TNum> operator +(in Vector2<TNum> left, in Vector2<TNum> right)
+    public static Vector2<TNum> operator +(Vector2<TNum> left, Vector2<TNum> right)
         => new(left.X + right.X, left.Y + right.Y);
 
     [Pure]
-    public static Vector2<TNum> operator -(in Vector2<TNum> left, in Vector2<TNum> right)
+    public static Vector2<TNum> operator -(Vector2<TNum> left, Vector2<TNum> right)
         => new(left.X - right.X, left.Y - right.Y);
 
     [Pure]
-    public static Vector2<TNum> operator -(in Vector2<TNum> vec) => new(-vec.X, -vec.Y);
+    public static Vector2<TNum> operator -(Vector2<TNum> vec) => new(-vec.X, -vec.Y);
 
     [Pure]
-    public static TNum operator *(in Vector2<TNum> left, in Vector2<TNum> right)
+    public static TNum operator *(Vector2<TNum> left, Vector2<TNum> right)
         => left.X * right.X + left.Y * right.Y;
 
     [Pure]
-    public static Vector2<TNum> operator *(in Vector2<TNum> vec, TNum scalar)
+    public static Vector2<TNum> operator *(Vector2<TNum> vec, TNum scalar)
         => new(x: vec.X * scalar, y: vec.Y * scalar);
 
     [Pure]
-    public static Vector2<TNum> operator *(TNum scalar, in Vector2<TNum> vec)
+    public static Vector2<TNum> operator *(TNum scalar, Vector2<TNum> vec)
         => new(vec.X * scalar, vec.Y * scalar);
 
     [Pure]
-    public static Vector2<TNum> operator /(in Vector2<TNum> vec, TNum divisor)
+    public static Vector2<TNum> operator /(Vector2<TNum> vec, TNum divisor)
         => vec * (TNum.One / divisor);
 
 
     [Pure]
-    public static TNum operator ^(in Vector2<TNum> left, in Vector2<TNum> right)
+    public static TNum operator ^(Vector2<TNum> left, Vector2<TNum> right)
         => left.X * right.Y - left.Y * right.X;
 
     [Pure, SuppressMessage("ReSharper", "CompareOfTNumsByEqualityOperator")]
-    public static bool operator ==(in Vector2<TNum> left, in Vector2<TNum> right)
+    public static bool operator ==(Vector2<TNum> left, Vector2<TNum> right)
         => left.X == right.X && left.Y == right.Y;
 
     [Pure, SuppressMessage("ReSharper", "CompareOfTNumsByEqualityOperator")]
-    public static bool operator !=(in Vector2<TNum> left, in Vector2<TNum> right)
+    public static bool operator !=(Vector2<TNum> left, Vector2<TNum> right)
         => left.X != right.X || left.Y != right.Y;
 
     #endregion
@@ -90,40 +90,40 @@ public readonly struct Vector2<TNum> : IVector2<Vector2<TNum>, TNum>
     #region functions
 
     [Pure]
-    public Vector2<TNum> Add(in Vector2<TNum> other)
+    public Vector2<TNum> Add(Vector2<TNum> other)
         => this + other;
 
     [Pure]
-    public Vector2<TNum> Subtract(in Vector2<TNum> other)
+    public Vector2<TNum> Subtract(Vector2<TNum> other)
         => this - other;
 
     [Pure]
-    public Vector2<TNum> Scale(in TNum scalar)
+    public Vector2<TNum> Scale(TNum scalar)
         => this * scalar;
 
     [Pure]
-    public Vector2<TNum> Divide(in TNum divisor)
+    public Vector2<TNum> Divide(TNum divisor)
         => this / divisor;
 
 
     [Pure]
-    public TNum Dot(in Vector2<TNum> other) => this * other;
+    public TNum Dot(Vector2<TNum> other) => this * other;
 
     [Pure]
-    public TNum Distance(in Vector2<TNum> other) => (this - other).Length;
+    public TNum Distance(Vector2<TNum> other) => (this - other).Length;
 
     [Pure]
-    public TNum Cross(in Vector2<TNum> other) => this ^ other;
+    public TNum Cross(Vector2<TNum> other) => this ^ other;
 
     [Pure]
-    public int CrossSign(in Vector2<TNum> other) => TNum.Sign(Cross(in other));
+    public int CrossSign(Vector2<TNum> other) => TNum.Sign(Cross(other));
     
     [Pure]
-    public bool IsParallelTo(in Vector2<TNum> other, TNum tolerance) 
+    public bool IsParallelTo(Vector2<TNum> other, TNum tolerance) 
         => tolerance>=TNum.Abs(Normalized * other.Normalized);
 
     [Pure]
-    public bool IsParallelTo(in Vector2<TNum> other)
+    public bool IsParallelTo(Vector2<TNum> other)
     =>IsParallelTo(other, TNum.Epsilon);
 
     #endregion
@@ -197,10 +197,10 @@ public readonly struct Vector2<TNum> : IVector2<Vector2<TNum>, TNum>
         x = X;
         y = Y;
     }
-    public static Vector2<TNum> Lerp(in Vector2<TNum> from, in Vector2<TNum> to, TNum normalDistance)
+    public static Vector2<TNum> Lerp(Vector2<TNum> from, Vector2<TNum> to, TNum normalDistance)
     =>(to-from)*normalDistance+from;
     
-    public static Vector2<TNum> SineLerp(in Vector2<TNum> from, in Vector2<TNum> to, TNum normalDistance)
+    public static Vector2<TNum> SineLerp(Vector2<TNum> from, Vector2<TNum> to, TNum normalDistance)
     {
         var two = TNum.CreateTruncating(2);
         normalDistance = normalDistance.Wrap(TNum.Zero, two);
@@ -212,4 +212,7 @@ public readonly struct Vector2<TNum> : IVector2<Vector2<TNum>, TNum>
     [SuppressMessage("ReSharper", "UseStringInterpolation")]
     public override string ToString()
         => string.Format("{{X:{0:F3} Y:{1:F3}}}", X, Y);
+    
+    public static bool IsNaN(Vector2<TNum> vec)
+        => TNum.IsNaN(vec.X)&&TNum.IsNaN(vec.Y);
 }

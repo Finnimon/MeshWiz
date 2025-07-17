@@ -13,4 +13,7 @@ public interface IMesh3<TNum> : IReadOnlyList<Triangle3<TNum>>, IBody<TNum>, IFa
 
     public IndexedMesh3<TNum> Indexed()=>new(this);
     IFace<Vector3<TNum>, TNum> IBody<TNum>.Surface => this;
+    TNum IFace<Vector3<TNum>,TNum>.SurfaceArea => ((IBody<TNum>)this).SurfaceArea;
+
+    public void InitializeLazies();
 }

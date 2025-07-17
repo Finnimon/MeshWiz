@@ -24,9 +24,9 @@ public sealed record BufferObject(int Handle, BufferTarget Target)
     }
 
     public BufferObject BufferData<T>(T[] data,BufferUsageHint usage)
-    where T : unmanaged,IByteSize
+    where T : unmanaged
     {
-        GL.BufferData(Target, OpenGLHelper.ByteSize(data), data, usage);
+        GL.BufferData(Target, OpenGLHelper.UnsafeByteSize(data), data, usage);
         return this;
     }
 }

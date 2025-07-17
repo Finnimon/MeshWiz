@@ -51,7 +51,7 @@ public class OrbitCamera(float fovRad, Vector3<float> orbitAround, float distanc
     }
 
 
-    public void MoveToSides(float signedMovementScale) => AzimuthRad += signedMovementScale;
+    public void MoveRight(float signedMovementScale) => AzimuthRad += signedMovementScale;
     public void LookRight(float signedMovementScale) => LookAt+=UnitRight()*signedMovementScale;
 
     public void LookUp(float signedMovementScale)
@@ -66,7 +66,7 @@ public class OrbitCamera(float fovRad, Vector3<float> orbitAround, float distanc
     {
         var model = Matrix4.Identity;
         var view = Matrix4.LookAt(GetPosition().ToOpenTK(), LookAt.ToOpenTK(), UnitUp.ToOpenTK());
-        var projection = Matrix4.CreatePerspectiveFieldOfView(FovRad, aspect, 0.001f, Distance*4);
+        var projection = Matrix4.CreatePerspectiveFieldOfView(FovRad, aspect, 0.001f, Distance*1000);
         return (model, view, projection);
     }
 

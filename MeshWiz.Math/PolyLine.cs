@@ -62,7 +62,7 @@ public sealed record PolyLine<TVector, TNum>(TVector[] Points)
             for (var i = 1; i < Count; i++)
             {
                 var current = Points[i];
-                length += start.Distance(in current);
+                length += start.Distance(current);
                 start = current;
             }
 

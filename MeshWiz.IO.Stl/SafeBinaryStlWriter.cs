@@ -14,17 +14,16 @@ public sealed class SafeBinaryStlWriter<TNum>
     private static readonly byte[] AttribByteCount = [0,0];
   
 
-    public static void Write(Mesh3<TNum> mesh, Stream stream, bool leaveOpen = false)
+    public static void Write(IMesh3<TNum> mesh, Stream stream, bool leaveOpen = false)
     {
         try
         {
             stream.Write(Encoding.ASCII.GetBytes(HeaderString), 0, HeaderString.Length);
-            var facets = mesh.TessellatedSurface;
-            var facetCount = BitConverter.GetBytes((uint)facets.LongLength);
+            var facetCount = BitConverter.GetBytes((uint)mesh.Count);
             stream.Write(facetCount, 0, facetCount.Length);
-            for (var i = 0; i < facets.Length; i++)
+            for (var i = 0; i < mesh.Count; i++)
             {
-                ref var facet= ref facets[i];
+                var facet = mesh[i];
                 var n = FromOtherNumType(facet.Normal);
                 stream.Write(n.ToByteSpan());
                 var vec = FromOtherNumType(facet.A);

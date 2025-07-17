@@ -7,16 +7,15 @@ public class AsciiStlWriter<TNum>
     : IMeshWriter<TNum> 
     where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
 {
-    public static void Write(Mesh3<TNum> mesh, Stream stream, bool leaveOpen = false)
+    public static void Write(IMesh3<TNum> mesh, Stream stream, bool leaveOpen = false)
     {
         try
         {
-            var headerString = $"solid ascii-stl facet-count={mesh.TessellatedSurface.LongLength}";
+            var headerString = $"solid ascii-stl facet-count={mesh.Count}";
             using var writer = new StreamWriter(stream, leaveOpen: leaveOpen);
-            var facets = mesh.TessellatedSurface;
             writer.WriteLine(headerString);
-            for (var i = 0; i <facets.LongLength; i++) 
-                writer.Write(FormatFacetAscii(in facets[i]));
+            for (var i = 0; i <mesh.Count; i++) 
+                writer.Write(FormatFacetAscii( mesh[i]));
             writer.WriteLine("endsolid ascii-stl");
         }
         finally
@@ -26,7 +25,7 @@ public class AsciiStlWriter<TNum>
     }
     
     
-    private static string FormatFacetAscii(in Triangle3<TNum> facet)
+    private static string FormatFacetAscii(Triangle3<TNum> facet)
     {
         var normal = facet.Normal;
         var (a,b,c)=facet;

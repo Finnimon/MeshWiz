@@ -25,35 +25,35 @@ public interface IVector<TSelf, TNum>
     [Pure] TSelf Normalized => this.Divide(Length);
 
     [Pure]
-    TSelf Add(in TSelf other);
+    TSelf Add(TSelf other);
 
     [Pure]
-    TSelf Subtract(in TSelf other) => this.Add(other.Scale(-TNum.One));
+    TSelf Subtract(TSelf other) => this.Add(other.Scale(-TNum.One));
 
     [Pure]
-    TSelf Scale(in TNum scalar);
+    TSelf Scale(TNum scalar);
 
     [Pure]
-    TSelf Divide(in TNum divisor) => Scale(TNum.One / divisor);
+    TSelf Divide(TNum divisor) => Scale(TNum.One / divisor);
 
     [Pure]
-    TNum Dot(in TSelf other);
+    TNum Dot(TSelf other);
 
     [Pure]
-    TNum Distance(in TSelf other) => Subtract(in other).Length;
+    TNum Distance(TSelf other) => Subtract(other).Length;
 
-    static virtual TSelf operator +(in TSelf left, in TSelf right) => left.Add(right);
-    static virtual TSelf operator -(in TSelf left, in TSelf right) => left.Subtract(right);
-    static virtual TNum operator *(in TSelf left, in TSelf right) => left.Dot(right);
-    static virtual TSelf operator *(in TNum scalar, in TSelf vector) => vector.Scale(scalar);
-    static virtual TSelf operator *(in TSelf vector, in TNum scalar) => vector.Scale(scalar);
-    static virtual TSelf operator /(in TSelf vector, in TNum divisor) => vector.Divide(divisor);
-    static virtual bool operator ==(in TSelf vector, in TSelf divisor) => vector.Equals(divisor);
-    static virtual bool operator !=(in TSelf vector, in TSelf divisor) => !vector.Equals(divisor);
-    static virtual TSelf operator -(in TSelf vector) => vector.Scale(-TNum.One);
-    static virtual TSelf Lerp(in TSelf from, in TSelf to, TNum normalDistance)
+    static virtual TSelf operator +(TSelf left, TSelf right) => left.Add(right);
+    static virtual TSelf operator -(TSelf left, TSelf right) => left.Subtract(right);
+    static virtual TNum operator *(TSelf left, TSelf right) => left.Dot(right);
+    static virtual TSelf operator *(TNum scalar, TSelf vector) => vector.Scale(scalar);
+    static virtual TSelf operator *(TSelf vector, TNum scalar) => vector.Scale(scalar);
+    static virtual TSelf operator /(TSelf vector, TNum divisor) => vector.Divide(divisor);
+    static virtual bool operator ==(TSelf vector, TSelf divisor) => vector.Equals(divisor);
+    static virtual bool operator !=(TSelf vector, TSelf divisor) => !vector.Equals(divisor);
+    static virtual TSelf operator -(TSelf vector) => vector.Scale(-TNum.One);
+    static virtual TSelf Lerp(TSelf from, TSelf to, TNum normalDistance)
     =>(to-from)*normalDistance+from;
 
-    bool IsParallelTo(in TSelf other);
-    bool IsParallelTo(in TSelf other, TNum tolerance);
+    bool IsParallelTo(TSelf other);
+    bool IsParallelTo(TSelf other, TNum tolerance);
 }
