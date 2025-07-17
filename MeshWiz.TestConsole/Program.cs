@@ -8,7 +8,6 @@ using MeshWiz.Slicer;
 using MeshWiz.TestConsole;
 using OpenTK.Graphics.OpenGL;
 
-var mesh= IMeshReader<float>.ReadFile<FastStlReader>("/home/finnimon/source/repos/TestFiles/artillery-witch.stl").Indexed();
-var sw = Stopwatch.StartNew();
-Console.WriteLine(MeshSplitter.Split(mesh).Length);
-Console.WriteLine(sw.Elapsed);
+var mesh= new Mesh3<double>(new Sphere<double>(Vector3<double>.Zero,1d).TessellatedSurface);
+
+var bvh=new BvhMesh3<double>(mesh);

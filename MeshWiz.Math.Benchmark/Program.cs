@@ -1,5 +1,5 @@
 ﻿using BenchmarkDotNet.Running;
 using MeshWiz.Math.Benchmark;
 
-BenchmarkRunner.Run<VectorByRefBench<float>>();
-BenchmarkRunner.Run<VectorByRefBench<double>>();
+BenchmarkRunner.Run<BvhMesh3Bench<float>>();
+BenchmarkRunner.Run<BvhMesh3Bench<double>>();

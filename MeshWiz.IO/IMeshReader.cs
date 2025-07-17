@@ -4,7 +4,7 @@ using MeshWiz.Math;
 namespace MeshWiz.IO;
 
 public interface IMeshReader<TNum>
-where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
+where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     static abstract Mesh3<TNum> Read(Stream stream, bool leaveOpen = false);
     static Mesh3<TNum> ReadFile<TMeshReader>(string filepath)

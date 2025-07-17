@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using MeshWiz.Math;
 using MeshWiz.Utility.Extensions;
 
@@ -222,7 +223,6 @@ public static class MeshMath
         return index;
     }
 
-
     public  static BoundedVolumeList<TNum> Hierarchize<TNum>(
         TriangleIndexer[] indices, 
         Vector3<TNum>[] vertices,
@@ -239,20 +239,22 @@ public static class MeshMath
             ref var parent = ref hierarchy[parentIndex];
             var parentCost = parent.Cost;
             var (axis, level, cost, bboxLeft, bboxRight) = ChooseSplit(parent, indices, vertices);
-            if (cost > parentCost) continue;
-
+            if (parentCost<cost) continue;
+            
             
             comparer.Axis = axis;
 
             Array.Sort(indices, parent.Start, parent.Length, comparer);
             var leftChildLength = 0;
-            for (var i = 0; i < indices.Length; i++)
+            for (var i = parent.Start; i <parent.End; i++)
             {
                 var triLevel = indices[i].Extract(vertices).Centroid[axis];
                 if (triLevel > level) break;
                 leftChildLength++;
             }
 
+            if (leftChildLength >= parent.Length || leftChildLength <= 0) continue;
+            
             BoundedVolume<TNum> leftChild = new(bboxLeft, parent.Start, leftChildLength);
             BoundedVolume<TNum> rightChild = new(bboxRight, leftChild.End, parent.Length - leftChildLength);
             var leftIndex= (parent.FirstChild = hierarchy.Add(leftChild));
@@ -287,7 +289,7 @@ public static class MeshMath
         BoundedVolume<TNum> toSplit,
         TriangleIndexer[] indices, 
         Vector3<TNum>[] vertices,
-        uint splitTests=5)
+        uint splitTests=4)
     where TNum:unmanaged,IFloatingPointIeee754<TNum>
     {
         var triCount = toSplit.Length;
@@ -302,7 +304,7 @@ public static class MeshMath
             {
                 var splitT=TNum.CreateTruncating(i+1) / TNum.CreateTruncating(splitTests + 1);
                 var splitPos=Vector3<TNum>.Lerp(parentBounds.Min, parentBounds.Max, splitT);
-                for (var axis = 0; axis <= Vector3<TNum>.Dimensions; axis++)
+                for (var axis = 0; axis < Vector3<TNum>.Dimensions; axis++)
                 {
                     var (cost,bbLeft,bbRight)= EvalSplit(toSplit,axis,splitPos[axis],indices,vertices);
                     if(cost>=bestCost) continue;
@@ -344,7 +346,7 @@ public static class MeshMath
                 numRight++;
             }
         }
-        
+        if(numLeft==0||numRight==0) return (TNum.PositiveInfinity,boundsLeft,boundsRight);
         var leftCost=BoundedVolume<TNum>.NodeCost(boundsLeft.Size, numLeft);
         var rightCost=BoundedVolume<TNum>.NodeCost(boundsRight.Size, numRight);
         return (leftCost + rightCost, boundsLeft, boundsRight);

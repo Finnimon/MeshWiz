@@ -40,7 +40,6 @@ public sealed class BoundedVolumeList<TNum>
 
     public ref BoundedVolume<TNum> this[int index]
     {
-        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         get
         {
             if (index.InsideInclusiveRange(0, Count - 1)) return ref Nodes[index];

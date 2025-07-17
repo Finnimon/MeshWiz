@@ -38,3 +38,9 @@ This entire repo is meant to provide various utilities around [Meshes](./MeshWiz
 - [ ] GUI
 
 # Credits
+I was greatly inspired by the following: 
+- [Sam Byass' OpenTKAvalonia](https://github.com/SamboyCoding/OpenTKAvalonia) for my [OpenGLParent](./MeshWiz.Abstraction.Avalonia/OpenGLParent.cs) and [GLWrapper](./MeshWiz.Abstraction.Avalonia/GLWrapper.cs).
+  I however decided to create them as reusable sealed Components for wrapping other [OpenGL abstractions](./MeshWiz.Abstraction.OpenTK/IOpenGLControl.cs).
+- [Sebastian Lague's BVH Mesh](https://github.com/SebLague/Ray-Tracing/blob/main/Assets/Scripts/BVH.cs) 
+  for my own [BvhMesh3](./MeshWiz.Math/BvhMesh3.cs) and all related components. 
+  I However decided to place all the logic in a [Static Computer](./MeshWiz.Math/MeshMath.cs) for all things mesh.

@@ -6,7 +6,7 @@ namespace MeshWiz.Math;
 
 public readonly record struct Sphere<TNum>(Vector3<TNum> Centroid, TNum Radius)
     : IBody<TNum>, IFace<Vector3<TNum>, TNum>
-    where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
+    where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public TNum Volume
         => TNum.CreateChecked(4) * TNum.Pi * Radius * Radius * Radius / TNum.CreateChecked(3);

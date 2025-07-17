@@ -6,12 +6,14 @@ namespace MeshWiz.IO.Stl.Benchmark;
 
 public class StlReaderBenchmark
 {
-    private static string StlPath(string name)
+    public static string StlPath(string name)
     {
         var basePath = Path.GetDirectoryName(WhereAmI())!;
         return Path.Combine(basePath, "Assets",name);
-        static string WhereAmI([CallerFilePath] string callerFilePath = "") => callerFilePath;
     }
+
+    public static string WhereAmI([CallerFilePath] string callerFilePath = "") => callerFilePath;
+
     [Benchmark]
     public Mesh3<float> FastStlReaderSmallBenchmark()
         => IMeshReader<float>.ReadFile<FastStlReader>(StlPath("cube-binary.stl"));
