@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace MeshWiz.Math;
@@ -18,9 +19,12 @@ public readonly struct Ray3<TNum>
         Direction = direction.Normalized;
     }
     
-    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector3<TNum> Traverse(TNum distance)
         =>Origin+Direction*distance;
+    
+    public static Vector3<TNum> operator *(in Ray3<TNum> ray, TNum distance)=>ray.Traverse(distance); 
+    public static Vector3<TNum> operator *(TNum distance,in Ray3<TNum> ray)=>ray.Traverse(distance); 
     
 
     public bool HitTest(Plane3<TNum> plane)

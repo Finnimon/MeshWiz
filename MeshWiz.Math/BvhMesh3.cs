@@ -31,10 +31,10 @@ public class BvhMesh3<TNum> : IIndexedMesh3<TNum>
     public Triangle3<TNum> this[int index] => Indices[index].Extract(Vertices);
     private readonly BoundedVolumeHierarchy<TNum> _hierarchy;
 
-    public BvhMesh3(IReadOnlyList<Triangle3<TNum>> mesh, uint maxDepth=32)
+    public BvhMesh3(IReadOnlyList<Triangle3<TNum>> mesh, uint maxDepth=32,uint splitTests=4)
     {
         (Indices, Vertices) = MeshMath.Indicate(mesh);
-        _hierarchy = MeshMath.Hierarchize(Indices, Vertices,maxDepth);
+        _hierarchy = MeshMath.Hierarchize(Indices, Vertices,maxDepth,splitTests);
         BBox = _hierarchy[0].Bounds;
     }
     
@@ -77,7 +77,6 @@ public class BvhMesh3<TNum> : IIndexedMesh3<TNum>
                 result = TNum.Min(triResult, result);
             }
         }
-
         return result < TNum.PositiveInfinity;
     }
     

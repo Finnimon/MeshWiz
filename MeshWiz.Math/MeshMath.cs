@@ -226,9 +226,11 @@ public static class MeshMath
     public static BoundedVolumeHierarchy<TNum> Hierarchize<TNum>(
         TriangleIndexer[] indices,
         Vector3<TNum>[] vertices,
-        uint maxDepth = 32)
+        uint maxDepth = 32,
+        uint splitTests=4)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
+        splitTests = uint.Clamp(splitTests, 2, 10);
         Vec3Comparer<TNum> comparer = new(vertices);
         BoundedVolumeHierarchy<TNum> hierarchy = [new(BBox(vertices), 0, indices.Length)];
         Stack<(int parentIndex, uint depth)> recursiveStack = new((int)maxDepth);
@@ -238,8 +240,9 @@ public static class MeshMath
             var (parentIndex, depth) = job;
             if (depth > maxDepth) continue;
             ref var parent = ref hierarchy[parentIndex];
+            if(parent.Length<2)  continue;
             var parentCost = parent.Cost;
-            var (axis, level, cost, bboxLeft, bboxRight) = ChooseSplit(parent, indices, vertices);
+            var (axis, level, cost, bboxLeft, bboxRight) = ChooseSplit(parent, indices, vertices,splitTests);
             if (parentCost <= cost) continue;
 
 
@@ -256,7 +259,7 @@ public static class MeshMath
                 leftChildLength++;
             }
 
-            if (leftChildLength >= parent.Length || leftChildLength <= 0) continue;
+            if (leftChildLength.OutsideInclusiveRange(0,parent.Length-1)) continue;
 
             BoundedVolume<TNum> leftChild = new(bboxLeft, parent.Start, leftChildLength);
             BoundedVolume<TNum> rightChild = new(bboxRight, leftChild.End, parent.Length - leftChildLength);
@@ -289,24 +292,38 @@ public static class MeshMath
             in BoundedVolume<TNum> toSplit,
             TriangleIndexer[] indices,
             Vector3<TNum>[] vertices,
-            uint splitTests = 4)
+            uint splitTests)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
-        var triCount = toSplit.Length;
-        BBox3<TNum> leftBounds = BBox3<TNum>.NegativeInfinity;
-        BBox3<TNum> rightBounds = BBox3<TNum>.NegativeInfinity;
+        var leftBounds = BBox3<TNum>.NegativeInfinity;
+        var rightBounds = BBox3<TNum>.NegativeInfinity;
+        
         var bestCost = TNum.PositiveInfinity;
         var bestSplitAxis = -1;
         var bestLevel = TNum.NaN;
-        if (triCount <= 1) return (bestSplitAxis, bestLevel, bestCost, leftBounds, rightBounds);
-        var parentBounds = toSplit.Bounds;
+        
+        if (toSplit.Length <= 1) return (bestSplitAxis, bestLevel, bestCost, leftBounds, rightBounds);
+        
+        var parentMin = toSplit.Bounds.Min;
+        var parentMax=toSplit.Bounds.Max;
+        var parentStart=toSplit.Start;
+        var parentLength = toSplit.Length;
+        var centroids=new Vector3<TNum>[parentLength];
+        var bounds=new BBox3<TNum>[parentLength];
+        for(var i=0; i<parentLength; i++)
+        {
+            var tri = indices[i+parentStart].Extract(vertices);
+            centroids[i] = tri.Centroid;
+            bounds[i] = tri.BBox;
+        }
+        
         for (var i = 0; i < splitTests; i++)
         {
             var splitT = TNum.CreateTruncating(i + 1) / TNum.CreateTruncating(splitTests + 1);
-            var splitPos = Vector3<TNum>.Lerp(parentBounds.Min, parentBounds.Max, splitT);
+            var splitPos = Vector3<TNum>.Lerp(parentMin, parentMax, splitT);
             for (var axis = 0; axis < Vector3<TNum>.Dimensions; axis++)
             {
-                var (cost, bbLeft, bbRight) = EvalSplit(toSplit, axis, splitPos[axis], indices,vertices);
+                var (cost, bbLeft, bbRight) = EvalSplit(axis, splitPos[axis], centroids,bounds);
                 if (cost >= bestCost) continue;
                 bestCost = cost;
                 bestSplitAxis = axis;
@@ -320,32 +337,27 @@ public static class MeshMath
     }
 
     private static (TNum cost, BBox3<TNum> boundsLeft, BBox3<TNum> boundsRight) EvalSplit<TNum>(
-        in BoundedVolume<TNum> parent,
         int axis,
         TNum splitSuggest,
-        TriangleIndexer[] indices,
-        Vector3<TNum>[] vertices
-            )
+        Vector3<TNum>[] centroids,
+        BBox3<TNum>[] bounds)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         BBox3<TNum> boundsLeft = BBox3<TNum>.NegativeInfinity;
         BBox3<TNum> boundsRight = BBox3<TNum>.NegativeInfinity;
         var numLeft = 0;
         var numRight = 0;
-        var end = parent.End;
-        splitSuggest *= TNum.CreateTruncating(3);
-        for (var i = parent.Start; i < end; i++)
+        for (var i = 0; i < centroids.Length; i++)
         {
-            var (a,b,c)=indices[i].Extract(vertices);
-            var isLeft = splitSuggest>(a[axis] + b[axis] + c[axis]);
+            var isLeft = splitSuggest>(centroids[i][axis]);
             if (isLeft)
             {
-                boundsLeft = boundsLeft.CombineWith(a).CombineWith(b).CombineWith(c);
+                boundsLeft = boundsLeft.CombineWith(bounds[i]);
                 numLeft++;
             }
             else
             {
-                boundsRight = boundsRight.CombineWith(a).CombineWith(b).CombineWith(c);
+                boundsRight = boundsRight.CombineWith(bounds[i]);
                 numRight++;
             }
         }

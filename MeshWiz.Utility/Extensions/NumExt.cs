@@ -14,7 +14,7 @@ public static class NumExt
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool OutsideInclusiveRange<TNum>(this TNum value, TNum min, TNum max)
         where TNum: IBinaryInteger<TNum>,IUnsignedNumber<TNum>
-        => value-min<=max-min;
+        => value-min>max-min;
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

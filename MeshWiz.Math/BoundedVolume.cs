@@ -30,7 +30,7 @@ public struct BoundedVolume<TNum>
 
     public TNum Cost=>Bounds.Size.SquaredLength*TNum.CreateTruncating(Length);
     public int End => Start + Length;
-
+    
     public static TNum NodeCost(BBox3<TNum> bounds, int triCount)
         =>bounds.Size.SquaredLength*TNum.CreateTruncating(triCount);
 
