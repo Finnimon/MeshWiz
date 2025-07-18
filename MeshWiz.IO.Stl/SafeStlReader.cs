@@ -97,6 +97,7 @@ public sealed class SafeStlReader<TNum> : IMeshReader<TNum>
         {
             if(line.StartsWith("endsolid",StringComparison.OrdinalIgnoreCase))
                 yield break;
+            if(line.IsWhiteSpace()) continue;
             buffer[pos] = line;
             pos++;
             var blockComplete = pos >= buffer.Length;

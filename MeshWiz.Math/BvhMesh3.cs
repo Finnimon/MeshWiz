@@ -29,12 +29,12 @@ public class BvhMesh3<TNum> : IIndexedMesh3<TNum>
     public Vector3<TNum>[] Vertices { get; }
     public int Count =>Indices.Length;
     public Triangle3<TNum> this[int index] => Indices[index].Extract(Vertices);
-    private readonly BoundedVolumeList<TNum> _hierarchy;
+    private readonly BoundedVolumeHierarchy<TNum> _hierarchy;
 
-    public BvhMesh3(IReadOnlyList<Triangle3<TNum>> mesh)
+    public BvhMesh3(IReadOnlyList<Triangle3<TNum>> mesh, uint maxDepth=32)
     {
         (Indices, Vertices) = MeshMath.Indicate(mesh);
-        _hierarchy = MeshMath.Hierarchize(Indices, Vertices);
+        _hierarchy = MeshMath.Hierarchize(Indices, Vertices,maxDepth);
         BBox = _hierarchy[0].Bounds;
     }
     

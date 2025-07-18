@@ -1,11 +1,15 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+
 namespace MeshWiz.Math;
+
 [StructLayout(LayoutKind.Sequential)]
-public readonly struct BBox3<TNum> : IBody<TNum>,IFace<Vector3<TNum>, TNum>, IEquatable<BBox3<TNum>> where TNum : unmanaged, IFloatingPointIeee754<TNum>
+public readonly struct BBox3<TNum> : IBody<TNum>, IFace<Vector3<TNum>, TNum>, IEquatable<BBox3<TNum>>
+    where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    public static BBox3<TNum> NegativeInfinity=>new(
+    public static readonly BBox3<TNum> NegativeInfinity = new(
         new(TNum.PositiveInfinity, TNum.PositiveInfinity, TNum.PositiveInfinity),
         new(TNum.NegativeInfinity, TNum.NegativeInfinity, TNum.NegativeInfinity));
 
@@ -43,14 +47,14 @@ public readonly struct BBox3<TNum> : IBody<TNum>,IFace<Vector3<TNum>, TNum>, IEq
         var (min, max) = (Min, Max);
 
         // Corner points
-        Vector3<TNum> p000 = min;                         // (min.X, min.Y, min.Z)
-        Vector3<TNum> p001 = new(min.X, min.Y, max.Z);    // front bottom-left
+        Vector3<TNum> p000 = min; // (min.X, min.Y, min.Z)
+        Vector3<TNum> p001 = new(min.X, min.Y, max.Z); // front bottom-left
         Vector3<TNum> p010 = new(min.X, max.Y, min.Z);
-        Vector3<TNum> p011 = new(min.X, max.Y, max.Z);    // front top-left
+        Vector3<TNum> p011 = new(min.X, max.Y, max.Z); // front top-left
         Vector3<TNum> p100 = new(max.X, min.Y, min.Z);
-        Vector3<TNum> p101 = new(max.X, min.Y, max.Z);    // front bottom-right
+        Vector3<TNum> p101 = new(max.X, min.Y, max.Z); // front bottom-right
         Vector3<TNum> p110 = new(max.X, max.Y, min.Z);
-        Vector3<TNum> p111 = max;                         // (max.X, max.Y, max.Z)
+        Vector3<TNum> p111 = max; // (max.X, max.Y, max.Z)
 
         return
         [
@@ -68,12 +72,12 @@ public readonly struct BBox3<TNum> : IBody<TNum>,IFace<Vector3<TNum>, TNum>, IEq
     }
 
 
-    public static BBox3<TNum> Combine(in BBox3<TNum> a,in BBox3<TNum> b)
+    public static BBox3<TNum> Combine(in BBox3<TNum> a, in BBox3<TNum> b)
     {
         var (xMin, yMin, zMin) = a.Min;
         var (xMax, yMax, zMax) = a.Max;
         var (xMinB, yMinB, zMinB) = b.Min;
-        var (xMaxB,yMaxB,zMaxB) = b.Max;
+        var (xMaxB, yMaxB, zMaxB) = b.Max;
         xMin = TNum.Min(xMin, xMinB);
         yMin = TNum.Min(yMin, yMinB);
         zMin = TNum.Min(zMin, zMinB);
@@ -84,32 +88,36 @@ public readonly struct BBox3<TNum> : IBody<TNum>,IFace<Vector3<TNum>, TNum>, IEq
             new Vector3<TNum>(xMin, yMin, zMin),
             new Vector3<TNum>(xMax, yMax, zMax));
     }
-    public static BBox3<TNum> IncludePoint(in BBox3<TNum> box,in Vector3<TNum> point)
-    {
-        var (xMin, yMin, zMin) = box.Min;
-        var (xMax, yMax, zMax) = box.Max;
-        var (xPoint, yPoint, zPoint) = point;
-        xMin = TNum.Min(xMin, xPoint);
-        yMin = TNum.Min(yMin, yPoint);
-        zMin = TNum.Min(zMin, zPoint);
-        xMax = TNum.Max(xMax, xPoint);
-        yMax = TNum.Max(yMax, yPoint);
-        zMax = TNum.Max(zMax, zPoint);
-        return new BBox3<TNum>(
-            new Vector3<TNum>(xMin, yMin, zMin),
-            new Vector3<TNum>(xMax, yMax, zMax));
-    }
 
-    public BBox3<TNum> CombineWith(in Vector3<TNum> point)
-        => BBox3<TNum>.IncludePoint(in this, in point);
+    public static BBox3<TNum> IncludePoint(BBox3<TNum> box, in Vector3<TNum> point)
+        => box.CombineWith(point);
 
-    public BBox3<TNum> CombineWith(in BBox3<TNum> other)
-        => BBox3<TNum>.Combine(in this, in other);
+    public BBox3<TNum> CombineWith(in Vector3<TNum> p) =>
+        new(new Vector3<TNum>(
+                TNum.Min(Min.X, p.X),
+                TNum.Min(Min.Y, p.Y),
+                TNum.Min(Min.Z, p.Z)),
+            new Vector3<TNum>(
+                TNum.Max(Max.X, p.X),
+                TNum.Max(Max.Y, p.Y),
+                TNum.Max(Max.Z, p.Z))
+        );
 
-    public static BBox3<TNum> FromPoint(in Vector3<TNum> point) => new(point,point);
-    
-    public static bool operator != (in BBox3<TNum> a, in BBox3<TNum> b)=>a.Min!=b.Min||a.Max!=b.Max;
-    public static bool operator ==(BBox3<TNum> a, BBox3<TNum> b) => a.Min==b.Min && a.Max==b.Max;
+    public BBox3<TNum> CombineWith(in BBox3<TNum> o)
+        => new(new Vector3<TNum>(
+                TNum.Min(Min.X, o.Min.X),
+                TNum.Min(Min.Y, o.Min.Y),
+                TNum.Min(Min.Z, o.Min.Z)),
+            new Vector3<TNum>(
+                TNum.Max(Max.X, o.Max.X),
+                TNum.Max(Max.Y, o.Max.Y),
+                TNum.Max(Max.Z, o.Max.Z))
+        );
+
+    public static BBox3<TNum> FromPoint(Vector3<TNum> point) => new(point, point);
+
+    public static bool operator !=(in BBox3<TNum> a, in BBox3<TNum> b) => a.Min != b.Min || a.Max != b.Max;
+    public static bool operator ==(in BBox3<TNum> a, in BBox3<TNum> b) => a.Min == b.Min && a.Max == b.Max;
 
     public override bool Equals([NotNullWhen(true)] object? obj)
     {
@@ -117,7 +125,7 @@ public readonly struct BBox3<TNum> : IBody<TNum>,IFace<Vector3<TNum>, TNum>, IEq
         return this == box;
     }
 
-    public bool Equals(BBox3<TNum> other) => this==other;
+    public bool Equals(BBox3<TNum> other) => this == other;
 
     public override int GetHashCode() => HashCode.Combine(Min, Max);
 }

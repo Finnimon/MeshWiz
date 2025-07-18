@@ -185,7 +185,7 @@ public static class MeshMath
 
         return (indices, [..vertices]);
     }
-    
+
     public static (uint[] Indices, Vector3<TNum>[] Vertices) IndicateWithNormalsInterleaved<TNum>(
         IReadOnlyList<Triangle3<TNum>> mesh)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
@@ -201,11 +201,11 @@ public static class MeshMath
             var triangle = mesh[i];
             var nIndex = GetIndex(triangle.Normal, unified, vertices);
             indices[++indexPosition] = GetIndex(triangle.A, unified, vertices);
-            indices[++indexPosition]=nIndex;
+            indices[++indexPosition] = nIndex;
             indices[++indexPosition] = GetIndex(triangle.B, unified, vertices);
-            indices[++indexPosition]=nIndex;
+            indices[++indexPosition] = nIndex;
             indices[++indexPosition] = GetIndex(triangle.C, unified, vertices);
-            indices[++indexPosition]=nIndex;
+            indices[++indexPosition] = nIndex;
         }
 
         return (indices, [..vertices]);
@@ -223,132 +223,136 @@ public static class MeshMath
         return index;
     }
 
-    public  static BoundedVolumeList<TNum> Hierarchize<TNum>(
-        TriangleIndexer[] indices, 
+    public static BoundedVolumeHierarchy<TNum> Hierarchize<TNum>(
+        TriangleIndexer[] indices,
         Vector3<TNum>[] vertices,
-        int maxDepth=32)
+        uint maxDepth = 32)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
-        Vec3Comparer<TNum> comparer=new(vertices);
-        BoundedVolumeList<TNum> hierarchy = [new(BBox(vertices), 0, indices.Length)];
-        Stack<(int parentIndex,int depth)> recursiveStack = new([(0,0)]);
+        Vec3Comparer<TNum> comparer = new(vertices);
+        BoundedVolumeHierarchy<TNum> hierarchy = [new(BBox(vertices), 0, indices.Length)];
+        Stack<(int parentIndex, uint depth)> recursiveStack = new((int)maxDepth);
+        recursiveStack.Push((0, 0));
         while (recursiveStack.TryPop(out var job))
         {
-            var (parentIndex,depth) = job;
+            var (parentIndex, depth) = job;
             if (depth > maxDepth) continue;
             ref var parent = ref hierarchy[parentIndex];
             var parentCost = parent.Cost;
             var (axis, level, cost, bboxLeft, bboxRight) = ChooseSplit(parent, indices, vertices);
-            if (parentCost<cost) continue;
-            
-            
+            if (parentCost <= cost) continue;
+
+
             comparer.Axis = axis;
 
             Array.Sort(indices, parent.Start, parent.Length, comparer);
             var leftChildLength = 0;
-            for (var i = parent.Start; i <parent.End; i++)
+            var tripleLevel = level * TNum.CreateTruncating(3);
+            for (var i = parent.Start; i < parent.End; i++)
             {
-                var triLevel = indices[i].Extract(vertices).Centroid[axis];
-                if (triLevel > level) break;
+                var indexer=indices[i];
+                var triLevel = vertices[indexer.A][axis] + vertices[indexer.B][axis] + vertices[indexer.C][axis];
+                if (triLevel > tripleLevel) break;
                 leftChildLength++;
             }
 
             if (leftChildLength >= parent.Length || leftChildLength <= 0) continue;
-            
+
             BoundedVolume<TNum> leftChild = new(bboxLeft, parent.Start, leftChildLength);
             BoundedVolume<TNum> rightChild = new(bboxRight, leftChild.End, parent.Length - leftChildLength);
-            var leftIndex= (parent.FirstChild = hierarchy.Add(leftChild));
-            var rightIndex= (parent.SecondChild = hierarchy.Add(rightChild));
-            
+            var leftIndex = (parent.FirstChild = hierarchy.Add(leftChild));
+            var rightIndex = (parent.SecondChild = hierarchy.Add(rightChild));
+
             ++depth;
-            recursiveStack.Push((leftIndex,depth ));
-            recursiveStack.Push((rightIndex,depth ));
+            recursiveStack.Push((leftIndex, depth));
+            recursiveStack.Push((rightIndex, depth));
         }
+
+        Console.WriteLine(hierarchy.Count);
         hierarchy.Trim();
         return hierarchy;
     }
 
-    private sealed class Vec3Comparer<TNum> : IComparer<TriangleIndexer>
+    private sealed class Vec3Comparer<TNum>(Vector3<TNum>[] vertices, int axis = 0)
+        : IComparer<TriangleIndexer>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
-        public int Axis;
-        public readonly Vector3<TNum>[] Vertices;
+        public int Axis = axis;
+        public readonly Vector3<TNum>[] Vertices=vertices;
+        private static readonly TNum Third = TNum.CreateChecked(1.0 / 3.0);
 
-        public Vec3Comparer(Vector3<TNum>[] vertices, int axis = 0)
-        {
-            Axis = axis;
-            Vertices = vertices;
-        }
-
-        public int Compare(TriangleIndexer left, TriangleIndexer right) 
-            => left.Extract(Vertices).Centroid[Axis].CompareTo(right.Extract(Vertices).Centroid[Axis]);
+        public int Compare(TriangleIndexer left, TriangleIndexer right) => (Vertices[left.A][Axis] + Vertices[left.B][Axis] + Vertices[left.C][Axis]).CompareTo(Vertices[right.A][Axis] + Vertices[right.B][Axis] + Vertices[right.C][Axis]);
     }
 
-
-    private static (int bestSplitAxis, TNum bestLevel, TNum bestCost, BBox3<TNum> leftBounds, BBox3<TNum> rightBounds) ChooseSplit<TNum>(
-        BoundedVolume<TNum> toSplit,
-        TriangleIndexer[] indices, 
-        Vector3<TNum>[] vertices,
-        uint splitTests=4)
-    where TNum:unmanaged,IFloatingPointIeee754<TNum>
+    private static (int bestSplitAxis, TNum bestLevel, TNum bestCost, BBox3<TNum> leftBounds, BBox3<TNum> rightBounds)
+        ChooseSplit<TNum>(
+            in BoundedVolume<TNum> toSplit,
+            TriangleIndexer[] indices,
+            Vector3<TNum>[] vertices,
+            uint splitTests = 4)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         var triCount = toSplit.Length;
-        BBox3<TNum> leftBounds=BBox3<TNum>.NegativeInfinity;
-        BBox3<TNum> rightBounds=BBox3<TNum>.NegativeInfinity;
+        BBox3<TNum> leftBounds = BBox3<TNum>.NegativeInfinity;
+        BBox3<TNum> rightBounds = BBox3<TNum>.NegativeInfinity;
         var bestCost = TNum.PositiveInfinity;
-        var bestSplitAxis=-1;
-        var bestLevel=TNum.NaN;
-        if (triCount <= 1) return (bestSplitAxis,bestLevel,bestCost,leftBounds, rightBounds);
+        var bestSplitAxis = -1;
+        var bestLevel = TNum.NaN;
+        if (triCount <= 1) return (bestSplitAxis, bestLevel, bestCost, leftBounds, rightBounds);
         var parentBounds = toSplit.Bounds;
-            for (var i = 0; i < splitTests; i++)
+        for (var i = 0; i < splitTests; i++)
+        {
+            var splitT = TNum.CreateTruncating(i + 1) / TNum.CreateTruncating(splitTests + 1);
+            var splitPos = Vector3<TNum>.Lerp(parentBounds.Min, parentBounds.Max, splitT);
+            for (var axis = 0; axis < Vector3<TNum>.Dimensions; axis++)
             {
-                var splitT=TNum.CreateTruncating(i+1) / TNum.CreateTruncating(splitTests + 1);
-                var splitPos=Vector3<TNum>.Lerp(parentBounds.Min, parentBounds.Max, splitT);
-                for (var axis = 0; axis < Vector3<TNum>.Dimensions; axis++)
-                {
-                    var (cost,bbLeft,bbRight)= EvalSplit(toSplit,axis,splitPos[axis],indices,vertices);
-                    if(cost>=bestCost) continue;
-                    bestCost=cost;
-                    bestSplitAxis=axis;
-                    bestLevel=splitPos[axis];
-                    leftBounds=bbLeft;
-                    rightBounds=bbRight;
-                }
+                var (cost, bbLeft, bbRight) = EvalSplit(toSplit, axis, splitPos[axis], indices,vertices);
+                if (cost >= bestCost) continue;
+                bestCost = cost;
+                bestSplitAxis = axis;
+                bestLevel = splitPos[axis];
+                leftBounds = bbLeft;
+                rightBounds = bbRight;
             }
-            return (bestSplitAxis,bestLevel,bestCost,leftBounds,rightBounds);
+        }
+
+        return (bestSplitAxis, bestLevel, bestCost, leftBounds, rightBounds);
     }
 
     private static (TNum cost, BBox3<TNum> boundsLeft, BBox3<TNum> boundsRight) EvalSplit<TNum>(
-        BoundedVolume<TNum> parent,
-        int axis, 
+        in BoundedVolume<TNum> parent,
+        int axis,
         TNum splitSuggest,
-        TriangleIndexer[] indices, 
-        Vector3<TNum>[] vertices)
+        TriangleIndexer[] indices,
+        Vector3<TNum>[] vertices
+            )
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
-        BBox3<TNum> boundsLeft=BBox3<TNum>.NegativeInfinity;
-        BBox3<TNum> boundsRight=BBox3<TNum>.NegativeInfinity;
+        BBox3<TNum> boundsLeft = BBox3<TNum>.NegativeInfinity;
+        BBox3<TNum> boundsRight = BBox3<TNum>.NegativeInfinity;
         var numLeft = 0;
         var numRight = 0;
-        for(var i=parent.Start;i<parent.End;i++)
+        var end = parent.End;
+        splitSuggest *= TNum.CreateTruncating(3);
+        for (var i = parent.Start; i < end; i++)
         {
-            var tri= indices[i].Extract(vertices);
-            var centroid = tri.Centroid;
-            var isLeft = centroid[axis] <= splitSuggest;
+            var (a,b,c)=indices[i].Extract(vertices);
+            var isLeft = splitSuggest>(a[axis] + b[axis] + c[axis]);
             if (isLeft)
             {
-                boundsLeft=boundsLeft.CombineWith(tri.A).CombineWith(tri.B).CombineWith(tri.C);
+                boundsLeft = boundsLeft.CombineWith(a).CombineWith(b).CombineWith(c);
                 numLeft++;
             }
             else
             {
-                boundsRight=boundsRight.CombineWith(tri.A).CombineWith(tri.B).CombineWith(tri.C);
+                boundsRight = boundsRight.CombineWith(a).CombineWith(b).CombineWith(c);
                 numRight++;
             }
         }
-        if(numLeft==0||numRight==0) return (TNum.PositiveInfinity,boundsLeft,boundsRight);
-        var leftCost=BoundedVolume<TNum>.NodeCost(boundsLeft.Size, numLeft);
-        var rightCost=BoundedVolume<TNum>.NodeCost(boundsRight.Size, numRight);
+
+        if (numLeft == 0 || numRight == 0) return (TNum.PositiveInfinity, boundsLeft, boundsRight);
+        var leftCost = BoundedVolume<TNum>.NodeCost(boundsLeft.Size, numLeft);
+        var rightCost = BoundedVolume<TNum>.NodeCost(boundsRight.Size, numRight);
         return (leftCost + rightCost, boundsLeft, boundsRight);
     }
 }

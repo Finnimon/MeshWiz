@@ -5,7 +5,7 @@ using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
-public sealed class BoundedVolumeList<TNum>
+public sealed class BoundedVolumeHierarchy<TNum>
     : IReadOnlyList<BoundedVolume<TNum>>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
@@ -19,7 +19,7 @@ public sealed class BoundedVolumeList<TNum>
         init => field = int.Max(value, GrowthFloor);
     }
 
-    public BoundedVolumeList()
+    public BoundedVolumeHierarchy()
     {
         Nodes = new BoundedVolume<TNum>[256];
         Count = 0;

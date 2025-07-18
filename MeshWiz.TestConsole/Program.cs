@@ -8,6 +8,9 @@ using MeshWiz.Slicer;
 using MeshWiz.TestConsole;
 using OpenTK.Graphics.OpenGL;
 
-var mesh= new Mesh3<double>(new Sphere<double>(Vector3<double>.Zero,1d).TessellatedSurface);
-
-var bvh=new BvhMesh3<double>(mesh);
+// var mesh = IMeshReader<float>.ReadFile<FastStlReader>("/home/finnimon/source/repos/TestFiles/drag.stl");
+var mesh = new Mesh3<float>(Sphere<float>.GenerateTessellation(Vector3<float>.Zero, 1, 128, 256));
+Console.WriteLine($"Mesh count: {mesh.Count}");
+var sw = Stopwatch.StartNew();
+var bvh=new BvhMesh3<float>(mesh,32);
+Console.WriteLine(sw.Elapsed);

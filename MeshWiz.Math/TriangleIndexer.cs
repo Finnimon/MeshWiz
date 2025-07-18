@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-public readonly struct TriangleIndexer(uint a, uint b, uint c)
+public readonly struct TriangleIndexer(uint a, uint b, uint c) : IEquatable<TriangleIndexer>
 {
     public readonly uint A = a, B = b, C = c;
     public Triangle3<TNum> Extract<TNum>(Vector3<TNum>[] vertices)
@@ -17,4 +17,13 @@ public readonly struct TriangleIndexer(uint a, uint b, uint c)
         b = B;
         c = C;
     }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(A, B, C);
+    }
+
+    public override bool Equals(object? obj)=>obj is TriangleIndexer other&&  Equals(other);
+
+    public bool Equals(TriangleIndexer other) => A == other.A && B == other.B && C == other.C;
 }
