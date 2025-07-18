@@ -13,6 +13,14 @@ where TNum:unmanaged, IFloatingPointIeee754<TNum>
         => _mesh= new Mesh3<TNum>(Sphere<TNum>.GenerateTessellation(Vector3<TNum>.Zero, TNum.One,64,128));
 
     [Benchmark]
-    public BvhMesh3<TNum> HierarchizeBenchBigMesh()
-        => new(_mesh!);
+    [Obsolete("Obsolete")]
+    public void ObsoleteHierarchize()
+    {
+        var (indices, vertices) = MeshMath.Indicate(_mesh!);
+        var hierarchy=MeshMath.Hierarchize(indices, vertices);
+    }
+
+    [Benchmark]
+    public BvhMesh3<TNum> OptimizedHierarchize()
+    =>new  BvhMesh3<TNum>(_mesh!);
 }

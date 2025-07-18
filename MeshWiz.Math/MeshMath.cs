@@ -141,7 +141,6 @@ public static class MeshMath
         return bbox;
     }
 
-
     public static (TriangleIndexer[] Indices, Vector3<TNum>[] Vertices) Indicate<TNum>(
         IReadOnlyList<Triangle3<TNum>> mesh)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
@@ -223,6 +222,164 @@ public static class MeshMath
         return index;
     }
 
+    private readonly struct BvhSortingTriangle<TNum>
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+    {
+        public readonly Triangle3<TNum> Triangle;
+        public readonly BBox3<TNum> BBox;
+        public readonly Vector3<TNum> Centroid;
+
+        public BvhSortingTriangle(Triangle3<TNum> triangle)
+        {
+            Triangle=triangle;
+            BBox=triangle.BBox;
+            Centroid=triangle.Centroid;
+        }
+    }
+
+    private sealed record BvhSortingComparer<TNum> : IComparer<BvhSortingTriangle<TNum>>
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+    {
+        public int Axis = 0;
+        public int Compare(BvhSortingTriangle<TNum> x, BvhSortingTriangle<TNum> y) 
+            => x.Centroid[Axis].CompareTo(y.Centroid[Axis]);
+    }
+
+    public static (BoundedVolumeHierarchy<TNum> hierarchy, TriangleIndexer[] indices, Vector3<TNum>[] vertices) 
+        Hierarchize<TNum>(
+        IReadOnlyList<Triangle3<TNum>> mesh,
+        uint maxDepth = 32,
+        uint splitTests = 4)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+    {
+        splitTests = uint.Clamp(splitTests, 2, 32);
+        var triangles = new BvhSortingTriangle<TNum>[mesh.Count];
+        var rootBox = BBox3<TNum>.NegativeInfinity;
+        for (var i = 0; i < mesh.Count; i++)
+        {
+            var sorting= new BvhSortingTriangle<TNum>(mesh[i]);
+            rootBox = rootBox.CombineWith(sorting.BBox);
+            triangles[i] = sorting;
+        }
+        var comparer=new BvhSortingComparer<TNum>();
+        BoundedVolume<TNum> rootParent = new(rootBox, 0, triangles.Length);
+        BoundedVolumeHierarchy<TNum> hierarchy = [rootParent];
+        Stack<(int parentIndex, uint depth)> recursiveStack = new((int)maxDepth);
+        recursiveStack.Push((0, 0));
+        while (recursiveStack.TryPop(out var job))
+        {
+            var (parentIndex, depth) = job;
+            if (depth > maxDepth) continue;
+            ref var parent = ref hierarchy[parentIndex];
+            if(parent.Length<2) continue;
+            
+            var (axis, level, cost, bboxLeft, bboxRight) = ChooseSplit(parent, triangles, splitTests);
+            if (parent.Cost<=cost) continue;
+            
+            comparer.Axis = axis;
+            Array.Sort(triangles,parent.Start,parent.Length,comparer);
+            var leftChildLength = 0;
+            for (var i = parent.Start; i < parent.End; i++)
+            {
+                if (triangles[i].Centroid[axis] > level) break;
+                leftChildLength++;
+            }
+            if (leftChildLength.OutsideInclusiveRange(0,parent.Length-1)) continue;
+            BoundedVolume<TNum> leftChild = new(bboxLeft, parent.Start, leftChildLength);
+            BoundedVolume<TNum> rightChild = new(bboxRight, leftChild.End, parent.Length - leftChildLength);
+            var leftIndex = (parent.FirstChild = hierarchy.Add(leftChild));
+            var rightIndex = (parent.SecondChild = hierarchy.Add(rightChild));
+
+            ++depth;
+            recursiveStack.Push((leftIndex, depth));
+            recursiveStack.Push((rightIndex, depth));
+        }
+        
+        hierarchy.Trim();
+        var trianglesNaked = new Triangle3<TNum>[triangles.Length];
+        for (var i = 0; i < triangles.Length; i++)trianglesNaked[i]=triangles[i].Triangle;
+        var (indices, vertices) = Indicate<TNum>(trianglesNaked);
+        return (hierarchy, indices, vertices);
+
+    }
+
+    private static (int bestSplitAxis,
+        TNum bestLevel,
+        TNum bestCost,
+        BBox3<TNum> leftBounds,
+        BBox3<TNum> rightBounds)
+        ChooseSplit<TNum>(
+            in BoundedVolume<TNum> parent, 
+            BvhSortingTriangle<TNum>[] triangles,
+            uint splitTests)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+    {
+        var leftBounds = BBox3<TNum>.NegativeInfinity;
+        var rightBounds = BBox3<TNum>.NegativeInfinity;
+        
+        var bestCost = TNum.PositiveInfinity;
+        var bestSplitAxis = -1;
+        var bestLevel = TNum.NaN;
+        
+        if (parent.Length <= 1) return (bestSplitAxis, bestLevel, bestCost, leftBounds, rightBounds);
+        var parentMin = parent.Bounds.Min;
+        var parentMax=parent.Bounds.Max;
+        var parentStart=parent.Start;
+        var parentEnd = parent.End;
+        for (var i = 0; i < splitTests; i++)
+        {
+            var splitFactor = TNum.CreateTruncating(i + 1) / TNum.CreateTruncating(splitTests + 1);
+            var splitPos = Vector3<TNum>.Lerp(parentMin, parentMax, splitFactor);
+            for (var axis = 0; axis < Vector3<TNum>.Dimensions; axis++)
+            {
+                var (cost, bbLeft, bbRight) = EvalSplit(parentStart,parentEnd,axis, splitPos[axis], triangles);
+                if (cost >= bestCost) continue;
+                bestCost = cost;
+                bestSplitAxis = axis;
+                bestLevel = splitPos[axis];
+                leftBounds = bbLeft;
+                rightBounds = bbRight;
+            }
+        }
+
+        return (bestSplitAxis, bestLevel, bestCost, leftBounds, rightBounds);
+    }
+
+    private static (TNum cost, BBox3<TNum> boundsLeft, BBox3<TNum> boundsRight) EvalSplit<TNum>(
+        int parentStart, 
+        int parentEnd,
+        int axis,
+        TNum splitSuggest,
+        BvhSortingTriangle<TNum>[] triangles)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+    {
+        var boundsLeft = BBox3<TNum>.NegativeInfinity;
+        var boundsRight = BBox3<TNum>.NegativeInfinity;
+        var numLeft = 0;
+        var numRight = 0;
+        for (var i = parentStart; i < parentEnd; i++)
+        {
+            ref var sorting = ref triangles[i];
+            var isLeft = splitSuggest>(sorting.Centroid[axis]);
+            if (isLeft)
+            {
+                boundsLeft = boundsLeft.CombineWith(sorting.BBox);
+                numLeft++;
+            }
+            else
+            {
+                boundsRight = boundsRight.CombineWith(sorting.BBox);
+                numRight++;
+            }
+        }
+        
+        if (numLeft == 0 || numRight == 0) return (TNum.PositiveInfinity, boundsLeft, boundsRight);
+        var leftCost = BoundedVolume<TNum>.NodeCost(boundsLeft.Size, numLeft);
+        var rightCost = BoundedVolume<TNum>.NodeCost(boundsRight.Size, numRight);
+        return (leftCost + rightCost, boundsLeft, boundsRight);
+    }
+
+    [Obsolete($"Use the other overload. It has no sideeffects and is much faster.")]
     public static BoundedVolumeHierarchy<TNum> Hierarchize<TNum>(
         TriangleIndexer[] indices,
         Vector3<TNum>[] vertices,
@@ -242,7 +399,8 @@ public static class MeshMath
             ref var parent = ref hierarchy[parentIndex];
             if(parent.Length<2)  continue;
             var parentCost = parent.Cost;
-            var (axis, level, cost, bboxLeft, bboxRight) = ChooseSplit(parent, indices, vertices,splitTests);
+            var (axis, level, cost, bboxLeft, bboxRight) 
+                = ChooseSplit(parent, indices, vertices,splitTests);
             if (parentCost <= cost) continue;
 
 
@@ -271,7 +429,6 @@ public static class MeshMath
             recursiveStack.Push((rightIndex, depth));
         }
 
-        Console.WriteLine(hierarchy.Count);
         hierarchy.Trim();
         return hierarchy;
     }
