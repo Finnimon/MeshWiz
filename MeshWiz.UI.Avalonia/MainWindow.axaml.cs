@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -32,26 +31,19 @@ public partial class MainWindow : Window
         MeshViewWrap.Unwrap.LightColor=Color4.White;
         MeshViewWrap.Unwrap.SolidColor=Color4.DarkGray;
         camera.UnitUp=Vector3<float>.UnitZ;
-        var tesselations=BBox3<float>
+        var box=BBox3<float>
             .NegativeInfinity
             .CombineWith(new Vector3<float>(-10,-10,-10))
-            .CombineWith(new Vector3<float>(10,10,10))
-            .TessellatedSurface;
-        var tessellations2=BBox3<float>
-            .NegativeInfinity
-            .CombineWith(new Vector3<float>(-1,-2,-1))
-            .CombineWith(new Vector3<float>(1,0,1))
-            .TessellatedSurface;
-        var mesh = new IndexedMesh3<float>(tesselations);
+            .CombineWith(new Vector3<float>(10,10,10));
+        var mesh = box.Tessellate().Indexed();
         // mesh =new IndexedMesh3<float>(new Sphere<float>(Vector3<float>.Zero, 1).TessellatedSurface);
-        mesh= IMeshReader<float>.ReadFile<FastStlReader>("/home/finnimon/source/repos/TestFiles/artillery-witch.stl").Indexed();
-        mesh = MeshSplitter.Split(mesh)[1];
-        mesh.Shift(-mesh.VolumeCentroid);
+        // mesh= IMeshReader<float>.ReadFile<FastStlReader>("/home/finnimon/source/repos/TestFiles/artillery-witch.stl").Indexed();
+        mesh = MeshSplitter.Split(mesh)[^1];
         // mesh=new  IndexedMesh3<float>(new Sphere<float>(Vector3<float>.Zero, 1).TessellatedSurface);
         Console.WriteLine($"Tri count: {mesh.Count}, Effec vert count: {mesh.Count*3}, Indexed vert count: {mesh.Vertices.Length}");
-        var distance=mesh.BBox.Min.Distance(mesh.BBox.Max)*2;
+        var distance=mesh.BBox.Min.DistanceTo(mesh.BBox.Max)*2;
         camera.Distance = 0.5f;
-        camera.LookAt=mesh.Centroid;
+        camera.LookAt=mesh.SurfaceCentroid;
         MeshViewWrap.Unwrap.Mesh = mesh;
         BBoxWrap.Unwrap.Camera=camera;
         BBoxWrap.Unwrap.BBox=mesh.BBox;

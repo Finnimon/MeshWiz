@@ -2,6 +2,7 @@ using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using MeshWiz.Utility.Extensions;
 
@@ -25,8 +26,16 @@ public readonly struct Vector2<TNum> : IVector2<Vector2<TNum>, TNum>
     public Vector2<TNum> Normalized => this / Length;
     public TNum AlignedSquareVolume => X * Y;
     public static Vector2<TNum> FromXY(TNum x, TNum y) => new(x, y);
-    public static Vector2<TNum> FromComponents(TNum[] array) =>new(array[0], array[1]);
-    public static Vector2<TNum> FromComponents(ReadOnlySpan<TNum> array)=> new(array[0], array[1]);
+    public static Vector2<TNum> FromComponents<TList>(TList components)
+        where TList : IReadOnlyList<TNum>
+        =>new(components[0], components[1]);
+    
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector2<TNum> FromComponents<TList,TOtherNum>(TList components)
+        where TList : IReadOnlyList<TOtherNum>
+        where TOtherNum : INumber<TOtherNum>
+        =>new(TNum.CreateTruncating(components[0]), TNum.CreateTruncating(components[1]));
+
     public Vector2(TNum x, TNum y)
     {
         X = x;
@@ -45,35 +54,35 @@ public readonly struct Vector2<TNum> : IVector2<Vector2<TNum>, TNum>
 
     #region operators
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector2<TNum> operator +(Vector2<TNum> left, Vector2<TNum> right)
         => new(left.X + right.X, left.Y + right.Y);
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector2<TNum> operator -(Vector2<TNum> left, Vector2<TNum> right)
         => new(left.X - right.X, left.Y - right.Y);
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector2<TNum> operator -(Vector2<TNum> vec) => new(-vec.X, -vec.Y);
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TNum operator *(Vector2<TNum> left, Vector2<TNum> right)
         => left.X * right.X + left.Y * right.Y;
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector2<TNum> operator *(Vector2<TNum> vec, TNum scalar)
         => new(x: vec.X * scalar, y: vec.Y * scalar);
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector2<TNum> operator *(TNum scalar, Vector2<TNum> vec)
         => new(vec.X * scalar, vec.Y * scalar);
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector2<TNum> operator /(Vector2<TNum> vec, TNum divisor)
         => vec * (TNum.One / divisor);
 
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TNum operator ^(Vector2<TNum> left, Vector2<TNum> right)
         => left.X * right.Y - left.Y * right.X;
 
@@ -89,40 +98,42 @@ public readonly struct Vector2<TNum> : IVector2<Vector2<TNum>, TNum>
 
     #region functions
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector2<TNum> Add(Vector2<TNum> other)
         => this + other;
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector2<TNum> Subtract(Vector2<TNum> other)
         => this - other;
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector2<TNum> Scale(TNum scalar)
         => this * scalar;
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector2<TNum> Divide(TNum divisor)
         => this / divisor;
 
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TNum Dot(Vector2<TNum> other) => this * other;
 
-    [Pure]
-    public TNum Distance(Vector2<TNum> other) => (this - other).Length;
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public TNum DistanceTo(Vector2<TNum> other) => (this - other).Length;
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public TNum SquaredDistanceTo(Vector2<TNum> other) => (this-other).SquaredLength;
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TNum Cross(Vector2<TNum> other) => this ^ other;
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int CrossSign(Vector2<TNum> other) => TNum.Sign(Cross(other));
     
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsParallelTo(Vector2<TNum> other, TNum tolerance) 
-        => tolerance>=TNum.Abs(Normalized * other.Normalized);
+        => tolerance>=TNum.Abs(Normalized * other.Normalized)-TNum.One;
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsParallelTo(Vector2<TNum> other)
     =>IsParallelTo(other, TNum.Epsilon);
 
@@ -134,25 +145,25 @@ public readonly struct Vector2<TNum> : IVector2<Vector2<TNum>, TNum>
 
     #region general
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(Vector2<TNum> other)
         => this == other;
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int CompareTo(Vector2<TNum> other)
         => SquaredLength.CompareTo(other.SquaredLength);
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public unsafe ReadOnlySpan<TNum> AsSpan()
     {
         fixed (TNum* ptr = &X) return new ReadOnlySpan<TNum>(ptr, 2);
     }
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override bool Equals(object? other)
         => other is Vector2<TNum> vec && vec == this;
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int GetHashCode() => HashCode.Combine(X, Y);
 
     #endregion
@@ -164,7 +175,7 @@ public readonly struct Vector2<TNum> : IVector2<Vector2<TNum>, TNum>
     [Pure]
     public unsafe TNum this[int index]
     {
-        [Pure]
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
             if (index.InsideInclusiveRange(0, 2))
@@ -192,11 +203,13 @@ public readonly struct Vector2<TNum> : IVector2<Vector2<TNum>, TNum>
     public static explicit operator Vector3<TNum>(Vector2<TNum> vec)
         => new(vec.X, vec.Y, TNum.Zero);
 
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Deconstruct(out TNum x, out TNum y)
     {
         x = X;
         y = Y;
     }
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector2<TNum> Lerp(Vector2<TNum> from, Vector2<TNum> to, TNum normalDistance)
     =>(to-from)*normalDistance+from;
     
@@ -213,6 +226,13 @@ public readonly struct Vector2<TNum> : IVector2<Vector2<TNum>, TNum>
     public override string ToString()
         => string.Format("{{X:{0:F3} Y:{1:F3}}}", X, Y);
     
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNaN(Vector2<TNum> vec)
         => TNum.IsNaN(vec.X)&&TNum.IsNaN(vec.Y);
+    
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool IsApprox(Vector2<TNum> other, TNum squareTolerance) => SquaredDistanceTo(other) < squareTolerance;
+    
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool IsApprox(Vector2<TNum> other)=>SquaredDistanceTo(other)<=TNum.Epsilon;
 }

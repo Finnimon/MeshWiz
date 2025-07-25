@@ -2,8 +2,7 @@ using System.ComponentModel;
 
 namespace MeshWiz.Abstraction.OpenTK;
 
-[TypeConverter(typeof(EnumConverter))]
-[Flags]
+[TypeConverter(typeof(EnumConverter)), Flags]
 public enum RenderMode
 {
     None = 0,

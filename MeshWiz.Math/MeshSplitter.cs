@@ -4,7 +4,7 @@ namespace MeshWiz.Math;
 
 public static class MeshSplitter
 {
- public static IndexedMesh3<TNum>[] Split<TNum>(IndexedMesh3<TNum> mesh)
+ public static IndexedMesh3<TNum>[] Split<TNum>(IIndexedMesh3<TNum> mesh)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         var triangleCount = mesh.Indices.Length;

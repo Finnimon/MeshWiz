@@ -3,7 +3,6 @@ using System.Globalization;
 using System.Numerics;
 using System.Text;
 using MeshWiz.Math;
-using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.IO.Stl;
 

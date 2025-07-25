@@ -6,9 +6,9 @@ namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct Ray3<TNum> 
-    : IHitTester<Triangle3<TNum>,TNum> ,
-        IHitTester<Plane3<TNum>,TNum> ,
-        IHitTester<BBox3<TNum>,TNum>
+    : IIntersecter<Triangle3<TNum>,TNum> ,
+        IIntersecter<Plane3<TNum>,TNum> ,
+        IIntersecter<BBox3<TNum>,TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum> 
 {
     public readonly Vector3<TNum> Origin, Direction;
@@ -27,12 +27,12 @@ public readonly struct Ray3<TNum>
     public static Vector3<TNum> operator *(TNum distance,in Ray3<TNum> ray)=>ray.Traverse(distance); 
     
 
-    public bool HitTest(Plane3<TNum> plane)
+    public bool DoIntersect(Plane3<TNum> plane)
     {
         var dot= plane.Normal * Direction;
         return dot >TNum.Epsilon;
     }
-    public bool HitTest(Plane3<TNum> plane, out TNum t)
+    public bool Intersect(Plane3<TNum> plane, out TNum t)
     {
         var denominator = plane.Normal * Direction;
 
@@ -50,7 +50,7 @@ public readonly struct Ray3<TNum>
         return t >= TNum.Zero;
     }
     
-    public bool HitTest(Triangle3<TNum> triangle, out TNum t)
+    public bool Intersect(Triangle3<TNum> triangle, out TNum t)
     {
         t = TNum.NaN;
 
@@ -110,11 +110,11 @@ public readonly struct Ray3<TNum>
     public static implicit operator Ray3<TNum>(Line<Vector3<TNum>,TNum> line)
         =>new(line.Start, line.Direction);
 
-    public bool HitTest(Triangle3<TNum> test)
-        => HitTest(test, out _);
+    public bool DoIntersect(Triangle3<TNum> test)
+        => Intersect(test, out _);
 
-    public bool HitTest(BBox3<TNum> test)
-        => HitTest(test,out _);
-    public bool HitTest(BBox3<TNum> test, out TNum result)
+    public bool DoIntersect(BBox3<TNum> test)
+        => Intersect(test,out _);
+    public bool Intersect(BBox3<TNum> test, out TNum result)
     =>HitTest(test, out result, out _);
 }

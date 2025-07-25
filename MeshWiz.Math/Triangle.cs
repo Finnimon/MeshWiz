@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-public readonly struct Triangle<TVector, TNum> : IFace<TVector, TNum>
+public readonly struct Triangle<TVector, TNum> : ISurface<TVector, TNum>
     where TVector : unmanaged, IFloatingVector<TVector, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {

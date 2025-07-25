@@ -1,6 +1,4 @@
 using System.Numerics;
-using System.Runtime.CompilerServices;
-using MeshWiz.Math;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
@@ -29,22 +27,23 @@ public static class MeshMath
         for (var i = 0; i < mesh.Count; i++)
         {
             var triangle = mesh[i];
-            Tetrahedron<TNum> tetra = new(in triangle);
-            var currentCentroid = triangle.Centroid;
+            var (a,b,c) = triangle;
+            var currentCentroid = a + b + c;
             var currentSurf = triangle.SurfaceArea;
-            var currentVolu = tetra.Volume;
+            var currentVolu = Tetrahedron<TNum>.CalculateSignedVolume(a,b,c,Vector3<TNum>.Zero);
             vertexCentroid += currentCentroid;
             surfaceCentroid += currentCentroid * currentSurf;
-            volumeCentroid += tetra.Centroid * currentVolu;
-            volume += tetra.Volume;
+            volumeCentroid += currentCentroid * currentVolu;
+            volume += currentVolu;
             surfaceArea += currentSurf;
-            box.CombineWith(triangle.A).CombineWith(triangle.B).CombineWith(triangle.C);
+            box= box.CombineWith(triangle.A).CombineWith(triangle.B).CombineWith(triangle.C);
         }
 
-        vertexCentroid /= TNum.CreateTruncating(mesh.Count);
-        surfaceCentroid /= surfaceArea;
-        volumeCentroid /= volume;
-
+        vertexCentroid /= TNum.CreateTruncating(mesh.Count*3);
+        surfaceCentroid /= surfaceArea * TNum.CreateTruncating(3);
+        volumeCentroid /= volume*TNum.CreateTruncating(4);
+        volume = TNum.Abs(volume);
+        
         return new Mesh3Info<TNum>(
             vertexCentroid,
             surfaceCentroid,
@@ -240,7 +239,7 @@ public static class MeshMath
     private sealed record BvhSortingComparer<TNum> : IComparer<BvhSortingTriangle<TNum>>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
-        public int Axis = 0;
+        public int Axis;
         public int Compare(BvhSortingTriangle<TNum> x, BvhSortingTriangle<TNum> y) 
             => x.Centroid[Axis].CompareTo(y.Centroid[Axis]);
     }
@@ -270,25 +269,33 @@ public static class MeshMath
         {
             var (parentIndex, depth) = job;
             if (depth > maxDepth) continue;
-            ref var parent = ref hierarchy[parentIndex];
+            ref var parent = ref hierarchy.GetWritable(parentIndex);
             if(parent.Length<2) continue;
             
             var (axis, level, cost, bboxLeft, bboxRight) = ChooseSplit(parent, triangles, splitTests);
             if (parent.Cost<=cost) continue;
             
             comparer.Axis = axis;
-            Array.Sort(triangles,parent.Start,parent.Length,comparer);
-            var leftChildLength = 0;
-            for (var i = parent.Start; i < parent.End; i++)
+            var i = parent.Start;
+            var j = parent.End - 1;
+            while (i <= j)
             {
-                if (triangles[i].Centroid[axis] > level) break;
-                leftChildLength++;
+                while (i <= j && triangles[i].Centroid[axis] <= level) i++;
+                while (i <= j && triangles[j].Centroid[axis] > level) j--;
+                if (i >= j) continue;
+                (triangles[i], triangles[j]) = (triangles[j], triangles[i]);
+                i++;
+                j--;
             }
+            var leftChildLength = i - parent.Start;
+
             if (leftChildLength.OutsideInclusiveRange(0,parent.Length-1)) continue;
             BoundedVolume<TNum> leftChild = new(bboxLeft, parent.Start, leftChildLength);
             BoundedVolume<TNum> rightChild = new(bboxRight, leftChild.End, parent.Length - leftChildLength);
-            var leftIndex = (parent.FirstChild = hierarchy.Add(leftChild));
-            var rightIndex = (parent.SecondChild = hierarchy.Add(rightChild));
+            var leftIndex = hierarchy.Add(leftChild);
+            var rightIndex = hierarchy.Add(rightChild);
+            
+            parent.RegisterChildren(leftIndex, rightIndex);
 
             ++depth;
             recursiveStack.Push((leftIndex, depth));
@@ -298,7 +305,7 @@ public static class MeshMath
         hierarchy.Trim();
         var trianglesNaked = new Triangle3<TNum>[triangles.Length];
         for (var i = 0; i < triangles.Length; i++)trianglesNaked[i]=triangles[i].Triangle;
-        var (indices, vertices) = Indicate<TNum>(trianglesNaked);
+        var (indices, vertices) = Indicate(trianglesNaked);
         return (hierarchy, indices, vertices);
 
     }
@@ -396,7 +403,7 @@ public static class MeshMath
         {
             var (parentIndex, depth) = job;
             if (depth > maxDepth) continue;
-            ref var parent = ref hierarchy[parentIndex];
+            ref var parent = ref hierarchy.GetWritable(parentIndex);
             if(parent.Length<2)  continue;
             var parentCost = parent.Cost;
             var (axis, level, cost, bboxLeft, bboxRight) 
@@ -421,8 +428,9 @@ public static class MeshMath
 
             BoundedVolume<TNum> leftChild = new(bboxLeft, parent.Start, leftChildLength);
             BoundedVolume<TNum> rightChild = new(bboxRight, leftChild.End, parent.Length - leftChildLength);
-            var leftIndex = (parent.FirstChild = hierarchy.Add(leftChild));
-            var rightIndex = (parent.SecondChild = hierarchy.Add(rightChild));
+            var leftIndex =  hierarchy.Add(leftChild);
+            var rightIndex =  hierarchy.Add(rightChild);
+            parent.RegisterChildren(leftIndex, rightIndex);
 
             ++depth;
             recursiveStack.Push((leftIndex, depth));
@@ -433,17 +441,19 @@ public static class MeshMath
         return hierarchy;
     }
 
+    [Obsolete]
     private sealed class Vec3Comparer<TNum>(Vector3<TNum>[] vertices, int axis = 0)
         : IComparer<TriangleIndexer>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         public int Axis = axis;
-        public readonly Vector3<TNum>[] Vertices=vertices;
-        private static readonly TNum Third = TNum.CreateChecked(1.0 / 3.0);
-
-        public int Compare(TriangleIndexer left, TriangleIndexer right) => (Vertices[left.A][Axis] + Vertices[left.B][Axis] + Vertices[left.C][Axis]).CompareTo(Vertices[right.A][Axis] + Vertices[right.B][Axis] + Vertices[right.C][Axis]);
+        public readonly Vector3<TNum>[] Vertices=vertices; 
+        public int Compare(TriangleIndexer left, TriangleIndexer right) 
+            => (Vertices[left.A][Axis] + Vertices[left.B][Axis] + Vertices[left.C][Axis])
+                .CompareTo(Vertices[right.A][Axis] + Vertices[right.B][Axis] + Vertices[right.C][Axis]);
     }
 
+    [Obsolete]
     private static (int bestSplitAxis, TNum bestLevel, TNum bestCost, BBox3<TNum> leftBounds, BBox3<TNum> rightBounds)
         ChooseSplit<TNum>(
             in BoundedVolume<TNum> toSplit,
@@ -493,6 +503,7 @@ public static class MeshMath
         return (bestSplitAxis, bestLevel, bestCost, leftBounds, rightBounds);
     }
 
+    [Obsolete]
     private static (TNum cost, BBox3<TNum> boundsLeft, BBox3<TNum> boundsRight) EvalSplit<TNum>(
         int axis,
         TNum splitSuggest,
@@ -500,8 +511,8 @@ public static class MeshMath
         BBox3<TNum>[] bounds)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
-        BBox3<TNum> boundsLeft = BBox3<TNum>.NegativeInfinity;
-        BBox3<TNum> boundsRight = BBox3<TNum>.NegativeInfinity;
+        var boundsLeft = BBox3<TNum>.NegativeInfinity;
+        var boundsRight = BBox3<TNum>.NegativeInfinity;
         var numLeft = 0;
         var numRight = 0;
         for (var i = 0; i < centroids.Length; i++)

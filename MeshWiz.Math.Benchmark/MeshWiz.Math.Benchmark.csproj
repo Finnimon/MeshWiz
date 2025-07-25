@@ -9,6 +9,8 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\MeshWiz.IO.Stl\MeshWiz.IO.Stl.csproj" />
+      <ProjectReference Include="..\MeshWiz.IO\MeshWiz.IO.csproj" />
       <ProjectReference Include="..\MeshWiz.Math\MeshWiz.Math.csproj" />
     </ItemGroup>
 

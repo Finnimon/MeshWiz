@@ -1,4 +1,3 @@
-using System.Drawing;
 using MeshWiz.Math;
 using OpenTK.Mathematics;
 using SysColor=System.Drawing.Color;

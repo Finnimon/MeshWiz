@@ -6,7 +6,7 @@ public class MeshEquivalenceTest
     [Test]
     public void EquivalenceOfIndexedMeshTest()
     {
-        var tessellations = BBox3<float>.NegativeInfinity.CombineWith(new Vector3<float>(0,0,0)).CombineWith(new Vector3<float>(1, 1, 1)).TessellatedSurface;
+        var tessellations = Sphere<float>.GenerateTessellation(Vector3<float>.Zero, 1, 32, 64);
         Console.WriteLine(tessellations.Length);
         var mesh=new Mesh3<float>(tessellations);
         var indexed=new IndexedMesh3<float>(tessellations);
@@ -26,7 +26,7 @@ public class MeshEquivalenceTest
             var tri = indexed[i];
             var triCen = tri.Centroid;
             var meshCent = indexed.Centroid;
-            if (meshCent.Distance(triCen - normal) > meshCent.Distance(normal + triCen))
+            if (meshCent.DistanceTo(triCen - normal) > meshCent.DistanceTo(normal + triCen))
                 throw new Exception();
         }
     }

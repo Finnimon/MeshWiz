@@ -1,5 +1,3 @@
-using MeshWiz.Contracts;
-
 namespace MeshWiz.Abstraction.OpenTK;
 
 public sealed record BufferObject(int Handle, BufferTarget Target)

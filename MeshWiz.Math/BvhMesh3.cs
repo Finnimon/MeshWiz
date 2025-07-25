@@ -1,20 +1,17 @@
 using System.Collections;
-using System.Collections.Immutable;
 using System.Numerics;
+using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
 
 public class BvhMesh3<TNum> : IIndexedMesh3<TNum> 
     where TNum : unmanaged, IFloatingPointIeee754<TNum> 
 {
-    
-    public Vector3<TNum> Centroid => VolumeCentroid;
     public Vector3<TNum> VertexCentroid => _vertexCentroid ??= MeshMath.VertexCentroid(this);
     public Vector3<TNum> SurfaceCentroid => _surfaceCentroid ??= MeshMath.SurfaceCentroid(this).XYZ;
     public Vector3<TNum> VolumeCentroid => _volumeCentroid ??= MeshMath.VolumeCentroid(this).XYZ;
 
     public TNum Volume => _volume ??= MeshMath.Volume(this);
-    Vector3<TNum> IFace<Vector3<TNum>, TNum>.Centroid => SurfaceCentroid;
     public TNum SurfaceArea => _surfaceArea ??= MeshMath.SurfaceArea(this);
     public BBox3<TNum> BBox { get; }
 
@@ -29,6 +26,8 @@ public class BvhMesh3<TNum> : IIndexedMesh3<TNum>
     public Vector3<TNum>[] Vertices { get; }
     public int Count =>Indices.Length;
     public Triangle3<TNum> this[int index] => Indices[index].Extract(Vertices);
+    
+    
     public readonly BoundedVolumeHierarchy<TNum> Hierarchy;
 
     public BvhMesh3(IReadOnlyList<Triangle3<TNum>> mesh, uint maxDepth=32,uint splitTests=4)
@@ -60,16 +59,15 @@ public class BvhMesh3<TNum> : IIndexedMesh3<TNum>
     }
 
 
-    public bool HitTest<THitTester>(THitTester tester, out TNum result)
-        where THitTester : IHitTester<Triangle3<TNum>, TNum>, IHitTester<BBox3<TNum>,TNum>
+    public bool Intersect<THitTester>(THitTester tester, out TNum result)
+        where THitTester : IIntersecter<Triangle3<TNum>, TNum>, IIntersecter<BBox3<TNum>,TNum>
     {
-        Stack<int> nodeToTest = [];
-        nodeToTest.Push(0);
+        Stack<int> nodeToTest = HitTestStack();
         result = TNum.PositiveInfinity;
         while (nodeToTest.TryPop(out var nodeIndex))
         {
-            ref var node=ref Hierarchy[nodeIndex];
-            if(!tester.HitTest(node.Bounds, out var boundsResult)) continue;
+            ref readonly var node=ref  Hierarchy[nodeIndex];
+            if(!tester.Intersect(node.Bounds, out var boundsResult)) continue;
             if(boundsResult>result) continue;
             if (node.IsParent)
             {
@@ -81,7 +79,7 @@ public class BvhMesh3<TNum> : IIndexedMesh3<TNum>
             for (var i = node.Start; i < node.End; i++)
             {
                 var tri = this[i];
-                if(!tester.HitTest(tri,out var triResult)) continue;
+                if(!tester.Intersect(tri,out var triResult)) continue;
                 result = TNum.Min(triResult, result);
             }
         }
@@ -89,15 +87,14 @@ public class BvhMesh3<TNum> : IIndexedMesh3<TNum>
     }
     
     
-    public bool HitTest<THitTester>(THitTester tester)
-        where THitTester : IHitTester<Triangle3<TNum>, TNum>, IHitTester<BBox3<TNum>,TNum>
+    public bool DoesIntersect<TIntersecter>(TIntersecter tester)
+        where TIntersecter : IIntersecter<Triangle3<TNum>, TNum>, IIntersecter<BBox3<TNum>,TNum>
     {
-        Stack<int> nodeToTest = [];
-        nodeToTest.Push(0);
+        Stack<int> nodeToTest = HitTestStack();
         while (nodeToTest.TryPop(out var nodeIndex))
         {
-            ref var node=ref Hierarchy[nodeIndex];
-            if(!tester.HitTest(node.Bounds)) continue;
+            ref readonly var node=ref Hierarchy[nodeIndex];
+            if(!tester.DoIntersect(node.Bounds)) continue;
             if (node.IsParent)
             {
                 nodeToTest.Push(node.FirstChild);
@@ -108,24 +105,23 @@ public class BvhMesh3<TNum> : IIndexedMesh3<TNum>
             for (var i = node.Start; i < node.End; i++)
             {
                 var tri = this[i];
-                if (tester.HitTest(tri)) return true;
+                if (tester.DoIntersect(tri)) return true;
             }
         }
 
         return false;
     }
     
-    public bool HitTest<THitTester>(THitTester tester, out int triangleIndex)
-        where THitTester : IHitTester<Triangle3<TNum>, TNum>, IHitTester<BBox3<TNum>,TNum>
+    public bool Intersect<TIntersecter>(TIntersecter tester, out int triangleIndex)
+        where TIntersecter : IIntersecter<Triangle3<TNum>, TNum>, IIntersecter<BBox3<TNum>,TNum>
     {
-        Stack<int> nodeToTest = [];
-        nodeToTest.Push(0);
+        Stack<int> nodeToTest = HitTestStack();
         triangleIndex = -1;
         var distance = TNum.PositiveInfinity;
         while (nodeToTest.TryPop(out var nodeIndex))
         {
-            ref var node=ref Hierarchy[nodeIndex];
-            if(!tester.HitTest(node.Bounds, out var boundsResult)) continue;
+            ref readonly var node=ref Hierarchy[nodeIndex];
+            if(!tester.Intersect(node.Bounds, out var boundsResult)) continue;
             if(boundsResult>distance) continue;
             if (node.IsParent)
             {
@@ -137,7 +133,7 @@ public class BvhMesh3<TNum> : IIndexedMesh3<TNum>
             for (var i = node.Start; i < node.End; i++)
             {
                 var tri = this[i];
-                if(!tester.HitTest(tri,out var triResult)) continue;
+                if(!tester.Intersect(tri,out var triResult)) continue;
                 if(distance<triResult) continue;
                 triangleIndex = i;
                 distance = triResult;
@@ -146,11 +142,97 @@ public class BvhMesh3<TNum> : IIndexedMesh3<TNum>
 
         return triangleIndex>=0;
     }
-    
-    public IEnumerator<Triangle3<TNum>> GetEnumerator()
+
+
+    public bool Intersect<TIntersecter>(TIntersecter tester, out BvhHitInfo<TNum>[] hits)
+        where TIntersecter : IIntersecter<Triangle3<TNum>, TNum>, IIntersecter<BBox3<TNum>, TNum>
     {
-        for (int i = 0; i < Count; i++) yield return this[i];
+        var nodeToTest = HitTestStack();
+        List < BvhHitInfo < TNum >> hitMemory= [];
+        while (nodeToTest.TryPop(out var nodeIndex))
+        {
+            ref readonly var node=ref Hierarchy[nodeIndex];
+            if(!tester.DoIntersect(node.Bounds)) continue;
+            if (node.IsParent)
+            {
+                nodeToTest.Push(node.FirstChild);
+                nodeToTest.Push(node.SecondChild);
+                continue;
+            }
+
+            for (var triangleIndex = node.Start; triangleIndex < node.End; triangleIndex++)
+            {
+                var tri = this[triangleIndex];
+                if(!tester.Intersect(tri,out var distance)) continue;
+                hitMemory.Add(new(distance,triangleIndex));
+            }
+        }
+
+        hits= hitMemory.ToArray();
+        return hitMemory.Count > 0;
     }
 
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    private static Stack<int> HitTestStack()
+    {
+        Stack<int> nodeToTest = [];
+        nodeToTest.Push(0);
+        return nodeToTest;
+    }
+
+    public PolyLine<Vector3<TNum>, TNum>[] Intersect(Plane3<TNum> plane)
+    {
+        Stack<int> nodeToTest = [];
+        nodeToTest.Push(0);
+        Queue<Line<Vector3<TNum>,TNum>> intersections= [];
+        while (nodeToTest.TryPop(out var nodeIndex))
+        {
+            ref readonly var node=ref Hierarchy[nodeIndex];
+            if(!plane.DoIntersect(node.Bounds)) continue;
+            if (node.IsParent)
+            {
+                nodeToTest.Push(node.FirstChild);
+                nodeToTest.Push(node.SecondChild);
+                continue;
+            }
+
+            for (var triangleIndex = node.Start; triangleIndex < node.End; triangleIndex++)
+            {
+                var tri = this[triangleIndex];
+                
+                if(!plane.Intersect(tri,out var line)) continue;
+                intersections.Enqueue(line);
+            }
+        }
+        return CurveMath.Unify(intersections);
+    }
+    
+    public PolyLine<Vector3<TNum>, TNum>[] IntersectRolling(Plane3<TNum> plane)
+    {
+        RollingList<int> nodeToTest = [0];
+        RollingList<Line<Vector3<TNum>,TNum>> intersections= [];
+        while (nodeToTest.TryPopFront(out var nodeIndex))
+        {
+            ref readonly var node=ref Hierarchy[nodeIndex];
+            if(!plane.DoIntersect(node.Bounds)) continue;
+            if (node.IsParent)
+            {
+                nodeToTest.PushFront(node.FirstChild);
+                nodeToTest.PushFront(node.SecondChild);
+                continue;
+            }
+
+            for (var triangleIndex = node.Start; triangleIndex < node.End; triangleIndex++)
+            {
+                var tri = this[triangleIndex];
+                
+                if(!plane.Intersect(tri,out var line)) continue;
+                intersections.PushBack(line);
+            }
+        }
+        return CurveMath.UnifyNonReversing(intersections);
+    }
+
+    
+
+    public BvhMesh3<TNum> Indexed() => this;
 }

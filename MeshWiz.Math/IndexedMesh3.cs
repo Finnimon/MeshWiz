@@ -12,7 +12,6 @@ public sealed class IndexedMesh3<TNum> : IIndexedMesh3<TNum>
     public Vector3<TNum> VolumeCentroid => _volumeCentroid ??= MeshMath.VolumeCentroid(this).XYZ;
 
     public TNum Volume => _volume ??= MeshMath.Volume(this);
-    Vector3<TNum> IFace<Vector3<TNum>, TNum>.Centroid => SurfaceCentroid;
     public TNum SurfaceArea => _surfaceArea ??= MeshMath.SurfaceArea(this);
     public BBox3<TNum> BBox => _bBox ??= MeshMath.BBox(this);
 
@@ -83,24 +82,13 @@ public sealed class IndexedMesh3<TNum> : IIndexedMesh3<TNum>
         _bBox = info.Box;
     }
 
-    public void Shift(Vector3<TNum> add)
-    {
-        for (var i = 0; i < Vertices.Length; i++) Vertices[i] += add;
-        InitializeLazies();
-    }
 
     public IndexedMesh3<TNum> Indexed()
         => this;
-
-    public IEnumerator<Triangle3<TNum>> GetEnumerator()
-    {
-        for (var i = 0; i < Count; i++) yield return this[i];
-    }
-
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
 
     public async Task InitializeAsync() => await Task.Run(InitializeLazies);
 
     public static IndexedMesh3<TNum> Empty { get; } = new([]);
+
 }

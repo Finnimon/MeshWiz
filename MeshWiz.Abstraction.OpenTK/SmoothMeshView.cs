@@ -1,4 +1,3 @@
-using System.Globalization;
 using MeshWiz.Math;
 using OpenTK.Mathematics;
 

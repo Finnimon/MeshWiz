@@ -18,6 +18,8 @@ public readonly struct Line<TVector, TNum>(TVector start, TVector end)
     public TNum Length => Direction.Length;
     public TVector Direction => _end.Subtract(_start);
     public TVector NormalDirection => Direction.Normalized;
+    public Line<TVector, TNum> Clone() => new(_start, _end);
+    public Line<TVector, TNum> Reversed => new(_end,_start);
     TNum IDiscreteCurve<TVector,TNum>.Length => Direction.Length;
     
     
@@ -26,9 +28,9 @@ public readonly struct Line<TVector, TNum>(TVector start, TVector end)
     
     
     public TVector Traverse(TNum distance)
-        =>NormalDirection.Scale(scalar: distance).Add(_start);
+        =>_start+Direction*distance;
 
     public TVector TraverseOnCurve(TNum distance) 
-        => Traverse(TNum.Clamp(distance, TNum.Zero, Length));
+        => Traverse(TNum.Clamp(distance, TNum.Zero, TNum.One));
 
 }

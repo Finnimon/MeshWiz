@@ -47,8 +47,9 @@ public static class NumExt
     public static bool OutsideInclusiveRange(this long value, long min, long max)
         => ((ulong)value).OutsideInclusiveRange((ulong) min,(ulong) max);
 
+    
     public static TNum Wrap<TNum>(this TNum value, TNum min, TNum max)
-    where TNum:unmanaged,INumber<TNum>
+    where TNum:INumber<TNum>
     {
         var range = max - min;
         if (range == TNum.Zero)
@@ -56,4 +57,14 @@ public static class NumExt
 
         return (((value - min) % range + range) % range) + min;
     }
+
+    public static bool IsApprox<TNum>(this TNum num, TNum other, TNum epsilon)
+        where TNum : IFloatingPoint<TNum>
+        => TNum.Abs(num - other) < epsilon;
+    public static bool IsApprox<TNum>(this TNum num, TNum other)
+        where TNum : IFloatingPointIeee754<TNum>
+        => TNum.Abs(num - other) < TNum.Epsilon;
+    
+
+
 }

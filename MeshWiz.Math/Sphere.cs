@@ -1,11 +1,9 @@
-using System;
-using System.Linq;
 using System.Numerics;
 
 namespace MeshWiz.Math;
 
 public readonly record struct Sphere<TNum>(Vector3<TNum> Centroid, TNum Radius)
-    : IBody<TNum>, IFace<Vector3<TNum>, TNum>
+    : IBody<TNum>, ISurface<Vector3<TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public TNum Volume
@@ -13,8 +11,7 @@ public readonly record struct Sphere<TNum>(Vector3<TNum> Centroid, TNum Radius)
 
     public TNum SurfaceArea => TNum.CreateChecked(4) * TNum.Pi * Radius * Radius;
 
-    public IFace<Vector3<TNum>, TNum> Surface => throw new NotImplementedException("Explicit Sphere face missing");
-    public Triangle3<TNum>[] TessellatedSurface => GenerateTessellation(Centroid, Radius, stacks: 16, slices: 32);
+    public ISurface<Vector3<TNum>, TNum> Surface => throw new NotImplementedException("Explicit Sphere face missing");
 
     public BBox3<TNum> BBox
     {
@@ -74,4 +71,5 @@ public readonly record struct Sphere<TNum>(Vector3<TNum> Centroid, TNum Radius)
         return tris;
     }
 
+    public IMesh3<TNum> Tessellate() =>new Mesh3<TNum>(GenerateTessellation(Centroid, Radius, stacks: 16, slices: 32));
 }

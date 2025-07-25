@@ -6,7 +6,7 @@ namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
 
-public readonly struct Triangle3<TNum>:IFace<Vector3<TNum>, TNum>, IFlat<TNum>, IByteSize
+public readonly struct Triangle3<TNum>:ISurface<Vector3<TNum>, TNum>, IFlat<TNum>, IByteSize
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly Vector3<TNum> A,B,C;
