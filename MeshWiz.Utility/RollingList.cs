@@ -88,7 +88,7 @@ public sealed class RollingList<T> : IReadOnlyList<T>
         if (_postTailIndex <= _headIndex)
             Array.Copy(_items, 0, newArray, firstMoveSize, _postTailIndex);
         _items = newArray;
-        _headIndex = firstMoveSize;
+        _headIndex = 0;
         _postTailIndex = Count - 1;
     }
 
@@ -155,10 +155,36 @@ public sealed class RollingList<T> : IReadOnlyList<T>
         return true;
     }
 
-
+    public T[] ToArrayFast()
+    {
+        if(Count==0) return Array.Empty<T>();
+        var result=new T[Count];
+        if (_headIndex < _postTailIndex)
+        {
+            Array.Copy(_items, _headIndex, result, 0, Count);
+            return result;
+        }
+        
+        var firstMoveSize = _items.Length - _headIndex;
+        Array.Copy(_items, _headIndex, result, 0, firstMoveSize);
+        Array.Copy(_items, 0, result, firstMoveSize, _postTailIndex);
+        return result;
+    }
+    
     public IEnumerator<T> GetEnumerator()
     {
-        for (int i = 0; i < Count; i++) yield return this[i];
+        if (Count == 0) yield break;
+        var arrayLength=_items.Length;
+        if (_headIndex < _postTailIndex)
+        {
+            for (var i = _headIndex; i < _postTailIndex; i++)
+                yield return _items[i];
+            yield break;
+        }
+        for (var i = _headIndex; i < arrayLength; i++)
+            yield return _items[i];
+        for (var i = 0; i < _postTailIndex; i++)
+            yield return _items[i];
     }
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
