@@ -11,25 +11,24 @@ public sealed class BoundedVolumeHierarchy<TNum>
     private BoundedVolume<TNum>[] _nodes;
     public int Count { get; private set; }
 
-    public const int GrowthFloor = 256;
-    public int GrowthCap
-    {
-        get => int.Max(field, GrowthFloor);
-        init => field = int.Max(value, GrowthFloor);
-    }
 
     public BoundedVolumeHierarchy()
     {
         _nodes = new BoundedVolume<TNum>[256];
         Count = 0;
-        GrowthCap = 4096;
+    }
+
+    public BoundedVolumeHierarchy(int capacity)
+    {
+        _nodes = new BoundedVolume<TNum>[capacity];
+        Count = 0;
     }
 
     
     public int Add(BoundedVolume<TNum> node)
     {
         if (Count >= _nodes.Length) 
-            Array.Resize(ref _nodes, _nodes.Length+int.Min(_nodes.Length,GrowthCap));
+            Array.Resize(ref _nodes, 2*_nodes.Length);
         var idx = Count++;
         _nodes[idx] = node;
         return idx;

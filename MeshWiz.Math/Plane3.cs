@@ -105,21 +105,21 @@ public readonly struct Plane3<TNum>
         var aSign = DistanceSign(a);
         var bSign = DistanceSign(b);
         var cSign = DistanceSign(c);
-        var aUnique = aSign != bSign && aSign != cSign;
+        var aUnique = aSign != bSign && aSign != cSign && aSign!=0;
         if (aUnique)
         {
             result = ComputeTriangleIntersection(a, b, c,aSign);
             return true;
         }
 
-        var bUnique = bSign != cSign && bSign != aSign;
+        var bUnique = bSign != cSign && bSign != aSign && bSign != 0;
         if (bUnique)
         {
             result = ComputeTriangleIntersection(b, c, a,bSign);
             return true;
         }
 
-        var cUnique = cSign != aSign && cSign != bSign;
+        var cUnique = cSign != aSign && cSign != bSign && cSign != 0;
         if (cUnique)
         {
             result = ComputeTriangleIntersection(c, a, b,cSign);
@@ -144,7 +144,7 @@ public readonly struct Plane3<TNum>
     public TNum SignedDistance(Vector3<TNum> p) => Normal * p + D;
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int DistanceSign(Vector3<TNum> p) => TNum.Sign(SignedDistance(p));
+    public int DistanceSign(Vector3<TNum> p) => SignedDistance(p).EpsilonTruncatingSign();
 
     public bool DoIntersect(BBox3<TNum> box)
     {

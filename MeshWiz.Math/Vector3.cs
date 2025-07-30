@@ -254,7 +254,7 @@ where TNum : unmanaged, IFloatingPointIeee754<TNum>
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Ray3<TNum> RayThrough(Vector3<TNum> through) => new Ray3<TNum>(this, through - this);
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Line<Vector3<TNum>,TNum> LineTo(Vector3<TNum> to) => new (this, to);
+    public Line<Vector3<TNum>,TNum> LineTo(Vector3<TNum> end) => new (this, end);
     
     
     

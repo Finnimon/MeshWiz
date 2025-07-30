@@ -21,8 +21,9 @@ public readonly struct Line<TVector, TNum>(TVector start, TVector end)
     public Line<TVector, TNum> Clone() => new(_start, _end);
     public Line<TVector, TNum> Reversed => new(_end,_start);
     TNum IDiscreteCurve<TVector,TNum>.Length => Direction.Length;
-    
-    
+    public  TNum SquaredLength =>Direction.SquaredLength;
+
+
     public static Line<TVector,TNum> FromDirection(TVector start,TVector direction)
         => new(start, start.Add(direction));
     

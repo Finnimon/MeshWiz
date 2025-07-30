@@ -1,4 +1,4 @@
 ﻿using BenchmarkDotNet.Running;
 using MeshWiz.Math.Benchmark;
 
-BenchmarkRunner.Run<PlaneBvhIntersectBench>();
+BenchmarkRunner.Run<BvhMesh3Bench<float>>();

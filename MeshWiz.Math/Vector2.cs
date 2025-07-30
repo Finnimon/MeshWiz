@@ -235,4 +235,6 @@ public readonly struct Vector2<TNum> : IVector2<Vector2<TNum>, TNum>
     
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsApprox(Vector2<TNum> other)=>SquaredDistanceTo(other)<=TNum.Epsilon;
+
+    public Line<Vector2<TNum>, TNum> LineTo(Vector2<TNum> end) => new(this, end);
 }

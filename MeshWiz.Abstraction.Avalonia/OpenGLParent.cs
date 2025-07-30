@@ -69,7 +69,6 @@ public sealed class OpenGLParent : OpenGlControlBase, IDisposable
         Fps = ((float)TickerMax) / _millis * 1000;
         _millis = 0;
         _ticker = TickerMax;
-        Console.WriteLine(Fps);
     }
 
     private (bool visible, float aspectratio) UpdateViewport()
@@ -81,6 +80,7 @@ public sealed class OpenGLParent : OpenGlControlBase, IDisposable
 
     private void RenderChildren(float aspectRatio)
     {
+        GL.LoadBindings(_context!);
         GL.Enable(EnableCap.DepthTest);
         foreach (var child in Children)
         {

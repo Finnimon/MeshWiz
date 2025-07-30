@@ -24,17 +24,16 @@ public static class MeshMath
         var volume = TNum.Zero;
         var box = BBox3<TNum>.NegativeInfinity;
 
-        for (var i = 0; i < mesh.Count; i++)
+        foreach (var triangle in mesh)
         {
-            var triangle = mesh[i];
             var (a,b,c) = triangle;
             var currentCentroid = a + b + c;
             var currentSurf = triangle.SurfaceArea;
-            var currentVolu = Tetrahedron<TNum>.CalculateSignedVolume(a,b,c,Vector3<TNum>.Zero);
+            var currentVolume = Tetrahedron<TNum>.CalculateSignedVolume(a,b,c,Vector3<TNum>.Zero);
             vertexCentroid += currentCentroid;
             surfaceCentroid += currentCentroid * currentSurf;
-            volumeCentroid += currentCentroid * currentVolu;
-            volume += currentVolu;
+            volumeCentroid += currentCentroid * currentVolume;
+            volume += currentVolume;
             surfaceArea += currentSurf;
             box= box.CombineWith(triangle.A).CombineWith(triangle.B).CombineWith(triangle.C);
         }
@@ -58,11 +57,7 @@ public static class MeshMath
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         var centroid = Vector3<TNum>.Zero;
-        for (var i = 0; i < mesh.Count; i++)
-        {
-            var tri = mesh[i];
-            centroid += tri.A + tri.B + tri.C;
-        }
+        foreach (var tri in mesh) centroid += tri.A + tri.B + tri.C;
 
         return centroid / TNum.CreateTruncating(mesh.Count * 3);
     }
@@ -71,9 +66,8 @@ public static class MeshMath
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         var centroid = Vector4<TNum>.Zero;
-        for (var i = 0; i < mesh.Count; i++)
+        foreach (var triangle in mesh)
         {
-            var triangle = mesh[i];
             var currentCentroid = triangle.A + triangle.B + triangle.C;
             var currentArea = triangle.SurfaceArea;
             centroid += new Vector4<TNum>(currentCentroid * currentArea, currentArea);
@@ -88,9 +82,9 @@ public static class MeshMath
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         var centroid = Vector4<TNum>.Zero;
-        for (var i = 0; i < mesh.Count; i++)
+        foreach (var t in mesh)
         {
-            Tetrahedron<TNum> tetra = new(mesh[i]);
+            Tetrahedron<TNum> tetra = new(t);
             var currentVolume = tetra.Volume;
             var currentCentroid = tetra.Centroid;
             centroid += new Vector4<TNum>(currentCentroid * currentVolume, currentVolume);
@@ -105,7 +99,9 @@ public static class MeshMath
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         var volume = TNum.Zero;
-        for (var i = 0; i < mesh.Count; i++) volume += new Tetrahedron<TNum>(mesh[i]).Volume;
+        foreach (var tri in mesh)
+            volume += new Tetrahedron<TNum>(tri).Volume;
+
         return volume;
     }
 
@@ -114,7 +110,7 @@ public static class MeshMath
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         var area = TNum.Zero;
-        for (var i = 0; i < mesh.Count; i++) area += mesh[i].SurfaceArea;
+        foreach (var tri in mesh) area += tri.SurfaceArea;
         return area;
     }
 
@@ -122,11 +118,8 @@ public static class MeshMath
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         var bbox = BBox3<TNum>.NegativeInfinity;
-        for (var i = 0; i < mesh.Count; i++)
-        {
-            var tri = mesh[i];
+        foreach (var tri in mesh) 
             bbox = bbox.CombineWith(tri.A).CombineWith(tri.B).CombineWith(tri.C);
-        }
 
         return bbox;
     }
@@ -135,8 +128,9 @@ public static class MeshMath
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         var bbox = BBox3<TNum>.NegativeInfinity;
-        for (var i = 0; i < vertices.Count; i++)
-            bbox = bbox.CombineWith(vertices[i]);
+        foreach (var tri in vertices)
+            bbox = bbox.CombineWith(tri);
+
         return bbox;
     }
 
@@ -148,7 +142,7 @@ public static class MeshMath
         //on avg there is two triangles per unique vertex
         var averageUniqueVertices = mesh.Count / 2;
         var vertices = new List<Vector3<TNum>>(averageUniqueVertices);
-        var unified = new Dictionary<Vector3<TNum>, uint>(averageUniqueVertices);
+        var unified = new Dictionary<Vector3<TNum>, int>(averageUniqueVertices);
 
         for (var i = 0; i < mesh.Count; i++)
         {
@@ -162,19 +156,18 @@ public static class MeshMath
         return (indices, [..vertices]);
     }
 
-    public static (uint[] Indices, Vector3<TNum>[] Vertices) IndicateWithNormals<TNum>(
+    public static (int[] Indices, Vector3<TNum>[] Vertices) IndicateWithNormals<TNum>(
         IReadOnlyList<Triangle3<TNum>> mesh)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
-        var indices = new uint[mesh.Count * 4];
+        var indices = new int[mesh.Count * 4];
         //on avg there is two triangles per unique vertex
         var averageUniqueVertices = mesh.Count / 2;
         var vertices = new List<Vector3<TNum>>(averageUniqueVertices);
-        var unified = new Dictionary<Vector3<TNum>, uint>(averageUniqueVertices);
+        var unified = new Dictionary<Vector3<TNum>, int>(averageUniqueVertices);
         var indexPosition = -1;
-        for (var i = 0; i < mesh.Count; i++)
+        foreach (var triangle in mesh)
         {
-            var triangle = mesh[i];
             indices[++indexPosition] = GetIndex(triangle.A, unified, vertices);
             indices[++indexPosition] = GetIndex(triangle.B, unified, vertices);
             indices[++indexPosition] = GetIndex(triangle.C, unified, vertices);
@@ -184,19 +177,18 @@ public static class MeshMath
         return (indices, [..vertices]);
     }
 
-    public static (uint[] Indices, Vector3<TNum>[] Vertices) IndicateWithNormalsInterleaved<TNum>(
+    public static (int[] Indices, Vector3<TNum>[] Vertices) IndicateWithNormalsInterleaved<TNum>(
         IReadOnlyList<Triangle3<TNum>> mesh)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
-        var indices = new uint[mesh.Count * 6];
+        var indices = new int[mesh.Count * 6];
         //on avg there is two triangles per unique vertex
         var averageUniqueVertices = mesh.Count / 2;
         var vertices = new List<Vector3<TNum>>(averageUniqueVertices);
-        var unified = new Dictionary<Vector3<TNum>, uint>(averageUniqueVertices);
+        var unified = new Dictionary<Vector3<TNum>, int>(averageUniqueVertices);
         var indexPosition = -1;
-        for (var i = 0; i < mesh.Count; i++)
+        foreach (var triangle in mesh)
         {
-            var triangle = mesh[i];
             var nIndex = GetIndex(triangle.Normal, unified, vertices);
             indices[++indexPosition] = GetIndex(triangle.A, unified, vertices);
             indices[++indexPosition] = nIndex;
@@ -209,31 +201,24 @@ public static class MeshMath
         return (indices, [..vertices]);
     }
 
-    private static uint GetIndex<TNum>(Vector3<TNum> vec,
-        Dictionary<Vector3<TNum>, uint> unified,
+    private static int GetIndex<TNum>(Vector3<TNum> vec,
+        Dictionary<Vector3<TNum>, int> unified,
         List<Vector3<TNum>> vertices)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         if (unified.TryGetValue(vec, out var index)) return index;
-        index = uint.CreateChecked(vertices.Count);
+        index = vertices.Count;
         unified.Add(vec, index);
         vertices.Add(vec);
         return index;
     }
 
-    private readonly struct BvhSortingTriangle<TNum>
+    private readonly struct BvhSortingTriangle<TNum>(Triangle3<TNum> triangle)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
-        public readonly Triangle3<TNum> Triangle;
-        public readonly BBox3<TNum> BBox;
-        public readonly Vector3<TNum> Centroid;
-
-        public BvhSortingTriangle(Triangle3<TNum> triangle)
-        {
-            Triangle=triangle;
-            BBox=triangle.BBox;
-            Centroid=triangle.Centroid;
-        }
+        public readonly Triangle3<TNum> Triangle = triangle;
+        public readonly BBox3<TNum> BBox = triangle.BBox;
+        public readonly Vector3<TNum> Centroid = triangle.Centroid;
     }
 
     private sealed record BvhSortingComparer<TNum> : IComparer<BvhSortingTriangle<TNum>>
@@ -261,8 +246,8 @@ public static class MeshMath
             triangles[i] = sorting;
         }
         var comparer=new BvhSortingComparer<TNum>();
-        BoundedVolume<TNum> rootParent = new(rootBox, 0, triangles.Length);
-        BoundedVolumeHierarchy<TNum> hierarchy = [rootParent];
+        BoundedVolumeHierarchy<TNum> hierarchy = [BoundedVolume<TNum>.MakeLeaf(rootBox,0,triangles.Length)];
+        
         Stack<(int parentIndex, uint depth)> recursiveStack = new((int)maxDepth);
         recursiveStack.Push((0, 0));
         while (recursiveStack.TryPop(out var job))
@@ -290,8 +275,8 @@ public static class MeshMath
             var leftChildLength = i - parent.Start;
 
             if (leftChildLength.OutsideInclusiveRange(0,parent.Length-1)) continue;
-            BoundedVolume<TNum> leftChild = new(bboxLeft, parent.Start, leftChildLength);
-            BoundedVolume<TNum> rightChild = new(bboxRight, leftChild.End, parent.Length - leftChildLength);
+            BoundedVolume<TNum> leftChild = BoundedVolume<TNum>.MakeLeaf(bboxLeft, parent.Start, leftChildLength);
+            BoundedVolume<TNum> rightChild = BoundedVolume<TNum>.MakeLeaf(bboxRight, leftChild.End, parent.Length - leftChildLength);
             var leftIndex = hierarchy.Add(leftChild);
             var rightIndex = hierarchy.Add(rightChild);
             
@@ -386,7 +371,7 @@ public static class MeshMath
         return (leftCost + rightCost, boundsLeft, boundsRight);
     }
 
-    [Obsolete($"Use the other overload. It has no sideeffects and is much faster.")]
+    [Obsolete($"Use the other overload. It has no side effects and is much faster.")]
     public static BoundedVolumeHierarchy<TNum> Hierarchize<TNum>(
         TriangleIndexer[] indices,
         Vector3<TNum>[] vertices,
@@ -396,7 +381,7 @@ public static class MeshMath
     {
         splitTests = uint.Clamp(splitTests, 2, 10);
         Vec3Comparer<TNum> comparer = new(vertices);
-        BoundedVolumeHierarchy<TNum> hierarchy = [new(BBox(vertices), 0, indices.Length)];
+        BoundedVolumeHierarchy<TNum> hierarchy = [BoundedVolume<TNum>.MakeLeaf(BBox(vertices),0,indices.Length)];
         Stack<(int parentIndex, uint depth)> recursiveStack = new((int)maxDepth);
         recursiveStack.Push((0, 0));
         while (recursiveStack.TryPop(out var job))
@@ -426,8 +411,8 @@ public static class MeshMath
 
             if (leftChildLength.OutsideInclusiveRange(0,parent.Length-1)) continue;
 
-            BoundedVolume<TNum> leftChild = new(bboxLeft, parent.Start, leftChildLength);
-            BoundedVolume<TNum> rightChild = new(bboxRight, leftChild.End, parent.Length - leftChildLength);
+            BoundedVolume<TNum> leftChild = BoundedVolume<TNum>.MakeLeaf(bboxLeft, parent.Start, leftChildLength);
+            BoundedVolume<TNum> rightChild = BoundedVolume<TNum>.MakeLeaf(bboxRight, leftChild.End, parent.Length - leftChildLength);
             var leftIndex =  hierarchy.Add(leftChild);
             var rightIndex =  hierarchy.Add(rightChild);
             parent.RegisterChildren(leftIndex, rightIndex);
@@ -447,10 +432,10 @@ public static class MeshMath
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         public int Axis = axis;
-        public readonly Vector3<TNum>[] Vertices=vertices; 
+
         public int Compare(TriangleIndexer left, TriangleIndexer right) 
-            => (Vertices[left.A][Axis] + Vertices[left.B][Axis] + Vertices[left.C][Axis])
-                .CompareTo(Vertices[right.A][Axis] + Vertices[right.B][Axis] + Vertices[right.C][Axis]);
+            => (vertices[left.A][Axis] + vertices[left.B][Axis] + vertices[left.C][Axis])
+                .CompareTo(vertices[right.A][Axis] + vertices[right.B][Axis] + vertices[right.C][Axis]);
     }
 
     [Obsolete]

@@ -10,7 +10,7 @@ public sealed class FastStlReader : IMeshReader<float>
 {
     private FastStlReader() { }
 
-    public static Mesh3<float> Read(Stream stream, bool leaveOpen = false)
+    public static IMesh3<float> Read(Stream stream, bool leaveOpen = false)
     {
         try
         {

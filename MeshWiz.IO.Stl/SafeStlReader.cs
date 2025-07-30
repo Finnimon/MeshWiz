@@ -12,7 +12,7 @@ public sealed class SafeStlReader<TNum> : IMeshReader<TNum>
 {
     private SafeStlReader() { }
 
-    public static Mesh3<TNum> Read(Stream stream, bool leaveOpen = false)
+    public static IMesh3<TNum> Read(Stream stream, bool leaveOpen = false)
     {
         try
         {

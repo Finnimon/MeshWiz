@@ -18,4 +18,6 @@ public interface IFloatingVector<TSelf, TNum> : IVector<TSelf, TNum>, IByteSize
                 return false;
         return true;
     }
+
+    public Line<TSelf, TNum> LineTo(TSelf end);
 }

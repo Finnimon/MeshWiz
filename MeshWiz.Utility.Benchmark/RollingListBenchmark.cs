@@ -53,4 +53,21 @@ public class RollingListBenchmark
 
         return linkedList.ToArray();
     }
+    
+    [Benchmark]
+    public Vector3<double>[] ListMixedAddsToArray()
+    {
+        List<Vector3<double>> prepList = [];
+        List<Vector3<double>> appeList = [];
+        var prepend = _prepend!;
+        var append = _append!;
+        for (var i = 0; i < Size; i++)
+        {
+            prepList.Add(prepend[i]);
+            appeList.Add(append[i]);
+        }
+
+        prepList.Reverse();
+        return [..prepList, ..appeList];
+    }
 }

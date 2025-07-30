@@ -1,3 +1,4 @@
+using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -58,13 +59,27 @@ public static class NumExt
         return (((value - min) % range + range) % range) + min;
     }
 
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsApprox<TNum>(this TNum num, TNum other, TNum epsilon)
         where TNum : IFloatingPoint<TNum>
         => TNum.Abs(num - other) < epsilon;
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsApprox<TNum>(this TNum num, TNum other)
         where TNum : IFloatingPointIeee754<TNum>
         => TNum.Abs(num - other) < TNum.Epsilon;
-    
 
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int EpsilonTruncatingSign<TNum>(this TNum num, TNum epsilon)
+        where TNum : IFloatingPoint<TNum>
+    {
+        if (num > epsilon) return 1;
+        if (num < -epsilon) return -1;
+        return 0;
+    }
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int EpsilonTruncatingSign<TNum>(this TNum num)
+        where TNum : IFloatingPointIeee754<TNum>
+        => num.EpsilonTruncatingSign(TNum.Epsilon);
 
 }

@@ -37,8 +37,10 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
         W = w;
     }
 
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector4(Vector3<TNum> xyz, TNum w) => ((X, Y, Z), W) = (xyz, w);
 
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4<TNum> FromXYZW(TNum x, TNum y, TNum z, TNum w)
         => new(x, y, z, w);
     public Vector4<TOtherNum> To<TOtherNum>()
@@ -50,6 +52,7 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
             TOtherNum.CreateTruncating(W)
         );
     
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4<TNum> FromComponents<TList>(TList components)
         where TList : IReadOnlyList<TNum>
         =>new(components[0], components[1],components[2],components[3]);
@@ -172,6 +175,7 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
         }
     }
 
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public IEnumerator<TNum> GetEnumerator()
     {
         yield return X;
@@ -187,6 +191,7 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
         yield return Z;
     }
 
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Deconstruct(out TNum x, out TNum y, out TNum z, out TNum w)
     {
         x = X;
@@ -197,9 +202,11 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
 
     #endregion
 
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4<TNum> Lerp(Vector4<TNum> from, Vector4<TNum> to, TNum normalDistance)
         => (to - from) * normalDistance + from;
 
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4<TNum> CosineLerp(Vector4<TNum> from, Vector4<TNum> to, TNum normalDistance)
     {
         var two = TNum.CreateTruncating(2);
@@ -212,7 +219,7 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
     [SuppressMessage("ReSharper", "UseStringInterpolation")]
     public override string ToString()
         => string.Format("{{X:{0:F4} Y:{1:F4} Z:{2:F4} W:{3:F4}}}", X, Y, Z, W);
-    
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNaN(Vector4<TNum> vec)
         => TNum.IsNaN(vec.X)||TNum.IsNaN(vec.Y)||TNum.IsNaN(vec.Z)||TNum.IsNaN(vec.W);
     
@@ -222,4 +229,7 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
     
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsApprox(Vector4<TNum> other)=>SquaredDistanceTo(other)<=TNum.Epsilon;
+
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Line<Vector4<TNum>, TNum> LineTo(Vector4<TNum> end) => new(this, end);
 }

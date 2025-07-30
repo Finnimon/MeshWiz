@@ -1,4 +1,5 @@
-﻿using MeshWiz.Math;
+﻿using MeshWiz.IO.Stl;
+using MeshWiz.Math;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 Console.WriteLine("Hello World!");

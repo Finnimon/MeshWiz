@@ -11,23 +11,20 @@ public sealed class RollingList<T> : IReadOnlyList<T>
     where T : unmanaged
 {
     private const int DefaultCapacity = 16;
-    private const int DefaultGrowthCap = 9192;
     private T[] _items;
-    private readonly int _growthCap;
     private int _headIndex;
     private int _postTailIndex;
     public int Count { get; private set; }
 
     public int Capacity => _items.Length;
 
-    public RollingList(int capacity, int growthCap)
+    public RollingList(int capacity)
     {
         _items = new T[capacity];
         Count = 0;
-        _growthCap = int.Max(256, growthCap);
     }
 
-    public RollingList(T[] source, int start = 0, int count = -1, int growthCap = DefaultGrowthCap)
+    public RollingList(T[] source, int start = 0, int count = -1)
     {
         if (start < 0 || start >= source.Length) throw new ArgumentOutOfRangeException(nameof(start));
         if (count == -1) count = source.Length - start;
@@ -37,17 +34,16 @@ public sealed class RollingList<T> : IReadOnlyList<T>
         Count = count;
         _headIndex = 0;
         _postTailIndex = count;
-        _growthCap = growthCap;
     }
 
-    public RollingList() : this(DefaultCapacity, DefaultGrowthCap) { }
+    public RollingList() : this(DefaultCapacity) { }
 
     public T this[int index]
     {
         get => _items[ValidatedIndex(index)];
         set => _items[ValidatedIndex(index)] = value;
     }
-    
+
     public ref readonly T this[uint index] => ref _items[ValidatedIndex((int)index)];
 
     private int ValidatedIndex(int index)
@@ -57,6 +53,7 @@ public sealed class RollingList<T> : IReadOnlyList<T>
             index += _headIndex;
             return index < _items.Length ? index : index - _items.Length;
         }
+
         throw new IndexOutOfRangeException();
     }
 
@@ -75,7 +72,7 @@ public sealed class RollingList<T> : IReadOnlyList<T>
         if (Count <= _items.Length) return;
 
         var arrayLength = _items.Length;
-        var newSize = arrayLength + int.Min(_growthCap, arrayLength);
+        var newSize = 2 * arrayLength;
         if (_headIndex == 0)
         {
             Array.Resize(ref _items, newSize);
@@ -157,30 +154,31 @@ public sealed class RollingList<T> : IReadOnlyList<T>
 
     public T[] ToArrayFast()
     {
-        if(Count==0) return Array.Empty<T>();
-        var result=new T[Count];
+        if (Count == 0) return Array.Empty<T>();
+        var result = new T[Count];
         if (_headIndex < _postTailIndex)
         {
             Array.Copy(_items, _headIndex, result, 0, Count);
             return result;
         }
-        
+
         var firstMoveSize = _items.Length - _headIndex;
         Array.Copy(_items, _headIndex, result, 0, firstMoveSize);
         Array.Copy(_items, 0, result, firstMoveSize, _postTailIndex);
         return result;
     }
-    
+
     public IEnumerator<T> GetEnumerator()
     {
         if (Count == 0) yield break;
-        var arrayLength=_items.Length;
+        var arrayLength = _items.Length;
         if (_headIndex < _postTailIndex)
         {
             for (var i = _headIndex; i < _postTailIndex; i++)
                 yield return _items[i];
             yield break;
         }
+
         for (var i = _headIndex; i < arrayLength; i++)
             yield return _items[i];
         for (var i = 0; i < _postTailIndex; i++)

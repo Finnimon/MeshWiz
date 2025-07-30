@@ -226,6 +226,7 @@ public class BvhMesh3<TNum> : IIndexedMesh3<TNum>
                 var tri = this[triangleIndex];
                 
                 if(!plane.Intersect(tri,out var line)) continue;
+                
                 intersections.PushBack(line);
             }
         }
@@ -235,4 +236,23 @@ public class BvhMesh3<TNum> : IIndexedMesh3<TNum>
     
 
     public BvhMesh3<TNum> Indexed() => this;
+
+    public BvhMesh3<TOther> To<TOther>()
+    where TOther : unmanaged, IFloatingPointIeee754<TOther>
+    {
+        var indices = Indices[..^1];
+        var vertices=new Vector3<TOther>[Vertices.Length];
+        for (var i = 0; i < Vertices.Length; i++) vertices[i]=Vertices[i].To<TOther>();
+        var hierarchy=new BoundedVolumeHierarchy<TOther>(Hierarchy.Count);
+        foreach (var node in Hierarchy)
+        {
+            var bbox=node.Bounds;
+            BBox3<TOther> oBBox=new (bbox.Min.To<TOther>(),bbox.Max.To<TOther>());
+            BoundedVolume<TOther> otherNode = node.IsParent
+                ? BoundedVolume<TOther>.MakeParent(oBBox, node.FirstChild, node.SecondChild)
+                : BoundedVolume<TOther>.MakeLeaf(oBBox, node.Start, node.Length);  
+            hierarchy.Add(otherNode);
+        }
+        return new BvhMesh3<TOther>(hierarchy,indices,vertices);
+    }
 }

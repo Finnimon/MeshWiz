@@ -37,34 +37,18 @@ public sealed class IndexedMesh3<TNum> : IIndexedMesh3<TNum>
     {
         if (mesh is IndexedMesh3<TNum> indexed)
         {
-            this.Indices = indexed.Indices;
-            this.Vertices = indexed.Vertices;
+            Indices = indexed.Indices;
+            Vertices = indexed.Vertices;
             return;
         }
-
-        Indices = new TriangleIndexer[mesh.Count];
-        //on avg there is two triangles per unique vertex
-        var averageUniqueVertices = mesh.Count / 2;
-        var vertices = new List<Vector3<TNum>>(averageUniqueVertices);
-        var unified = new Dictionary<Vector3<TNum>, uint>(averageUniqueVertices);
-
-        for (var i = 0; i < mesh.Count; i++)
-        {
-            var triangle = mesh[i];
-            var aIndex = GetIndex(triangle.A, unified, vertices);
-            var bIndex = GetIndex(triangle.B, unified, vertices);
-            var cIndex = GetIndex(triangle.C, unified, vertices);
-            Indices[i] = new TriangleIndexer(aIndex, bIndex, cIndex);
-        }
-
-        Vertices = vertices.ToArray();
+        (Indices,Vertices)= MeshMath.Indicate(mesh);
     }
 
-    private static uint GetIndex(Vector3<TNum> vec, Dictionary<Vector3<TNum>, uint> unified,
+    private static int GetIndex(Vector3<TNum> vec, Dictionary<Vector3<TNum>, int> unified,
         List<Vector3<TNum>> vertices)
     {
         if (unified.TryGetValue(vec, out var index)) return index;
-        index = uint.CreateChecked(vertices.Count);
+        index = vertices.Count;
         unified.Add(vec, index);
         vertices.Add(vec);
         return index;

@@ -67,7 +67,7 @@ public class LineView : IOpenGLControl
     public void Update(float aspect)
     {
         if (_newLine) UploadLine();
-        RotateCamera();
+        // RotateCamera();
         UpdateShader(aspect);
     }
 
@@ -75,11 +75,13 @@ public class LineView : IOpenGLControl
     {
         var (model, view, projection) = Camera.CreateRenderMatrices(aspect);
         var objectColor = Color;
+        const float depthOffset = 0.000001f;
         _shader!.BindAnd()
             .SetUniform(nameof(model), ref model)
             .SetUniform(nameof(view), ref view)
             .SetUniform(nameof(projection), ref projection)
             .SetUniform(nameof(objectColor),in objectColor)
+            .SetUniform(nameof(depthOffset),depthOffset)
             .Unbind();
         OpenGLHelper.LogGlError(nameof(LineView),nameof(UpdateShader));
     }
@@ -105,17 +107,19 @@ public class LineView : IOpenGLControl
         OpenGLHelper.LogGlError(nameof(LineView),nameof(UploadLine));
     }
 
+   
     public void Render()
     {
         _shader!.Bind();
         _vao!.Bind();
-        var customLineWidth = System.Math.Abs(LineWidth - 1) > 0.0001;
+        
+         var customLineWidth = System.Math.Abs(LineWidth - 1) > 0.0001;
         if (customLineWidth) GL.LineWidth(LineWidth);
         GL.DrawArrays(PrimitiveType.LineStrip, 0, _uploadedVertexCount);
-        if(customLineWidth) GL.LineWidth(1);//clean state
+        if (customLineWidth) GL.LineWidth(1); // Clean state
         _vao!.Unbind();
         _shader!.Unbind();
-        OpenGLHelper.LogGlError(nameof(LineView),nameof(Render));
+        OpenGLHelper.LogGlError(nameof(LineView), nameof(Render));
     }
 
     public void Dispose()

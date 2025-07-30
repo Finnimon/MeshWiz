@@ -11,7 +11,7 @@ public static class MeshSplitter
         var visited = new bool[triangleCount];
 
         // Step 1: Build a mapping from vertex index -> triangle indices that use it
-        var vertexToTriangles = new Dictionary<uint, List<int>>();
+        var vertexToTriangles = new Dictionary<int, List<int>>();
         for (int triIndex = 0; triIndex < triangleCount; triIndex++)
         {
             var tri = mesh.Indices[triIndex];
@@ -24,38 +24,28 @@ public static class MeshSplitter
         }
 
         var islands = new List<IndexedMesh3<TNum>>();
-
-        // Step 2: Find connected components
-        for (int i = 0; i < triangleCount; i++)
+        var visitCount = 0;
+        for (var i = 0; i < triangleCount&&visitCount<triangleCount; i++)
         {
             if (visited[i]) continue;
-
+            
             var componentTris = new List<int>();
             var queue = new Queue<int>();
             queue.Enqueue(i);
             visited[i] = true;
-
+            visitCount++;
             while (queue.Count > 0)
             {
                 var current = queue.Dequeue();
                 componentTris.Add(current);
 
-                var currentTri = mesh.Indices[current];
-                foreach (var v in new[] { currentTri.A, currentTri.B, currentTri.C })
-                {
-                    foreach (var neighbor in vertexToTriangles[v])
-                    {
-                        if (!visited[neighbor])
-                        {
-                            visited[neighbor] = true;
-                            queue.Enqueue(neighbor);
-                        }
-                    }
-                }
+                var (a,b,c) = mesh.Indices[current];
+                visitCount=VisitVertex(vertexToTriangles, a, visited, queue, visitCount);
+                visitCount=VisitVertex(vertexToTriangles, b, visited, queue, visitCount);
+                visitCount=VisitVertex(vertexToTriangles, c, visited, queue, visitCount);
             }
 
-            // Step 3: Build a new IndexedMesh3<TNum> from this component
-            var oldToNew = new Dictionary<uint, uint>();
+            var oldToNew = new Dictionary<int, int>();
             var newVertices = new List<Vector3<TNum>>();
             var newIndices = new List<TriangleIndexer>();
 
@@ -63,20 +53,9 @@ public static class MeshSplitter
             {
                 var tri = mesh.Indices[triIndex];
 
-                uint GetOrAdd(uint oldIndex)
-                {
-                    if (!oldToNew.TryGetValue(oldIndex, out var newIndex))
-                    {
-                        newIndex = (uint)newVertices.Count;
-                        newVertices.Add(mesh.Vertices[oldIndex]);
-                        oldToNew[oldIndex] = newIndex;
-                    }
-                    return newIndex;
-                }
-
-                var a = GetOrAdd(tri.A);
-                var b = GetOrAdd(tri.B);
-                var c = GetOrAdd(tri.C);
+                var a = GetOrAdd(tri.A, oldToNew, newVertices, mesh);
+                var b = GetOrAdd(tri.B, oldToNew, newVertices, mesh);
+                var c = GetOrAdd(tri.C, oldToNew, newVertices, mesh);
                 newIndices.Add(new TriangleIndexer(a, b, c));
             }
 
@@ -84,5 +63,34 @@ public static class MeshSplitter
         }
 
         return islands.ToArray();
+    }
+
+    private static int VisitVertex(Dictionary<int, List<int>> vertexToTriangles, 
+        int vertIndex, 
+        bool[] visited, 
+        Queue<int> queue,
+        int visitCount)
+    {
+        foreach (var neighbor in vertexToTriangles[vertIndex])
+        {
+            if (visited[neighbor]) continue;
+            visited[neighbor] = true;
+            visitCount++;
+            queue.Enqueue(neighbor);
+        }
+        return visitCount;
+    }
+
+    private static int GetOrAdd<TNum>(int oldIndex,
+        Dictionary<int, int> oldToNew, 
+        List<Vector3<TNum>> newVertices, 
+        IIndexedMesh3<TNum> mesh) 
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+    {
+        if (oldToNew.TryGetValue(oldIndex, out var newIndex)) return newIndex;
+        newIndex = newVertices.Count;
+        newVertices.Add(mesh.Vertices[oldIndex]);
+        oldToNew[oldIndex] = newIndex;
+        return newIndex;
     }
 }

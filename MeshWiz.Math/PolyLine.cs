@@ -4,7 +4,7 @@ using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
-public sealed record PolyLine<TVector, TNum>(TVector[] Points)
+public sealed record PolyLine<TVector, TNum>(params TVector[] Points)
     : IDiscreteCurve<TVector, TNum>, IReadOnlyList<Line<TVector, TNum>>
     where TVector : unmanaged, IFloatingVector<TVector, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
@@ -53,7 +53,8 @@ public sealed record PolyLine<TVector, TNum>(TVector[] Points)
         return centroid / divisor;
     }
 
-    public bool IsClosed => Count > 0 && Points[0] == Points[^1];
+    private bool? _isClosed;
+    public bool IsClosed => _isClosed??= Count > 1 && Points[0].IsApprox(Points[^1],TNum.CreateChecked(0.00000001));
 
     public TNum Length
     {
@@ -87,8 +88,8 @@ public sealed record PolyLine<TVector, TNum>(TVector[] Points)
 
     public TVector TraverseOnCurve(TNum distance)
     {
-        if (!IsClosed) distance = TNum.Clamp(distance, TNum.Zero, Length);
-        distance = distance.Wrap(TNum.Zero, Length);
+        if (!IsClosed) distance = TNum.Clamp(distance, TNum.Zero, TNum.One);
+        distance = distance.Wrap(TNum.Zero, TNum.One);
         return distance >= TNum.Zero
             ? TraverseOnCurveForward(distance)
             : TraverseOnCurveReverse(distance);
@@ -100,7 +101,7 @@ public sealed record PolyLine<TVector, TNum>(TVector[] Points)
         for (var i = this.Count - 1; i >= 0; i--)
         {
             var line = this[i];
-            rollingDistance += line.Length;
+            rollingDistance += line.Length/Length;
             if (rollingDistance >= TNum.Zero)
                 return line.Traverse(rollingDistance);
         }
@@ -114,8 +115,8 @@ public sealed record PolyLine<TVector, TNum>(TVector[] Points)
         for (var i = 0; i < this.Count; i++)
         {
             var line = this[i];
-            var nextDistance = rollingDistance - line.Length;
-            if (nextDistance <= TNum.Zero) return line.Traverse(rollingDistance);
+            var nextDistance = rollingDistance - line.Length/Length;
+            if (nextDistance < TNum.Epsilon) return line.Traverse(rollingDistance);
             rollingDistance = nextDistance;
         }
 
@@ -158,17 +159,17 @@ public sealed record PolyLine<TVector, TNum>(TVector[] Points)
         }
 
         var pCount = pI + 1;
+        if (pCount == points.Length) return new(points);
         if (pCount < 4) return new PolyLine<TVector, TNum>(points[..pCount]);
         var startPt = points[0];
         var endPt = points[pI];
-        var areEqual = startPt.IsApprox(endPt);
-        if (!areEqual) return new PolyLine<TVector, TNum>(points.ToArray());
+        var isClosed = startPt.IsApprox(endPt);
+        if (!isClosed) return new PolyLine<TVector, TNum>(points[..pCount]);
         var startDirection = (points[1] - startPt).Normalized;
         var endDirection = (endPt - points[pI-1]).Normalized;
-        if (!(startDirection * endDirection).IsApprox(TNum.One)) return new PolyLine<TVector, TNum>(points.ToArray());
-        points[0] = points[--pI];
-        pCount = pI + 1;
-        return new PolyLine<TVector, TNum>(points[1..pCount]);
+        if (!(startDirection * endDirection).IsApprox(TNum.One)) return new PolyLine<TVector, TNum>(points[..pCount]);
+        points[0] = points[pI-1];
+        return new PolyLine<TVector, TNum>(points[..(pI)]);
     }
 
     public static PolyLine<TVector, TNum> FromSegments(IEnumerable<Line<TVector, TNum>> connected)

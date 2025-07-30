@@ -8,34 +8,35 @@ public struct BoundedVolume<TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly BBox3<TNum> Bounds;
-    public readonly int Start, Length;
-    public int FirstChild { get;private set; }
-    public int SecondChild { get;private set; }
-    public bool IsLeaf => FirstChild == -1 || SecondChild == -1;
-    public bool IsParent=>FirstChild!=-1 || SecondChild!=-1;
-    private BoundedVolume(BBox3<TNum> bounds, int start, int length,int  firstChild, int secondChild)
+    private int _first;
+    private int _second;
+    public int Start=>_first;
+    public int Length=>-_second;
+    public int FirstChild =>_first;
+    public int SecondChild =>_second;
+    public bool IsLeaf => _second<=0;
+    public bool IsParent=>_second>0;
+
+    private BoundedVolume(BBox3<TNum> bounds, int first, int second)
     {
         Bounds = bounds;
-        Start = start;
-        Length = length;
-        FirstChild = firstChild;
-        SecondChild = secondChild;
+        _first = first;
+        _second = second;
     }
-    
-    public BoundedVolume(BBox3<TNum> bounds, int start, int length, uint firstChild, uint secondChild)
-        : this(bounds, start, length, (int) firstChild,(int) secondChild) { }
 
+    public static BoundedVolume<TNum> MakeLeaf(BBox3<TNum> bounds, int start, int length) 
+        => new(bounds, start, -length);
+
+    public static BoundedVolume<TNum> MakeParent(BBox3<TNum> bounds, int left, int right)
+    =>new(bounds, left, -right);
+    
     public void RegisterChildren(int firstChild, int secondChild)
     {
-        if(IsParent) throw new InvalidOperationException("Cannot register a child of a parent");
-        FirstChild = firstChild;
-        SecondChild = secondChild;
+        _first = firstChild;
+        _second = secondChild;
     }
     
-    public BoundedVolume(BBox3<TNum> bounds, int start, int length) 
-        : this(bounds, start, length, -1, -1) 
-    { }
-
+    
     public TNum Cost=>Bounds.Size.SquaredLength*TNum.CreateTruncating(Length);
     public int End => Start + Length;
     

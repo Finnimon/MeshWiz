@@ -1,27 +1,28 @@
+using System.Numerics;
+
 namespace MeshWiz.IO.Stl.Tests;
 
 public class StlWriterTests
 {
     [TestCase("Assets/cube-ascii.stl"), TestCase("Assets/cube-binary.stl")]
     public void TestReadWriteFast(string originalFile)
-    {
-        var mesh=IMeshReader<float>.ReadFile<FastStlReader>(originalFile);
-        using var memStream = new MemoryStream();
-        FastBinaryStlWriter.Write(mesh, memStream,leaveOpen:true);
-        memStream.Seek(0, SeekOrigin.Begin);
-        var rereadMesh=FastStlReader.Read(memStream,leaveOpen:false);
-        Assert.That(rereadMesh.TessellatedSurface, Is.EqualTo(mesh.TessellatedSurface));
-    }
+        => ReadWriteTest<FastStlReader, FastBinaryStlWriter, float>(originalFile);
 
 
     [TestCase("Assets/cube-ascii.stl"), TestCase("Assets/cube-binary.stl")]
     public void TestReadWriteSafe(string originalFile)
+        => ReadWriteTest<SafeStlReader<float>, SafeBinaryStlWriter<float>, float>(originalFile);
+
+    private static void ReadWriteTest<TMeshReader, TMeshWriter, TNum>(string file)
+        where TMeshReader : IMeshReader<TNum>
+        where TMeshWriter : IMeshWriter<TNum>
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
-        var mesh=IMeshReader<double>.ReadFile<SafeStlReader<double>>(originalFile);
+        var mesh = MeshIO.ReadFile<TMeshReader, TNum>(file);
         using var memStream = new MemoryStream();
-        SafeBinaryStlWriter<double>.Write(mesh, memStream,leaveOpen:true);
+        TMeshWriter.Write(mesh, memStream, leaveOpen: true);
         memStream.Seek(0, SeekOrigin.Begin);
-        var rereadMesh=SafeStlReader<double>.Read(memStream,leaveOpen:false);
-        Assert.That(rereadMesh.TessellatedSurface, Is.EqualTo(mesh.TessellatedSurface));
+        var rereadMesh = TMeshReader.Read(memStream, leaveOpen: false);
+        Assert.That(rereadMesh, Is.EquivalentTo(mesh));
     }
 }

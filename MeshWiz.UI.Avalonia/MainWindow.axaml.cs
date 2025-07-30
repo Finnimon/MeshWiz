@@ -3,10 +3,12 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using MeshWiz.Abstraction.Avalonia;
 using MeshWiz.Abstraction.OpenTK;
 using MeshWiz.IO;
 using MeshWiz.IO.Stl;
 using MeshWiz.Math;
+using MeshWiz.Utility.Extensions;
 using OpenTK.Mathematics;
 
 namespace MeshWiz.UI.Avalonia;
@@ -16,29 +18,21 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        var lv2 = LineViewWrapper.Unwrap;
-        lv2.PolyLine = new PolyLine<Vector3<float>, float>([
-            new(20,20,0),
-            new(-20,20,0),
-            new(-20,-20,0),
-            new(20,-20,0),
-            new(20,20,0),
-        ]);
+        var lv2 = LineViewWrapper.Unwrap!;
         var camera = (OrbitCamera) OrbitCamera.Default();
         lv2.Camera=camera;
         // camera.MoveUp(0.2f);
         MeshViewWrap.Unwrap.Camera = camera;
         MeshViewWrap.Unwrap.LightColor=Color4.White;
         MeshViewWrap.Unwrap.SolidColor=Color4.DarkGray;
-        camera.UnitUp=Vector3<float>.UnitZ;
+        camera.UnitUp=Vector3<float>.UnitY;
         var box=BBox3<float>
-            .NegativeInfinity
-            .CombineWith(new Vector3<float>(-10,-10,-10))
+            .FromPoint(new Vector3<float>(-10,-10,-10))
             .CombineWith(new Vector3<float>(10,10,10));
-        var mesh = box.Tessellate().Indexed();
-        // mesh =new IndexedMesh3<float>(new Sphere<float>(Vector3<float>.Zero, 1).TessellatedSurface);
-        // mesh= IMeshReader<float>.ReadFile<FastStlReader>("/home/finnimon/source/repos/TestFiles/artillery-witch.stl").Indexed();
-        mesh = MeshSplitter.Split(mesh)[^1];
+        var meshi = box.Tessellate().Indexed();
+        // meshi =new IndexedMesh3<float>(new Sphere<float>(Vector3<float>.Zero, 1).TessellatedSurface);
+        meshi= MeshIO.ReadFile<FastStlReader,float>("/home/finnimon/source/repos/TestFiles/drag.stl").Indexed();
+        var mesh =new BvhMesh3<float>( meshi);
         // mesh=new  IndexedMesh3<float>(new Sphere<float>(Vector3<float>.Zero, 1).TessellatedSurface);
         Console.WriteLine($"Tri count: {mesh.Count}, Effec vert count: {mesh.Count*3}, Indexed vert count: {mesh.Vertices.Length}");
         var distance=mesh.BBox.Min.DistanceTo(mesh.BBox.Max)*2;
@@ -47,11 +41,26 @@ public partial class MainWindow : Window
         MeshViewWrap.Unwrap.Mesh = mesh;
         BBoxWrap.Unwrap.Camera=camera;
         BBoxWrap.Unwrap.BBox=mesh.BBox;
-        
+        var minY = mesh.BBox.Min.Y;
+        var maxY = mesh.BBox.Max.Y;
+        var range = maxY - minY;
+        // var polylines = mesh.IntersectRolling(new Plane3<float>(Vector3<float>.UnitY, 0.261793f));
+        var layerCount = 1000;
+        var polylines= ParallelEnumerable.Range(0, layerCount).Select(x => range * x / layerCount + minY).SelectMany( d =>
+            {
+                Console.WriteLine(d);
+                var plane = new Plane3<float>(Vector3<float>.UnitY, new Vector3<float>(0,d,0));
+                return mesh.IntersectRolling(plane).Where(x=>x.Length>0.0001);
+            }).ToList();
+        polylines.Select(pl=>new LineView(pl){Camera = camera,LineWidth = 3,Color = Color4.White})
+            .Select(x=>new GLWrapper<LineView>{Unwrap = x}).ForEach(GlParent.Children.Add);
+        // var poly = polylines[0];
+        // lv2.PolyLine=poly;
         // SmoothMeshViewWrapper.Wrapped.Camera=camera;
         // SmoothMeshViewWrapper.Wrapped.Mesh=new IndexedMesh3<float>(tessellations2);
         //
-        camera.LookAt=mesh.Centroid;
+        camera.LookAt=mesh.VolumeCentroid;
+        MeshViewWrap.Unwrap.RenderModeFlags = RenderMode.None;
         Console.WriteLine($"distance: {distance}");
         Console.WriteLine(mesh.BBox.Min);
         Console.WriteLine(mesh.BBox.Max);
@@ -123,6 +132,7 @@ public partial class MainWindow : Window
             nameof(Wireframe) => RenderMode.Wireframe,
             nameof(Solid) => RenderMode.Solid,
             nameof(WireframedSolid) => RenderMode.Wireframe | RenderMode.Solid,
+            nameof(None)=> RenderMode.None,
             _ => RenderMode.Solid
         };
     }
@@ -202,7 +212,7 @@ public partial class MainWindow : Window
                 ".stl" => FastStlReader.Read(stream, true),
                 _ => throw new NotSupportedException()
             };
-            mesh = ifMesh.Indexed();
+            mesh = new (ifMesh);
             await mesh.InitializeAsync();
             MeshViewWrap.Unwrap.Mesh = mesh;
             MeshViewWrap.Unwrap.Camera.LookAt = mesh.VolumeCentroid;
