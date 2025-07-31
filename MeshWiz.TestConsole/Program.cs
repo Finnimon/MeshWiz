@@ -15,4 +15,7 @@ Console.WriteLine("Hello World!");
 // Console.WriteLine($"PolyLineCount:{poly.Count}");
 // Console.WriteLine(plane.SignedDistance(Vector3<double>.One));
 // Console.WriteLine(poly.Length);
-
+double d = 0.1;
+Console.WriteLine($"{d:F2}");
+var a = int.CreateTruncating(d);
+Console.WriteLine($"{a}");

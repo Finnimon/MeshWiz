@@ -13,8 +13,15 @@ public class AvaloniaGLBackground : IOpenGLControl
         =>new (Color.R, Color.G, Color.B, Color.A);
 
     public void Dispose() { }
+
+    public bool Show { get; set; }
     public bool GLInitialized => true;
     public void Init() { }
-    public void Update(float _) => GL.ClearColor(GLColor);
-    public void Render()=>GL.Clear(ClearBufferMask.ColorBufferBit|ClearBufferMask.DepthBufferBit);
+    public void Update(float _){}
+    public void Render()
+    {
+        if(!Show) return;
+        GL.ClearColor(GLColor);
+        GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+    }
 }

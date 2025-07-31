@@ -5,8 +5,8 @@ namespace MeshWiz.Abstraction.OpenTK;
 
 public class SmoothMeshView : IOpenGLControl
 {
+    public bool Show { get; set; } = true;
     public required ICamera Camera { get; set; }
-
     public RenderMode RenderModeFlags { get; set; } = RenderMode.Solid;
     public Color4 WireFrameColor { get; set; } = Color4.Black;
     public Color4 SolidColor { get; set; } = Color4.Gray;
@@ -104,7 +104,7 @@ public class SmoothMeshView : IOpenGLControl
 
     public void Render()
     {
-        if (!GLInitialized || Mesh.Count == 0)
+        if (!GLInitialized || Mesh.Count == 0||!Show)
             return;
 
         _vao!.Bind();

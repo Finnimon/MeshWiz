@@ -30,11 +30,13 @@ public class OrbitCamera(float fovRad, Vector3<float> orbitAround, float distanc
     private Vector3<float> GetPosition()
     {
         var up = UnitUp;
-        var right = UnitRight();
-        var forward = up.Cross(right).Normalized;
+        var reference = float.Abs(up*Vector3<float>.UnitY) < 0.99f
+                ? Vector3<float>.UnitY
+                : Vector3<float>.UnitX;;
+        var forward = up.Cross(reference).Normalized;
 
         var local =
-            right   * (Distance * float.Cos(PitchRad) * float.Cos(AzimuthRad)) +
+            reference   * (Distance * float.Cos(PitchRad) * float.Cos(AzimuthRad)) +
             forward * (Distance * float.Cos(PitchRad) * float.Sin(AzimuthRad)) +
             up      * (Distance * float.Sin(PitchRad));
 
@@ -44,18 +46,18 @@ public class OrbitCamera(float fovRad, Vector3<float> orbitAround, float distanc
     public Vector3<float> UnitRight()
     {
         var up=UnitUp;
-        var reference = float.Abs(up*Vector3<float>.UnitY) < 0.99f
-            ? Vector3<float>.UnitY
-            : Vector3<float>.UnitX;
-        return reference.Cross(up).Normalized;
+        var dir= (LookAt - Position).Normalized;
+        var reference = dir;
+        if (dir.IsParallelTo(up)) throw new NotImplementedException("Rot camera front by azimuth");
+        return up.Cross(reference).Normalized;
     }
 
 
     public void MoveRight(float signedMovementScale) => AzimuthRad += signedMovementScale;
-    public void LookRight(float signedMovementScale) => LookAt+=UnitRight()*signedMovementScale;
+    public void LookRight(float signedMovementScale) => LookAt+=Distance*UnitRight()*signedMovementScale;
 
     public void LookUp(float signedMovementScale)
-        => LookAt+=UnitUp*signedMovementScale;
+        => LookAt+=Distance*UnitUp*signedMovementScale;
 
     public void MoveUp(float signedMovementScalar) => PitchRad = MathHelper.Clamp(PitchRad + signedMovementScalar, -float.Pi / 2f + 0.01f, float.Pi / 2f - 0.01f);
 
@@ -66,7 +68,7 @@ public class OrbitCamera(float fovRad, Vector3<float> orbitAround, float distanc
     {
         var model = Matrix4.Identity;
         var view = Matrix4.LookAt(GetPosition().ToOpenTK(), LookAt.ToOpenTK(), UnitUp.ToOpenTK());
-        var projection = Matrix4.CreatePerspectiveFieldOfView(FovRad, aspect, 0.001f, Distance*1000);
+        var projection = Matrix4.CreatePerspectiveFieldOfView(FovRad, aspect, 0.001f, float.Max(100000,Distance * 1000));
         return (model, view, projection);
     }
 

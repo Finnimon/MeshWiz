@@ -151,7 +151,7 @@ where TNum : unmanaged, IFloatingPointIeee754<TNum>
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsParallelTo(Vector3<TNum> other, TNum tolerance) 
-        => tolerance>=TNum.Abs(Normalized * other.Normalized)-TNum.One;
+        => tolerance>= TNum.Abs(TNum.Abs(Normalized * other.Normalized) - TNum.One);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsParallelTo(Vector3<TNum> other)

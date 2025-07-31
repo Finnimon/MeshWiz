@@ -5,6 +5,7 @@ namespace MeshWiz.Abstraction.OpenTK;
 
 public sealed class BBoxView : IOpenGLControl
 {
+    public bool Show { get; set; } = true;
     public required ICamera Camera { get; set; }
     public Color4  Color { get; set; }=Color4.White;
 
@@ -64,11 +65,14 @@ public sealed class BBoxView : IOpenGLControl
     private void UpdateShader(float aspectRatio)
     {
         var (model, view, projection) = Camera.CreateRenderMatrices(aspectRatio);
+        var objectColor = Color;
+        const float depthOffset = 0.000001f;
         _shaderProgram!.BindAnd()
             .SetUniform(nameof(model),ref model)
             .SetUniform(nameof(view),ref view)
             .SetUniform(nameof(projection),ref projection)
-            .SetUniform("objectColor",Color)
+            .SetUniform(nameof(objectColor),objectColor)
+            .SetUniform(nameof(depthOffset),depthOffset)
             .Unbind();
         OpenGLHelper.LogGlError(nameof(BBoxView),nameof(UpdateShader));
     }
@@ -101,29 +105,16 @@ public sealed class BBoxView : IOpenGLControl
 
     public void Render()
     {
-        GL.DepthRange(0.0, 0.01); // Draw in the very front slice of depth buffer
+        if(!Show) return;
 
-        OpenGLHelper.LogGlError(nameof(BBoxView),nameof(Render));
         _vao!.Bind();
-        OpenGLHelper.LogGlError(nameof(BBoxView),nameof(Render));
         _ibo!.Bind();
-        OpenGLHelper.LogGlError(nameof(BBoxView),nameof(Render));
         _shaderProgram!.Bind();
-        OpenGLHelper.LogGlError(nameof(BBoxView),nameof(Render));
-        GL.Enable(EnableCap.PolygonOffsetLine);
-        OpenGLHelper.LogGlError(nameof(BBoxView),nameof(Render));
-        GL.PolygonOffset(-1f, -1f);
-        OpenGLHelper.LogGlError(nameof(BBoxView),nameof(Render));
         GL.LineWidth(LineWidth);
-        OpenGLHelper.LogGlError(nameof(BBoxView),nameof(Render));
         GL.DrawElements(PrimitiveType.Lines,Indices.Length,DrawElementsType.UnsignedInt,0);
-        OpenGLHelper.LogGlError(nameof(BBoxView),nameof(Render));
         GL.LineWidth(1f);
-        OpenGLHelper.LogGlError(nameof(BBoxView),nameof(Render));
-        GL.Disable(EnableCap.PolygonOffsetLine);
         _shaderProgram!.Unbind();
         _vao!.Unbind();
-        GL.DepthRange(0.0, 1f); // Draw in the very front slice of depth buffer
 
         OpenGLHelper.LogGlError(nameof(BBoxView),nameof(Render));
     }

@@ -17,8 +17,8 @@ public static class CurveMath
 
         foreach (var line in lines)
         {
-            var start = GetIndex(line.Start, unified, vertices);
-            var end = GetIndex(line.End, unified, vertices);
+            var start = IndexerUtilities.GetIndex(line.Start, unified, vertices);
+            var end = IndexerUtilities.GetIndex(line.End, unified, vertices);
             indices.Add(new LineIndexer(start, end));
         }
 
@@ -38,25 +38,14 @@ public static class CurveMath
         for (var i = 0; i < lines.Count; i++)
         {
             var line = lines[i];
-            var start = GetIndex(line.Start, unified, vertices);
-            var end = GetIndex(line.End, unified, vertices);
+            var start =IndexerUtilities.GetIndex(line.Start, unified, vertices);
+            var end = IndexerUtilities.GetIndex(line.End, unified, vertices);
             indices[i] = new LineIndexer(start, end);
         }
 
         return (indices, [..vertices]);
     }
 
-    private static int GetIndex<TElement>(TElement vec,
-        Dictionary<TElement, int> unified,
-        List<TElement> elements)
-        where TElement : notnull
-    {
-        if (unified.TryGetValue(vec, out var index)) return index;
-        index = elements.Count;
-        unified.Add(vec, index);
-        elements.Add(vec);
-        return index;
-    }
 
     public static PolyLine<TVec, TNum>[] Unify<TVec, TNum>(Queue<Line<TVec, TNum>> segments,
         TNum? squareTolerance = null)

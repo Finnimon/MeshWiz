@@ -251,4 +251,8 @@ public readonly struct Plane3<TNum>
 
         return true;
     }
+
+    public Vector3<TNum> Center => Normal * D;
+    public TNum DistanceTo(Plane3<TNum> other)=> TNum.Abs(D - other.D);
+    public TNum DistanceTo(Vector3<TNum> p)=> TNum.Abs(D - SignedDistance(p));
 }

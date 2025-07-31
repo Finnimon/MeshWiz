@@ -147,9 +147,9 @@ public static class MeshMath
         for (var i = 0; i < mesh.Count; i++)
         {
             var triangle = mesh[i];
-            var aIndex = GetIndex(triangle.A, unified, vertices);
-            var bIndex = GetIndex(triangle.B, unified, vertices);
-            var cIndex = GetIndex(triangle.C, unified, vertices);
+            var aIndex = IndexerUtilities.GetIndex(triangle.A, unified, vertices);
+            var bIndex = IndexerUtilities.GetIndex(triangle.B, unified, vertices);
+            var cIndex = IndexerUtilities.GetIndex(triangle.C, unified, vertices);
             indices[i] = new TriangleIndexer(aIndex, bIndex, cIndex);
         }
 
@@ -168,10 +168,10 @@ public static class MeshMath
         var indexPosition = -1;
         foreach (var triangle in mesh)
         {
-            indices[++indexPosition] = GetIndex(triangle.A, unified, vertices);
-            indices[++indexPosition] = GetIndex(triangle.B, unified, vertices);
-            indices[++indexPosition] = GetIndex(triangle.C, unified, vertices);
-            indices[++indexPosition] = GetIndex(triangle.Normal, unified, vertices);
+            indices[++indexPosition] = IndexerUtilities.GetIndex(triangle.A, unified, vertices);
+            indices[++indexPosition] = IndexerUtilities.GetIndex(triangle.B, unified, vertices);
+            indices[++indexPosition] = IndexerUtilities.GetIndex(triangle.C, unified, vertices);
+            indices[++indexPosition] = IndexerUtilities.GetIndex(triangle.Normal, unified, vertices);
         }
 
         return (indices, [..vertices]);
@@ -189,29 +189,18 @@ public static class MeshMath
         var indexPosition = -1;
         foreach (var triangle in mesh)
         {
-            var nIndex = GetIndex(triangle.Normal, unified, vertices);
-            indices[++indexPosition] = GetIndex(triangle.A, unified, vertices);
+            var nIndex = IndexerUtilities.GetIndex(triangle.Normal, unified, vertices);
+            indices[++indexPosition] = IndexerUtilities.GetIndex(triangle.A, unified, vertices);
             indices[++indexPosition] = nIndex;
-            indices[++indexPosition] = GetIndex(triangle.B, unified, vertices);
+            indices[++indexPosition] = IndexerUtilities.GetIndex(triangle.B, unified, vertices);
             indices[++indexPosition] = nIndex;
-            indices[++indexPosition] = GetIndex(triangle.C, unified, vertices);
+            indices[++indexPosition] = IndexerUtilities.GetIndex(triangle.C, unified, vertices);
             indices[++indexPosition] = nIndex;
         }
 
         return (indices, [..vertices]);
     }
 
-    private static int GetIndex<TNum>(Vector3<TNum> vec,
-        Dictionary<Vector3<TNum>, int> unified,
-        List<Vector3<TNum>> vertices)
-        where TNum : unmanaged, IFloatingPointIeee754<TNum>
-    {
-        if (unified.TryGetValue(vec, out var index)) return index;
-        index = vertices.Count;
-        unified.Add(vec, index);
-        vertices.Add(vec);
-        return index;
-    }
 
     private readonly struct BvhSortingTriangle<TNum>(Triangle3<TNum> triangle)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>

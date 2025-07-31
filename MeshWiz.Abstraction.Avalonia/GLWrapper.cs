@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Avalonia.Controls;
 using Avalonia.Metadata;
 using MeshWiz.Abstraction.OpenTK;
@@ -5,8 +6,11 @@ using MeshWiz.Abstraction.OpenTK;
 namespace MeshWiz.Abstraction.Avalonia;
 
 public sealed class GLWrapper<TWrapped> : Control, IOpenGLControl
-where TWrapped : IOpenGLControl
+where TWrapped : class, IOpenGLControl
 {
+
+    public bool Show { get=>Unwrap.Show; set=>Unwrap.Show=value; }
+
     [Content]
     public required TWrapped Unwrap { get; init; }
     public void Dispose() => Unwrap.Dispose();
