@@ -8,7 +8,14 @@ public interface IVector<TSelf, TNum>
     : IReadOnlyList<TNum>,
         IEquatable<TSelf>,
         IComparable<TSelf>,
-        IUnmanagedDataVector<TNum>
+        IUnmanagedDataVector<TNum>,
+        IEqualityOperators<TSelf,TSelf,bool>,
+        IAdditionOperators<TSelf,TSelf,TSelf>,
+        ISubtractionOperators<TSelf,TSelf,TSelf>,
+        IFormattable,
+        IUnaryNegationOperators<TSelf,TSelf>,
+        IMultiplyOperators<TSelf, TNum, TSelf>,
+        IDivisionOperators<TSelf,TNum,TSelf>
     where TNum : unmanaged, INumber<TNum>
     where TSelf : IVector<TSelf, TNum>
 {
@@ -23,40 +30,29 @@ public interface IVector<TSelf, TNum>
     [Pure] static abstract uint Dimensions { get; }
     [Pure] int IReadOnlyCollection<TNum>.Count => (int)TSelf.Dimensions;
     [Pure] TNum Length { get; }
-    [Pure] TNum SquaredLength => Dot((TSelf)this);
-    [Pure] TSelf Normalized => this.Divide(Length);
+    [Pure] TNum SquaredLength { get; }
+    [Pure] TSelf Normalized { get; }
 
     [Pure]
     TSelf Add(TSelf other);
 
     [Pure]
-    TSelf Subtract(TSelf other) => this.Add(other.Scale(-TNum.One));
+    TSelf Subtract(TSelf other);
 
     [Pure]
     TSelf Scale(TNum scalar);
 
     [Pure]
-    TSelf Divide(TNum divisor) => Scale(TNum.One / divisor);
+    TSelf Divide(TNum divisor);
 
     [Pure]
     TNum Dot(TSelf other);
 
     [Pure]
-    TNum DistanceTo(TSelf other) => Subtract(other).Length;
-    TNum SquaredDistanceTo(TSelf other) => Subtract(other).SquaredLength;
-    static virtual TSelf operator +(TSelf left, TSelf right) => left.Add(right);
-    static virtual TSelf operator -(TSelf left, TSelf right) => left.Subtract(right);
-    static virtual TNum operator *(TSelf left, TSelf right) => left.Dot(right);
-    static virtual TSelf operator *(TNum scalar, TSelf vector) => vector.Scale(scalar);
-    static virtual TSelf operator *(TSelf vector, TNum scalar) => vector.Scale(scalar);
-    static virtual TSelf operator /(TSelf vector, TNum divisor) => vector.Divide(divisor);
-    static virtual bool operator ==(TSelf vector, TSelf divisor) => vector.Equals(divisor);
-    static virtual bool operator !=(TSelf vector, TSelf divisor) => !vector.Equals(divisor);
-    static virtual TSelf operator -(TSelf vector) => vector.Scale(-TNum.One);
+    TNum DistanceTo(TSelf other);
+    TNum SquaredDistanceTo(TSelf other);
 
-    static virtual TSelf Lerp(TSelf from, TSelf to, TNum normalDistance)
-        => (to - from) * normalDistance + from;
-
+    static abstract TSelf Lerp(TSelf from, TSelf to, TNum normalDistance);
 
     bool IsParallelTo(TSelf other);
     bool IsParallelTo(TSelf other, TNum tolerance);
@@ -65,4 +61,6 @@ public interface IVector<TSelf, TNum>
         => this.SquaredDistanceTo(other) < squareTolerance;
 
     bool IsApprox(TSelf other);
+    
+    public static abstract TNum operator *(TSelf left,TSelf right);
 }

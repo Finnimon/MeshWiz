@@ -11,7 +11,7 @@ public readonly struct Triangle3<TNum>:ISurface<Vector3<TNum>, TNum>, IFlat<TNum
 {
     public readonly Vector3<TNum> A,B,C;
     public Vector3<TNum> Normal => ((B - A)^(C-A)).Normalized;
-    public Plane3<TNum> ToPlane => new(in this);
+    public Plane3<TNum> Plane => new(in this);
     public Triangle3(Vector3<TNum> a,Vector3<TNum> b,Vector3<TNum> c)
     {
         A = a;

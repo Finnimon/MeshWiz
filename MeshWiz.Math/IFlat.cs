@@ -7,5 +7,5 @@ where TNum: unmanaged, IFloatingPointIeee754<TNum>
 
 {
     public Vector3<TNum> Normal { get; }
-    public Plane3<TNum> ToPlane { get; }
+    public Plane3<TNum> Plane { get; }
 }

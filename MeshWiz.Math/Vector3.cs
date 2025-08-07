@@ -33,6 +33,9 @@ where TNum : unmanaged, IFloatingPointIeee754<TNum>
         Y = y;
         Z = z;
     }
+
+    private Vector3(TNum value) : this(value, value, value) { }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector3<TNum> FromXYZ(TNum x, TNum y, TNum z)
         => new(x, y, z);
@@ -58,6 +61,10 @@ where TNum : unmanaged, IFloatingPointIeee754<TNum>
     public Vector3<TNum> YXZ=>new(Y,Y,Z);
     public Vector3<TNum> XZY=>new(Y,Z,Y);
     public Vector3<TNum> ZXY=>new(Z,Y,Y);
+    public Vector3<TNum> XXX => new(X);
+    public Vector3<TNum> YYY => new(Y);
+    public Vector3<TNum> ZZZ => new(Z);
+
     public static Vector3<TNum> Zero => new(TNum.Zero, TNum.Zero, TNum.Zero);
     public static Vector3<TNum> One => new(TNum.One, TNum.One, TNum.One);
     public static Vector3<TNum> NaN => new(TNum.NaN, TNum.NaN, TNum.NaN);
@@ -235,7 +242,17 @@ where TNum : unmanaged, IFloatingPointIeee754<TNum>
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector3<TNum> Invert(Vector3<TNum> vec)
         => TNum.One / vec;
+
+    public static Vector3<TNum> Pow(Vector3<TNum> v,TNum power)
+    =>new(TNum.Pow(v.X,power),
+        TNum.Pow(v.Y,power),
+        TNum.Pow(v.Z,power));
     
+    public static Vector3<TNum> Squared(Vector3<TNum> v)
+    =>new(v.X*v.X,v.Y*v.Y,v.Z*v.Z);
+    
+    public static Vector3<TNum> ElementWiseMul(Vector3<TNum> l, Vector3<TNum>r)
+    =>new(l.X*r.X,l.Y*r.Y,l.Z*r.Z);
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector3<TNum> Min(Vector3<TNum> left, Vector3<TNum> right)
         =>new(TNum.Min(left.X,right.X),TNum.Min(left.Y,right.Y),TNum.Min(left.Z,right.Z));
@@ -245,7 +262,7 @@ where TNum : unmanaged, IFloatingPointIeee754<TNum>
 
     [SuppressMessage("ReSharper", "UseStringInterpolation")]
     public override string ToString()
-        => string.Format("{{X:{0:F3} Y:{1:F3} Z:{2:F3}}}", X, Y, Z);
+        => $"{nameof(X)}: {X}, {nameof(Y)}: {Y}, {nameof(Z)}: {Z}";
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNaN(Vector3<TNum> vec)
@@ -264,4 +281,9 @@ where TNum : unmanaged, IFloatingPointIeee754<TNum>
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsApprox(Vector3<TNum> other)=>SquaredDistanceTo(other)<=TNum.Epsilon;
 
+    public string ToString(string? format, IFormatProvider? formatProvider)
+    {
+        FormattableString formattable = $"{nameof(X)}: {X}, {nameof(Y)}: {Y}, {nameof(Z)}: {Z}";
+        return formattable.ToString(formatProvider);
+    }
 }

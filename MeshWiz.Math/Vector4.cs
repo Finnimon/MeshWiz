@@ -26,7 +26,14 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
     public TNum SquaredLength
         => X * X + Y * Y + Z * Z + W * W;
 
-    public Vector3<TNum> XYZ => new(X, Y, Z);
+    public unsafe Vector3<TNum> XYZ
+    {
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            fixed (Vector4<TNum>* ptr = &this) return *(Vector3<TNum>*)ptr;
+        }
+    }
 
 
     public Vector4(TNum x, TNum y, TNum z, TNum w)
@@ -39,6 +46,14 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
 
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector4(Vector3<TNum> xyz, TNum w) => ((X, Y, Z), W) = (xyz, w);
+
+    public Vector4(Vector3<TNum> vec3)
+    {
+        X=vec3.X;
+        Y=vec3.Y;
+        Z=vec3.Z;
+        W=TNum.Zero;
+    }
 
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4<TNum> FromXYZW(TNum x, TNum y, TNum z, TNum w)
@@ -69,6 +84,10 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
     public static Vector4<TNum> Zero => new(TNum.Zero, TNum.Zero, TNum.Zero, TNum.Zero);
     public static Vector4<TNum> One => new(TNum.One, TNum.One, TNum.One, TNum.One);
     public static Vector4<TNum> NaN => new(TNum.NaN, TNum.NaN, TNum.NaN, TNum.NaN);
+    public static Vector4<TNum> UnitX => new(TNum.One, TNum.Zero, TNum.Zero, TNum.Zero);
+    public static Vector4<TNum> UnitY => new(TNum.Zero, TNum.One, TNum.Zero, TNum.Zero);
+    public static Vector4<TNum> UnitZ => new(TNum.Zero, TNum.Zero, TNum.One, TNum.Zero);
+    public static Vector4<TNum> UnitW => new(TNum.Zero, TNum.Zero, TNum.Zero, TNum.One);
 
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -83,6 +102,7 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TNum operator *(Vector4<TNum> left, Vector4<TNum> right)
         => left.X * right.X + left.Y * right.Y + left.Z * right.Z + right.W * right.W;
+
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4<TNum> operator *(Vector4<TNum> vec, TNum scalar)
@@ -203,8 +223,8 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
     #endregion
 
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector4<TNum> Lerp(Vector4<TNum> from, Vector4<TNum> to, TNum normalDistance)
-        => (to - from) * normalDistance + from;
+    public static Vector4<TNum> Lerp(Vector4<TNum> from, Vector4<TNum> to, TNum t)
+        => (to - from) * t + from;
 
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4<TNum> CosineLerp(Vector4<TNum> from, Vector4<TNum> to, TNum normalDistance)
@@ -219,6 +239,13 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
     [SuppressMessage("ReSharper", "UseStringInterpolation")]
     public override string ToString()
         => string.Format("{{X:{0:F4} Y:{1:F4} Z:{2:F4} W:{3:F4}}}", X, Y, Z, W);
+    
+    public string ToString(string? format, IFormatProvider? formatProvider)
+    {
+        FormattableString formattable = $"{nameof(X)}: {X}, {nameof(Y)}: {Y}, {nameof(Z)}: {Z},  {nameof(W)}: {W}";
+        return formattable.ToString(formatProvider);
+    }
+    
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNaN(Vector4<TNum> vec)
         => TNum.IsNaN(vec.X)||TNum.IsNaN(vec.Y)||TNum.IsNaN(vec.Z)||TNum.IsNaN(vec.W);
@@ -232,4 +259,6 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
 
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Line<Vector4<TNum>, TNum> LineTo(Vector4<TNum> end) => new(this, end);
+    public static implicit operator Vector4<TNum> (Vector3<TNum> xyz)
+        => new (xyz);
 }

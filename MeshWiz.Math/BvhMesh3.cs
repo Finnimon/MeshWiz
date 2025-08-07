@@ -28,24 +28,32 @@ public class BvhMesh3<TNum> : IIndexedMesh3<TNum>
     public Triangle3<TNum> this[int index] => Indices[index].Extract(Vertices);
     
     
-    public readonly BoundedVolumeHierarchy<TNum> Hierarchy;
+    public readonly BoundedVolume<TNum>[] Hierarchy;
 
     public BvhMesh3(IReadOnlyList<Triangle3<TNum>> mesh, uint maxDepth=32,uint splitTests=4)
     {
-        (Hierarchy, Indices, Vertices) = MeshMath.Hierarchize(mesh,maxDepth,splitTests);
-        BBox = Hierarchy[0].Bounds;
+        BoundedVolumeHierarchy<TNum> hierarchy;
+        (hierarchy, Indices, Vertices) = MeshMath.Hierarchize(mesh,maxDepth,splitTests);
+        hierarchy.Trim();
+        Hierarchy = hierarchy.GetUnsafeAccess();
+        BBox = Hierarchy.Length>0? Hierarchy[0].Bounds: BBox3<TNum>.NegativeInfinity;
     }
 
     private BvhMesh3(BoundedVolumeHierarchy<TNum> hierarchy, TriangleIndexer[] indices, Vector3<TNum>[] vertices)
     {
+        hierarchy.Trim();
+        Hierarchy = hierarchy.GetUnsafeAccess();
+        Indices=indices;
+        Vertices=vertices;
+        BBox = Hierarchy.Length>0? Hierarchy[0].Bounds: BBox3<TNum>.NegativeInfinity;
+    }
+    private BvhMesh3(BoundedVolume<TNum>[] hierarchy, TriangleIndexer[] indices, Vector3<TNum>[] vertices)
+    {
         Hierarchy = hierarchy;
         Indices=indices;
         Vertices=vertices;
-        BBox = Hierarchy[0].Bounds;
+        BBox = Hierarchy.Length>0? Hierarchy[0].Bounds: BBox3<TNum>.NegativeInfinity;
     }
-
-    
-    
     
 
     public void InitializeLazies()
@@ -243,16 +251,18 @@ public class BvhMesh3<TNum> : IIndexedMesh3<TNum>
         var indices = Indices[..^1];
         var vertices=new Vector3<TOther>[Vertices.Length];
         for (var i = 0; i < Vertices.Length; i++) vertices[i]=Vertices[i].To<TOther>();
-        var hierarchy=new BoundedVolumeHierarchy<TOther>(Hierarchy.Count);
-        foreach (var node in Hierarchy)
+        var hierarchy=new BoundedVolume<TOther>[Hierarchy.Length];
+        for (var index = 0; index < Hierarchy.Length; index++)
         {
-            var bbox=node.Bounds;
-            BBox3<TOther> oBBox=new (bbox.Min.To<TOther>(),bbox.Max.To<TOther>());
+            var node = Hierarchy[index];
+            var bbox = node.Bounds;
+            BBox3<TOther> oBBox = new(bbox.Min.To<TOther>(), bbox.Max.To<TOther>());
             BoundedVolume<TOther> otherNode = node.IsParent
                 ? BoundedVolume<TOther>.MakeParent(oBBox, node.FirstChild, node.SecondChild)
-                : BoundedVolume<TOther>.MakeLeaf(oBBox, node.Start, node.Length);  
-            hierarchy.Add(otherNode);
+                : BoundedVolume<TOther>.MakeLeaf(oBBox, node.Start, node.Length);
+            hierarchy[index]=otherNode;
         }
+
         return new BvhMesh3<TOther>(hierarchy,indices,vertices);
     }
 }

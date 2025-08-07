@@ -12,8 +12,7 @@ public interface IVector3<TSelf, TNum> : IFloatingVector<TSelf, TNum>
     
     [Pure]TNum AlignedCuboidVolume => TNum.Abs(this[0] * this[1] * this[2]);
     [Pure]TSelf Cross(TSelf other);
-    [Pure]
-    static virtual TSelf operator ^(TSelf left, TSelf right) => left.Cross(right);
+    [Pure] static virtual TSelf operator ^(TSelf left, TSelf right) => left.Cross(right);
     [Pure] static abstract TSelf FromXYZ(TNum x,TNum y ,TNum z);
     [Pure] TSelf ZYX=>TSelf.FromXYZ(this[2],this[1],this[0]);
     [Pure] TSelf YZX=>TSelf.FromXYZ(this[1],this[2],this[0]);

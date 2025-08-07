@@ -224,8 +224,8 @@ public readonly struct Vector2<TNum> : IVector2<Vector2<TNum>, TNum>
 
     [SuppressMessage("ReSharper", "UseStringInterpolation")]
     public override string ToString()
-        => string.Format("{{X:{0:F3} Y:{1:F3}}}", X, Y);
-    
+        => $"{nameof(X)}: {X}, {nameof(Y)}: {Y}";
+
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNaN(Vector2<TNum> vec)
         => TNum.IsNaN(vec.X)&&TNum.IsNaN(vec.Y);
@@ -237,4 +237,10 @@ public readonly struct Vector2<TNum> : IVector2<Vector2<TNum>, TNum>
     public bool IsApprox(Vector2<TNum> other)=>SquaredDistanceTo(other)<=TNum.Epsilon;
 
     public Line<Vector2<TNum>, TNum> LineTo(Vector2<TNum> end) => new(this, end);
+
+    public string ToString(string? format, IFormatProvider? formatProvider)
+    {
+        FormattableString formattable = $"{nameof(X)}: {X}, {nameof(Y)}: {Y}";
+        return formattable.ToString(formatProvider);
+    }
 }

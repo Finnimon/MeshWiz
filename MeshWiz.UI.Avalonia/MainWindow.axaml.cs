@@ -32,7 +32,7 @@ public partial class MainWindow : Window
             .CombineWith(new Vector3<float>(10, 10, 10));
         var meshi = box.Tessellate().Indexed();
         // meshi =new IndexedMesh3<float>(new Sphere<float>(Vector3<float>.Zero, 1).TessellatedSurface);
-        meshi = MeshIO.ReadFile<FastStlReader, float>("/home/finnimon/source/repos/TestFiles/drag.stl").Indexed();
+        meshi = MeshIO.ReadFile<FastStlReader, float>("/home/finnimon/source/repos/TestFiles/artillery-witch.stl").Indexed();
         var mesh = new BvhMesh3<float>(meshi);
         // mesh=new  IndexedMesh3<float>(new Sphere<float>(Vector3<float>.Zero, 1).TessellatedSurface);
         Console.WriteLine(
@@ -47,27 +47,27 @@ public partial class MainWindow : Window
         var maxY = mesh.BBox.Max.Y;
         var range = maxY - minY;
         // var polylines = mesh.IntersectRolling(new Plane3<float>(Vector3<float>.UnitY, 0.261793f));
-        var layerCount = 100;
-        var sw = Stopwatch.StartNew();
-        var polylines = Enumerable.Range(0, layerCount).Select(x => range * x / layerCount + minY)
-            .SelectMany(d =>
-            {
-                Console.WriteLine(d);
-                var plane = new Plane3<float>(Vector3<float>.UnitY, new Vector3<float>(0, d, 0));
-                return mesh.IntersectRolling(plane).Where(x => x.Length > 0.0001);
-            }).ToList();
-        Console.WriteLine(sw.Elapsed);
-        GlParent.Children.Add(new GLWrapper<IndexedLineView>
-        {
-            Unwrap = new IndexedLineView
-            {
-                Lines = polylines.SelectMany(x => x),
-                Camera = camera,
-                LineWidth = 2,
-                Show = true,
-            }
-        });
-        // polylines.Select(pl=>new LineView(pl){Camera = camera,LineWidth = 3,Color = Color4.White})
+        // var layerCount = 100;
+        // var sw = Stopwatch.StartNew();
+        // var polylines = Enumerable.Range(0, layerCount).Select(x => range * x / layerCount + minY)
+        //     .SelectMany(d =>
+        //     {
+        //         Console.WriteLine(d);
+        //         var plane = new Plane3<float>(Vector3<float>.UnitY, new Vector3<float>(0, d, 0));
+        //         return mesh.IntersectRolling(plane).Where(x => x.Length > 0.0001);
+        //     }).ToList();
+        // Console.WriteLine(sw.Elapsed);
+        // GlParent.Children.Add(new GLWrapper<IndexedLineView>
+        // {
+        //     Unwrap = new IndexedLineView
+        //     {
+        //         Lines = polylines.SelectMany(x => x),
+        //         Camera = camera,
+        //         LineWidth = 2,
+        //         Show = true,
+        //     }
+        // });
+        // // polylines.Select(pl=>new LineView(pl){Camera = camera,LineWidth = 3,Color = Color4.White})
         //     .Select(x=>new GLWrapper<LineView>{Unwrap = x}).ForEach(GlParent.Children.Add);
         // var poly = polylines[0];
         // lv2.PolyLine=poly;

@@ -60,5 +60,9 @@ public sealed class BoundedVolumeHierarchy<TNum>
     IEnumerator IEnumerable.GetEnumerator() 
         => GetEnumerator();
     
-    public void Trim()=>Array.Resize(ref _nodes, Count);
+    public void Trim()
+    {
+        if (_nodes.Length == Count) return;
+        Array.Resize(ref _nodes, Count);
+    }
 }
