@@ -6,16 +6,8 @@ namespace MeshWiz.Math;
 
 public interface IVector<TSelf, TNum>
     : IReadOnlyList<TNum>,
-        IEquatable<TSelf>,
-        IComparable<TSelf>,
         IUnmanagedDataVector<TNum>,
-        IEqualityOperators<TSelf,TSelf,bool>,
-        IAdditionOperators<TSelf,TSelf,TSelf>,
-        ISubtractionOperators<TSelf,TSelf,TSelf>,
-        IFormattable,
-        IUnaryNegationOperators<TSelf,TSelf>,
-        IMultiplyOperators<TSelf, TNum, TSelf>,
-        IDivisionOperators<TSelf,TNum,TSelf>
+        INumber<TSelf> 
     where TNum : unmanaged, INumber<TNum>
     where TSelf : IVector<TSelf, TNum>
 {
@@ -27,8 +19,6 @@ public interface IVector<TSelf, TNum>
         where TList : IReadOnlyList<TOtherNum>
         where TOtherNum : INumber<TOtherNum>;
 
-    static abstract TSelf Zero { get; }
-    static abstract TSelf One { get; }
     [Pure] static abstract uint Dimensions { get; }
     [Pure] int IReadOnlyCollection<TNum>.Count => (int)TSelf.Dimensions;
     [Pure] TNum Length { get; }
@@ -70,7 +60,18 @@ public interface IVector<TSelf, TNum>
 
     [Pure]
     bool IsApprox(TSelf other);
-    
+
     [Pure]
-    public static abstract TNum operator *(TSelf left,TSelf right);
+    public static abstract TSelf operator *(TSelf l, TNum r);
+    [Pure]
+    public static abstract TSelf operator *(TNum l, TSelf r);
+    [Pure]
+    public static abstract TSelf operator /(TSelf l, TNum r);
+    [Pure]
+    public static abstract TSelf operator /(TNum l, TSelf r);
+
+    
+
+    [Pure]
+    public TNum Sum { get; }
 }

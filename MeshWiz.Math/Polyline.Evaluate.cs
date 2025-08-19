@@ -94,35 +94,5 @@ public static partial class Polyline
             List<Range> segments = [];
             throw new NotImplementedException();
         }
-
-
-        public static Polyline<Vector2<TNum>, TNum>[] Heal<TNum>(params Polyline<Vector2<TNum>, TNum>[] polylines)
-            where TNum : unmanaged, IFloatingPointIeee754<TNum>
-        {
-            RollingList<Polyline<Vector2<TNum>, TNum>> ccw = [];
-            RollingList<Polyline<Vector2<TNum>, TNum>> cw = [];
-            RollingList<Polyline<Vector2<TNum>, TNum>> open = [];
-
-            foreach (var polyline in polylines)
-            {
-                if (!polyline.IsClosed)
-                {
-                    open.PushBack(polyline);
-                    continue;
-                }
-
-                var wo = GetWindingOrder(polyline);
-                var target = wo switch
-                {
-                    WindingOrder.NotClosed => open,
-                    WindingOrder.CounterClockwise => ccw,
-                    WindingOrder.Clockwise => cw,
-                    _ => throw new ArgumentOutOfRangeException(wo.ToString())
-                };
-                target.PushBack(polyline);
-            }
-
-            throw new NotImplementedException();
-        }
     }
 }

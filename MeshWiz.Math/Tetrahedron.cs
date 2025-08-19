@@ -49,7 +49,7 @@ public readonly struct Tetrahedron<TNum> : IBody<TNum>
         var ab = b - a;
         var ac = c - a;
         var ad = d - a;
-        return ab*(ac^ad) / TNum.CreateTruncating(6);
+        return ab.Dot(ac^ad) / TNum.CreateTruncating(6);
     }
 
     public Triangle3<TNum>[] TessellatedSurface => [

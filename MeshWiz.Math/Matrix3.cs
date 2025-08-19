@@ -200,7 +200,7 @@ namespace MeshWiz.Math
                 a.M20 * b.M02 + a.M21 * b.M12 + a.M22 * b.M22);
 
         public Vector3<TNum> Multiply(Vector3<TNum> v)
-            => new(X * v, Y * v, Z * v);
+            => new(X .Dot(v), Y.Dot(v), Z.Dot(v));
 
         public static Vector3<TNum> operator *(Matrix3<TNum> m, Vector3<TNum> v) => m.Multiply(v);
 

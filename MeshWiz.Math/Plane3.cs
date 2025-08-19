@@ -27,13 +27,13 @@ public readonly struct Plane3<TNum>
     public Plane3(Vector3<TNum> normal, Vector3<TNum> pointOnPlane)
     {
         Normal = normal;
-        D = -(Normal * pointOnPlane);
+        D = -(Normal.Dot(pointOnPlane));
     }
     public Plane3(Vector3<TNum> a, Vector3<TNum> b, Vector3<TNum> c)
     {
         Normal = (a - b) ^ (c - a);
         Normal = Normal.Normalized;
-        D = -(Normal * a);
+        D = -(Normal.Dot(a));
     }
 
     public Plane3(Vector4<TNum> asVec4) : this(asVec4.XYZ, asVec4.W) { }
@@ -51,7 +51,7 @@ public readonly struct Plane3<TNum>
 
     public bool Intersect(Line<Vector3<TNum>, TNum> test, out Vector3<TNum> result)
     {
-        var denominator = Normal * test.NormalDirection;
+        var denominator = Normal.Dot(test.NormalDirection);
         // Check if ray is parallel to the plane
         if (denominator.IsApprox(TNum.Zero))
         {
@@ -60,24 +60,24 @@ public readonly struct Plane3<TNum>
         }
 
         // Compute intersection distance along ray direction
-        var t = -(Normal * test.Start + D) / denominator;
+        var t = -(Normal .Dot(test.Start) + D) / denominator;
         result = test.TraverseOnCurve(t);
         return TNum.NegativeZero <= t && t <= TNum.One;
     }
 
     private Vector3<TNum> ForceIntersect(Line<Vector3<TNum>, TNum> line)
     {
-        var denominator = Normal * line.Direction;
-        var t = -(Normal * line.Start + D) / denominator;
+        var denominator = Normal.Dot(line.Direction);
+        var t = -(Normal .Dot(line.Start) + D) / denominator;
         return line.Traverse(t);
     }
 
     public bool DoIntersect(Ray3<TNum> test)
-        => TNum.Abs(test.Direction * Normal) >= TNum.Epsilon;
+        => TNum.Abs(test.Direction.Dot(Normal)) >= TNum.Epsilon;
 
     public bool Intersect(Ray3<TNum> test, out Vector3<TNum> result)
     {
-        var denominator = Normal * test.Direction;
+        var denominator = Normal.Dot(test.Direction);
         // Check if ray is parallel to the plane
         if (TNum.Abs(denominator) < TNum.Epsilon)
         {
@@ -86,7 +86,7 @@ public readonly struct Plane3<TNum>
         }
 
         // Compute intersection distance along ray direction
-        var t = -(Normal * test.Origin + D) / denominator;
+        var t = -(Normal.Dot(test.Origin) + D) / denominator;
         result = test * t;
         return t >= TNum.Zero;
     }
@@ -141,7 +141,7 @@ public readonly struct Plane3<TNum>
     }
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public TNum SignedDistance(Vector3<TNum> p) => Normal * p + D;
+    public TNum SignedDistance(Vector3<TNum> p) => Normal.Dot(p) + D;
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int DistanceSign(Vector3<TNum> p) => SignedDistance(p).EpsilonTruncatingSign();
@@ -260,7 +260,7 @@ public readonly struct Plane3<TNum>
     {
         var (u, v) = LocalAxes;
         var local=world-Origin;
-        return new Vector2<TNum>(local*u, local*v);
+        return new Vector2<TNum>(local.Dot(u), local.Dot(v));
     }
 
     public Vector2<TNum>[] ProjectIntoLocal(IReadOnlyList<Vector3<TNum>> world)
@@ -272,7 +272,7 @@ public readonly struct Plane3<TNum>
         for (var i = 0; i < pCount; i++)
         {
             var relative = world[i] - origin;
-            local[i]=new(relative*u, relative*v);
+            local[i]=new(relative.Dot(u), relative.Dot(v));
         }
         return local;
     }
@@ -287,9 +287,9 @@ public readonly struct Plane3<TNum>
             var line = world[i];
             var lineStart =line.Start  - origin;
             var lineEnd = line.End  - origin;
-            var localStart=new Vector2<TNum>(lineStart*u, lineStart*v);
-            var localEnd=new Vector2<TNum>(lineEnd*u, lineEnd*v);
-            local[i] = new(localStart, localEnd);
+            var localStart=new Vector2<TNum>(lineStart.Dot(u), lineStart.Dot(v));
+            var localEnd=new Vector2<TNum>(lineEnd.Dot(u), lineEnd.Dot(v));
+            local[i] = localStart.LineTo(localEnd);
         }
         return local;
     }
@@ -370,8 +370,8 @@ public readonly struct Plane3<TNum>
         
         var lineStart =world.Start  - origin;
         var lineEnd = world.End  - origin;
-        var localStart=new Vector2<TNum>(lineStart*u, lineStart*v);
-        var localEnd=new Vector2<TNum>(lineEnd*u, lineEnd*v);
+        var localStart=new Vector2<TNum>(lineStart.Dot(u), lineStart.Dot(v));
+        var localEnd=new Vector2<TNum>(lineEnd.Dot(u), lineEnd.Dot(v));
         return new(localStart, localEnd);
     }
 

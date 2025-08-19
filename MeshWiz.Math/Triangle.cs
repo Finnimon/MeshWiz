@@ -28,8 +28,8 @@ public readonly struct Triangle<TVector, TNum> : ISurface<TVector, TNum>
         {
             var ab = B - A;
             var ac = C - A;
-            var abAcDot = ab * ac;
-            return TNum.Sqrt((ab * ab) * (ac * ac) - abAcDot * abAcDot) / TNum.CreateTruncating(2);
+            var abAcDot = ab.Dot(ac);
+            return TNum.Sqrt((ab .Dot(ab)) * (ac.Dot(ac)) - abAcDot * abAcDot) / TNum.CreateTruncating(2);
         }
     }
 }

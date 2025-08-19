@@ -35,7 +35,7 @@ public readonly struct BBox3<TNum> : IBody<TNum>, IEquatable<BBox3<TNum>>
     private TNum CalculateSurfaceArea()
     {
         var d = Diagonal;
-        return TNum.CreateTruncating(2) * (d * d.YZX);
+        return TNum.CreateTruncating(2) * d.YZX.Dot(d);
     }
 
     // return

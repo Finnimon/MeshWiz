@@ -19,6 +19,4 @@ public interface IVector3<TSelf, TNum> : IFloatingVector<TSelf, TNum>
     [Pure] TSelf YXZ=>TSelf.FromXYZ(this[1],this[0],this[2]);
     [Pure] TSelf XZY=>TSelf.FromXYZ(this[0],this[2],this[1]);
     [Pure] TSelf ZXY=>TSelf.FromXYZ(this[2],this[0],this[1]);
-    [Pure] static TSelf IFloatingVector<TSelf,TNum>.NaN=>TSelf.FromXYZ(TNum.NaN,TNum.NaN,TNum.NaN);
-    [Pure] static TSelf IVector<TSelf,TNum>.One=>TSelf.FromXYZ(TNum.One,TNum.One,TNum.One);
 }

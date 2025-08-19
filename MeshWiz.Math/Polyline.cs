@@ -195,7 +195,7 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
         {
             var line = list[index];
             var curDirection = line.NormalDirection;
-            var dot = curDirection * prevDirection;
+            var dot = curDirection .Dot(prevDirection);
             var sameDirectionParallel = dot.IsApprox(TNum.One);
 
             if (sameDirectionParallel) points[pI] = line.End;
@@ -213,9 +213,9 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
         if (!isClosed) return new Polyline<TVector, TNum>(points[..pCount]);
         var startDirection = (points[1] - startPt).Normalized;
         var endDirection = (endPt - points[pI - 1]).Normalized;
-        if (!(startDirection * endDirection).IsApprox(TNum.One)) return new Polyline<TVector, TNum>(points[..pCount]);
+        if (!(startDirection.Dot(endDirection)).IsApprox(TNum.One)) return new Polyline<TVector, TNum>(points[..pCount]);
         points[0] = points[pI - 1];
-        return new Polyline<TVector, TNum>(points[..(pI)]);
+        return new Polyline<TVector, TNum>(points[..pI]);
     }
 
     public static Polyline<TVector, TNum> FromSegments(IEnumerable<Line<TVector, TNum>> connected)
@@ -235,7 +235,7 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
             }
 
             var curDirection = line.NormalDirection;
-            var dot = curDirection * prevDirection;
+            var dot = curDirection .Dot(prevDirection);
             var sameDirectionParallel = dot.IsApprox(TNum.One);
 
             if (sameDirectionParallel) points[^1] = line.End;
@@ -251,7 +251,7 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
         if (!areEqual) return new Polyline<TVector, TNum>(points.ToArray());
         var startDirection = (points[1] - startPt).Normalized;
         var endDirection = (endPt - points[^2]).Normalized;
-        if (!(startDirection * endDirection).IsApprox(TNum.One)) return new Polyline<TVector, TNum>(points.ToArray());
+        if (!(startDirection.Dot(endDirection)).IsApprox(TNum.One)) return new Polyline<TVector, TNum>(points.ToArray());
         points[0] = points[^2];
         return new Polyline<TVector, TNum>(points.ToArray());
     }
@@ -269,7 +269,7 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
         foreach (var line in collection)
         {
             var curDirection = line.NormalDirection;
-            var dot = curDirection * prevDirection;
+            var dot = curDirection .Dot(prevDirection);
             var sameDirectionParallel = dot.IsApprox(TNum.One);
 
             if (sameDirectionParallel) points[^1] = line.End;

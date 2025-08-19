@@ -133,10 +133,10 @@ public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
     {
         b = b.Transpose();
         return new Matrix4<TNum>(
-            a.X * b.X, a.X * b.Y, a.X * b.Z, a.X * b.W,
-            a.Y * b.X, a.Y * b.Y, a.Y * b.Z, a.Y * b.W,
-            a.Z * b.X, a.Z * b.Y, a.Z * b.Z, a.Z * b.W,
-            a.W * b.X, a.W * b.Y, a.W * b.Z, a.W * b.W
+            a.X.Dot( b.X), a.X.Dot(b.Y), a.X.Dot(b.Z), a.X.Dot(b.W),
+            a.Y.Dot( b.X), a.Y.Dot(b.Y), a.Y.Dot(b.Z), a.Y.Dot(b.W),
+            a.Z.Dot( b.X), a.Z.Dot(b.Y), a.Z.Dot(b.Z), a.Z.Dot(b.W),
+            a.W.Dot( b.X), a.W.Dot(b.Y), a.W.Dot(b.Z), a.W.Dot(b.W)
         );
     }
 
@@ -149,10 +149,10 @@ public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
     }
 
     public Vector3<TNum> MultiplyDirection(Vector3<TNum> v)
-        => new(X.XYZ * v, Y.XYZ * v, Z.XYZ * v);
+        => new(X.XYZ.Dot(v), Y.XYZ.Dot(v), Z.XYZ.Dot(v));
 
     public Vector4<TNum> Multiply(Vector4<TNum> v)
-        => new(X * v, Y * v, Z * v, W * v);
+        => new(X.Dot(v), Y.Dot(v), Z.Dot(v), W.Dot(v));
 
     public static Vector4<TNum> operator *(Matrix4<TNum> m, Vector4<TNum> v) => m.Multiply(v);
     public static Vector3<TNum> operator *(Matrix4<TNum> m, Vector3<TNum> v) => m.MultiplyPoint(v);
@@ -251,9 +251,9 @@ public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
         var x = (up ^ z).Normalized;
         var y = (z ^ x).Normalized;
         var w = Vector4<TNum>.FromXYZW(
-            -(x * eye),
-            -(y * eye),
-            -(z * eye),
+            -(x.Dot(eye)),
+            -(y.Dot(eye)),
+            -(z.Dot(eye)),
             TNum.One
         );
         return FromRows(new Vector4<TNum>(x.X, y.X, z.X, TNum.Zero),

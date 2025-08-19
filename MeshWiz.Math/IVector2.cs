@@ -15,6 +15,4 @@ public interface IVector2<TSelf, TNum> : IFloatingVector<TSelf, TNum>
     static abstract TSelf FromXY(TNum x, TNum y);
     [Pure] TSelf YX => TSelf.FromXY(this[1], this[0]);
     
-    [Pure] static TSelf IFloatingVector<TSelf,TNum>.NaN=>TSelf.FromXY(TNum.NaN,TNum.NaN);
-    [Pure] static TSelf IVector<TSelf,TNum>.One=>TSelf.FromXY(TNum.One,TNum.One);
 }

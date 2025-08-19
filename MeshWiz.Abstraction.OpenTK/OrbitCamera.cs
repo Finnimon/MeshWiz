@@ -31,7 +31,7 @@ public class OrbitCamera(float fovRad, Vector3<float> orbitAround, float distanc
     private Vector3<float> GetPosition()
     {
         var up = UnitUp;
-        var reference = float.Abs(up*Vector3<float>.UnitY) < 0.99f
+        var reference = float.Abs(up.Dot(Vector3<float>.UnitY)) < 0.99f
                 ? Vector3<float>.UnitY
                 : Vector3<float>.UnitX;;
         var forward = up.Cross(reference).Normalized;
