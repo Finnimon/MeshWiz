@@ -19,8 +19,10 @@ public interface IVector<TSelf, TNum>
     where TNum : unmanaged, INumber<TNum>
     where TSelf : IVector<TSelf, TNum>
 {
+    [Pure]
     static abstract TSelf FromComponents<TList>(TList components) where TList : IReadOnlyList<TNum>;
 
+    [Pure]
     static abstract TSelf FromComponents<TList, TOtherNum>(TList components)
         where TList : IReadOnlyList<TOtherNum>
         where TOtherNum : INumber<TOtherNum>;
@@ -52,15 +54,23 @@ public interface IVector<TSelf, TNum>
     TNum DistanceTo(TSelf other);
     TNum SquaredDistanceTo(TSelf other);
 
-    static abstract TSelf Lerp(TSelf from, TSelf to, TNum normalDistance);
+    [Pure]
+    static abstract TSelf Lerp(TSelf from, TSelf to, TNum t);
 
+    [Pure]
+    static abstract TSelf ExactLerp(TSelf from, TSelf toward, TNum exactDistance);
+
+    [Pure]
     bool IsParallelTo(TSelf other);
     bool IsParallelTo(TSelf other, TNum tolerance);
 
+    [Pure]
     bool IsApprox(TSelf other, TNum squareTolerance)
         => this.SquaredDistanceTo(other) < squareTolerance;
 
+    [Pure]
     bool IsApprox(TSelf other);
     
+    [Pure]
     public static abstract TNum operator *(TSelf left,TSelf right);
 }

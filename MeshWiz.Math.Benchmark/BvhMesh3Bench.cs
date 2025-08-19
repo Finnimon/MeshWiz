@@ -6,7 +6,12 @@ namespace MeshWiz.Math.Benchmark;
 public class BvhMesh3Bench<TNum>
 where TNum:unmanaged, IFloatingPointIeee754<TNum>
 {
-    private IMesh3<TNum>? _mesh;
+    private IMesh<TNum>? _mesh;
+
+    [Params(16u,32u,64u)]
+    public uint MaxDepth;
+    [Params(4u,8u,12u)]
+    public uint SplitTests;
 
     [GlobalSetup]
     public void Setup() 
@@ -14,13 +19,13 @@ where TNum:unmanaged, IFloatingPointIeee754<TNum>
 
     [Benchmark]
     [Obsolete("Obsolete")]
-    public void ObsoleteHierarchize()
+    public BoundedVolumeHierarchy<TNum> ObsoleteHierarchize()
     {
-        var (indices, vertices) = MeshMath.Indicate(_mesh!);
-        var hierarchy=MeshMath.Hierarchize(indices, vertices,32,7);
+        var (indices, vertices) = Mesh.Indexing.Indicate(_mesh!);
+        return Mesh.Bvh.Hierarchize(indices, vertices,MaxDepth,SplitTests);
     }
 
     [Benchmark]
-    public BvhMesh3<TNum> OptimizedHierarchize()
-    =>new  BvhMesh3<TNum>(_mesh!,32,7);
+    public (BoundedVolumeHierarchy<TNum> hierarchy, TriangleIndexer[] indices, Vector3<TNum>[] vertices) OptimizedHierarchize() 
+        => Mesh.Bvh.Hierarchize(_mesh!, MaxDepth,SplitTests);
 }

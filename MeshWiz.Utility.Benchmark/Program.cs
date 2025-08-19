@@ -1,5 +1,4 @@
 ﻿
 using BenchmarkDotNet.Running;
 using MeshWiz.Utility.Benchmark;
-
-BenchmarkRunner.Run<RollingListBenchmark>();
+BenchmarkRunner.Run<ArrayCopyBench>();

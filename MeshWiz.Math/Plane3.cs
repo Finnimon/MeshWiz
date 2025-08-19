@@ -27,13 +27,13 @@ public readonly struct Plane3<TNum>
     public Plane3(Vector3<TNum> normal, Vector3<TNum> pointOnPlane)
     {
         Normal = normal;
-        D = -Normal * pointOnPlane;
+        D = -(Normal * pointOnPlane);
     }
     public Plane3(Vector3<TNum> a, Vector3<TNum> b, Vector3<TNum> c)
     {
         Normal = (a - b) ^ (c - a);
         Normal = Normal.Normalized;
-        D = -Normal * a;
+        D = -(Normal * a);
     }
 
     public Plane3(Vector4<TNum> asVec4) : this(asVec4.XYZ, asVec4.W) { }
@@ -73,7 +73,7 @@ public readonly struct Plane3<TNum>
     }
 
     public bool DoIntersect(Ray3<TNum> test)
-        => TNum.Abs(test.Direction * Normal) < TNum.Epsilon;
+        => TNum.Abs(test.Direction * Normal) >= TNum.Epsilon;
 
     public bool Intersect(Ray3<TNum> test, out Vector3<TNum> result)
     {
@@ -252,9 +252,131 @@ public readonly struct Plane3<TNum>
         return true;
     }
 
-    public Vector3<TNum> Center => Normal * D;
+    public Vector3<TNum> Origin => Normal * -D;
     public TNum DistanceTo(Plane3<TNum> other)=> TNum.Abs(D - other.D);
-    public TNum DistanceTo(Vector3<TNum> p)=> TNum.Abs(D - SignedDistance(p));
+    public TNum DistanceTo(Vector3<TNum> p) => TNum.Abs(SignedDistance(p));
+
+    public Vector2<TNum> ProjectIntoLocal(Vector3<TNum> world)
+    {
+        var (u, v) = LocalAxes;
+        var local=world-Origin;
+        return new Vector2<TNum>(local*u, local*v);
+    }
+
+    public Vector2<TNum>[] ProjectIntoLocal(IReadOnlyList<Vector3<TNum>> world)
+    {
+        var (u, v) = LocalAxes;
+        var origin = Origin;
+        var pCount = world.Count;
+        var local = new Vector2<TNum>[pCount];
+        for (var i = 0; i < pCount; i++)
+        {
+            var relative = world[i] - origin;
+            local[i]=new(relative*u, relative*v);
+        }
+        return local;
+    }
+    public Line<Vector2<TNum>,TNum>[] ProjectIntoLocal(IReadOnlyList<Line<Vector3<TNum>,TNum>> world)
+    {
+        var (u, v) = LocalAxes;
+        var origin = Origin;
+        var count = world.Count;
+        var local = new Line<Vector2<TNum>,TNum>[count];
+        for (var i = 0; i < count; i++)
+        {
+            var line = world[i];
+            var lineStart =line.Start  - origin;
+            var lineEnd = line.End  - origin;
+            var localStart=new Vector2<TNum>(lineStart*u, lineStart*v);
+            var localEnd=new Vector2<TNum>(lineEnd*u, lineEnd*v);
+            local[i] = new(localStart, localEnd);
+        }
+        return local;
+    }
     
     
+    public Vector3<TNum> ProjectIntoWorld(Vector2<TNum> local)
+    {
+        var (u, v) = LocalAxes;
+        return Origin + local.X * u + local.Y * v;
+    }
+
+    
+    public Vector3<TNum>[] ProjectIntoWorld(IReadOnlyList<Vector2<TNum>> local)
+    {
+        var (u, v) = LocalAxes;
+        var origin = Origin;
+        var pCount = local.Count;
+        var world = new Vector3<TNum>[pCount];
+        for (var i = 0; i < pCount; i++)
+        {
+            var curLocal = local[i];
+            world[i] = origin + curLocal.X * u + curLocal.Y * v;
+        }
+        return world;
+    }
+    public Line<Vector3<TNum>,TNum>[] ProjectIntoWorld(IReadOnlyList<Line<Vector2<TNum>,TNum>> local)
+    {
+        var (u, v) = LocalAxes;
+        var origin = Origin;
+        var count = local.Count;
+        var world = new Line<Vector3<TNum>,TNum>[count];
+        for (var i = 0; i < count; i++)
+        {
+            var curLocal = local[i];
+            var start = curLocal.Start;
+            var end = curLocal.End;
+            var worldStart = origin + start.X * u + start.Y * v;
+            var worldEnd = origin + end.X * u + end.Y * v;
+            world[i] = new(worldStart, worldEnd);
+        }
+        return world;
+    }
+    
+    public Polyline<Vector3<TNum>,TNum> ProjectIntoWorld(Polyline<Vector2<TNum>,TNum> local)
+    {
+        var (u, v) = LocalAxes;
+        var origin = Origin;
+        var count = local.Points.Length;
+        var localPts=local.Points;
+        var world = new Vector3<TNum>[count];
+        for (var i = 0; i < count; i++)
+        {
+            var localPt = localPts[i];
+            world[i] = origin + localPt.X * u + localPt.Y * v;
+        }
+        return new(world);
+    }  
+    
+    
+    public (Vector3<TNum> u, Vector3<TNum> v) LocalAxes
+    {
+        [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            var reference=Normal.IsParallelTo(Vector3<TNum>.UnitY)?Vector3<TNum>.UnitX:Vector3<TNum>.UnitY;
+            var u = Normal ^ reference;
+            var v= Normal ^ u;
+            return (u, v);
+        }
+    }
+
+
+    public Line<Vector2<TNum>, TNum> ProjectIntoLocal(Line<Vector3<TNum>, TNum> world) 
+    {
+        
+        var (u, v) = LocalAxes;
+        var origin = Origin;
+        
+        var lineStart =world.Start  - origin;
+        var lineEnd = world.End  - origin;
+        var localStart=new Vector2<TNum>(lineStart*u, lineStart*v);
+        var localEnd=new Vector2<TNum>(lineEnd*u, lineEnd*v);
+        return new(localStart, localEnd);
+    }
+
+    public Line<Vector3<TNum>,TNum> ProjectIntoWorld(Line<Vector2<TNum>, TNum> local)
+    {
+        return new(ProjectIntoWorld(local.Start), ProjectIntoWorld(local.End));
+    }
 }

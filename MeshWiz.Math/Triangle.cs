@@ -17,7 +17,7 @@ public readonly struct Triangle<TVector, TNum> : ISurface<TVector, TNum>
         C = c;
     }
 
-    public ICurve<TVector, TNum> Bounds => new PolyLine<TVector, TNum>([A, B, C]);
+    public ICurve<TVector, TNum> Bounds => new Polyline<TVector, TNum>([A, B, C]);
 
 
     public TVector Centroid => (A + B + C) / TNum.CreateTruncating(3);

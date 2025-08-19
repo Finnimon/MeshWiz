@@ -34,7 +34,7 @@ public class LineView : IOpenGLControl
     public bool GLInitialized { get; private set; }
     private bool _newLine;
     private int _uploadedVertexCount;
-    public PolyLine<Vector3<float>, float> PolyLine
+    public Polyline<Vector3<float>, float> Polyline
     {
         get;
         set
@@ -46,12 +46,12 @@ public class LineView : IOpenGLControl
 
     
 
-    public LineView() : this(PolyLine<Vector3<float>, float>.Empty) { }
+    public LineView() : this(Polyline<Vector3<float>, float>.Empty) { }
 
-    public LineView(PolyLine<Vector3<float>,float> polyLine)
+    public LineView(Polyline<Vector3<float>,float> polyline)
     {
         Show = true;
-        PolyLine = polyLine;
+        Polyline = polyline;
         Camera=OrbitCamera.Default();
         Camera.MoveForwards(-10);
         Color = Color4.White;
@@ -97,8 +97,8 @@ public class LineView : IOpenGLControl
         _vbo?.Unbind();
         _vbo?.Dispose();
         _vbo=new BufferObject(BufferTarget.ArrayBuffer);
-        _vbo.BindAnd().BufferData(PolyLine.Points,BufferUsageHint.StaticDraw);
-        _uploadedVertexCount=PolyLine.Points.Length;
+        _vbo.BindAnd().BufferData(Polyline.Points,BufferUsageHint.StaticDraw);
+        _uploadedVertexCount=Polyline.Points.Length;
         _shader!.Bind();
         int position;
         position =_shader!.GetAttribLoc(nameof(position));

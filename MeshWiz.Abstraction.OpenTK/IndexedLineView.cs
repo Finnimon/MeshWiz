@@ -97,7 +97,7 @@ public class IndexedLineView : IOpenGLControl
         _vbo?.Dispose();
         _ibo?.Unbind();
         _ibo?.Dispose();
-        var (indices,vertices) = CurveMath.Indicate(Lines);
+        var (indices,vertices) = Polyline.Indexing.Indicate(Lines);
         _vbo=new BufferObject(BufferTarget.ArrayBuffer);
         _vbo.BindAnd().BufferData(vertices,BufferUsageHint.StaticDraw);
         _ibo=new BufferObject(BufferTarget.ElementArrayBuffer);

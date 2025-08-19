@@ -48,7 +48,7 @@ public class SmoothMeshView : IOpenGLControl
     private ShaderProgram? _blinnPhongShader;
 
 
-    public IndexedMesh3<float> Mesh
+    public IIndexedMesh<float> Mesh
     {
         get;
         set
@@ -57,7 +57,7 @@ public class SmoothMeshView : IOpenGLControl
             _newMesh = true;
             field = value;
         }
-    } = IndexedMesh3<float>.Empty;
+    } = IndexedMesh<float>.Empty;
 
 
     public void Init()
@@ -204,7 +204,7 @@ public class SmoothMeshView : IOpenGLControl
         OpenGLHelper.LogGlError(nameof(SmoothMeshView), nameof(UploadMesh));
     }
 
-    Vector3<float>[] GetInterleavedMesh(IndexedMesh3<float> mesh)
+    Vector3<float>[] GetInterleavedMesh(IIndexedMesh<float> mesh)
     {
         var normals = new Vector3<float>[mesh.Vertices.Length];
         var counts = new uint[mesh.Vertices.Length];

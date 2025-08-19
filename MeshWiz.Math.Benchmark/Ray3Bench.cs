@@ -6,15 +6,15 @@ namespace MeshWiz.Math.Benchmark;
 public class Ray3Bench<TNum> 
     where TNum: unmanaged, IFloatingPointIeee754<TNum>
 {
-    private BvhMesh3<TNum>? BvhMesh { get; set; }
+    private BvhMesh<TNum>? BvhMesh { get; set; }
 
-    private Mesh3<TNum>? Mesh { get; set; }
+    private Mesh<TNum>? Mesh { get; set; }
     private Ray3<TNum> _ray;
     [GlobalSetup]
     public void Setup()
     {
         Mesh = new(Sphere<TNum>.GenerateTessellation(Vector3<TNum>.Zero, TNum.One, 512, 1024));
-        BvhMesh = new BvhMesh3<TNum>(Mesh);
+        BvhMesh = new BvhMesh<TNum>(Mesh);
         _ray = new(Vector3<TNum>.One*TNum.CreateTruncating(100), Mesh.VolumeCentroid);
     }
 

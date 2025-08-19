@@ -15,16 +15,16 @@ public class StlReaderBenchmark
     public static string WhereAmI([CallerFilePath] string callerFilePath = "") => callerFilePath;
 
     [Benchmark]
-    public IMesh3<float> FastStlReaderSmallBenchmark()
+    public IMesh<float> FastStlReaderSmallBenchmark()
         => MeshIO.ReadFile<FastStlReader,float>(StlPath("cube-binary.stl"));
     [Benchmark]
-    public IMesh3<float> SafeStlReaderSmallBenchmark()
+    public IMesh<float> SafeStlReaderSmallBenchmark()
         => MeshIO.ReadFile<SafeStlReader<float>,float>(StlPath("cube-binary.stl"));
     [Benchmark]
-    public IMesh3<float> FastStlReaderBigBenchmark()
+    public IMesh<float> FastStlReaderBigBenchmark()
         => MeshIO.ReadFile<FastStlReader,float>(StlPath("big-binary.stl"));
     [Benchmark]
-    public IMesh3<float> SafeStlReaderBigBenchmark()
+    public IMesh<float> SafeStlReaderBigBenchmark()
         => MeshIO.ReadFile<SafeStlReader<float>,float>(StlPath("big-binary.stl"));
 }
 

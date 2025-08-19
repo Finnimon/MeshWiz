@@ -9,7 +9,7 @@ public sealed class FastBinaryStlWriter : IMeshWriter<float>
     private FastBinaryStlWriter() { }
     private static string HeaderString => "binary stl".PadRight(80);
     private static readonly byte[] AttribByteCount = [0,0];
-    public static void Write(IMesh3<float> mesh, Stream stream, bool leaveOpen = false)
+    public static void Write(IMesh<float> mesh, Stream stream, bool leaveOpen = false)
     {
         try
         {

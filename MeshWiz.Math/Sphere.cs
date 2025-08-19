@@ -71,5 +71,5 @@ public readonly record struct Sphere<TNum>(Vector3<TNum> Centroid, TNum Radius)
         return tris;
     }
 
-    public IMesh3<TNum> Tessellate() =>new Mesh3<TNum>(GenerateTessellation(Centroid, Radius, stacks: 16, slices: 32));
+    public IMesh<TNum> Tessellate() =>new Mesh<TNum>(GenerateTessellation(Centroid, Radius, stacks: 16, slices: 32));
 }

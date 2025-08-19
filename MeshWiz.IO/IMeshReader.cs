@@ -6,5 +6,5 @@ namespace MeshWiz.IO;
 public interface IMeshReader<TNum>
 where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    static abstract IMesh3<TNum> Read(Stream stream, bool leaveOpen = false);
+    static abstract IMesh<TNum> Read(Stream stream, bool leaveOpen = false);
 }

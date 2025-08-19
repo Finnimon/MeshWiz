@@ -1,11 +1,10 @@
-using System.Numerics;
 using BenchmarkDotNet.Attributes;
 
 namespace MeshWiz.Math.Benchmark;
 
 public class PlaneBvhIntersectBench
 {
-    private BvhMesh3<float>? _mesh;
+    private BvhMesh<float>? _mesh;
     private Plane3<float> _plane;
     [GlobalSetup]
     public void Setup()
@@ -15,19 +14,12 @@ public class PlaneBvhIntersectBench
             .. new BBox3<float>(-Vector3<float>.One, Vector3<float>.One).Tessellate(),
             // ..Sphere<float>.GenerateTessellation(Vector3<float>.One * 2, 1, 256, 512)
         ];
-        _mesh = new BvhMesh3<float>(tris);
+        _mesh = new BvhMesh<float>(tris);
         _plane = new Plane3<float>(Vector3<float>.UnitZ, _mesh.VolumeCentroid);
             
     }
-
     [Benchmark]
-    public PolyLine<Vector3<float>, float>[] BenchIntersection()
-    {
-        var mesh=_mesh!;
-        return mesh.Intersect(_plane);
-    }
-    [Benchmark]
-    public PolyLine<Vector3<float>, float>[] BenchIntersectionRolling()
+    public Polyline<Vector2<float>, float>[] BenchIntersectionRolling()
     {
         var mesh=_mesh!;
         return mesh.IntersectRolling(_plane);

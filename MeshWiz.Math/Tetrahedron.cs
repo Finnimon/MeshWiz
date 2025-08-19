@@ -58,8 +58,8 @@ public readonly struct Tetrahedron<TNum> : IBody<TNum>
         new(C, D, A),
         new(B, C, D),
     ];
-    public IMesh3<TNum> Tessellate() 
-        => new IndexedMesh3<TNum>([A,B,C,D], [
+    public IMesh<TNum> Tessellate() 
+        => new IndexedMesh<TNum>([A,B,C,D], [
                 new(0,1,2),
                 new (3,0,1),
                 new(2,3,0),

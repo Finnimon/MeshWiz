@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Runtime.CompilerServices;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Utility;
@@ -8,7 +9,6 @@ namespace MeshWiz.Utility;
 /// </summary>
 /// <typeparam name="T"></typeparam>
 public sealed class RollingList<T> : IReadOnlyList<T>
-    where T : unmanaged
 {
     private const int DefaultCapacity = 16;
     private T[] _items;
@@ -24,13 +24,21 @@ public sealed class RollingList<T> : IReadOnlyList<T>
         Count = 0;
     }
 
+    public RollingList(IEnumerable<T> collection)
+    {
+        _items = collection.ToArray();
+        Count = _items.Length;
+        _headIndex = 0;
+        _postTailIndex = Count;
+    }
+
     public RollingList(T[] source, int start = 0, int count = -1)
     {
         if (start < 0 || start >= source.Length) throw new ArgumentOutOfRangeException(nameof(start));
         if (count == -1) count = source.Length - start;
         if (count < 0 || count + start > source.Length) throw new ArgumentOutOfRangeException(nameof(count));
-        _items = new T[count];
-        Array.Copy(source, start, _items, 0, count);
+        var end = start + count;
+        _items = source[start..end];
         Count = count;
         _headIndex = 0;
         _postTailIndex = count;
@@ -109,7 +117,10 @@ public sealed class RollingList<T> : IReadOnlyList<T>
     private T PopFrontUnchecked()
     {
         Count--;
-        var front = _items[_headIndex];
+        ref var head=ref _items[_headIndex];
+        var front = head ;
+        head = default!;
+
         _headIndex = _headIndex >= _items.Length - 1 ? 0 : _headIndex + 1;
         return front;
     }
@@ -123,16 +134,19 @@ public sealed class RollingList<T> : IReadOnlyList<T>
     private T PopBackUnchecked()
     {
         Count--;
-        var back = _items[_postTailIndex - 1];
-        _postTailIndex = _postTailIndex <= 1 ? _items.Length : _postTailIndex - 1;
-        return back;
+        _postTailIndex--;
+        ref var tail = ref _items[_postTailIndex];
+        var back = tail;
+        tail = default!;
+        if (_postTailIndex < 1) _postTailIndex = _items.Length;
+        return back!;
     }
 
     public bool TryPopFront(out T item)
     {
         if (Count == 0)
         {
-            item = default;
+            item = default!;
             return false;
         }
 
@@ -144,7 +158,7 @@ public sealed class RollingList<T> : IReadOnlyList<T>
     {
         if (Count == 0)
         {
-            item = default;
+            item = default!;
             return false;
         }
 
@@ -154,16 +168,17 @@ public sealed class RollingList<T> : IReadOnlyList<T>
 
     public T[] ToArrayFast()
     {
-        if (Count == 0) return Array.Empty<T>();
-        var result = new T[Count];
-        if (_headIndex < _postTailIndex)
-        {
-            Array.Copy(_items, _headIndex, result, 0, Count);
-            return result;
-        }
+        if (Count == 0) return [];
 
-        var firstMoveSize = _items.Length - _headIndex;
+        if (_postTailIndex == 0 || _postTailIndex > _headIndex)
+            return _items[_headIndex..(_headIndex + Count)];
+
+        var result = new T[Count];
+
+        var firstMoveSize = int.Min(Count, _items.Length - _headIndex);
+
         Array.Copy(_items, _headIndex, result, 0, firstMoveSize);
+        if (firstMoveSize == Count) return result;
         Array.Copy(_items, 0, result, firstMoveSize, _postTailIndex);
         return result;
     }
@@ -171,18 +186,7 @@ public sealed class RollingList<T> : IReadOnlyList<T>
     public IEnumerator<T> GetEnumerator()
     {
         if (Count == 0) yield break;
-        var arrayLength = _items.Length;
-        if (_headIndex < _postTailIndex)
-        {
-            for (var i = _headIndex; i < _postTailIndex; i++)
-                yield return _items[i];
-            yield break;
-        }
-
-        for (var i = _headIndex; i < arrayLength; i++)
-            yield return _items[i];
-        for (var i = 0; i < _postTailIndex; i++)
-            yield return _items[i];
+        for (var i = 0; i < Count; i++) yield return this[i];
     }
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

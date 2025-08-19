@@ -10,7 +10,7 @@ public sealed class FastStlReader : IMeshReader<float>
 {
     private FastStlReader() { }
 
-    public static IMesh3<float> Read(Stream stream, bool leaveOpen = false)
+    public static IMesh<float> Read(Stream stream, bool leaveOpen = false)
     {
         try
         {
@@ -22,7 +22,7 @@ public sealed class FastStlReader : IMeshReader<float>
         }
     }
 
-    private static Mesh3<float> ReadInternal(Stream stream)
+    private static Mesh<float> ReadInternal(Stream stream)
     {
         var solid=new  byte[5];
         stream.ReadExactly(solid);
@@ -35,7 +35,7 @@ public sealed class FastStlReader : IMeshReader<float>
     private const int TriangleOffset = 12;
     private const int HeaderLength = 80;
     private const int TotalHeaderLength = HeaderLength + sizeof(uint);
-    private static Mesh3<float> ReadBinary(Stream stream)
+    private static Mesh<float> ReadBinary(Stream stream)
     {
         var remainingLength= stream.Length-stream.Position;
         if (remainingLength < TotalHeaderLength) 
@@ -57,9 +57,9 @@ public sealed class FastStlReader : IMeshReader<float>
             stream.ReadExactly(buffer);
             facets[i]=StructExt.UnsafeAs<byte,Triangle3<float>>(in buffer[TriangleOffset]);
         }
-        return new Mesh3<float>(facets);
+        return new Mesh<float>(facets);
     }
 
-    private static Mesh3<float> ReadAscii(Stream stream)
+    private static Mesh<float> ReadAscii(Stream stream)
         => SafeStlReader<float>.ReadAsciiInternal(stream);
 }

@@ -12,9 +12,9 @@ namespace MeshWiz.Math;
 public readonly struct Vector2<TNum> : IVector2<Vector2<TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    public static Vector2<TNum> Zero => new(TNum.Zero, TNum.Zero);
-    public static Vector2<TNum> One => new(TNum.One, TNum.One);
-    public static Vector2<TNum> NaN => new(TNum.NaN, TNum.NaN);
+    public static Vector2<TNum> Zero { [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]get; }= new(TNum.Zero, TNum.Zero);
+    public static Vector2<TNum> One { [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]get; }= new(TNum.One, TNum.One);
+    public static Vector2<TNum> NaN { [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]get; }= new(TNum.NaN, TNum.NaN);
     public Vector2<TNum> YX => new(Y, X);
 
     public Vector2<TOther> To<TOther>() where TOther : unmanaged, IFloatingPointIeee754<TOther>
@@ -127,11 +127,14 @@ public readonly struct Vector2<TNum> : IVector2<Vector2<TNum>, TNum>
     public TNum Cross(Vector2<TNum> other) => this ^ other;
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int CrossSign(Vector2<TNum> other) => TNum.Sign(Cross(other));
-    
+    public int CrossSign(Vector2<TNum> other) => Cross(other).EpsilonTruncatingSign();
+
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsParallelTo(Vector2<TNum> other, TNum tolerance) 
-        => tolerance>=TNum.Abs(Normalized * other.Normalized)-TNum.One;
+        => TNum.Abs(Cross(other))<tolerance;
+
+    public static Vector2<TNum> ExactLerp(Vector2<TNum> from, Vector2<TNum> toward, TNum exactDistance) 
+        => (toward - from).Normalized * exactDistance + from;
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsParallelTo(Vector2<TNum> other)
@@ -209,6 +212,7 @@ public readonly struct Vector2<TNum> : IVector2<Vector2<TNum>, TNum>
         x = X;
         y = Y;
     }
+
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector2<TNum> Lerp(Vector2<TNum> from, Vector2<TNum> to, TNum normalDistance)
     =>(to-from)*normalDistance+from;
@@ -224,7 +228,7 @@ public readonly struct Vector2<TNum> : IVector2<Vector2<TNum>, TNum>
 
     [SuppressMessage("ReSharper", "UseStringInterpolation")]
     public override string ToString()
-        => $"{nameof(X)}: {X}, {nameof(Y)}: {Y}";
+        => $"{nameof(X)}: {X:F3}, {nameof(Y)}: {Y:F3}";
 
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNaN(Vector2<TNum> vec)

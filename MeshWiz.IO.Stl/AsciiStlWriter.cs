@@ -7,7 +7,7 @@ public class AsciiStlWriter<TNum>
     : IMeshWriter<TNum> 
     where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
 {
-    public static void Write(IMesh3<TNum> mesh, Stream stream, bool leaveOpen = false)
+    public static void Write(IMesh<TNum> mesh, Stream stream, bool leaveOpen = false)
     {
         try
         {

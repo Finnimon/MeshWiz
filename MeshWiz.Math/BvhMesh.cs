@@ -1,18 +1,17 @@
-using System.Collections;
 using System.Numerics;
 using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
 
-public class BvhMesh3<TNum> : IIndexedMesh3<TNum> 
+public class BvhMesh<TNum> : IIndexedMesh<TNum> 
     where TNum : unmanaged, IFloatingPointIeee754<TNum> 
 {
-    public Vector3<TNum> VertexCentroid => _vertexCentroid ??= MeshMath.VertexCentroid(this);
-    public Vector3<TNum> SurfaceCentroid => _surfaceCentroid ??= MeshMath.SurfaceCentroid(this).XYZ;
-    public Vector3<TNum> VolumeCentroid => _volumeCentroid ??= MeshMath.VolumeCentroid(this).XYZ;
+    public Vector3<TNum> VertexCentroid => _vertexCentroid ??= Mesh.Math.VertexCentroid(this);
+    public Vector3<TNum> SurfaceCentroid => _surfaceCentroid ??= Mesh.Math.SurfaceCentroid(this).XYZ;
+    public Vector3<TNum> VolumeCentroid => _volumeCentroid ??= Mesh.Math.VolumeCentroid(this).XYZ;
 
-    public TNum Volume => _volume ??= MeshMath.Volume(this);
-    public TNum SurfaceArea => _surfaceArea ??= MeshMath.SurfaceArea(this);
+    public TNum Volume => _volume ??= Mesh.Math.Volume(this);
+    public TNum SurfaceArea => _surfaceArea ??= Mesh.Math.SurfaceArea(this);
     public BBox3<TNum> BBox { get; }
 
     private TNum? _surfaceArea;
@@ -30,16 +29,15 @@ public class BvhMesh3<TNum> : IIndexedMesh3<TNum>
     
     public readonly BoundedVolume<TNum>[] Hierarchy;
 
-    public BvhMesh3(IReadOnlyList<Triangle3<TNum>> mesh, uint maxDepth=32,uint splitTests=4)
+    public BvhMesh(IReadOnlyList<Triangle3<TNum>> mesh, uint maxDepth=32,uint splitTests=4)
     {
-        BoundedVolumeHierarchy<TNum> hierarchy;
-        (hierarchy, Indices, Vertices) = MeshMath.Hierarchize(mesh,maxDepth,splitTests);
+        (var hierarchy, Indices, Vertices) = Mesh.Bvh.Hierarchize(mesh,maxDepth,splitTests);
         hierarchy.Trim();
         Hierarchy = hierarchy.GetUnsafeAccess();
         BBox = Hierarchy.Length>0? Hierarchy[0].Bounds: BBox3<TNum>.NegativeInfinity;
     }
 
-    private BvhMesh3(BoundedVolumeHierarchy<TNum> hierarchy, TriangleIndexer[] indices, Vector3<TNum>[] vertices)
+    private BvhMesh(BoundedVolumeHierarchy<TNum> hierarchy, TriangleIndexer[] indices, Vector3<TNum>[] vertices)
     {
         hierarchy.Trim();
         Hierarchy = hierarchy.GetUnsafeAccess();
@@ -47,7 +45,7 @@ public class BvhMesh3<TNum> : IIndexedMesh3<TNum>
         Vertices=vertices;
         BBox = Hierarchy.Length>0? Hierarchy[0].Bounds: BBox3<TNum>.NegativeInfinity;
     }
-    private BvhMesh3(BoundedVolume<TNum>[] hierarchy, TriangleIndexer[] indices, Vector3<TNum>[] vertices)
+    private BvhMesh(BoundedVolume<TNum>[] hierarchy, TriangleIndexer[] indices, Vector3<TNum>[] vertices)
     {
         Hierarchy = hierarchy;
         Indices=indices;
@@ -58,7 +56,7 @@ public class BvhMesh3<TNum> : IIndexedMesh3<TNum>
 
     public void InitializeLazies()
     {
-        var info = MeshMath.AllInfo(this);
+        var info = Mesh.Math.AllInfo(this);
         _vertexCentroid = info.VertexCentroid;
         _surfaceCentroid = info.SurfaceCentroid;
         _volumeCentroid = info.VolumeCentroid;
@@ -187,37 +185,11 @@ public class BvhMesh3<TNum> : IIndexedMesh3<TNum>
         return nodeToTest;
     }
 
-    public PolyLine<Vector3<TNum>, TNum>[] Intersect(Plane3<TNum> plane)
-    {
-        Stack<int> nodeToTest = [];
-        nodeToTest.Push(0);
-        Queue<Line<Vector3<TNum>,TNum>> intersections= [];
-        while (nodeToTest.TryPop(out var nodeIndex))
-        {
-            ref readonly var node=ref Hierarchy[nodeIndex];
-            if(!plane.DoIntersect(node.Bounds)) continue;
-            if (node.IsParent)
-            {
-                nodeToTest.Push(node.FirstChild);
-                nodeToTest.Push(node.SecondChild);
-                continue;
-            }
-
-            for (var triangleIndex = node.Start; triangleIndex < node.End; triangleIndex++)
-            {
-                var tri = this[triangleIndex];
-                
-                if(!plane.Intersect(tri,out var line)) continue;
-                intersections.Enqueue(line);
-            }
-        }
-        return CurveMath.Unify(intersections);
-    }
     
-    public PolyLine<Vector3<TNum>, TNum>[] IntersectRolling(Plane3<TNum> plane)
+    public Polyline<Vector2<TNum>, TNum>[] IntersectRolling(Plane3<TNum> plane)
     {
         RollingList<int> nodeToTest = [0];
-        RollingList<Line<Vector3<TNum>,TNum>> intersections= [];
+        RollingList<Line<Vector2<TNum>,TNum>> intersections= [];
         while (nodeToTest.TryPopFront(out var nodeIndex))
         {
             ref readonly var node=ref Hierarchy[nodeIndex];
@@ -235,17 +207,17 @@ public class BvhMesh3<TNum> : IIndexedMesh3<TNum>
                 
                 if(!plane.Intersect(tri,out var line)) continue;
                 
-                intersections.PushBack(line);
+                intersections.PushBack(plane.ProjectIntoLocal(line));
             }
         }
-        return CurveMath.UnifyNonReversing(intersections);
+        return Polyline.Creation.UnifyNonReversing(intersections);
     }
 
     
 
-    public BvhMesh3<TNum> Indexed() => this;
+    public BvhMesh<TNum> Indexed() => this;
 
-    public BvhMesh3<TOther> To<TOther>()
+    public BvhMesh<TOther> To<TOther>()
     where TOther : unmanaged, IFloatingPointIeee754<TOther>
     {
         var indices = Indices[..^1];
@@ -263,6 +235,6 @@ public class BvhMesh3<TNum> : IIndexedMesh3<TNum>
             hierarchy[index]=otherNode;
         }
 
-        return new BvhMesh3<TOther>(hierarchy,indices,vertices);
+        return new BvhMesh<TOther>(hierarchy,indices,vertices);
     }
 }

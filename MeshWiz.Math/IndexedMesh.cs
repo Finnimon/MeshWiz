@@ -1,19 +1,18 @@
-using System.Collections;
 using System.Numerics;
 
 namespace MeshWiz.Math;
 
-public sealed class IndexedMesh3<TNum> : IIndexedMesh3<TNum>
+public sealed class IndexedMesh<TNum> : IIndexedMesh<TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public Vector3<TNum> Centroid => VolumeCentroid;
-    public Vector3<TNum> VertexCentroid => _vertexCentroid ??= MeshMath.VertexCentroid(this);
-    public Vector3<TNum> SurfaceCentroid => _surfaceCentroid ??= MeshMath.SurfaceCentroid(this).XYZ;
-    public Vector3<TNum> VolumeCentroid => _volumeCentroid ??= MeshMath.VolumeCentroid(this).XYZ;
+    public Vector3<TNum> VertexCentroid => _vertexCentroid ??= Mesh.Math.VertexCentroid(this);
+    public Vector3<TNum> SurfaceCentroid => _surfaceCentroid ??= Mesh.Math.SurfaceCentroid(this).XYZ;
+    public Vector3<TNum> VolumeCentroid => _volumeCentroid ??= Mesh.Math.VolumeCentroid(this).XYZ;
 
-    public TNum Volume => _volume ??= MeshMath.Volume(this);
-    public TNum SurfaceArea => _surfaceArea ??= MeshMath.SurfaceArea(this);
-    public BBox3<TNum> BBox => _bBox ??= MeshMath.BBox(this);
+    public TNum Volume => _volume ??= Mesh.Math.Volume(this);
+    public TNum SurfaceArea => _surfaceArea ??= Mesh.Math.SurfaceArea(this);
+    public BBox3<TNum> BBox => _bBox ??= Mesh.Math.BBox(this);
 
     private TNum? _surfaceArea;
     private TNum? _volume;
@@ -27,21 +26,21 @@ public sealed class IndexedMesh3<TNum> : IIndexedMesh3<TNum>
     public int Count => Indices.Length;
     public Triangle3<TNum> this[int index] => Indices[index].Extract(Vertices);
 
-    public IndexedMesh3(Vector3<TNum>[] vertices, TriangleIndexer[] indices)
+    public IndexedMesh(Vector3<TNum>[] vertices, TriangleIndexer[] indices)
     {
         Vertices = vertices;
         Indices = indices;
     }
 
-    public IndexedMesh3(IReadOnlyList<Triangle3<TNum>> mesh)
+    public IndexedMesh(IReadOnlyList<Triangle3<TNum>> mesh)
     {
-        if (mesh is IndexedMesh3<TNum> indexed)
+        if (mesh is IndexedMesh<TNum> indexed)
         {
             Indices = indexed.Indices;
             Vertices = indexed.Vertices;
             return;
         }
-        (Indices,Vertices)= MeshMath.Indicate(mesh);
+        (Indices,Vertices)= Mesh.Indexing.Indicate(mesh);
     }
 
     private static int GetIndex(Vector3<TNum> vec, Dictionary<Vector3<TNum>, int> unified,
@@ -57,7 +56,7 @@ public sealed class IndexedMesh3<TNum> : IIndexedMesh3<TNum>
 
     public void InitializeLazies()
     {
-        var info = MeshMath.AllInfo(this);
+        var info = Mesh.Math.AllInfo(this);
         _vertexCentroid = info.VertexCentroid;
         _surfaceCentroid = info.SurfaceCentroid;
         _volumeCentroid = info.VolumeCentroid;
@@ -67,12 +66,12 @@ public sealed class IndexedMesh3<TNum> : IIndexedMesh3<TNum>
     }
 
 
-    public IndexedMesh3<TNum> Indexed()
+    public IndexedMesh<TNum> Indexed()
         => this;
 
 
     public async Task InitializeAsync() => await Task.Run(InitializeLazies);
 
-    public static IndexedMesh3<TNum> Empty { get; } = new([]);
+    public static IndexedMesh<TNum> Empty { get; } = new([]);
 
 }

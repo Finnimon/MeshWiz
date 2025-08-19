@@ -1,23 +1,22 @@
-using System.Collections;
 using System.Numerics;
 
 namespace MeshWiz.Math;
 
-public sealed record Mesh3<TNum>(Triangle3<TNum>[] TessellatedSurface) : IMesh3<TNum>
+public sealed record Mesh<TNum>(Triangle3<TNum>[] TessellatedSurface) : IMesh<TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     
     TNum ISurface<Vector3<TNum>,TNum>.SurfaceArea => SurfaceArea;
-    public Vector3<TNum> VertexCentroid => _vertexCentroid ??= MeshMath.VertexCentroid(TessellatedSurface);
-    public Vector3<TNum> SurfaceCentroid => _surfaceCentroid ??= MeshMath.SurfaceCentroid(TessellatedSurface).XYZ;
-    public Vector3<TNum> VolumeCentroid => _volumeCentroid ??= MeshMath.VolumeCentroid(TessellatedSurface).XYZ;
-    public TNum Volume => _volume ??= MeshMath.Volume(TessellatedSurface);
+    public Vector3<TNum> VertexCentroid => _vertexCentroid ??= Mesh.Math.VertexCentroid(TessellatedSurface);
+    public Vector3<TNum> SurfaceCentroid => _surfaceCentroid ??= Mesh.Math.SurfaceCentroid(TessellatedSurface).XYZ;
+    public Vector3<TNum> VolumeCentroid => _volumeCentroid ??= Mesh.Math.VolumeCentroid(TessellatedSurface).XYZ;
+    public TNum Volume => _volume ??= Mesh.Math.Volume(TessellatedSurface);
 
 
-    public TNum SurfaceArea => _surfaceArea ??= MeshMath.SurfaceArea(TessellatedSurface);
+    public TNum SurfaceArea => _surfaceArea ??= Mesh.Math.SurfaceArea(TessellatedSurface);
 
     public ISurface<Vector3<TNum>, TNum> Surface => this;
-    public BBox3<TNum> BBox =>_bBox??=MeshMath.BBox(TessellatedSurface);
+    public BBox3<TNum> BBox =>_bBox??=Mesh.Math.BBox(TessellatedSurface);
 
     private TNum? _surfaceArea;
     private TNum? _volume;
@@ -26,12 +25,12 @@ public sealed record Mesh3<TNum>(Triangle3<TNum>[] TessellatedSurface) : IMesh3<
     private Vector3<TNum>? _volumeCentroid;
     private BBox3<TNum>? _bBox;
 
-    public IndexedMesh3<TNum> Indexed()=>new(this);
+    public IndexedMesh<TNum> Indexed()=>new(this);
     
 
     public void InitializeLazies()
     {
-        var info = MeshMath.AllInfo(this);
+        var info = Mesh.Math.AllInfo(this);
         _vertexCentroid = info.VertexCentroid;
         _surfaceCentroid = info.SurfaceCentroid;
         _volumeCentroid = info.VolumeCentroid;

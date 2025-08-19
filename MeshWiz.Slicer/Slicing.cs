@@ -5,7 +5,7 @@ namespace MeshWiz.Slicer;
 
 public static class Slicing
 {
-    public static IndexedMesh3<TNum> GrowMesh<TNum>(IIndexedMesh3<TNum> source, TNum growBy)
+    public static IndexedMesh<TNum> GrowMesh<TNum>(IIndexedMesh<TNum> source, TNum growBy)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         var vertices = source.Vertices;
@@ -32,6 +32,6 @@ public static class Slicing
             offsetVertices[i] = normal * growBy + vertices[i];
         }
 
-        return new IndexedMesh3<TNum>(offsetVertices, indices);
+        return new IndexedMesh<TNum>(offsetVertices, indices);
     }
 }

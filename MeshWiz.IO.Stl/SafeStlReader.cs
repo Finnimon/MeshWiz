@@ -12,7 +12,7 @@ public sealed class SafeStlReader<TNum> : IMeshReader<TNum>
 {
     private SafeStlReader() { }
 
-    public static IMesh3<TNum> Read(Stream stream, bool leaveOpen = false)
+    public static IMesh<TNum> Read(Stream stream, bool leaveOpen = false)
     {
         try
         {
@@ -24,7 +24,7 @@ public sealed class SafeStlReader<TNum> : IMeshReader<TNum>
         }
     }
 
-    private static Mesh3<TNum> ReadInternal(Stream stream)
+    private static Mesh<TNum> ReadInternal(Stream stream)
     {
         var solid = new byte[5];
         stream.ReadExactly(solid);
@@ -38,7 +38,7 @@ public sealed class SafeStlReader<TNum> : IMeshReader<TNum>
     private const int HeaderLength = 80;
     private const int TotalHeaderLength = HeaderLength + sizeof(uint);
 
-    private static Mesh3<TNum> ReadBinary(Stream stream)
+    private static Mesh<TNum> ReadBinary(Stream stream)
     {
         var remainingLength = stream.Length - stream.Position;
         if (remainingLength < TotalHeaderLength)
@@ -72,13 +72,13 @@ public sealed class SafeStlReader<TNum> : IMeshReader<TNum>
             stream.Seek(2, SeekOrigin.Current);
         }
 
-        return new Mesh3<TNum>(facets);
+        return new Mesh<TNum>(facets);
     }
 
-    private static Mesh3<TNum> ReadAscii(Stream stream)
+    private static Mesh<TNum> ReadAscii(Stream stream)
         => ReadAsciiInternal(stream);
 
-    internal static Mesh3<TNum> ReadAsciiInternal(Stream stream)
+    internal static Mesh<TNum> ReadAsciiInternal(Stream stream)
     {
         using var reader = new StreamReader(stream, leaveOpen: true);
         var headerLine = reader.ReadLine()?.Trim().Split(' ') ?? [];
@@ -86,7 +86,7 @@ public sealed class SafeStlReader<TNum> : IMeshReader<TNum>
         var header = headerLine.Length < 3 ? "" : string.Join(' ', headerLine[2..headerLine.Length]);
         var facetBlocks = ReadLineBlocks(reader, new string[7]);
         var facets = facetBlocks.Select(ExtractAsciiFacet);
-        return new Mesh3<TNum>([..facets]);
+        return new Mesh<TNum>([..facets]);
     }
     private static IEnumerable<string[]> ReadLineBlocks(StreamReader reader, string[] buffer)
     {

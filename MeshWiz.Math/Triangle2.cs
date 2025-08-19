@@ -17,7 +17,7 @@ public readonly struct Triangle2<TNum>:ISurface<Vector2<TNum>, TNum>
         C = c;
     }
 
-    public ICurve<Vector2<TNum>, TNum> Bounds => new PolyLine<Vector2<TNum>, TNum>([A, B, C]);
+    public ICurve<Vector2<TNum>, TNum> Bounds => new Polyline<Vector2<TNum>, TNum>([A, B, C]);
 
 
     public Vector2<TNum> Centroid => (A + B + C) /TNum.CreateTruncating(2);

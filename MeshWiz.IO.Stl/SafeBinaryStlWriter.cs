@@ -14,7 +14,7 @@ public sealed class SafeBinaryStlWriter<TNum>
     private static readonly byte[] AttribByteCount = [0,0];
   
 
-    public static void Write(IMesh3<TNum> mesh, Stream stream, bool leaveOpen = false)
+    public static void Write(IMesh<TNum> mesh, Stream stream, bool leaveOpen = false)
     {
         try
         {

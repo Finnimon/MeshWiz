@@ -51,10 +51,10 @@ public readonly struct BBox3<TNum> : IBody<TNum>, IEquatable<BBox3<TNum>>
     //
     // new(p011, p111, p010), new(p111, p110, p010),
     // ];
-    public IMesh3<TNum> Tessellate()
+    public IMesh<TNum> Tessellate()
     {
         
-        return new IndexedMesh3<TNum>(Vertices, Indices);
+        return new IndexedMesh<TNum>(Vertices, Indices);
     }
     
     private Vector3<TNum>[] Vertices =>

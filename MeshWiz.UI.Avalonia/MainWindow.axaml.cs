@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -9,7 +8,6 @@ using MeshWiz.Abstraction.OpenTK;
 using MeshWiz.IO;
 using MeshWiz.IO.Stl;
 using MeshWiz.Math;
-using MeshWiz.Utility.Extensions;
 using OpenTK.Mathematics;
 
 namespace MeshWiz.UI.Avalonia;
@@ -32,8 +30,8 @@ public partial class MainWindow : Window
             .CombineWith(new Vector3<float>(10, 10, 10));
         var meshi = box.Tessellate().Indexed();
         // meshi =new IndexedMesh3<float>(new Sphere<float>(Vector3<float>.Zero, 1).TessellatedSurface);
-        meshi = MeshIO.ReadFile<FastStlReader, float>("/home/finnimon/source/repos/TestFiles/artillery-witch.stl").Indexed();
-        var mesh = new BvhMesh3<float>(meshi);
+        meshi = MeshIO.ReadFile<FastStlReader, float>("/home/finnimon/source/repos/TestFiles/drag.stl").Indexed();
+        var mesh = new BvhMesh<float>(meshi);
         // mesh=new  IndexedMesh3<float>(new Sphere<float>(Vector3<float>.Zero, 1).TessellatedSurface);
         Console.WriteLine(
             $"Tri count: {mesh.Count}, Effec vert count: {mesh.Count * 3}, Indexed vert count: {mesh.Vertices.Length}");
@@ -46,7 +44,42 @@ public partial class MainWindow : Window
         var minY = mesh.BBox.Min.Y;
         var maxY = mesh.BBox.Max.Y;
         var range = maxY - minY;
-        // var polylines = mesh.IntersectRolling(new Plane3<float>(Vector3<float>.UnitY, 0.261793f));
+
+        List<Line<Vector3<float>, float>> polylines = [];
+        var plane = new Plane3<float>(Vector3<float>.UnitY, mesh.VolumeCentroid);
+        var original = mesh.IntersectRolling(plane).Where(pl=>pl.Length>0.0001).ToArray();
+        GlParent.Children.Add(new GLWrapper<IndexedLineView>
+        {
+            Unwrap = new IndexedLineView
+            {
+                Color = Color4.LawnGreen,
+                Lines = original.SelectMany(pl=>plane.ProjectIntoWorld(pl)).ToList(),
+                Camera = camera,
+                LineWidth = 2,
+                Show = true,
+            }
+        });
+
+        for (var i = -10; i <= 10; i++)
+        {
+            foreach (var polyline in original)
+            {
+                var infl= Polyline.Transforms.InflateClosedDegenerative(polyline,i*0.001f);
+                polylines.AddRange(plane.ProjectIntoWorld(infl));
+            }
+        }
+        
+        
+        GlParent.Children.Add(new GLWrapper<IndexedLineView>
+        {
+            Unwrap = new IndexedLineView
+            {
+                Lines = polylines,
+                Camera = camera,
+                LineWidth = 2,
+                Show = true,
+            }
+        });
         // var layerCount = 100;
         // var sw = Stopwatch.StartNew();
         // var polylines = Enumerable.Range(0, layerCount).Select(x => range * x / layerCount + minY)
@@ -75,7 +108,7 @@ public partial class MainWindow : Window
         // SmoothMeshViewWrapper.Wrapped.Mesh=new IndexedMesh3<float>(tessellations2);
         //
         camera.LookAt = mesh.VolumeCentroid;
-        MeshViewWrap.Unwrap.RenderModeFlags = RenderMode.None;
+        MeshViewWrap.Unwrap.RenderModeFlags = RenderMode.Solid;
         Console.WriteLine($"distance: {distance}");
         Console.WriteLine(mesh.BBox.Min);
         Console.WriteLine(mesh.BBox.Max);
@@ -127,7 +160,7 @@ public partial class MainWindow : Window
         _pointerPos = e.GetPosition(this);
     }
 
-    private void UpdateBlocks(IndexedMesh3<float> mesh)
+    private void UpdateBlocks(IndexedMesh<float> mesh)
     {
         var centroid = mesh.VertexCentroid;
         var surfCentraid = mesh.SurfaceCentroid;
@@ -221,7 +254,7 @@ public partial class MainWindow : Window
         if (result is not { Count: > 0 }) return;
 
         var fileExt = Path.GetExtension(result[0].Path.AbsolutePath);
-        IndexedMesh3<float> mesh;
+        IndexedMesh<float> mesh;
         try
         {
             await using var stream = await result[0].OpenReadAsync();

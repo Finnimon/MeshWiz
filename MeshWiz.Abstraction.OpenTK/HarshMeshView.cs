@@ -45,7 +45,7 @@ public class HarshMeshView : IOpenGLControl
     private ShaderProgram? _blinnPhongShader;
 
 
-    public IMesh3<float> Mesh
+    public IMesh<float> Mesh
     {
         get;
         set
@@ -54,7 +54,7 @@ public class HarshMeshView : IOpenGLControl
             _newMesh = true;
             field = value;
         }
-    } = IndexedMesh3<float>.Empty;
+    } = IndexedMesh<float>.Empty;
 
 
     public void Init()

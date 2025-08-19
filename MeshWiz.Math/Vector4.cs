@@ -14,7 +14,7 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
 {
     public readonly TNum X, Y, Z, W;
 
-    public static unsafe int ByteSize => sizeof(TNum) * 4;
+    public static unsafe int ByteSize { [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]get; }= sizeof(TNum) * 4;
     public int Count => 4;
     static uint IVector<Vector4<TNum>, TNum>.Dimensions => 4;
     public Vector4<TNum> Normalized => this / Length;
@@ -55,6 +55,8 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
         W=TNum.Zero;
     }
 
+    public Vector4(TNum value) :this(value,value,value,value){ }
+
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4<TNum> FromXYZW(TNum x, TNum y, TNum z, TNum w)
         => new(x, y, z, w);
@@ -81,13 +83,13 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
             TNum.CreateTruncating(components[2]),
             TNum.CreateTruncating(components[3]));
 
-    public static Vector4<TNum> Zero => new(TNum.Zero, TNum.Zero, TNum.Zero, TNum.Zero);
-    public static Vector4<TNum> One => new(TNum.One, TNum.One, TNum.One, TNum.One);
-    public static Vector4<TNum> NaN => new(TNum.NaN, TNum.NaN, TNum.NaN, TNum.NaN);
-    public static Vector4<TNum> UnitX => new(TNum.One, TNum.Zero, TNum.Zero, TNum.Zero);
-    public static Vector4<TNum> UnitY => new(TNum.Zero, TNum.One, TNum.Zero, TNum.Zero);
-    public static Vector4<TNum> UnitZ => new(TNum.Zero, TNum.Zero, TNum.One, TNum.Zero);
-    public static Vector4<TNum> UnitW => new(TNum.Zero, TNum.Zero, TNum.Zero, TNum.One);
+    public static Vector4<TNum> Zero { [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]get; }= new(TNum.Zero, TNum.Zero, TNum.Zero, TNum.Zero);
+    public static Vector4<TNum> One { [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]get; }= new(TNum.One, TNum.One, TNum.One, TNum.One);
+    public static Vector4<TNum> NaN { [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]get; }= new(TNum.NaN, TNum.NaN, TNum.NaN, TNum.NaN);
+    public static Vector4<TNum> UnitX { [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]get; }= new(TNum.One, TNum.Zero, TNum.Zero, TNum.Zero);
+    public static Vector4<TNum> UnitY { [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]get; }= new(TNum.Zero, TNum.One, TNum.Zero, TNum.Zero);
+    public static Vector4<TNum> UnitZ { [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]get; }= new(TNum.Zero, TNum.Zero, TNum.One, TNum.Zero);
+    public static Vector4<TNum> UnitW { [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]get; }= new(TNum.Zero, TNum.Zero, TNum.Zero, TNum.One);
 
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -188,11 +190,18 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            if (index.InsideInclusiveRange(0, 2))
+            if (Dimensions> (uint)index)
                 fixed (TNum* ptr = &X)
                     return ptr[index];
             throw new IndexOutOfRangeException();
         }
+    }
+    
+    [Pure]
+    internal unsafe TNum this[uint index]
+    {
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get { fixed (TNum* ptr = &X) return ptr[index]; }
     }
 
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -225,6 +234,11 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4<TNum> Lerp(Vector4<TNum> from, Vector4<TNum> to, TNum t)
         => (to - from) * t + from;
+    
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4<TNum> ExactLerp(Vector4<TNum> from, Vector4<TNum> toward, TNum exactDistance) 
+        => (toward - from).Normalized * exactDistance + from;
+
 
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4<TNum> CosineLerp(Vector4<TNum> from, Vector4<TNum> to, TNum normalDistance)

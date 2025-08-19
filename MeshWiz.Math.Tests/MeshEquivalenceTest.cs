@@ -8,8 +8,8 @@ public class MeshEquivalenceTest
     {
         var tessellations = Sphere<float>.GenerateTessellation(Vector3<float>.Zero, 1, 32, 64);
         Console.WriteLine(tessellations.Length);
-        var mesh=new Mesh3<float>(tessellations);
-        var indexed=new IndexedMesh3<float>(tessellations);
+        var mesh=new Mesh<float>(tessellations);
+        var indexed=new IndexedMesh<float>(tessellations);
         var meshNormals = mesh.Select(x => x.Normal).ToArray();
         var indexedNormals = indexed.Select(x => x.Normal).ToArray();
         using (Assert.EnterMultipleScope())

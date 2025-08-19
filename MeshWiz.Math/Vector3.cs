@@ -9,12 +9,12 @@ using MeshWiz.Utility.Extensions;
 namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-public readonly struct Vector3<TNum> : IVector3<Vector3<TNum>, TNum>
-where TNum : unmanaged, IFloatingPointIeee754<TNum>
+public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<TNum>, TNum>
+    where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    public readonly TNum X, Y, Z;
+    public readonly TNum X = x, Y = y, Z = z;
 
-    public static unsafe int ByteSize => sizeof(TNum)*3;
+    public static unsafe int ByteSize { [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]get; }= sizeof(TNum)*3;
     public int Count => 3;
     
     [Pure] public Vector3<TNum> Normalized => this/Length;
@@ -27,15 +27,8 @@ where TNum : unmanaged, IFloatingPointIeee754<TNum>
 
     public TNum AlignedCuboidVolume => TNum.Abs(X * Y * Z);
 
-    public Vector3(TNum x , TNum y , TNum z)
-    {
-        X = x;
-        Y = y;
-        Z = z;
-    }
-
-    private Vector3(TNum value) : this(value, value, value) { }
-
+    public Vector3(TNum value) : this(value, value, value) { }
+    
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector3<TNum> FromXYZ(TNum x, TNum y, TNum z)
         => new(x, y, z);
@@ -65,16 +58,20 @@ where TNum : unmanaged, IFloatingPointIeee754<TNum>
     public Vector3<TNum> YYY => new(Y);
     public Vector3<TNum> ZZZ => new(Z);
 
-    public static Vector3<TNum> Zero => new(TNum.Zero, TNum.Zero, TNum.Zero);
-    public static Vector3<TNum> One => new(TNum.One, TNum.One, TNum.One);
-    public static Vector3<TNum> NaN => new(TNum.NaN, TNum.NaN, TNum.NaN);
-    public static Vector3<TNum> UnitX=>new(TNum.One,TNum.Zero,TNum.Zero);
-    public static Vector3<TNum> UnitY=>new(TNum.Zero,TNum.One,TNum.Zero);
-    public static Vector3<TNum> UnitZ=>new(TNum.Zero,TNum.Zero,TNum.One);
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector3<TNum> Zero { [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]get; }= new(TNum.Zero, TNum.Zero, TNum.Zero);
+    public static Vector3<TNum> One { [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]get; }= new(TNum.One, TNum.One, TNum.One);
+    public static Vector3<TNum> NaN { [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]get; }= new(TNum.NaN, TNum.NaN, TNum.NaN);
+    public static Vector3<TNum> UnitX{ [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]get; }=new(TNum.One,TNum.Zero,TNum.Zero);
+    public static Vector3<TNum> UnitY{ [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]get; }=new(TNum.Zero,TNum.One,TNum.Zero);
+    public static Vector3<TNum> UnitZ{ [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]get; }=new(TNum.Zero,TNum.Zero,TNum.One);
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector3<TOther> To<TOther>() where TOther : unmanaged, IFloatingPointIeee754<TOther>
         => new(TOther.CreateTruncating(X), TOther.CreateTruncating(Y),TOther.CreateTruncating(Z));
-
+    
+    public static implicit operator System.Numerics.Vector3(Vector3<TNum> v)
+        =>new(float.CreateTruncating(v.X),float.CreateTruncating(v.Y),float.CreateTruncating(v.Z));
+    public static implicit operator Vector3<TNum>(Vector3 v)
+        =>new(TNum.CreateTruncating(v.X),TNum.CreateTruncating(v.Y),TNum.CreateTruncating(v.Z));
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector3<TNum> operator +(Vector3<TNum> left, Vector3<TNum> right)
@@ -228,6 +225,12 @@ where TNum : unmanaged, IFloatingPointIeee754<TNum>
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector3<TNum> Lerp(Vector3<TNum> from, Vector3<TNum> to, TNum normalDistance)
         =>(to-from)*normalDistance+from;
+    
+    
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector3<TNum> ExactLerp(Vector3<TNum> from, Vector3<TNum> toward, TNum exactDistance) 
+        => (toward - from).Normalized * exactDistance + from;
+
     
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector3<TNum> CosineLerp(Vector3<TNum> from, Vector3<TNum> to, TNum normalDistance)
