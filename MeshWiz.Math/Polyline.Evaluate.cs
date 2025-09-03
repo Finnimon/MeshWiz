@@ -35,16 +35,6 @@ public static partial class Polyline
             => SignedArea(polyline).EpsilonTruncatingSign();
 
 
-        public static WindingOrder GetWindingOrderAreaSign<TNum>(Polyline<Vector2<TNum>, TNum> polyline)
-            where TNum : unmanaged, IFloatingPointIeee754<TNum>
-            => AreaSign(polyline) switch
-            {
-                -1 => WindingOrder.Clockwise,
-                0 => WindingOrder.NotClosed,
-                1 => WindingOrder.CounterClockwise,
-                _ => throw new InvalidOperationException(nameof(AreaSign))
-            };
-
         public static WindingOrder GetWindingOrder<TNum>(Polyline<Vector2<TNum>, TNum> polyline)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
@@ -60,8 +50,8 @@ public static partial class Polyline
                 index = i;
             }
 
-            var prevIndex = (index - 1) % (polyline.Points.Length - 1);
-            var nextIndex = (index + 1) % (polyline.Points.Length - 1);
+            var prevIndex = index == 0 ? polyline.Points.Length - 2 : index - 1;
+            var nextIndex = index == polyline.Points.Length - 1 ? 1 : index + 1;
             var extreme = polyline.Points[index];
             var u = extreme - polyline.Points[prevIndex];
             var v = polyline.Points[nextIndex] - extreme;
@@ -81,18 +71,46 @@ public static partial class Polyline
         }
 
 
-        /// <param name="polyline">source polyline</param>
-        /// <param name="ccw"> resulting CCW oriented Polylines</param>
-        /// <param name="cw">resulting CW oriented Polylines</param>
-        /// <returns>Whether any splits where possible</returns>
-        public static bool TrySplitAlongSelfIntersections<TNum>(
-            Polyline<Vector2<TNum>, TNum> polyline,
-            out Polyline<Vector2<TNum>, TNum>[]? ccw,
-            out Polyline<Vector2<TNum>, TNum>[]? cw)
+        public static bool IsConvex<TNum>(Polyline<Vector2<TNum>, TNum> closedPolyline)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
-            List<Range> segments = [];
-            throw new NotImplementedException();
+            if (!closedPolyline.IsClosed)
+                throw new ArgumentException("Polyline must be closed", nameof(closedPolyline));
+
+            var prevSign = 0;
+            var prevDirection = closedPolyline[0].Direction;
+            for (var i = 1; i < closedPolyline.Count; i++)
+            {
+                var curDirection = closedPolyline[i].Direction;
+                var crossSign = prevDirection.CrossSign(curDirection);
+                if (prevSign == 0) prevSign = crossSign;
+
+                prevDirection = curDirection;
+                if (crossSign == 0) continue; //parallel lines are allowable
+                if (crossSign != prevSign) return false;
+            }
+
+            return true;
         }
+    }
+
+    public static bool DoIntersect<TNum>(Polyline<Vector2<TNum>, TNum> polyline, Polyline<Vector2<TNum>, TNum> other)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+    {
+        if (!polyline.BBox.IntersectsWith(other.BBox)) return false;
+        return polyline.Any(line => other.Any(otherLine => Line.TryIntersectOnSegment(line, otherLine, out _)));
+    }
+
+    /// <summary>
+    /// Finds the shortest cross-section at indents
+    /// </summary>
+    /// <param name="polyline"></param>
+    /// <param name="windingOrder"></param>
+    /// <typeparam name="TNum"></typeparam>
+    /// <returns></returns>
+    public static TNum ShortestCrossSection<TNum>(Polyline<Vector2<TNum>, TNum> polyline, WindingOrder windingOrder)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+    {
+        throw new NotImplementedException();
     }
 }

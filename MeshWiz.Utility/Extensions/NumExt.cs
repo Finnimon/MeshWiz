@@ -82,4 +82,7 @@ public static class NumExt
         where TNum : IFloatingPointIeee754<TNum>
         => num.EpsilonTruncatingSign(TNum.Epsilon);
 
+    public static bool InsideRange<TNum>(this TNum value, TNum min, TNum max)
+        where TNum : IFloatingPointIeee754<TNum> =>
+        value>=min-TNum.Epsilon&&value<=max+TNum.Epsilon;
 }

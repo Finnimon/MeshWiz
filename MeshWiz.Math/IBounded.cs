@@ -1,6 +1,8 @@
+using System.Numerics;
+
 namespace MeshWiz.Math;
 
-public interface IBounded<TBBox>
+public interface IBounded<TNum> where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    TBBox BBox { get; }
+    AABB<TNum> BBox { get; }
 }

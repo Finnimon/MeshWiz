@@ -18,14 +18,14 @@ public sealed class BBoxView : IOpenGLControl
     private BufferObject? _vbo;
     private BufferObject? _ibo;
     private ShaderProgram? _shaderProgram;
-    private static int[] Indices=[
+    private static readonly int[] Indices=[
         0,1,1,2,2,3,3,0, //floor
         0,4,1,5,2,6,3,7, //bars
         4,5,5,6,6,7,7,4  //roof
     ];
     
     
-    public BBox3<float> BBox
+    public AABB<Vector3<float>> BBox
     {
         get;
         set

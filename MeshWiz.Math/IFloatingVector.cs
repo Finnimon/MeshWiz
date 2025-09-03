@@ -52,4 +52,5 @@ public interface IFloatingVector<TSelf, TNum>
     /// <inheritdoc />
     bool IFloatingPoint<TSelf>.TryWriteSignificandLittleEndian(Span<byte> destination, out int bytesWritten)
         => throw new NotSupportedException();
+
 }

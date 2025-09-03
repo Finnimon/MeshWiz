@@ -1,6 +1,9 @@
-﻿using MeshWiz.IO;
+﻿using System.Numerics;
+using System.Text;
+using MeshWiz.IO;
 using MeshWiz.IO.Stl;
 using MeshWiz.Math;
+using MeshWiz.Slicer;
 
 Console.WriteLine("Hello World!");
 // BBox3<double> box=new (-Vector3<double>.One, Vector3<double>.One);
@@ -15,16 +18,17 @@ Console.WriteLine("Hello World!");
 // Console.WriteLine($"PolyLineCount:{poly.Count}");
 // Console.WriteLine(plane.SignedDistance(Vector3<double>.One));
 // Console.WriteLine(poly.Length);
-double d = 0.1;
-Console.WriteLine($"{d:F2}");
-var a = int.CreateTruncating(d);
-Console.WriteLine($"{a}");
-
-int[] nums = [0, 0, 0];
-int n;
-n = nums[1] = 1;
-Console.WriteLine($"{n}");
-
+Console.WriteLine(Vector2<float>.Zero);
+var sb = new StringBuilder();
+var stl = MeshIO.ReadFile<FastStlReader, float>("/home/finnimon/source/repos/TestFiles/drag.stl");
+stl = AABB.Tessellate(AABB<Vector3<float>>.From(-Vector3<float>.One, Vector3<float>.One));
+var bvh = new BvhMesh<float>(stl);
+var plane = new Plane3<float>(Vector3<float>.UnitY, bvh.VolumeCentroid);
+var pl = bvh.IntersectRolling(plane).OrderByDescending(x => x.Length).First();
+var concentric= SimpleConcentric.GenPattern(pl, 0.1f).ToArray();
+Console.WriteLine(concentric.Length);
+// Console.WriteLine(pl);
+// Console.WriteLine(pl2);
 // Polyline<Vector2<float>,float> pl = new(
 //     new(1,1),
 //     new(1,-1),

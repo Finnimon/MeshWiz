@@ -2,4 +2,4 @@
 using MeshWiz.Math.Benchmark;
 
 
-BenchmarkRunner.Run<PolyLineInflateBench>();
+BenchmarkRunner.Run<PlaneBvhIntersectBench>();

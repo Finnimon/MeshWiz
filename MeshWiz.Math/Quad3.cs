@@ -13,7 +13,7 @@ public readonly struct Quad3<TNum>(Vector3<TNum> a, Vector3<TNum> b, Vector3<TNu
     public TNum SurfaceArea =>new Triangle3<TNum>(A,B,D).SurfaceArea+new Triangle3<TNum>(B,C,D).SurfaceArea;
 
     public Quad3<TNum> Shift(Vector3<TNum> shift) => new(A+shift, B+shift, C+shift, D+shift);
-    public BBox3<TNum> BBox =>BBox3<TNum>.FromPoint(A).CombineWith(B).CombineWith(C).CombineWith(D);
+    public AABB<Vector3<TNum>> BBox =>AABB<Vector3<TNum>>.From(A,B,C,D);
     public IMesh<TNum> Tessellate()
     {
         Vector3<TNum>[] vertices = [A,B,C,D];

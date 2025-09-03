@@ -12,10 +12,7 @@ public readonly struct Tetrahedron<TNum> : IBody<TNum>
     public TNum Volume => TNum.Abs(CalculateSignedVolume(A, B, C, D));
     public TNum SurfaceArea => CalculateSurf();
     public ISurface<Vector3<TNum>, TNum> Surface => this;
-    public BBox3<TNum> BBox => BBox3<TNum>.FromPoint(A)
-        .CombineWith(B)
-        .CombineWith(C)
-        .CombineWith(D);
+    public AABB<Vector3<TNum>> BBox => AABB<Vector3<TNum>>.From(A,B,C,D);
 
 
     public Tetrahedron(Triangle3<TNum> triangle) 

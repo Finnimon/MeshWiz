@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -8,6 +9,7 @@ using MeshWiz.Abstraction.OpenTK;
 using MeshWiz.IO;
 using MeshWiz.IO.Stl;
 using MeshWiz.Math;
+using MeshWiz.Slicer;
 using OpenTK.Mathematics;
 
 namespace MeshWiz.UI.Avalonia;
@@ -25,12 +27,12 @@ public partial class MainWindow : Window
         MeshViewWrap.Unwrap.LightColor = Color4.White;
         MeshViewWrap.Unwrap.SolidColor = Color4.DarkGray;
         camera.UnitUp = Vector3<float>.UnitY;
-        var box = BBox3<float>
-            .FromPoint(new Vector3<float>(-10, -10, -10))
+        var box = AABB<Vector3<float>>
+            .From(new Vector3<float>(-10, -10, -10))
             .CombineWith(new Vector3<float>(10, 10, 10));
-        var meshi = box.Tessellate().Indexed();
+        IIndexedMesh<float> meshi = AABB.Tessellate(box).Indexed();
         // meshi =new IndexedMesh3<float>(new Sphere<float>(Vector3<float>.Zero, 1).TessellatedSurface);
-        meshi = MeshIO.ReadFile<FastStlReader, float>("/home/finnimon/source/repos/TestFiles/drag.stl").Indexed();
+        // meshi = MeshIO.ReadFile<FastStlReader, float>("/home/finnimon/source/repos/TestFiles/drag.stl").Indexed();
         var mesh = new BvhMesh<float>(meshi);
         // mesh=new  IndexedMesh3<float>(new Sphere<float>(Vector3<float>.Zero, 1).TessellatedSurface);
         Console.WriteLine(
@@ -46,69 +48,31 @@ public partial class MainWindow : Window
         var range = maxY - minY;
 
         List<Line<Vector3<float>, float>> polylines = [];
-        var plane = new Plane3<float>(Vector3<float>.UnitY, mesh.VolumeCentroid);
-        var original = mesh.IntersectRolling(plane).Where(pl=>pl.Length>0.0001).ToArray();
+        Stopwatch sw = Stopwatch.StartNew();
+        for (var h = minY; h <= maxY; h += 1)
+        {
+            var plane = new Plane3<float>(Vector3<float>.UnitY, Vector3<float>.UnitY * h);
+            var pl = mesh.IntersectRolling(plane).OrderByDescending(x => x.Length).FirstOrDefault();
+            if (pl is null) continue;
+            var layer = SimpleConcentric.GenPattern(pl, 0.5f).Select(plane.ProjectIntoWorld);
+            polylines.AddRange(layer.SelectMany(polyline=>polyline));
+        }
+        Console.WriteLine(sw.Elapsed);
+
+        MeshViewWrap.Show = false;
         GlParent.Children.Add(new GLWrapper<IndexedLineView>
         {
             Unwrap = new IndexedLineView
             {
                 Color = Color4.LawnGreen,
-                Lines = original.SelectMany(pl=>plane.ProjectIntoWorld(pl)).ToList(),
-                Camera = camera,
-                LineWidth = 2,
-                Show = true,
-            }
-        });
-
-        for (var i = -10; i <= 10; i++)
-        {
-            foreach (var polyline in original)
-            {
-                var infl= Polyline.Transforms.InflateClosedDegenerative(polyline,i*0.001f);
-                polylines.AddRange(plane.ProjectIntoWorld(infl));
-            }
-        }
-        
-        
-        GlParent.Children.Add(new GLWrapper<IndexedLineView>
-        {
-            Unwrap = new IndexedLineView
-            {
                 Lines = polylines,
                 Camera = camera,
                 LineWidth = 2,
                 Show = true,
             }
         });
-        // var layerCount = 100;
-        // var sw = Stopwatch.StartNew();
-        // var polylines = Enumerable.Range(0, layerCount).Select(x => range * x / layerCount + minY)
-        //     .SelectMany(d =>
-        //     {
-        //         Console.WriteLine(d);
-        //         var plane = new Plane3<float>(Vector3<float>.UnitY, new Vector3<float>(0, d, 0));
-        //         return mesh.IntersectRolling(plane).Where(x => x.Length > 0.0001);
-        //     }).ToList();
-        // Console.WriteLine(sw.Elapsed);
-        // GlParent.Children.Add(new GLWrapper<IndexedLineView>
-        // {
-        //     Unwrap = new IndexedLineView
-        //     {
-        //         Lines = polylines.SelectMany(x => x),
-        //         Camera = camera,
-        //         LineWidth = 2,
-        //         Show = true,
-        //     }
-        // });
-        // // polylines.Select(pl=>new LineView(pl){Camera = camera,LineWidth = 3,Color = Color4.White})
-        //     .Select(x=>new GLWrapper<LineView>{Unwrap = x}).ForEach(GlParent.Children.Add);
-        // var poly = polylines[0];
-        // lv2.PolyLine=poly;
-        // SmoothMeshViewWrapper.Wrapped.Camera=camera;
-        // SmoothMeshViewWrapper.Wrapped.Mesh=new IndexedMesh3<float>(tessellations2);
-        //
+
         camera.LookAt = mesh.VolumeCentroid;
-        MeshViewWrap.Unwrap.RenderModeFlags = RenderMode.Solid;
         Console.WriteLine($"distance: {distance}");
         Console.WriteLine(mesh.BBox.Min);
         Console.WriteLine(mesh.BBox.Max);
@@ -145,7 +109,7 @@ public partial class MainWindow : Window
     protected override void OnPointerMoved(PointerEventArgs e)
     {
         if (!_isPressed) return;
-        var d =e.GetPosition(this)- _pointerPos ;
+        var d = e.GetPosition(this) - _pointerPos;
 
         if (e.Properties.IsLeftButtonPressed)
         {

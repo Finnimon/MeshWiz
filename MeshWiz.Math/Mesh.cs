@@ -16,14 +16,14 @@ public sealed record Mesh<TNum>(Triangle3<TNum>[] TessellatedSurface) : IMesh<TN
     public TNum SurfaceArea => _surfaceArea ??= Mesh.Math.SurfaceArea(TessellatedSurface);
 
     public ISurface<Vector3<TNum>, TNum> Surface => this;
-    public BBox3<TNum> BBox =>_bBox??=Mesh.Math.BBox(TessellatedSurface);
+    public AABB<Vector3<TNum>> BBox =>_bBox??=Mesh.Math.BBox(TessellatedSurface);
 
     private TNum? _surfaceArea;
     private TNum? _volume;
     private Vector3<TNum>? _vertexCentroid;
     private Vector3<TNum>? _surfaceCentroid;
     private Vector3<TNum>? _volumeCentroid;
-    private BBox3<TNum>? _bBox;
+    private AABB<Vector3<TNum>>? _bBox;
 
     public IndexedMesh<TNum> Indexed()=>new(this);
     

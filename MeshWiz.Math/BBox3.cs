@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 
 namespace MeshWiz.Math;
 
+[Obsolete]
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct BBox3<TNum> : IBody<TNum>, IEquatable<BBox3<TNum>>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
@@ -15,8 +16,8 @@ public readonly struct BBox3<TNum> : IBody<TNum>, IEquatable<BBox3<TNum>>
         new(TNum.NegativeInfinity, TNum.NegativeInfinity, TNum.NegativeInfinity));
 
     public readonly Vector3<TNum> Min, Max;
-    public BBox3<TNum> BBox => this;
-    public Vector3<TNum> Centroid => (Min + Max) / TNum.CreateTruncating(2);
+    public AABB<Vector3<TNum>> BBox => new(Min,Max);
+    public Vector3<TNum> Centroid => (Min + Max) / Numbers<TNum>.Two;
     public Vector3<TNum> Size => Max - Min;
     private Vector3<TNum> Diagonal => Max - Min;
 
@@ -25,7 +26,7 @@ public readonly struct BBox3<TNum> : IBody<TNum>, IEquatable<BBox3<TNum>>
     public TNum SurfaceArea => CalculateSurfaceArea();
 
     public ISurface<Vector3<TNum>, TNum> Surface => this;
-    
+
     public BBox3(Vector3<TNum> min, Vector3<TNum> max)
     {
         Min = min;
@@ -35,28 +36,11 @@ public readonly struct BBox3<TNum> : IBody<TNum>, IEquatable<BBox3<TNum>>
     private TNum CalculateSurfaceArea()
     {
         var d = Diagonal;
-        return TNum.CreateTruncating(2) * d.YZX.Dot(d);
+        return Numbers<TNum>.Two * d.YZX.Dot(d);
     }
 
-    // return
-    // [
-    //     new(p010, p110, p000), new(p110, p100, p000),
-    // new(p111, p011, p001), new(p101, p111, p001),
-    //
-    // new(p001, p011, p000), new(p011, p010, p000),
-    //
-    // new(p110, p111, p100), new(p111, p101, p100),
-    //
-    // new(p100, p101, p000), new(p101, p001, p000),
-    //
-    // new(p011, p111, p010), new(p111, p110, p010),
-    // ];
-    public IMesh<TNum> Tessellate()
-    {
-        
-        return new IndexedMesh<TNum>(Vertices, Indices);
-    }
-    
+    public IMesh<TNum> Tessellate() => new IndexedMesh<TNum>(Vertices, Indices);
+
     private Vector3<TNum>[] Vertices =>
     [
         Min,                        // 000
@@ -68,15 +52,19 @@ public readonly struct BBox3<TNum> : IBody<TNum>, IEquatable<BBox3<TNum>>
         new(Max.X, Max.Y, Min.Z),   // 110
         Max                         // 111
     ];
-    
-    private static TriangleIndexer[] Indices=>[
-            new(0b010, 0b110, 0b000), new(0b110, 0b100, 0b000),
-            new(0b111, 0b011, 0b001), new(0b101, 0b111, 0b001),
-            new(0b001, 0b011, 0b000), new(0b011, 0b010, 0b000),
-            new(0b110, 0b111, 0b100), new(0b111, 0b101, 0b100),
-            new(0b100, 0b101, 0b000), new(0b101, 0b001, 0b000),
-            new(0b011, 0b111, 0b010), new(0b111, 0b110, 0b010)
-        ];
+
+    private static TriangleIndexer[] Indices => _indices[..];
+
+    [SuppressMessage("ReSharper", "StaticMemberInGenericType")]
+    private static readonly TriangleIndexer[] _indices=
+    [
+        new(0b010, 0b110, 0b000), new(0b110, 0b100, 0b000),
+        new(0b111, 0b011, 0b001), new(0b101, 0b111, 0b001),
+        new(0b001, 0b011, 0b000), new(0b011, 0b010, 0b000),
+        new(0b110, 0b111, 0b100), new(0b111, 0b101, 0b100),
+        new(0b100, 0b101, 0b000), new(0b101, 0b001, 0b000),
+        new(0b011, 0b111, 0b010), new(0b111, 0b110, 0b010)
+    ];
 
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -88,7 +76,7 @@ public readonly struct BBox3<TNum> : IBody<TNum>, IEquatable<BBox3<TNum>>
         => box.CombineWith(point);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public BBox3<TNum> CombineWith(in Vector3<TNum> p) 
+    public BBox3<TNum> CombineWith(in Vector3<TNum> p)
         => new(Vector3<TNum>.Min(Min,p), Vector3<TNum>.Max(Max,p));
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -116,4 +104,5 @@ public readonly struct BBox3<TNum> : IBody<TNum>, IEquatable<BBox3<TNum>>
     public bool Equals(BBox3<TNum> other) => this == other;
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int GetHashCode() => HashCode.Combine(Min, Max);
+
 }

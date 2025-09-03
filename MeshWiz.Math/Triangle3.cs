@@ -52,5 +52,5 @@ public readonly struct Triangle3<TNum>:ISurface<Vector3<TNum>, TNum>, IFlat<TNum
         var ca = A.Subtract(B).Length;
         return (ab,bc,ca);
     }
-    public BBox3<TNum> BBox=>BBox3<TNum>.FromPoint(A).CombineWith(B).CombineWith(C);
+    public AABB<Vector3<TNum>> BBox=>AABB<Vector3<TNum>>.From(A,B,C);
 }

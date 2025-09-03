@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Diagnostics.Contracts;
 using System.Numerics;
 using MeshWiz.Utility.Extensions;
 
@@ -17,9 +18,12 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
     public TVector End => Points[^1];
     public int Count => Points.Length - 1;
     public static Polyline<TVector, TNum> Empty { get; } = [];
+    private AABB<TVector>? _bbox;
+    public AABB<TVector> BBox=>_bbox??=AABB<TVector>.From(Points);
 
     public unsafe Line<TVector, TNum> this[int index]
     {
+        [Pure]
         get
         {
             if (Count > (uint)index)

@@ -8,7 +8,7 @@ namespace MeshWiz.Math;
 public readonly struct Ray3<TNum>
     : IIntersecter<Triangle3<TNum>, TNum>,
         IIntersecter<Plane3<TNum>, TNum>,
-        IIntersecter<BBox3<TNum>, TNum>
+        IIntersecter<AABB<Vector3<TNum>>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly Vector3<TNum> Origin, Direction;
@@ -81,7 +81,7 @@ public readonly struct Ray3<TNum>
         return t >= TNum.Zero; // Intersection in ray direction
     }
 
-    public bool HitTest(BBox3<TNum> box, out TNum tNear, out TNum tFar)
+    public bool HitTest(AABB<Vector3<TNum>> box, out TNum tNear, out TNum tFar)
     {
         tNear = TNum.NegativeInfinity;
         tFar = TNum.PositiveInfinity;
@@ -114,9 +114,9 @@ public readonly struct Ray3<TNum>
     public bool DoIntersect(Triangle3<TNum> test)
         => Intersect(test, out _);
 
-    public bool DoIntersect(BBox3<TNum> test)
+    public bool DoIntersect(AABB<Vector3<TNum>> test)
         => Intersect(test, out _);
 
-    public bool Intersect(BBox3<TNum> test, out TNum result)
+    public bool Intersect(AABB<Vector3<TNum>> test, out TNum result)
         => HitTest(test, out result, out _);
 }

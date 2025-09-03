@@ -6,33 +6,10 @@ namespace MeshWiz.Math;
 
 public static partial class Polyline
 {
+    
+
     public static class Transforms
     {
-        
-        private static bool TryIntersectFast<TNum>(
-            in Line<Vector2<TNum>, TNum> a,
-            in Line<Vector2<TNum>, TNum> b,
-            out TNum alongA)
-            where TNum : unmanaged, IFloatingPointIeee754<TNum>
-        {
-            alongA = default;
-
-            var p = a.Start;
-            var r = a.Direction;
-            var q = b.Start;
-            var s = b.Direction;
-            var pq = q - p;
-            var rxs = r.Cross(s);
-
-            var colinear = TNum.Abs(rxs) < TNum.CreateTruncating(1e-8);
-            if (colinear) return false;
-
-            var t = pq.Cross(s) / rxs;
-
-            alongA = t;
-            return true;
-        }
-
         /// <summary>
         /// Shifts all segments by <paramref name="amount"/> towards the outside assuming CCW.
         /// Removes degenerated segments using a quicksort-like range re-check loop until stable.
@@ -123,8 +100,8 @@ public static partial class Polyline
                 }
 
                 var cur = lines[i];
-                var intersectionBefore = TryIntersectFast(cur, lines[p], out var before);
-                var intersectionAfter = TryIntersectFast(cur, lines[nx], out var after);
+                var intersectionBefore = Line.TryIntersect(cur, lines[p], out var before);
+                var intersectionAfter = Line.TryIntersect(cur, lines[nx], out var after);
                 var currentDegenerated = !intersectionBefore || !intersectionAfter || before > after;
 
                 if (currentDegenerated)
@@ -180,7 +157,7 @@ public static partial class Polyline
             {
                 var a = compact[i];
                 var b = compact[(i + 1) % m];
-                _ = TryIntersectFast(a, b, out var t);
+                _ = Line.TryIntersect(a, b, out var t);
                 points[i + 1] = a.Traverse(t);
             }
 
@@ -277,8 +254,8 @@ public static partial class Polyline
                 }
 
                 var cur = lines[i];
-                var intersectionBefore = TryIntersectFast(cur, lines[p], out var before);
-                var intersectionAfter = TryIntersectFast(cur, lines[nx], out var after);
+                var intersectionBefore = Line.TryIntersect(cur, lines[p], out var before);
+                var intersectionAfter = Line.TryIntersect(cur, lines[nx], out var after);
                 var currentDegenerated = !intersectionBefore || !intersectionAfter || before > after;
 
                 if (currentDegenerated)
@@ -334,7 +311,7 @@ public static partial class Polyline
             {
                 var a = compact[i];
                 var b = compact[(i + 1) % m];
-                _ = TryIntersectFast(a, b, out var t);
+                _ = Line.TryIntersect(a, b, out var t);
                 points[i + 1] = a.Traverse(t);
             }
 
@@ -342,5 +319,14 @@ public static partial class Polyline
 
             return new Polyline<Vector2<TNum>, TNum>(points);
         }
+
+        // public static Polyline<Vector2<TNum>, TNum>[] ShrinkUntilDegenerated<TNum>(
+        //     Polyline<Vector2<TNum>, TNum> toShrink,
+        //     TNum stepSize,
+        //     bool checkWindingOrder = true)
+        //     where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        // {
+        //     
+        // }
     }
 }

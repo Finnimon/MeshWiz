@@ -6,4 +6,7 @@
         <ProjectReference Include="../MeshWiz.Contracts/MeshWiz.Contracts.csproj"/>
         <ProjectReference Include="../MeshWiz.Utility/MeshWiz.Utility.csproj"/>
     </ItemGroup>
+    <ItemGroup>
+      <PackageReference Include="JetBrains.Annotations" Version="2025.2.0" />
+    </ItemGroup>
 </Project>

@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
@@ -15,6 +16,7 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
 {
     public readonly TNum X = x, Y = y, Z = z;
     public TNum Sum => X + Y + Z;
+
     public static unsafe int ByteSize
     {
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -24,6 +26,11 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
     public int Count => 3;
 
     [Pure] public Vector3<TNum> Normalized => this / Length;
+
+    /// <inheritdoc />
+    public static Vector3<TNum> FromValue<TOtherNum>(TOtherNum other) where TOtherNum : INumberBase<TOtherNum>
+        => new(TNum.CreateTruncating(other));
+
     [Pure] public static uint Dimensions => 3;
     [Pure] public TNum Length => TNum.Sqrt(SquaredLength);
 
@@ -44,10 +51,31 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
         where TList : IReadOnlyList<TNum>
         => new(components[0], components[1], components[2]);
 
+
+    /// <inheritdoc />
+    public static Vector3<TNum> FromComponentsConstrained<TList, TOtherNum>(TList components)
+        where TList : IReadOnlyList<TOtherNum> where TOtherNum : INumberBase<TOtherNum>
+        => FromComponentsConstrained(components.Select(TNum.CreateTruncating).ToArray());
+
+    /// <inheritdoc />
+    public static Vector3<TNum> FromComponentsConstrained<TList>(TList components) where TList : IReadOnlyList<TNum>
+        => components.Count switch
+        {
+            0 => Zero,
+            1 => new(components[0], TNum.Zero, TNum.Zero),
+            2 => new(components[0], components[1], TNum.Zero),
+            _ => new(components[0], components[1], components[2])
+        };
+
+
+    /// <inheritdoc />
+    public static Vector3<TNum> FromValue(TNum value)
+        => new(value);
+
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector3<TNum> FromComponents<TList, TOtherNum>(TList components)
         where TList : IReadOnlyList<TOtherNum>
-        where TOtherNum : INumber<TOtherNum>
+        where TOtherNum : INumberBase<TOtherNum>
         => new(TNum.CreateTruncating(components[0]),
             TNum.CreateTruncating(components[1]),
             TNum.CreateTruncating(components[2]));
@@ -71,17 +99,6 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
         get;
     } = new(TNum.Zero, TNum.Zero, TNum.Zero);
 
-    /// <inheritdoc />
-    public static bool TryParse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider, out Vector3<TNum> result)
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <inheritdoc />
-    public static bool TryParse([NotNullWhen(true)] string? s, NumberStyles style, IFormatProvider? provider, out Vector3<TNum> result)
-    {
-        throw new NotImplementedException();
-    }
 
     public static Vector3<TNum> One
     {
@@ -327,10 +344,6 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
     public static Vector3<TNum> Max(Vector3<TNum> left, Vector3<TNum> right)
         => new(TNum.Max(left.X, right.X), TNum.Max(left.Y, right.Y), TNum.Max(left.Z, right.Z));
 
-    [SuppressMessage("ReSharper", "UseStringInterpolation")]
-    public override string ToString()
-        => $"{nameof(X)}: {X}, {nameof(Y)}: {Y}, {nameof(Z)}: {Z}";
-
     /// <inheritdoc />
     public int CompareTo(object? obj) => obj is Vector3<TNum> vec ? CompareTo(vec) : 1;
 
@@ -355,18 +368,6 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsApprox(Vector3<TNum> other) => SquaredDistanceTo(other) <= TNum.Epsilon;
 
-    public string ToString(string? format, IFormatProvider? formatProvider)
-    {
-        FormattableString formattable = $"{nameof(X)}: {X}, {nameof(Y)}: {Y}, {nameof(Z)}: {Z}";
-        return formattable.ToString(formatProvider);
-    }
-
-    /// <inheritdoc />
-    public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
-    {
-        throw new NotImplementedException();
-    }
-
 
     /// <inheritdoc />
     public static Vector3<TNum> operator %(Vector3<TNum> l, Vector3<TNum> r)
@@ -377,8 +378,13 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
         => new(+v.X, +v.Y, +v.Z);
 
     /// <inheritdoc />
+    public static Vector3<TNum> operator *(Vector3<TNum> left, Vector3<TNum> right)
+        => new(left.X * right.X, left.Y * right.Y, left.Z * right.Z);
+
+    /// <inheritdoc />
     public static Vector3<TNum> Pow(Vector3<TNum> x, Vector3<TNum> y)
         => new(TNum.Pow(x.X, y.X), TNum.Pow(x.Y, y.Y), TNum.Pow(x.Z, y.Z));
+
     /// <inheritdoc />
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector3<TNum> Abs(Vector3<TNum> v)
@@ -411,6 +417,7 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
     /// <inheritdoc />
     public static bool IsInteger(Vector3<TNum> value)
         => TNum.IsInteger(value.Sum);
+
     /// <inheritdoc />
     public static Vector3<TNum> AdditiveIdentity => Zero;
 
@@ -642,73 +649,40 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
     /// <inheritdoc />
     public static Vector3<TNum> MaxMagnitude(Vector3<TNum> x, Vector3<TNum> y)
     {
-        throw new NotImplementedException();
+        var xMagnitude = x.SquaredLength;
+        var yMagnitude = y.SquaredLength;
+        return xMagnitude > yMagnitude ? x : y;
     }
+
 
     /// <inheritdoc />
     public static Vector3<TNum> MaxMagnitudeNumber(Vector3<TNum> x, Vector3<TNum> y)
     {
-        throw new NotImplementedException();
+        var xMagnitude = x.SquaredLength;
+        var yMagnitude = y.SquaredLength;
+        if (TNum.IsNaN(xMagnitude)) return y;
+        if (TNum.IsNaN(yMagnitude)) return x;
+        return xMagnitude > yMagnitude ? x : y;
     }
 
     /// <inheritdoc />
     public static Vector3<TNum> MinMagnitude(Vector3<TNum> x, Vector3<TNum> y)
     {
-        throw new NotImplementedException();
+        var xMagnitude = x.SquaredLength;
+        var yMagnitude = y.SquaredLength;
+        if (TNum.IsNaN(xMagnitude)) return y;
+        if (TNum.IsNaN(yMagnitude)) return x;
+        return xMagnitude < yMagnitude ? x : y;
     }
 
     /// <inheritdoc />
     public static Vector3<TNum> MinMagnitudeNumber(Vector3<TNum> x, Vector3<TNum> y)
     {
-        throw new NotImplementedException();
-    }
-
-    /// <inheritdoc />
-    public static Vector3<TNum> Parse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider)
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <inheritdoc />
-    public static Vector3<TNum> Parse(string s, NumberStyles style, IFormatProvider? provider)
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <inheritdoc />
-    public static bool TryConvertFromChecked<TOther>(TOther value, out Vector3<TNum> result) where TOther : INumberBase<TOther>
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <inheritdoc />
-    public static bool TryConvertFromSaturating<TOther>(TOther value, out Vector3<TNum> result) where TOther : INumberBase<TOther>
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <inheritdoc />
-    public static bool TryConvertFromTruncating<TOther>(TOther value, out Vector3<TNum> result) where TOther : INumberBase<TOther>
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <inheritdoc />
-    public static bool TryConvertToChecked<TOther>(Vector3<TNum> value, [MaybeNullWhen(false)] out TOther result) where TOther : INumberBase<TOther>
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <inheritdoc />
-    public static bool TryConvertToSaturating<TOther>(Vector3<TNum> value, [MaybeNullWhen(false)] out TOther result) where TOther : INumberBase<TOther>
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <inheritdoc />
-    public static bool TryConvertToTruncating<TOther>(Vector3<TNum> value, [MaybeNullWhen(false)] out TOther result) where TOther : INumberBase<TOther>
-    {
-        throw new NotImplementedException();
+        var xMagnitude = x.SquaredLength;
+        var yMagnitude = y.SquaredLength;
+        if (TNum.IsNaN(xMagnitude)) return y;
+        if (TNum.IsNaN(yMagnitude)) return x;
+        return xMagnitude < yMagnitude ? x : y;
     }
 
 
@@ -750,39 +724,71 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
 
     /// <inheritdoc />
     public static Vector3<TNum> ScaleB(Vector3<TNum> x, int n)
-        => new(TNum.ScaleB(x.X, n), TNum.ScaleB(x.Y,n), TNum.ScaleB(x.Z, n));
+        => new(TNum.ScaleB(x.X, n), TNum.ScaleB(x.Y, n), TNum.ScaleB(x.Z, n));
 
     /// <inheritdoc />
     public static Vector3<TNum> Epsilon { get; } = new(TNum.Epsilon);
 
 
     /// <inheritdoc />
-    public static Vector3<TNum> Parse(string s, IFormatProvider? provider)
-    {
-        throw new NotImplementedException();
-    }
+    public static Vector3<TNum> Parse(string s, IFormatProvider? provider = null)
+        => Parse(s.AsSpan(), NumberStyles.Any, provider);
 
     /// <inheritdoc />
     public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, out Vector3<TNum> result)
-    {
-        throw new NotImplementedException();
-    }
+    =>TryParse(s,NumberStyles.Any,provider, out result);
 
     /// <inheritdoc />
-    public static Vector3<TNum> Parse(ReadOnlySpan<char> s, IFormatProvider? provider)
-    {
-        throw new NotImplementedException();
-    }
+    public static Vector3<TNum> Parse(ReadOnlySpan<char> s, IFormatProvider? provider = null)
+        => TryParse(s, provider, out var result) ? result : throw new FormatException();
 
     /// <inheritdoc />
     public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out Vector3<TNum> result)
+        => TryParse(s, NumberStyles.Any, provider, out result);
+
+    /// <inheritdoc />
+    public static bool TryParse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider,
+        out Vector3<TNum> result)
     {
-        throw new NotImplementedException();
+        var components = new TNum[Dimensions];
+        var success = ArrayParser.TryParse(s, style, provider, components);
+        result = FromComponents(components);
+        return success;
     }
 
     /// <inheritdoc />
-    public static Vector3<TNum> operator *(Vector3<TNum> left, Vector3<TNum> right)
+    public static bool TryParse([NotNullWhen(true)] string? s, NumberStyles style, IFormatProvider? provider,
+        out Vector3<TNum> result)
     {
-        throw new NotImplementedException();
+        result = default;
+        return s is not null && TryParse(s.AsSpan(), style, provider, out result);
+    }
+
+
+    /// <inheritdoc />
+    public static Vector3<TNum> Parse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider = null)
+        => TryParse(s, style, provider, out var result) ? result : throw new FormatException();
+
+
+    /// <inheritdoc />
+    public static Vector3<TNum> Parse(string s, NumberStyles style, IFormatProvider? provider = null)
+        => Parse(s.AsSpan(), style, provider);
+
+
+    /// <inheritdoc />
+    public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format,
+        IFormatProvider? provider = null)
+        => ArrayParser.TryFormat(this.AsSpan(), destination, out charsWritten, format, provider);
+
+
+    [SuppressMessage("ReSharper", "UseStringInterpolation")]
+    public override string ToString()
+        => ToString(null, null);
+
+    public string ToString(string? format, IFormatProvider? formatProvider)
+    {
+        formatProvider ??= CultureInfo.InvariantCulture;
+        FormattableString formattable = $"{this}";
+        return formattable.ToString(formatProvider);
     }
 }

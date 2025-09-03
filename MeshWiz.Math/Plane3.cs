@@ -11,13 +11,13 @@ public readonly struct Plane3<TNum>
     : IIntersecter<Line<Vector3<TNum>, TNum>, Vector3<TNum>>,
         IIntersecter<Ray3<TNum>, Vector3<TNum>>,
         IIntersecter<Triangle3<TNum>, Line<Vector3<TNum>, TNum>>,
-        IIntersecter<BBox3<TNum>, Quad3<TNum>>
+        IIntersecter<AABB<Vector3<TNum>>, Quad3<TNum>>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public static Plane3<TNum> XY => new(Vector3<TNum>.UnitZ, TNum.Zero);
     public static Plane3<TNum> YZ => new(Vector3<TNum>.UnitX, TNum.Zero);
     public static Plane3<TNum> ZX => new(Vector3<TNum>.UnitY, TNum.Zero);
-    
+
     public readonly TNum D;
     public readonly Vector3<TNum> Normal;
     public Vector4<TNum> AsVector4 => new(Normal, D);
@@ -146,7 +146,7 @@ public readonly struct Plane3<TNum>
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int DistanceSign(Vector3<TNum> p) => SignedDistance(p).EpsilonTruncatingSign();
 
-    public bool DoIntersect(BBox3<TNum> box)
+    public bool DoIntersect(AABB<Vector3<TNum>> box)
     {
         var boxMin = box.Min;
         var boxMax = box.Max;
@@ -164,7 +164,7 @@ public readonly struct Plane3<TNum>
     }
 
 
-    public bool Intersect(BBox3<TNum> box, out Quad3<TNum> result)
+    public bool Intersect(AABB<Vector3<TNum>> box, out Quad3<TNum> result)
     {
         // 1) Build the 8 corners
         var min = box.Min;
@@ -293,15 +293,15 @@ public readonly struct Plane3<TNum>
         }
         return local;
     }
-    
-    
+
+
     public Vector3<TNum> ProjectIntoWorld(Vector2<TNum> local)
     {
         var (u, v) = LocalAxes;
         return Origin + local.X * u + local.Y * v;
     }
 
-    
+
     public Vector3<TNum>[] ProjectIntoWorld(IReadOnlyList<Vector2<TNum>> local)
     {
         var (u, v) = LocalAxes;
@@ -332,7 +332,7 @@ public readonly struct Plane3<TNum>
         }
         return world;
     }
-    
+
     public Polyline<Vector3<TNum>,TNum> ProjectIntoWorld(Polyline<Vector2<TNum>,TNum> local)
     {
         var (u, v) = LocalAxes;
@@ -346,9 +346,9 @@ public readonly struct Plane3<TNum>
             world[i] = origin + localPt.X * u + localPt.Y * v;
         }
         return new(world);
-    }  
-    
-    
+    }
+
+
     public (Vector3<TNum> u, Vector3<TNum> v) LocalAxes
     {
         [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -362,12 +362,12 @@ public readonly struct Plane3<TNum>
     }
 
 
-    public Line<Vector2<TNum>, TNum> ProjectIntoLocal(Line<Vector3<TNum>, TNum> world) 
+    public Line<Vector2<TNum>, TNum> ProjectIntoLocal(Line<Vector3<TNum>, TNum> world)
     {
-        
+
         var (u, v) = LocalAxes;
         var origin = Origin;
-        
+
         var lineStart =world.Start  - origin;
         var lineEnd = world.End  - origin;
         var localStart=new Vector2<TNum>(lineStart.Dot(u), lineStart.Dot(v));

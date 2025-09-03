@@ -8,17 +8,17 @@ public readonly record struct Sphere<TNum>(Vector3<TNum> Centroid, TNum Radius)
 {
     public TNum Volume
         => TNum.CreateChecked(4) * TNum.Pi * Radius * Radius * Radius / TNum.CreateChecked(3);
-
+    public TNum Diameter=>Numbers<TNum>.Two*Radius;
     public TNum SurfaceArea => TNum.CreateChecked(4) * TNum.Pi * Radius * Radius;
 
     public ISurface<Vector3<TNum>, TNum> Surface => throw new NotImplementedException("Explicit Sphere face missing");
 
-    public BBox3<TNum> BBox
+    public AABB<Vector3<TNum>> BBox
     {
         get
         {
             var offset = Vector3<TNum>.One * Radius;
-            return new BBox3<TNum>(Centroid - offset, Centroid + offset);
+            return new AABB<Vector3<TNum>>(Centroid - offset, Centroid + offset);
         }
     }
     

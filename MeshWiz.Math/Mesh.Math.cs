@@ -4,7 +4,7 @@ namespace MeshWiz.Math;
 
 public static partial class Mesh
 {
-   
+
     public static class Math
     {
         public record Mesh3Info<TNum>(
@@ -13,7 +13,7 @@ public static partial class Mesh
             Vector3<TNum> VolumeCentroid,
             TNum SurfaceArea,
             TNum Volume,
-            BBox3<TNum> Box)
+            AABB<Vector3<TNum>> Box)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>;
 
         public static Mesh3Info<TNum> AllInfo<TNum>(IReadOnlyList<Triangle3<TNum>> mesh)
@@ -24,7 +24,7 @@ public static partial class Mesh
             var volumeCentroid = Vector3<TNum>.Zero;
             var surfaceArea = TNum.Zero;
             var volume = TNum.Zero;
-            var box = BBox3<TNum>.NegativeInfinity;
+            var box = AABB<Vector3<TNum>>.Empty;
 
             foreach (var triangle in mesh)
             {
@@ -37,7 +37,7 @@ public static partial class Mesh
                 volumeCentroid += currentCentroid * currentVolume;
                 volume += currentVolume;
                 surfaceArea += currentSurf;
-                box = box.CombineWith(triangle.A).CombineWith(triangle.B).CombineWith(triangle.C);
+                box = box.CombineWith(triangle.A,triangle.B,triangle.C);
             }
 
             vertexCentroid /= TNum.CreateTruncating(mesh.Count * 3);
@@ -116,22 +116,12 @@ public static partial class Mesh
             return area;
         }
 
-        public static BBox3<TNum> BBox<TNum>(IReadOnlyList<Triangle3<TNum>> mesh)
+        public static AABB<Vector3<TNum>> BBox<TNum>(IReadOnlyList<Triangle3<TNum>> mesh)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
-            var bbox = BBox3<TNum>.NegativeInfinity;
+            var bbox = AABB<Vector3<TNum>>.Empty;
             foreach (var tri in mesh)
-                bbox = bbox.CombineWith(tri.A).CombineWith(tri.B).CombineWith(tri.C);
-
-            return bbox;
-        }
-
-        public static BBox3<TNum> BBox<TNum>(IReadOnlyList<Vector3<TNum>> vertices)
-            where TNum : unmanaged, IFloatingPointIeee754<TNum>
-        {
-            var bbox = BBox3<TNum>.NegativeInfinity;
-            foreach (var tri in vertices)
-                bbox = bbox.CombineWith(tri);
+                bbox = bbox.CombineWith(tri.A,tri.B,tri.C);
 
             return bbox;
         }

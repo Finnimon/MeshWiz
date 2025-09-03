@@ -12,14 +12,14 @@ public sealed class IndexedMesh<TNum> : IIndexedMesh<TNum>
 
     public TNum Volume => _volume ??= Mesh.Math.Volume(this);
     public TNum SurfaceArea => _surfaceArea ??= Mesh.Math.SurfaceArea(this);
-    public BBox3<TNum> BBox => _bBox ??= Mesh.Math.BBox(this);
+    public AABB<Vector3<TNum>> BBox => _bBox ??= AABB<Vector3<TNum>>.From(Vertices);
 
     private TNum? _surfaceArea;
     private TNum? _volume;
     private Vector3<TNum>? _vertexCentroid;
     private Vector3<TNum>? _surfaceCentroid;
     private Vector3<TNum>? _volumeCentroid;
-    private BBox3<TNum>? _bBox;
+    private AABB<Vector3<TNum>>? _bBox;
 
     public Vector3<TNum>[] Vertices { get; }
     public TriangleIndexer[] Indices { get; }

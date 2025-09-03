@@ -19,7 +19,7 @@ public class PolylineWindingOrderBench
 
     [Benchmark]
     public WindingOrder ExtremePoint() => Polyline.Evaluate.GetWindingOrder(_basePl!);
-    [Benchmark]
-    public WindingOrder SignedArea() => Polyline.Evaluate.GetWindingOrderAreaSign(_basePl!);
+    // [Benchmark]
+    // public WindingOrder SignedArea() => Polyline.Evaluate.GetWindingOrderAreaSign(_basePl!);
 
 }

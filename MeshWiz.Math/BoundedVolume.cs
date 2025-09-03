@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.InteropServices;
 
@@ -7,9 +8,10 @@ namespace MeshWiz.Math;
 public struct BoundedVolume<TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    public readonly BBox3<TNum> Bounds;
+    public readonly AABB<Vector3<TNum>  > Bounds;
     private int _first;
     private int _second;
+    [SuppressMessage("ReSharper", "ConvertToAutoPropertyWithPrivateSetter")] 
     public int Start=>_first;
     public int Length=>-_second;
     public int FirstChild =>_first;
@@ -17,36 +19,36 @@ public struct BoundedVolume<TNum>
     public bool IsLeaf => _second<=0;
     public bool IsParent=>_second>0;
 
-    private BoundedVolume(BBox3<TNum> bounds, int first, int second)
+    private BoundedVolume(AABB<Vector3<TNum>> bounds, int first, int second)
     {
         Bounds = bounds;
         _first = first;
         _second = second;
     }
 
-    public static BoundedVolume<TNum> MakeLeaf(BBox3<TNum> bounds, int start, int length) 
+    public static BoundedVolume<TNum> MakeLeaf(AABB<Vector3<TNum>> bounds, int start, int length)
         => new(bounds, start, -length);
 
-    public static BoundedVolume<TNum> MakeParent(BBox3<TNum> bounds, int left, int right)
+    public static BoundedVolume<TNum> MakeParent(AABB<Vector3<TNum>> bounds, int left, int right)
     =>new(bounds, left, -right);
-    
+
     public void RegisterChildren(int firstChild, int secondChild)
     {
         _first = firstChild;
         _second = secondChild;
     }
-    
-    
+
+
     public TNum Cost=>Bounds.Size.SquaredLength*TNum.CreateTruncating(Length);
     public int End => Start + Length;
-    
-    public static TNum NodeCost(BBox3<TNum> bounds, int triCount)
+
+    public static TNum NodeCost(AABB<Vector3<TNum>> bounds, int triCount)
         =>bounds.Size.SquaredLength*TNum.CreateTruncating(triCount);
 
     public static TNum NodeCost(Vector3<TNum> boundsSize, int triCount)
         =>boundsSize.SquaredLength*TNum.CreateTruncating(triCount);
-    
-    
-    
+
+
+
     public static implicit operator Range(in BoundedVolume<TNum> bV) => new(bV.Start, bV.End);
 }

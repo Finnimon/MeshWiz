@@ -217,9 +217,9 @@ public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
         var sin = TNum.Sin(-angle);
         var t = TNum.One - cos;
         var tAxis = t * axis;
-        var x = Vector3<TNum>.ElementWiseMul(axis.XXX, tAxis);
-        var y = Vector3<TNum>.ElementWiseMul(axis.YYY, tAxis);
-        var z = Vector3<TNum>.ElementWiseMul(axis.ZZZ, tAxis);
+        var x = axis.XXX*tAxis;
+        var y = axis.YYY*tAxis;
+        var z = axis.ZZZ*tAxis;
         var (sinX, sinY, sinZ) = sin * axis;
         x += new Vector3<TNum>(cos, -sinZ, sinY);
         y += new Vector3<TNum>(sinZ, cos, -sinX);

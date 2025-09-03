@@ -54,9 +54,10 @@ public sealed class OpenGLParent : OpenGlControlBase, IDisposable
     protected override void OnOpenGlRender(GlInterface gl, int fb)
     {
         UpdateFps();
+        GL.LoadBindings(_context);
         var (visible, aspectRatio) = UpdateViewport();
         if (visible) RenderChildren(aspectRatio);
-        Dispatcher.UIThread.Post(RequestNextFrameRendering, DispatcherPriority.Default);
+        Dispatcher.UIThread.Post(RequestNextFrameRendering, DispatcherPriority.Background);
     }
 
     private void UpdateFps()
