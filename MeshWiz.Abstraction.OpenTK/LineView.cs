@@ -63,7 +63,7 @@ public class LineView : IOpenGLControl
     {
         _vao = new VertexArrayObject();
         _shader=ShaderProgram.FromFiles("./Shaders/solid_color/solid_color");
-        OpenGLHelper.LogGlError(nameof(LineView),nameof(Init));
+        OpenGLHelper.LogGlError(nameof(LineView));
         GLInitialized = true;
     }
     public void Update(float aspect)
@@ -85,7 +85,7 @@ public class LineView : IOpenGLControl
             .SetUniform(nameof(objectColor),in objectColor)
             .SetUniform(nameof(depthOffset),depthOffset)
             .Unbind();
-        OpenGLHelper.LogGlError(nameof(LineView),nameof(UpdateShader));
+        OpenGLHelper.LogGlError(nameof(LineView));
     }
 
     private void RotateCamera() => Camera.MoveRight(0.001f);
@@ -106,7 +106,7 @@ public class LineView : IOpenGLControl
         GL.EnableVertexAttribArray(position);
         _vbo.Unbind();
         _vao!.Unbind();
-        OpenGLHelper.LogGlError(nameof(LineView),nameof(UploadLine));
+        OpenGLHelper.LogGlError(nameof(LineView));
     }
 
    
@@ -122,7 +122,7 @@ public class LineView : IOpenGLControl
         if (customLineWidth) GL.LineWidth(1); // Clean state
         _vao!.Unbind();
         _shader!.Unbind();
-        OpenGLHelper.LogGlError(nameof(LineView), nameof(Render));
+        OpenGLHelper.LogGlError(nameof(LineView));
     }
 
     public void Dispose()

@@ -99,7 +99,7 @@ public class SmoothMeshView : IOpenGLControl
                 .SetUniform("shininess", SolidShininessStrength)
                 .SetUniform("lightPos", LightPosition.ToOpenTK())
                 .Unbind();
-        OpenGLHelper.LogGlError(nameof(SmoothMeshView), nameof(UpdateShaders));
+        OpenGLHelper.LogGlError(nameof(SmoothMeshView));
     }
 
     public void Render()
@@ -135,7 +135,7 @@ public class SmoothMeshView : IOpenGLControl
 
 
         _vao.Unbind();
-        OpenGLHelper.LogGlError(nameof(SmoothMeshView), nameof(Render));
+        OpenGLHelper.LogGlError(nameof(SmoothMeshView));
     }
 
 
@@ -201,7 +201,7 @@ public class SmoothMeshView : IOpenGLControl
             .BufferData(mesh.Indices, BufferUsageHint.StaticDraw);
 
         _vao.Unbind();
-        OpenGLHelper.LogGlError(nameof(SmoothMeshView), nameof(UploadMesh));
+        OpenGLHelper.LogGlError(nameof(SmoothMeshView));
     }
 
     Vector3<float>[] GetInterleavedMesh(IIndexedMesh<float> mesh)

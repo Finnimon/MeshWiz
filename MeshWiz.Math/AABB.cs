@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace MeshWiz.Math;
@@ -15,7 +16,7 @@ public readonly struct AABB<TNum>(TNum min, TNum max)
     public static readonly AABB<TNum> Empty = new(TNum.PositiveInfinity, TNum.NegativeInfinity);
     public readonly TNum Min = min, Max = max;
     public TNum Size => Max - Min;
-    public TNum Center => Min + Size/Numbers<TNum>.Two;
+    public TNum Center => Min + Size / Numbers<TNum>.Two;
     private AABB(TNum p) : this(p, p) { }
 
     public AABB<TNum> CombineWith(TNum p)
@@ -94,7 +95,15 @@ public readonly struct AABB<TNum>(TNum min, TNum max)
         var max = TNum.Max(p1, p2);
         return new(min, max);
     }
-    public static AABB<TNum> From(TNum p1, TNum p2,TNum p3)
+    
+    public static AABB<TNum> Around(TNum center, TNum size)
+    {
+        size/=Numbers<TNum>.Two;
+        return From(center-size,center+size);
+    }
+    
+
+    public static AABB<TNum> From(TNum p1, TNum p2, TNum p3)
     {
         var min = TNum.Min(p1, p2);
         var max = TNum.Max(p1, p2);
@@ -102,8 +111,8 @@ public readonly struct AABB<TNum>(TNum min, TNum max)
         max = TNum.Max(max, p3);
         return new AABB<TNum>(min, max);
     }
-    
-    public static AABB<TNum> From(TNum p1, TNum p2,TNum p3,TNum p4)
+
+    public static AABB<TNum> From(TNum p1, TNum p2, TNum p3, TNum p4)
     {
         var min = TNum.Min(p1, p2);
         var max = TNum.Max(p1, p2);
@@ -114,24 +123,25 @@ public readonly struct AABB<TNum>(TNum min, TNum max)
         return new AABB<TNum>(min, max);
     }
 
-    
-    
+
     public static AABB<TNum> From(params TNum[] pts)
     {
-        var min=TNum.PositiveInfinity;
-        var max=TNum.NegativeInfinity;
-        foreach(var p in pts)
+        var min = TNum.PositiveInfinity;
+        var max = TNum.NegativeInfinity;
+        foreach (var p in pts)
         {
-            min=TNum.Min(p,min);
-            max=TNum.Max(p,max);
+            min = TNum.Min(p, min);
+            max = TNum.Max(p, max);
         }
-        return new(min,max);
+
+        return new(min, max);
     }
 
-    public bool Contains(TNum p) => TNum.Clamp(p, Min, Max) == p;
+    public bool Contains(TNum p) => Clamp(p) == p;
+    public bool Contains(TNum p, TNum epsilon) => TNum.Abs(Clamp(p) - p) < epsilon;
 
     public bool IntersectsWith(AABB<TNum> other) => Contains(TNum.Clamp(Center, other.Min, other.Max));
-    
+
 
     /// <inheritdoc />
     public static bool operator ==(AABB<TNum> left, AABB<TNum> right)
@@ -151,6 +161,13 @@ public readonly struct AABB<TNum>(TNum min, TNum max)
 
     /// <inheritdoc />
     public override int GetHashCode() => HashCode.Combine(Min, Max);
+
+    public TNum DistanceTo(TNum p)
+        => TNum.Abs(p - Clamp(p));
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public TNum Clamp(TNum value) => TNum.Clamp(value, Min, Max);
 }
 
 public static class AABB
@@ -182,13 +199,13 @@ public static class AABB
             : TNum.NaN;
     }
 
-    public static IndexedMesh<TNum> Tessellate<TNum>(AABB<Vector3<TNum>> box)
+    public static IndexedMesh<TNum> Tessellate<TNum>(this AABB<Vector3<TNum>> box)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
         => new(Vertices(box), Indices());
 
     public static TriangleIndexer[] Indices() => TesselationIndices[..];
 
-    private static readonly TriangleIndexer[] TesselationIndices=
+    private static readonly TriangleIndexer[] TesselationIndices =
     [
         new(0b010, 0b110, 0b000), new(0b110, 0b100, 0b000),
         new(0b111, 0b011, 0b001), new(0b101, 0b111, 0b001),
@@ -198,16 +215,16 @@ public static class AABB
         new(0b011, 0b111, 0b010), new(0b111, 0b110, 0b010)
     ];
 
-    public static Vector3<TNum>[] Vertices<TNum>(AABB<Vector3<TNum>> box) 
+    public static Vector3<TNum>[] Vertices<TNum>(AABB<Vector3<TNum>> box)
         where TNum : unmanaged, IFloatingPointIeee754<TNum> =>
     [
-        box.Min,                        // 000
-        new(box.Min.X, box.Min.Y, box.Max.Z),   // 001
-        new(box.Min.X, box.Max.Y, box.Min.Z),   // 010
-        new(box.Min.X, box.Max.Y, box.Max.Z),   // 011
-        new(box.Max.X, box.Min.Y, box.Min.Z),   // 100
-        new(box.Max.X, box.Min.Y, box.Max.Z),   // 101
-        new(box.Max.X, box.Max.Y, box.Min.Z),   // 110
-        box.Max                         // 111
+        box.Min, // 000
+        new(box.Min.X, box.Min.Y, box.Max.Z), // 001
+        new(box.Min.X, box.Max.Y, box.Min.Z), // 010
+        new(box.Min.X, box.Max.Y, box.Max.Z), // 011
+        new(box.Max.X, box.Min.Y, box.Min.Z), // 100
+        new(box.Max.X, box.Min.Y, box.Max.Z), // 101
+        new(box.Max.X, box.Max.Y, box.Min.Z), // 110
+        box.Max // 111
     ];
 }

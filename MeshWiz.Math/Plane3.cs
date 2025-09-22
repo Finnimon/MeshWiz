@@ -29,6 +29,7 @@ public readonly struct Plane3<TNum>
         Normal = normal;
         D = -(Normal.Dot(pointOnPlane));
     }
+
     public Plane3(Vector3<TNum> a, Vector3<TNum> b, Vector3<TNum> c)
     {
         Normal = (a - b) ^ (c - a);
@@ -60,7 +61,7 @@ public readonly struct Plane3<TNum>
         }
 
         // Compute intersection distance along ray direction
-        var t = -(Normal .Dot(test.Start) + D) / denominator;
+        var t = -(Normal.Dot(test.Start) + D) / denominator;
         result = test.TraverseOnCurve(t);
         return TNum.NegativeZero <= t && t <= TNum.One;
     }
@@ -68,7 +69,7 @@ public readonly struct Plane3<TNum>
     private Vector3<TNum> ForceIntersect(Line<Vector3<TNum>, TNum> line)
     {
         var denominator = Normal.Dot(line.Direction);
-        var t = -(Normal .Dot(line.Start) + D) / denominator;
+        var t = -(Normal.Dot(line.Start) + D) / denominator;
         return line.Traverse(t);
     }
 
@@ -105,29 +106,40 @@ public readonly struct Plane3<TNum>
         var aSign = DistanceSign(a);
         var bSign = DistanceSign(b);
         var cSign = DistanceSign(c);
-        var aUnique = aSign != bSign && aSign != cSign && aSign!=0;
-        if (aUnique)
-        {
-            result = ComputeTriangleIntersection(a, b, c,aSign);
-            return true;
-        }
+
+        var aUnique = aSign != bSign && aSign != cSign && aSign != 0;
+        if (aUnique) return TryComputeTriangleIntersection(a, b, c, aSign, bSign, cSign, out result);
 
         var bUnique = bSign != cSign && bSign != aSign && bSign != 0;
         if (bUnique)
-        {
-            result = ComputeTriangleIntersection(b, c, a,bSign);
-            return true;
-        }
+            return TryComputeTriangleIntersection(b, c, a, bSign, cSign, aSign, out result);
 
         var cUnique = cSign != aSign && cSign != bSign && cSign != 0;
         if (cUnique)
-        {
-            result = ComputeTriangleIntersection(c, a, b,cSign);
-            return true;
-        }
+            return TryComputeTriangleIntersection(c, a, b, cSign, aSign, bSign, out result);
 
         result = default;
         return false;
+    }
+
+    private bool TryComputeTriangleIntersection(
+        Vector3<TNum> aUnique, Vector3<TNum> b, Vector3<TNum> c,
+        int aSign, int bSign, int cSign,
+        out Line<Vector3<TNum>, TNum> result)
+    {
+        result = default;
+        if (aSign == 0) return false;
+        if (aSign == 1 && bSign == 0 && cSign == 0) return false;
+        if (bSign == 0 && cSign == 0)
+            result = aSign > 0 ? b.LineTo(c) : c.LineTo(b);
+        else
+        {
+            var start = ForceIntersect(aUnique.LineTo(b));
+            var end = ForceIntersect(aUnique.LineTo(c));
+            result = aSign > 0 ? start.LineTo(end) : end.LineTo(start);
+        }
+
+        return true;
     }
 
     private Line<Vector3<TNum>, TNum> ComputeTriangleIntersection(Vector3<TNum> aUnique, Vector3<TNum> b,
@@ -137,7 +149,7 @@ public readonly struct Plane3<TNum>
         var ac = aUnique.LineTo(c);
         var start = ForceIntersect(ab);
         var end = ForceIntersect(ac);
-        return aDistanceSign>0 ? start.LineTo(end):end.LineTo(start);
+        return aDistanceSign > 0 ? start.LineTo(end) : end.LineTo(start);
     }
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -146,22 +158,26 @@ public readonly struct Plane3<TNum>
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int DistanceSign(Vector3<TNum> p) => SignedDistance(p).EpsilonTruncatingSign();
 
-    public bool DoIntersect(AABB<Vector3<TNum>> box)
+    [Obsolete(nameof(DoIntersect))]
+    public bool DoIntersectDistanceSign(AABB<Vector3<TNum>> box)
     {
         var boxMin = box.Min;
         var boxMax = box.Max;
         var d0 = DistanceSign(boxMin);
-        var d1 = DistanceSign(new(boxMax.X, boxMin.Y, boxMin.Z));
-        var d2 = DistanceSign(new(boxMax.X, boxMax.Y, boxMin.Z));
-        var d3 = DistanceSign(new(boxMin.X, boxMax.Y, boxMin.Z));
-        var d4 = DistanceSign(new(boxMin.X, boxMin.Y, boxMax.Z));
-        var d5 = DistanceSign(new(boxMax.X, boxMin.Y, boxMax.Z));
+        var d1 = DistanceSign(new Vector3<TNum>(boxMax.X, boxMin.Y, boxMin.Z));
+        var d2 = DistanceSign(new Vector3<TNum>(boxMax.X, boxMax.Y, boxMin.Z));
+        var d3 = DistanceSign(new Vector3<TNum>(boxMin.X, boxMax.Y, boxMin.Z));
+        var d4 = DistanceSign(new Vector3<TNum>(boxMin.X, boxMin.Y, boxMax.Z));
+        var d5 = DistanceSign(new Vector3<TNum>(boxMax.X, boxMin.Y, boxMax.Z));
         var d6 = DistanceSign(boxMax);
-        var d7 = DistanceSign(new(boxMin.X, boxMax.Y, boxMax.Z));
+        var d7 = DistanceSign(new Vector3<TNum>(boxMin.X, boxMax.Y, boxMax.Z));
 
         // Track whether we saw both sides of the plane
         return d0 != d1 || d1 != d2 || d2 != d3 || d3 != d4 || d4 != d5 || d5 != d6 || d6 != d7;
     }
+
+    public bool DoIntersect(AABB<Vector3<TNum>> box)
+        => DistanceSign(box.Clamp(Origin)) == 0;
 
 
     public bool Intersect(AABB<Vector3<TNum>> box, out Quad3<TNum> result)
@@ -253,13 +269,13 @@ public readonly struct Plane3<TNum>
     }
 
     public Vector3<TNum> Origin => Normal * -D;
-    public TNum DistanceTo(Plane3<TNum> other)=> TNum.Abs(D - other.D);
+    public TNum DistanceTo(Plane3<TNum> other) => TNum.Abs(D - other.D);
     public TNum DistanceTo(Vector3<TNum> p) => TNum.Abs(SignedDistance(p));
 
     public Vector2<TNum> ProjectIntoLocal(Vector3<TNum> world)
     {
         var (u, v) = LocalAxes;
-        var local=world-Origin;
+        var local = world - Origin;
         return new Vector2<TNum>(local.Dot(u), local.Dot(v));
     }
 
@@ -272,25 +288,28 @@ public readonly struct Plane3<TNum>
         for (var i = 0; i < pCount; i++)
         {
             var relative = world[i] - origin;
-            local[i]=new(relative.Dot(u), relative.Dot(v));
+            local[i] = new(relative.Dot(u), relative.Dot(v));
         }
+
         return local;
     }
-    public Line<Vector2<TNum>,TNum>[] ProjectIntoLocal(IReadOnlyList<Line<Vector3<TNum>,TNum>> world)
+
+    public Line<Vector2<TNum>, TNum>[] ProjectIntoLocal(IReadOnlyList<Line<Vector3<TNum>, TNum>> world)
     {
         var (u, v) = LocalAxes;
         var origin = Origin;
         var count = world.Count;
-        var local = new Line<Vector2<TNum>,TNum>[count];
+        var local = new Line<Vector2<TNum>, TNum>[count];
         for (var i = 0; i < count; i++)
         {
             var line = world[i];
-            var lineStart =line.Start  - origin;
-            var lineEnd = line.End  - origin;
-            var localStart=new Vector2<TNum>(lineStart.Dot(u), lineStart.Dot(v));
-            var localEnd=new Vector2<TNum>(lineEnd.Dot(u), lineEnd.Dot(v));
+            var lineStart = line.Start - origin;
+            var lineEnd = line.End - origin;
+            var localStart = new Vector2<TNum>(lineStart.Dot(u), lineStart.Dot(v));
+            var localEnd = new Vector2<TNum>(lineEnd.Dot(u), lineEnd.Dot(v));
             local[i] = localStart.LineTo(localEnd);
         }
+
         return local;
     }
 
@@ -313,14 +332,16 @@ public readonly struct Plane3<TNum>
             var curLocal = local[i];
             world[i] = origin + curLocal.X * u + curLocal.Y * v;
         }
+
         return world;
     }
-    public Line<Vector3<TNum>,TNum>[] ProjectIntoWorld(IReadOnlyList<Line<Vector2<TNum>,TNum>> local)
+
+    public Line<Vector3<TNum>, TNum>[] ProjectIntoWorld(IReadOnlyList<Line<Vector2<TNum>, TNum>> local)
     {
         var (u, v) = LocalAxes;
         var origin = Origin;
         var count = local.Count;
-        var world = new Line<Vector3<TNum>,TNum>[count];
+        var world = new Line<Vector3<TNum>, TNum>[count];
         for (var i = 0; i < count; i++)
         {
             var curLocal = local[i];
@@ -330,33 +351,35 @@ public readonly struct Plane3<TNum>
             var worldEnd = origin + end.X * u + end.Y * v;
             world[i] = new(worldStart, worldEnd);
         }
+
         return world;
     }
 
-    public Polyline<Vector3<TNum>,TNum> ProjectIntoWorld(Polyline<Vector2<TNum>,TNum> local)
+    public Polyline<Vector3<TNum>, TNum> ProjectIntoWorld(Polyline<Vector2<TNum>, TNum> local)
     {
         var (u, v) = LocalAxes;
         var origin = Origin;
         var count = local.Points.Length;
-        var localPts=local.Points;
+        var localPts = local.Points;
         var world = new Vector3<TNum>[count];
         for (var i = 0; i < count; i++)
         {
             var localPt = localPts[i];
             world[i] = origin + localPt.X * u + localPt.Y * v;
         }
+
         return new(world);
     }
 
 
     public (Vector3<TNum> u, Vector3<TNum> v) LocalAxes
     {
-        [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            var reference=Normal.IsParallelTo(Vector3<TNum>.UnitY)?Vector3<TNum>.UnitX:Vector3<TNum>.UnitY;
+            var reference = Normal.IsParallelTo(Vector3<TNum>.UnitY) ? Vector3<TNum>.UnitX : Vector3<TNum>.UnitY;
             var u = Normal ^ reference;
-            var v= Normal ^ u;
+            var v = Normal ^ u;
             return (u, v);
         }
     }
@@ -364,18 +387,17 @@ public readonly struct Plane3<TNum>
 
     public Line<Vector2<TNum>, TNum> ProjectIntoLocal(Line<Vector3<TNum>, TNum> world)
     {
-
         var (u, v) = LocalAxes;
         var origin = Origin;
 
-        var lineStart =world.Start  - origin;
-        var lineEnd = world.End  - origin;
-        var localStart=new Vector2<TNum>(lineStart.Dot(u), lineStart.Dot(v));
-        var localEnd=new Vector2<TNum>(lineEnd.Dot(u), lineEnd.Dot(v));
+        var lineStart = world.Start - origin;
+        var lineEnd = world.End - origin;
+        var localStart = new Vector2<TNum>(lineStart.Dot(u), lineStart.Dot(v));
+        var localEnd = new Vector2<TNum>(lineEnd.Dot(u), lineEnd.Dot(v));
         return new(localStart, localEnd);
     }
 
-    public Line<Vector3<TNum>,TNum> ProjectIntoWorld(Line<Vector2<TNum>, TNum> local)
+    public Line<Vector3<TNum>, TNum> ProjectIntoWorld(Line<Vector2<TNum>, TNum> local)
     {
         return new(ProjectIntoWorld(local.Start), ProjectIntoWorld(local.End));
     }

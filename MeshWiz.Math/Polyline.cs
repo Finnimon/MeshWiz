@@ -19,7 +19,7 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
     public int Count => Points.Length - 1;
     public static Polyline<TVector, TNum> Empty { get; } = [];
     private AABB<TVector>? _bbox;
-    public AABB<TVector> BBox=>_bbox??=AABB<TVector>.From(Points);
+    public AABB<TVector> BBox => _bbox ??= AABB<TVector>.From(Points);
 
     public unsafe Line<TVector, TNum> this[int index]
     {
@@ -55,16 +55,24 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
 
     private bool? _isClosed;
 
-    public bool IsClosed =>
-        _isClosed ??= Points.Length > 1 && Points[0].IsApprox(Points[^1], TNum.CreateChecked(0.000001));
+    public bool IsClosed
+    {
+        get
+        {
+            if (_isClosed.HasValue) return _isClosed.Value;
+            _isClosed = Points.Length > 1 && Points[0].IsApprox(Points[^1], TNum.CreateChecked(0.000001));
+            if (_isClosed.Value) Points[^1] = Points[0];
+            return _isClosed.Value;
+        }
+    }
 
     private TNum? _length;
     public TNum Length => _length ??= CalculateLength();
 
     private TNum[]? _positions;
-    private TNum[] CumulativeDistances => _positions ??= CalculatePositions();
+    internal TNum[] CumulativeDistances => _positions ??= CalculateCumulativeDistances();
 
-    private TNum[] CalculatePositions()
+    private TNum[] CalculateCumulativeDistances()
     {
         if (Points.Length == 0)
             return [];
@@ -148,29 +156,124 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
 
         var distance = by * Length;
 
-        int posBefore = 0;
-        int posAfter = Points.Length - 1;
+        TryFindContainingSegmentExactly(distance, out var segment, out var remainder);
+        var pStart = Points[segment];
+        var pEnd = Points[segment + 1];
+        return TVector.ExactLerp(pStart, pEnd, remainder);
+    }
 
-        // Binary search for last index where CumulativeDistances[i] <= distance
-        while (posAfter - posBefore > 1)
+
+    public Polyline<TVector, TNum> this[TNum start, TNum end] => Section(start, end);
+
+    public Polyline<TVector, TNum> Section(TNum start, TNum end)=>ExactSection(Length*start, Length*end);
+    public Polyline<TVector, TNum> ExactSection(TNum start, TNum end)
+    {
+        if (start.IsApprox(end)) return Empty;
+        var foundStart = TryFindContainingSegmentExactly(start, out var startSeg, out var startRem);
+        if (!foundStart) throw new ArgumentOutOfRangeException(nameof(start), start, "Could not find");
+        var foundEnd = TryFindContainingSegmentExactly(end, out var endSeg, out var endRem);
+        if (!foundEnd) throw new ArgumentOutOfRangeException(nameof(end), end, "Could not find");
+        var wrappingAroundEnd = endSeg < startSeg||(endSeg==startSeg&&endRem<startRem);
+        if (wrappingAroundEnd && !IsClosed) throw new ArgumentOutOfRangeException(nameof(end));
+        TVector[] section;
+        if (!wrappingAroundEnd)
         {
-            int mid = (posBefore + posAfter) / 2;
-            var midValue = CumulativeDistances[mid];
+            if (startRem.IsApprox(this[startSeg].Length))
+            {
+                startSeg++;
+                startRem = TNum.Zero;
+            }
+            if (endRem.IsApprox(TNum.Zero))
+            {
+                endSeg--;
+                endRem = this[endSeg].Length;
+            }
+            var exlusivePIndex = endSeg + 2;
+            section = Points[startSeg..exlusivePIndex];
+        }
+        else
+        {
+            var pSpan = Points.AsSpan();
+            var firstChunk = pSpan[startSeg..];
+            var secondChunk = pSpan[1..(endSeg + 2)];
+            if (startRem.IsApprox(this[startSeg].Length))
+            {
+                if (firstChunk.Length != 0) firstChunk = firstChunk[^1..];
+                startRem = TNum.Zero;
+            }
 
-            if (midValue.IsApprox(distance))
-                return Points[mid];
-            if (midValue < distance)
-                posBefore = mid; // move lower bound up
-            else
-                posAfter = mid; // move upper bound down
+            var dontTrimEnd = false;
+            if (endRem.IsApprox(TNum.Zero))
+            {
+                secondChunk = secondChunk[..^1];
+                dontTrimEnd = true;
+            }
+
+            section = new TVector[firstChunk.Length + secondChunk.Length];
+            firstChunk.CopyTo(section);
+            secondChunk.CopyTo(section.AsSpan(firstChunk.Length));
+            if (dontTrimEnd) endRem = section[^2].DistanceTo(section[^1]);
         }
 
-        // Distance into the segment
-        distance -= CumulativeDistances[posBefore];
+        Polyline<TVector, TNum> result = new(section);
+        TrimEnds(result, startRem, endRem);
+        return result;
+    }
 
-        var pStart = Points[posBefore];
-        var pEnd = Points[posAfter];
-        return TVector.ExactLerp(pStart, pEnd, distance);
+    private static void TrimEnds(Polyline<TVector, TNum> polyline, TNum atStartExactly, TNum atEndExactly)
+    {
+        polyline.Points[0] = TVector.ExactLerp(polyline.Points[0], polyline.Points[1], atStartExactly);
+        polyline.Points[^1] = TVector.ExactLerp(polyline.Points[^2], polyline.Points[^1], atEndExactly);
+    }
+
+
+    [Pure]
+    private bool TryFindContainingSegmentExactly(TNum distance, out int seg, out TNum remainder)
+    {
+        if (distance.IsApprox(TNum.Zero, TNum.Epsilon))
+        {
+            seg = 0;
+            remainder = TNum.Zero;
+            return true;
+        }
+
+        if (IsClosed) distance = distance.Wrap(TNum.Zero, Length);
+        // Edge cases
+        seg = -1;
+        remainder = default;
+        if (!AABB<TNum>.From(TNum.Zero, Length).Contains(distance)) return false;
+        if (distance.IsApprox(TNum.Zero))
+        {
+            seg = 0;
+            remainder = TNum.Zero;
+        }
+        else if (distance.IsApprox(Length))
+        {
+            seg = Count - 1;
+            remainder = this[seg].Length;
+        }
+
+
+        var posBefore = 0;
+        var posAfter = Points.Length - 1;
+
+        // binary search for last index where CumulativeDistances[i] <= distance
+        while (posAfter - posBefore > 1)
+        {
+            seg = (posBefore + posAfter) / 2;
+            var midValue = CumulativeDistances[seg];
+
+            if (midValue < distance)
+                posBefore = seg; // move lower bound up
+            else
+                posAfter = seg; // move upper bound down
+        }
+
+        // distance into the segment
+        remainder = distance - CumulativeDistances[posBefore];
+
+        seg = posBefore;
+        return true;
     }
 
 
@@ -199,7 +302,7 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
         {
             var line = list[index];
             var curDirection = line.NormalDirection;
-            var dot = curDirection .Dot(prevDirection);
+            var dot = curDirection.Dot(prevDirection);
             var sameDirectionParallel = dot.IsApprox(TNum.One);
 
             if (sameDirectionParallel) points[pI] = line.End;
@@ -217,7 +320,8 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
         if (!isClosed) return new Polyline<TVector, TNum>(points[..pCount]);
         var startDirection = (points[1] - startPt).Normalized;
         var endDirection = (endPt - points[pI - 1]).Normalized;
-        if (!(startDirection.Dot(endDirection)).IsApprox(TNum.One)) return new Polyline<TVector, TNum>(points[..pCount]);
+        if (!(startDirection.Dot(endDirection)).IsApprox(TNum.One))
+            return new Polyline<TVector, TNum>(points[..pCount]);
         points[0] = points[pI - 1];
         return new Polyline<TVector, TNum>(points[..pI]);
     }
@@ -239,7 +343,7 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
             }
 
             var curDirection = line.NormalDirection;
-            var dot = curDirection .Dot(prevDirection);
+            var dot = curDirection.Dot(prevDirection);
             var sameDirectionParallel = dot.IsApprox(TNum.One);
 
             if (sameDirectionParallel) points[^1] = line.End;
@@ -255,7 +359,8 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
         if (!areEqual) return new Polyline<TVector, TNum>(points.ToArray());
         var startDirection = (points[1] - startPt).Normalized;
         var endDirection = (endPt - points[^2]).Normalized;
-        if (!(startDirection.Dot(endDirection)).IsApprox(TNum.One)) return new Polyline<TVector, TNum>(points.ToArray());
+        if (!(startDirection.Dot(endDirection)).IsApprox(TNum.One))
+            return new Polyline<TVector, TNum>(points.ToArray());
         points[0] = points[^2];
         return new Polyline<TVector, TNum>(points.ToArray());
     }
@@ -273,7 +378,7 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
         foreach (var line in collection)
         {
             var curDirection = line.NormalDirection;
-            var dot = curDirection .Dot(prevDirection);
+            var dot = curDirection.Dot(prevDirection);
             var sameDirectionParallel = dot.IsApprox(TNum.One);
 
             if (sameDirectionParallel) points[^1] = line.End;
@@ -283,5 +388,37 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
         }
 
         return new Polyline<TVector, TNum>(points.ToArray());
+    }
+
+    public Polyline<TVector, TNum> CullDeadSegments(TNum? epsilon = null)
+    {
+        epsilon ??= TNum.Epsilon;
+        var p = Points[0];
+        bool[]? toBeCulled = null;
+        int cullCount = 0;
+        for (var i = 1; i < Points.Length; i++)
+        {
+            var p2 = Points[i];
+            if (!p.IsApprox(p2, epsilon.Value))
+            {
+                p = p2;
+                continue;
+            }
+
+            cullCount++;
+            toBeCulled ??= new bool[Points.Length];
+            toBeCulled[i] = true;
+        }
+
+        if (cullCount == 0) return this;
+        var culled = new TVector[Points.Length - cullCount];
+        var culledPos = -1;
+        for (var i = 0; i < Points.Length; i++)
+        {
+            if (toBeCulled![i]) continue;
+            culled[++culledPos] = Points[i];
+        }
+
+        return new(culled);
     }
 }

@@ -35,7 +35,7 @@ public class RollingListTest
             rolyPoly.PushFront(front);
             rolyPoly.PushBack(back);
         }
-        Assert.That(rolyPoly.ToArrayFast(), Is.EquivalentTo(linkedList.ToArray()));
-        Assert.That(rolyPoly.ToArrayFast(), Is.EquivalentTo(rolyPoly.ToArray()));
+        Assert.That(rolyPoly.ToArray(), Is.EquivalentTo(linkedList.ToArray()));
+        Assert.That(rolyPoly.ToArray(), Is.EquivalentTo(Enumerable.ToArray(rolyPoly)));
     }
 }

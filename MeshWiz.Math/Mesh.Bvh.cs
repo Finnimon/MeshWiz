@@ -15,15 +15,6 @@ public static partial class Mesh
             public readonly Vector3<TNum> Centroid = triangle.Centroid;
         }
 
-        private sealed record BvhSortingComparer<TNum> : IComparer<BvhSortingTriangle<TNum>>
-            where TNum : unmanaged, IFloatingPointIeee754<TNum>
-        {
-            public int Axis;
-
-            public int Compare(BvhSortingTriangle<TNum> x, BvhSortingTriangle<TNum> y)
-                => x.Centroid[Axis].CompareTo(y.Centroid[Axis]);
-        }
-
         public static (BoundedVolumeHierarchy<TNum> hierarchy, TriangleIndexer[] indices, Vector3<TNum>[] vertices)
             Hierarchize<TNum>(
                 IReadOnlyList<Triangle3<TNum>> mesh,

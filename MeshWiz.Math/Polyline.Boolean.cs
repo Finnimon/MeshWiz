@@ -2,13 +2,6 @@
 // Adds a generic BBox2<TNum> and moves self-contained boolean/hierarchy logic
 // into Polyline.Boolean nested static class. No external deps required.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using MeshWiz.Utility;
-using MeshWiz.Utility.Extensions;
-
 namespace MeshWiz.Math;
 
 

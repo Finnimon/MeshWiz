@@ -36,7 +36,7 @@ public class RollingListBenchmark
             rolyPoly.PushBack(append[i]);
         }
 
-        return rolyPoly.ToArrayFast();
+        return rolyPoly.ToArray();
     }
 
     [Benchmark]

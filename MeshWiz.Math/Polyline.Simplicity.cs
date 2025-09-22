@@ -1,4 +1,6 @@
 using System.Numerics;
+using JetBrains.Annotations;
+using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
@@ -46,12 +48,11 @@ public static partial class Polyline
         /// <param name="polygon"></param>
         /// <typeparam name="TNum"></typeparam>
         /// <returns></returns>
+        [Pure]
         public static Level MultiCheck<TNum>(Polyline<Vector2<TNum>, TNum> polygon)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
-            var level = WindingDirectionCheck(polygon);
-            if (level != Level.Unknown) return level;
-
+            if (polygon.IsClosed && Evaluate.IsConvex(polygon)) return Level.Simple;
             return CompleteCheck(polygon);
         }
 
@@ -69,20 +70,71 @@ public static partial class Polyline
                 for (var j = i + 2; j < polygon.Count; j++)
                 {
                     var l1 = polygon[j];
-                    if (!Line.TryIntersectOnSegment(l0, l1, out var t))
+                    if (!Line.TryIntersectOnSegment(l0, l1, out var t, out var t2))
                         continue;
                     if (i != 0 || j != polygon.Count - 1)
                         return Level.Complex;
-
-                    Line.TryIntersectOnSegment(l1, l0, out var t2);
-                    if (t.IsApprox(TNum.Zero) && t2.IsApprox(TNum.One)) return Level.Simple;
-                    var quickHeal = l1.Traverse(t);
-                    polygon.Points[0] = quickHeal;
-                    polygon.Points[^1] = quickHeal;
+                    if (t.IsApprox(TNum.Zero) && t2.IsApprox(TNum.One)) continue;
+                    return Level.Complex;
                 }
             }
 
             return Level.Simple;
+        }
+
+
+        public static Polyline<Vector2<TNum>, TNum>[] MakeSimple<TNum>(
+            Polyline<Vector2<TNum>, TNum> polygon,
+            TNum epsilon)
+            where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        {
+            var simplicity = MultiCheck(polygon);
+            if (simplicity == Level.Simple) return [polygon];
+            return MakeSimpleSkippingPreCheck(polygon, epsilon);
+        }
+
+        private static Polyline<Vector2<TNum>, TNum>[] MakeSimpleSkippingPreCheck<TNum>(
+            Polyline<Vector2<TNum>, TNum> polygon, TNum epsilon)
+            where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        {
+            var segmentPositions = FindIdentifiableSegments(polygon, epsilon);
+            RollingList<Vector2<TNum>>? connected = null;
+            var nextSeg = TNum.NaN;
+            var sinceLastAdd = 0;
+            RollingList<Polyline<Vector2<TNum>, TNum>> simplified = [];
+            while (segmentPositions.TryPopFront(out var range))
+            {
+                if (range.start.IsApprox(range.next))
+                {
+                    simplified.Add(polygon.ExactSection(range.start, range.end));
+                    continue;
+                }
+
+                if (connected is null || sinceLastAdd > segmentPositions.Count + 2 ||
+                    connected[0].IsApprox(connected[^1], epsilon))
+                {
+                    if (connected is { Count: > 1 })
+                        simplified.Add(new Polyline<Vector2<TNum>, TNum>(connected.ToArray()));
+                    connected = new(polygon.ExactSection(range.start, range.end).Points);
+                    nextSeg = range.next;
+                    sinceLastAdd = 0;
+                    continue;
+                }
+
+                if (!range.start.IsApprox(nextSeg, epsilon))
+                {
+                    segmentPositions.PushBack(range);
+                    sinceLastAdd++;
+                    continue;
+                }
+
+                sinceLastAdd = 0;
+                connected.PushBack(polygon.ExactSection(range.start, range.end).Points.AsSpan(1));
+            }
+            
+            if (connected is { Count: > 1 }) simplified.Add(new Polyline<Vector2<TNum>, TNum>(connected.ToArray()));
+
+            return Creation.UnifyNonReversing(simplified, epsilon);
         }
     }
 }

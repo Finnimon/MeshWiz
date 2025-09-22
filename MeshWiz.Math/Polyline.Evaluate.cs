@@ -1,3 +1,4 @@
+using System.Diagnostics.Contracts;
 using System.Numerics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
@@ -71,6 +72,7 @@ public static partial class Polyline
         }
 
 
+        [Pure]
         public static bool IsConvex<TNum>(Polyline<Vector2<TNum>, TNum> closedPolyline)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
@@ -101,16 +103,193 @@ public static partial class Polyline
         return polyline.Any(line => other.Any(otherLine => Line.TryIntersectOnSegment(line, otherLine, out _)));
     }
 
-    /// <summary>
-    /// Finds the shortest cross-section at indents
-    /// </summary>
-    /// <param name="polyline"></param>
-    /// <param name="windingOrder"></param>
-    /// <typeparam name="TNum"></typeparam>
-    /// <returns></returns>
-    public static TNum ShortestCrossSection<TNum>(Polyline<Vector2<TNum>, TNum> polyline, WindingOrder windingOrder)
+    public static SortedDictionary<int, List<(int With, TNum at)>> FindSelfIntersections<TNum>(
+        Polyline<Vector2<TNum>, TNum> polygon)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
+        SortedDictionary<int, List<(int With, TNum at)>> intersections = [];
+        for (var a = 0; a < polygon.Count; a++)
+        {
+            var lineA = polygon[a];
+            //ignore end
+            for (var b = a + 2; b < polygon.Count; b++)
+            {
+                var lineB = polygon[b];
+                if (!Line.TryIntersectOnSegment(lineA, lineB, out var alongA, out var alongB)) continue;
+
+                if (!intersections.TryGetValue(a, out var container))
+                {
+                    container = [];
+                    intersections.Add(a, container);
+                }
+
+                container.Add((b, alongA));
+
+                if (!intersections.TryGetValue(b, out container))
+                {
+                    container = [];
+                    intersections.Add(b, container);
+                }
+
+                container.Add((a, alongB));
+            }
+        }
+
+        return intersections;
+    }
+
+    public static Polyline<Vector2<TNum>, TNum>[] DegenerateIntersections<TNum>(
+        Polyline<Vector2<TNum>, TNum> polygon,
+        SortedDictionary<int, List<(int With, TNum at)>>? intersectionLookup = null)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+    {
+        intersectionLookup ??= FindSelfIntersections(polygon);
+        if (intersectionLookup.Count < 2)
+        {
+            polygon.Points[^1] = polygon.Points[0];
+            return [polygon];
+        }
+
+        if (intersectionLookup.Count == 2)
+        {
+            var first = intersectionLookup.First();
+            var last = intersectionLookup.Last();
+            if (first.Key == 0 && last.Key == polygon.Count - 1)
+            {
+                polygon.Points[^1] = polygon.Points[0];
+                return [polygon];
+            }
+
+            var start = polygon.CumulativeDistances[first.Key] + first.Value[0].at;
+            var end = polygon.CumulativeDistances[last.Key] + last.Value[0].at;
+            return [polygon.ExactSection(start, end)];
+        }
+
+        intersectionLookup.Values.ForEach(v
+            => v.Sort((ints, ints1) => ints.at.CompareTo(ints1.at)));
+
+        List<Polyline<Vector2<TNum>, TNum>> segs = [];
+        RollingList<Vector2<TNum>> active = [];
+        var keys = intersectionLookup.Keys.ToArray();
+        for (var i = 0; i < keys.Length; i++)
+        {
+            var curKey = keys[i];
+            var nextKey = i + 1 < keys.Length ? keys[i + 1] : keys[0];
+            var cur = intersectionLookup[curKey];
+            TNum start;
+            TNum end;
+            for (var j = 0; j < cur.Count - 1; j++)
+            {
+                start = polygon.CumulativeDistances[curKey] + cur[j].at;
+                end = polygon.CumulativeDistances[curKey] + cur[j + 1].at;
+                polygon.ExactSection(start, end);
+            }
+
+            start = polygon.CumulativeDistances[curKey] + cur[^1].at;
+            end = polygon.CumulativeDistances[curKey] + intersectionLookup[nextKey][0].at;
+            segs.Add(polygon.ExactSection(start, end));
+        }
+
+        List<Polyline<Vector2<TNum>, TNum>> results = [];
+        var alive = new bool[segs.Count];
+        Array.Fill(alive, true);
+        for (var i = 0; i < segs.Count; i++)
+        {
+            if (!alive[i]) continue;
+            alive[i] = false;
+            var seg = segs[i];
+            for (var j = i + 2; i < segs.Count + 2; j++)
+            {
+                var jIndex = j < segs.Count ? j : j - segs.Count;
+                if (!alive[jIndex]) continue;
+                var otherSeg = segs[j];
+            }
+        }
+
         throw new NotImplementedException();
+    }
+
+
+    public static RollingList<Polyline<Vector2<TNum>, TNum>> FindSegments<TNum>(
+        Polyline<Vector2<TNum>, TNum> polygon,
+        TNum minSegLength)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+    {
+        var level = Simplicity.MultiCheck(polygon);
+        if (level == Simplicity.Level.Simple)
+            return [polygon];
+        List<TNum> ranges = [];
+
+        for (var aIndex = 0; aIndex < polygon.Count; aIndex++)
+        {
+            var a = polygon[aIndex];
+            var cumDistance = polygon.CumulativeDistances[aIndex];
+            for (var bIndex = aIndex + 2; bIndex < polygon.Count; bIndex++)
+            {
+                var b = polygon[bIndex];
+                var doIntersect = Line.TryIntersectOnSegment(a, b, out var alongA, out var alongB);
+                if (!doIntersect) continue;
+                ranges.Add(cumDistance + alongA * a.Length);
+                ranges.Add(polygon.CumulativeDistances[bIndex] + alongB * b.Length);
+            }
+        }
+
+        ranges.Sort();
+        RollingList<Polyline<Vector2<TNum>, TNum>> segments = new(ranges.Count);
+
+        for (var i = 0; i < ranges.Count - 1; i++)
+        {
+            var rangeStart = ranges[i];
+            var rangeEnd = ranges[i + 1];
+            var rangeLen = rangeEnd - rangeStart;
+            if (rangeLen < minSegLength) continue;
+            segments.Add(polygon.ExactSection(rangeStart, rangeEnd));
+        }
+
+        if (polygon.IsClosed && !ranges[0].IsApprox(TNum.Zero)) segments.Add(polygon.ExactSection(ranges[^1], ranges[0]));
+        return segments;
+    }
+
+    public static RollingList<(TNum start, TNum end, TNum next)> FindIdentifiableSegments<TNum>(
+        Polyline<Vector2<TNum>, TNum> polygon,
+        TNum minSegLength)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+    {
+        var level = Simplicity.MultiCheck(polygon);
+        if (level == Simplicity.Level.Simple)
+            return [(TNum.Zero, polygon.Length, TNum.Zero)];
+        List<(TNum end, TNum next)> ranges = [];
+
+        for (var aIndex = 0; aIndex < polygon.Count; aIndex++)
+        {
+            var a = polygon[aIndex];
+            var cumDistance = polygon.CumulativeDistances[aIndex];
+            for (var bIndex = aIndex + 2; bIndex < polygon.Count; bIndex++)
+            {
+                var b = polygon[bIndex];
+                var doIntersect = Line.TryIntersectOnSegment(a, b, out var alongA, out var alongB);
+                if (!doIntersect) continue;
+                var aPos = cumDistance + alongA * a.Length;
+                var bPos = polygon.CumulativeDistances[bIndex] + alongB * b.Length;
+                ranges.Add((aPos,bPos));
+                ranges.Add((bPos,aPos));
+            }
+        }
+
+        ranges.Sort((r1,r2)=>r1.end.CompareTo(r2.end));
+        
+        RollingList<(TNum start, TNum end, TNum next)> segments = new(ranges.Count);
+        for (var i = 0; i < ranges.Count - 1; i++)
+        {
+            var start = ranges[i].end;
+            var range = ranges[i + 1];
+            var end = range.end;
+            var next = range.next;
+            var rangeLen = end - start;
+            if (rangeLen < minSegLength) continue;
+            
+            segments.Add((start, end, next));
+        }
+        return segments;
     }
 }

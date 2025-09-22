@@ -792,15 +792,19 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
     public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out Vector4<TNum> result)
         => TryParse(s, NumberStyles.Any, provider, out result);
 
+    
     public override string ToString()
-        => this.ToString(null, null);
+        => ToString("G", CultureInfo.CurrentCulture);
 
-
-    public string ToString(string? format, IFormatProvider? formatProvider)
+    public string ToString(string? format, IFormatProvider? formatProvider = null)
     {
-        formatProvider ??= CultureInfo.InvariantCulture;
-        FormattableString formattable = $"{this}";
-        return formattable.ToString(formatProvider);
+        Span<char> buffer = stackalloc char[64]; // plenty for two numbers
+        if (TryFormat(buffer, out int charsWritten, format, formatProvider))
+            return new string(buffer[..charsWritten]);
+        buffer = stackalloc char[128];
+        if (TryFormat(buffer, out charsWritten, format, formatProvider))
+            return new string(buffer[..charsWritten]);
+        throw new InvalidOperationException();   
     }
 
 

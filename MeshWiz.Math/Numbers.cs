@@ -9,4 +9,5 @@ where TNum: INumberBase<TNum>
     public static readonly TNum Half=TNum.CreateTruncating(0.5f);
     public static readonly TNum Three=TNum.CreateTruncating(3);
     public static readonly TNum RootTwo = TNum.CreateTruncating(float.Sqrt(2f));
+    public static readonly TNum Four = TNum.CreateTruncating(4f);
 }

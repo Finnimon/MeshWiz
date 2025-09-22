@@ -52,6 +52,7 @@ public static class NumExt
     public static TNum Wrap<TNum>(this TNum value, TNum min, TNum max)
     where TNum:INumber<TNum>
     {
+        
         var range = max - min;
         if (range == TNum.Zero)
             return min; // or throw
@@ -72,6 +73,9 @@ public static class NumExt
     public static int EpsilonTruncatingSign<TNum>(this TNum num, TNum epsilon)
         where TNum : IFloatingPoint<TNum>
     {
+#if DEBUG
+        if(epsilon<TNum.Zero) throw new ArgumentOutOfRangeException();
+#endif
         if (num > epsilon) return 1;
         if (num < -epsilon) return -1;
         return 0;
@@ -85,4 +89,14 @@ public static class NumExt
     public static bool InsideRange<TNum>(this TNum value, TNum min, TNum max)
         where TNum : IFloatingPointIeee754<TNum> =>
         value>=min-TNum.Epsilon&&value<=max+TNum.Epsilon;
+
+    public static TNum NextPow2<TNum>(this TNum num)
+        where TNum : IBinaryInteger<TNum>
+    {
+        var halfBitSize = Unsafe.SizeOf<TNum>() * 4;
+        --num;
+        for (var shift = 1; shift <= halfBitSize; shift *= 2)
+            num |= num >> shift;
+        return ++num;
+    }
 }

@@ -2,4 +2,4 @@
 using MeshWiz.Math.Benchmark;
 
 
-BenchmarkRunner.Run<PlaneBvhIntersectBench>();
+BenchmarkRunner.Run<PlaneAabbIntersectionSpeed>();

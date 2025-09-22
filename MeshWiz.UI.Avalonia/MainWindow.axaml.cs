@@ -10,6 +10,7 @@ using MeshWiz.IO;
 using MeshWiz.IO.Stl;
 using MeshWiz.Math;
 using MeshWiz.Slicer;
+using MeshWiz.Slicer.OpenTK;
 using OpenTK.Mathematics;
 
 namespace MeshWiz.UI.Avalonia;
@@ -31,8 +32,10 @@ public partial class MainWindow : Window
             .From(new Vector3<float>(-10, -10, -10))
             .CombineWith(new Vector3<float>(10, 10, 10));
         IIndexedMesh<float> meshi = AABB.Tessellate(box).Indexed();
+        // meshi = new Sphere<float>(Vector3<float>.Zero, 10).Tessellate().Indexed();
+
         // meshi =new IndexedMesh3<float>(new Sphere<float>(Vector3<float>.Zero, 1).TessellatedSurface);
-        // meshi = MeshIO.ReadFile<FastStlReader, float>("/home/finnimon/source/repos/TestFiles/drag.stl").Indexed();
+        meshi = MeshIO.ReadFile<FastStlReader, float>("/home/finnimon/source/repos/TestFiles/drag.stl").Indexed();
         var mesh = new BvhMesh<float>(meshi);
         // mesh=new  IndexedMesh3<float>(new Sphere<float>(Vector3<float>.Zero, 1).TessellatedSurface);
         Console.WriteLine(
@@ -43,34 +46,79 @@ public partial class MainWindow : Window
         MeshViewWrap.Unwrap.Mesh = mesh;
         BBoxWrap.Unwrap.Camera = camera;
         BBoxWrap.Unwrap.BBox = mesh.BBox;
-        var minY = mesh.BBox.Min.Y;
+        var minY = mesh.BBox.Min.Y + 0.0001f;
         var maxY = mesh.BBox.Max.Y;
         var range = maxY - minY;
 
-        List<Line<Vector3<float>, float>> polylines = [];
-        Stopwatch sw = Stopwatch.StartNew();
-        for (var h = minY; h <= maxY; h += 1)
-        {
-            var plane = new Plane3<float>(Vector3<float>.UnitY, Vector3<float>.UnitY * h);
-            var pl = mesh.IntersectRolling(plane).OrderByDescending(x => x.Length).FirstOrDefault();
-            if (pl is null) continue;
-            var layer = SimpleConcentric.GenPattern(pl, 0.5f).Select(plane.ProjectIntoWorld);
-            polylines.AddRange(layer.SelectMany(polyline=>polyline));
-        }
-        Console.WriteLine(sw.Elapsed);
+        var layerCount = 64;
+        var levelHeight = range / layerCount;
+        var pathWidth = levelHeight;
+        var epsilon = range / 10000;
 
-        MeshViewWrap.Show = false;
+        Stopwatch sw = Stopwatch.StartNew();
+        var concentricPattern = ParallelEnumerable.Range(1, layerCount)
+            .Select(i => minY + levelHeight * i+0.5f*levelHeight)
+            .Select(h => new Plane3<float>(Vector3<float>.UnitY, Vector3<float>.UnitY * h))
+            .Select(plane => (intersected: mesh.IntersectRolling(plane), plane))
+            .SelectMany(tuple => tuple.intersected.Select(polyline => (polyline, tuple.plane)))
+            // .Select(tuple => tuple with { polyline = Polyline.Reduction.DouglasPeucker(tuple.polyline, epsilon) })
+            .Select(tuple => (pattern: SimpleConcentric.GenPattern(tuple.polyline, pathWidth), tuple.plane))
+            .SelectMany(tuple => tuple.pattern.Select(tuple.plane.ProjectIntoWorld))
+            .ToArray();
+        // var concentricPatternTcp = ParallelEnumerable.Range(1, layerCount)
+        //     .Select(i => minY + levelHeight * i - levelHeight / 2)
+        //     .Select(h => new Plane3<float>(Vector3<float>.UnitY, Vector3<float>.UnitY * h))
+        //     .Select(plane => SimpleConcentric.GenLayer(plane, mesh, pathWidth)).ToArray();
+        sw.Stop();
+
+        Console.WriteLine(
+            $"In {sw.Elapsed.TotalSeconds:F3} Total line count: {concentricPattern.Sum(layer => layer.Count)}");
+
+        var count = 0;
+        // for (var h = minY; h <= maxY; h += levelHeight)
+        // {
+        //     var plane = new Plane3<float>(Vector3<float>.UnitY, Vector3<float>.UnitY * h);
+        //     var pl = mesh.IntersectRolling(plane);
+        //     foreach (var polyline in pl)
+        //     {
+        //         var reduced = Polyline.Reduction.DouglasPeucker(polyline, epsilon);
+        //         var simplified = SimpleConcentric.GenPattern(reduced, pathWidth);
+        //         foreach (var simple in simplified)
+        //         {
+        //             count++;
+        //             var world = plane.ProjectIntoWorld(simple);
+        //             polylines.AddRange(world);
+        //         }
+        //     }
+        // }
+        // polylines = selfCr3.ToList();
+        MeshViewWrap.Show = true;
+        MeshViewWrap.Unwrap.RenderModeFlags = RenderMode.None;
+        // GlParent.Children.Add(
+        //     new GLWrapper<ToolPathView>
+        //     {
+        //         Unwrap = new ToolPathView
+        //         {
+        //             Camera = camera,
+        //             PerimeterColor = Color4.LawnGreen,
+        //             Show = true,
+        //             LineWidth = 1,
+        //             Layers = concentricPatternTcp
+        //         }
+        //     }
+        // );
         GlParent.Children.Add(new GLWrapper<IndexedLineView>
         {
             Unwrap = new IndexedLineView
             {
                 Color = Color4.LawnGreen,
-                Lines = polylines,
+                Lines = concentricPattern.SelectMany(manyLine => manyLine),
                 Camera = camera,
-                LineWidth = 2,
+                LineWidth = 1,
                 Show = true,
             }
         });
+
 
         camera.LookAt = mesh.VolumeCentroid;
         Console.WriteLine($"distance: {distance}");
@@ -84,10 +132,7 @@ public partial class MainWindow : Window
         bg.RotationMillis = 100000;
     }
 
-    protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
-    {
-        MeshViewWrap.Unwrap.Camera.MoveForwards((float)e.Delta.Y);
-    }
+    protected override void OnPointerWheelChanged(PointerWheelEventArgs e) => MeshViewWrap.Unwrap.Camera.MoveForwards((float)e.Delta.Y);
 
     private bool _isPressed;
 

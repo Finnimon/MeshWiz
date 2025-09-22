@@ -25,7 +25,6 @@ public static partial class Polyline
             epsilon*=epsilon; //squared for faster comparisons
             while (jobs.TryPopFront(out var range))
             {
-                Console.WriteLine(range);
                 var (start, length) = range.GetOffsetAndLength(pts.Length);
                 var end = start + length - 1;
                 var l = ptSpan[start].LineTo(ptSpan[end]);

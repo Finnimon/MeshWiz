@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
@@ -21,7 +22,8 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
 
     public static Vector2<TNum> One { [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]get; }= new(TNum.One, TNum.One);
     public static Vector2<TNum> NaN { [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]get; }= new(TNum.NaN, TNum.NaN);
-
+    public static Vector2<TNum> UnitX { get; } = new(TNum.One, TNum.Zero);
+    public static Vector2<TNum> UnitY { get; } = new(TNum.Zero, TNum.One);
     /// <inheritdoc />
     public static Vector2<TNum> NegativeInfinity { get; } = new(TNum.NegativeInfinity);
 
@@ -648,6 +650,8 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
     public static Vector2<TNum> Max(Vector2<TNum> l, Vector2<TNum> r)
     =>new(TNum.Max(l.X, r.X), TNum.Max(l.Y, r.Y));
 
+    public static Vector2<TNum> Clamp(Vector2<TNum> value, Vector2<TNum>  min, Vector2<TNum> max)
+    =>Min(max,Max(min,value));
     
     /// <inheritdoc />
     public static bool TryParse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider,
@@ -703,14 +707,28 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
 
 
     public override string ToString()
-        => $"{this}";
-    public string ToString(string? format, IFormatProvider? formatProvider=null)
+        => ToString("G", CultureInfo.CurrentCulture);
+
+    public string ToString(string? format, IFormatProvider? formatProvider = null)
     {
-        formatProvider ??= CultureInfo.InvariantCulture;
-        // ReSharper disable once HeapView.ObjectAllocation
-        FormattableString formattable = $"{this}";
-        return formattable.ToString(formatProvider);
+        Span<char> buffer = stackalloc char[64];
+        if (TryFormat(buffer, out int charsWritten, format, formatProvider))
+            return new string(buffer[..charsWritten]);
+
+        var rented = ArrayPool<char>.Shared.Rent(256);
+        try
+        {
+            if (!TryFormat(rented, out charsWritten, format, formatProvider))
+                throw new InvalidOperationException();
+
+            return new string(rented, 0, charsWritten);
+        }
+        finally
+        {
+            ArrayPool<char>.Shared.Return(rented);
+        }
     }
+
     
     
     /// <inheritdoc />

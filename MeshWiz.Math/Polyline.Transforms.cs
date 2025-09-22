@@ -1,13 +1,9 @@
 using System.Numerics;
-using MeshWiz.Utility;
-using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
 public static partial class Polyline
 {
-    
-
     public static class Transforms
     {
         /// <summary>
@@ -184,7 +180,6 @@ public static partial class Polyline
 
             var n = polyline.Count;
             if (n == 0) return Polyline<Vector2<TNum>, TNum>.Empty;
-
             var lines = new Line<Vector2<TNum>, TNum>[n];
             for (var i = 0; i < n; i++)
             {
@@ -194,6 +189,7 @@ public static partial class Polyline
                 var offset = outsideDirection * amount;
                 lines[i] = new Line<Vector2<TNum>, TNum>(seg.Start + offset, seg.End + offset);
             }
+
 
             // Alive flags
             var alive = new bool[n];
@@ -328,5 +324,43 @@ public static partial class Polyline
         // {
         //     
         // }
+
+
+        public static Polyline<Vector2<TNum>, TNum> InflateFast<TNum>(Polyline<Vector2<TNum>, TNum> polyline,
+            TNum amount)
+            where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        {
+            if (polyline.Count < 1) return Polyline<Vector2<TNum>, TNum>.Empty;
+            var isClosed = polyline.IsClosed;
+
+            var prevLine = polyline[0];
+            prevLine += prevLine.NormalDirection.Right * amount;
+            var lastLine = polyline[^1];
+            lastLine += lastLine.NormalDirection.Right * amount;
+            var interSectionPoints = new Vector2<TNum>[polyline.Points.Length];
+            if (!isClosed)
+            {
+                interSectionPoints[0] = prevLine.Start;
+                interSectionPoints[^1] = lastLine.End;
+            }
+            else
+            {
+                Line.TryIntersect(prevLine, lastLine, out var alongA);
+                var p = prevLine.Traverse(alongA);
+                interSectionPoints[0] = p;
+                interSectionPoints[^1] = p;
+            }
+
+            for (var i = 1; i < polyline.Count; i++)
+            {
+                var line = polyline[i];
+                line += line.NormalDirection.Right * amount;
+                Line.TryIntersect(prevLine, line, out var intersection);
+                var p = prevLine.Traverse(intersection);
+                interSectionPoints[i] = p;
+            }
+
+            return new Polyline<Vector2<TNum>, TNum>(interSectionPoints);
+        }
     }
 }

@@ -53,7 +53,7 @@ public sealed class BBoxView : IOpenGLControl
         _ibo = new BufferObject(BufferTarget.ElementArrayBuffer);
         _ibo.BindAnd().BufferData(Indices,BufferUsageHint.StaticDraw);
         
-        OpenGLHelper.LogGlError(nameof(BBoxView),nameof(InitStorage));
+        OpenGLHelper.LogGlError(nameof(BBoxView));
     }
 
     public void Update(float aspectRatio)
@@ -74,7 +74,7 @@ public sealed class BBoxView : IOpenGLControl
             .SetUniform(nameof(objectColor),objectColor)
             .SetUniform(nameof(depthOffset),depthOffset)
             .Unbind();
-        OpenGLHelper.LogGlError(nameof(BBoxView),nameof(UpdateShader));
+        OpenGLHelper.LogGlError(nameof(BBoxView));
     }
 
     private void UploadBox()
@@ -100,7 +100,7 @@ public sealed class BBoxView : IOpenGLControl
         var posLoc = _shaderProgram!.GetAttribLoc("position");
         GL.VertexAttribPointer(posLoc,3,VertexAttribPointerType.Float,false,Vector3<float>.ByteSize,0);
         GL.EnableVertexAttribArray(posLoc);
-        OpenGLHelper.LogGlError(nameof(BBoxView),nameof(UploadBox));
+        OpenGLHelper.LogGlError(nameof(BBoxView));
     }
 
     public void Render()
@@ -116,7 +116,7 @@ public sealed class BBoxView : IOpenGLControl
         _shaderProgram!.Unbind();
         _vao!.Unbind();
 
-        OpenGLHelper.LogGlError(nameof(BBoxView),nameof(Render));
+        OpenGLHelper.LogGlError(nameof(BBoxView));
     }
     
     

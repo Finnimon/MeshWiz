@@ -1,5 +1,5 @@
 using System.Collections;
-using System.Runtime.CompilerServices;
+using System.Diagnostics.CodeAnalysis;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Utility;
@@ -7,16 +7,39 @@ namespace MeshWiz.Utility;
 /// <summary>
 /// Alternative to the much more costly LinkedList's Prepend/Append Functionality
 /// </summary>
-/// <typeparam name="T"></typeparam>
-public sealed class RollingList<T> : IReadOnlyList<T>
+/// <typeparam name="T">Typeof Items</typeparam>
+public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
 {
     private const int DefaultCapacity = 16;
     private T[] _items;
     private int _headIndex;
     private int _postTailIndex;
+
+    /// <inheritdoc />
+    public bool Remove(T item)
+    {
+        throw new NotImplementedException();
+    }
+
     public int Count { get; private set; }
 
-    public int Capacity => _items.Length;
+    /// <inheritdoc />
+    public bool IsReadOnly { get; }
+
+    public int Capacity
+    {
+        get => _items.Length;
+        private set
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(value, Count);
+            if (value == Capacity) return;
+            var result = new T[value];
+            CopyTo(result, 0);
+            _items = result;
+            _headIndex = 0;
+            _postTailIndex = Count;
+        }
+    }
 
     public RollingList(int capacity)
     {
@@ -65,46 +88,106 @@ public sealed class RollingList<T> : IReadOnlyList<T>
         throw new IndexOutOfRangeException();
     }
 
+    public T Head => this[0];
+    public T Tail => this[Count - 1];
 
     public void PushFront(T item)
     {
+        if (Capacity < Count+1) Capacity *= 2;
         Count++;
-        GrowAsNeeded();
         if (_headIndex <= 0) _headIndex = _items.Length;
         _headIndex--;
         _items[_headIndex] = item;
     }
 
-    private void GrowAsNeeded()
-    {
-        if (Count <= _items.Length) return;
+    public void PushFront(Span<T> span) => PushFront((ReadOnlySpan<T>)span);
 
-        var arrayLength = _items.Length;
-        var newSize = 2 * arrayLength;
-        if (_headIndex == 0)
+    public void PushFront(ReadOnlySpan<T> newItems)
+    {
+        var capacity = Capacity;
+        var newCount =Count+ newItems.Length;
+        var mustGrow = capacity < newCount;
+        if (mustGrow)
         {
-            Array.Resize(ref _items, newSize);
+            Capacity = newCount.NextPow2();
+            _headIndex = _items.Length - newItems.Length;
+            var target = _items.AsSpan(_postTailIndex);
+            newItems.CopyTo(target);
+            Count = newCount;
             return;
         }
+        Count = newCount;
+        var targetSpan = _items.AsSpan();
 
-        var newArray = new T[newSize];
-        var firstMoveSize = arrayLength - _headIndex;
-        Array.Copy(_items, _headIndex, newArray, 0, firstMoveSize);
-        if (_postTailIndex <= _headIndex)
-            Array.Copy(_items, 0, newArray, firstMoveSize, _postTailIndex);
-        _items = newArray;
-        _headIndex = 0;
-        _postTailIndex = Count - 1;
+        var firstMoveCapacity = _headIndex;
+        var firstMoveSize = int.Min(firstMoveCapacity, newItems.Length);
+        if (firstMoveCapacity > 0)
+        {
+            _headIndex -= firstMoveSize;
+            var firstMoveTarget = targetSpan[_headIndex..];
+            newItems[^firstMoveSize..].CopyTo(firstMoveTarget);
+        }
+
+        if (firstMoveSize == newItems.Length) return;
+
+        var secondMoveSize = newItems.Length - firstMoveSize;
+        _headIndex = _items.Length - secondMoveSize;
+        newItems[..secondMoveSize].CopyTo(targetSpan[_headIndex..]);
     }
+
+    
 
     public void PushBack(T item)
     {
+        if (Capacity < Count+1) Capacity *= 2;
         Count++;
-        GrowAsNeeded();
         _postTailIndex++;
-        if (_postTailIndex > Capacity) _postTailIndex = 1;
+        if (_postTailIndex > _items.Length) _postTailIndex = 1;
         _items[_postTailIndex - 1] = item;
     }
+
+
+    public void PushBack(Span<T> span) => PushBack((ReadOnlySpan<T>)span);
+
+    public void PushBack(ReadOnlySpan<T> newItems)
+    {
+        if (newItems.Length == 0) return;
+        var capacity = Capacity;
+        var newCount =Count+ newItems.Length;
+        var mustGrow = capacity < newCount;
+        
+        if (mustGrow)
+        {
+            Capacity = newCount.NextPow2();
+            var originalTail = _postTailIndex;
+            _postTailIndex += newItems.Length;
+            var target = _items.AsSpan()[originalTail.._postTailIndex];
+            newItems.CopyTo(target);
+            Count = newCount;
+            return;
+        }
+
+        Count = newCount;
+
+        var targetSpan = _items.AsSpan();
+
+        var firstMoveCapacity = Capacity - _postTailIndex;
+        var firstMoveSize = int.Min(firstMoveCapacity, newItems.Length);
+        if (firstMoveCapacity > 0)
+        {
+            var originalTail = _postTailIndex;
+            _postTailIndex += firstMoveSize;
+            var firstMoveTarget = targetSpan[originalTail..];
+            newItems[..firstMoveSize].CopyTo(firstMoveTarget);
+        }
+
+        if (firstMoveSize == newItems.Length) return;
+
+        var secondMoveSize = newItems.Length - firstMoveSize;
+        _postTailIndex = secondMoveSize;
+        newItems[firstMoveSize..].CopyTo(targetSpan[.._postTailIndex]);
+    }
+
 
     public void Add(T item) => PushBack(item);
 
@@ -117,8 +200,8 @@ public sealed class RollingList<T> : IReadOnlyList<T>
     private T PopFrontUnchecked()
     {
         Count--;
-        ref var head=ref _items[_headIndex];
-        var front = head ;
+        ref var head = ref _items[_headIndex];
+        var front = head;
         head = default!;
 
         _headIndex = _headIndex >= _items.Length - 1 ? 0 : _headIndex + 1;
@@ -142,7 +225,7 @@ public sealed class RollingList<T> : IReadOnlyList<T>
         return back!;
     }
 
-    public bool TryPopFront(out T item)
+    public bool TryPopFront([NotNullWhen(returnValue:true)] out T? item)
     {
         if (Count == 0)
         {
@@ -150,11 +233,11 @@ public sealed class RollingList<T> : IReadOnlyList<T>
             return false;
         }
 
-        item = PopFrontUnchecked();
+        item = PopFrontUnchecked()!;
         return true;
     }
 
-    public bool TryPopBack(out T item)
+    public bool TryPopBack([NotNullWhen(returnValue:true)] out T? item)
     {
         if (Count == 0)
         {
@@ -162,24 +245,16 @@ public sealed class RollingList<T> : IReadOnlyList<T>
             return false;
         }
 
-        item = PopBackUnchecked();
+        item = PopBackUnchecked()!;
         return true;
     }
 
-    public T[] ToArrayFast()
+    public T[] ToArray()
     {
         if (Count == 0) return [];
 
-        if (_postTailIndex == 0 || _postTailIndex > _headIndex)
-            return _items[_headIndex..(_headIndex + Count)];
-
         var result = new T[Count];
-
-        var firstMoveSize = int.Min(Count, _items.Length - _headIndex);
-
-        Array.Copy(_items, _headIndex, result, 0, firstMoveSize);
-        if (firstMoveSize == Count) return result;
-        Array.Copy(_items, 0, result, firstMoveSize, _postTailIndex);
+        CopyTo(result, 0);
         return result;
     }
 
@@ -188,6 +263,88 @@ public sealed class RollingList<T> : IReadOnlyList<T>
         if (Count == 0) yield break;
         for (var i = 0; i < Count; i++) yield return this[i];
     }
+
+    public void Clear()
+    {
+        Array.Fill(_items, default!);
+        _headIndex = 0;
+        _postTailIndex = 0;
+        Count = 0;
+    }
+
+    /// <inheritdoc />
+    public bool Contains(T item)
+    {
+        if (item is null)
+        {
+            for (var i = 0; i < Count; i++)
+                if (this[i] is null)
+                    return true;
+            return false;
+        }
+
+        for (var i = 0; i < Count; i++)
+        {
+            var current = this[i];
+            if (current is not null && item.Equals(current))
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <inheritdoc />
+    public void CopyTo(T[] array, int arrayIndex)
+    {
+        if (Count == 0) return;
+        var itemSpan = _items.AsSpan();
+        var overflow = _headIndex >= _postTailIndex;
+        var firstChunk = overflow
+            ? itemSpan[_headIndex..itemSpan.Length]
+            : itemSpan[_headIndex.._postTailIndex];
+        firstChunk.CopyTo(array.AsSpan(arrayIndex));
+        
+        var remainder = Count - firstChunk.Length;
+        if (remainder < 1) return;
+        
+        var secondChunk = itemSpan[..remainder];
+        secondChunk.CopyTo(array.AsSpan(arrayIndex + firstChunk.Length));
+    }
+
+    /// <inheritdoc />
+    public int IndexOf(T item)
+    {
+        if (item is null)
+        {
+            for (var i = 0; i < Count; i++)
+                if (this[i] is null)
+                    return i;
+            return -1;
+        }
+
+        for (var i = 0; i < Count; i++)
+        {
+            var current = this[i];
+            if (current is not null && item.Equals(current))
+                return i;
+        }
+
+        return -1;
+    }
+
+    /// <inheritdoc />
+    public void Insert(int index, T item)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <inheritdoc />
+    public void RemoveAt(int index)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void Trim() => this.Capacity = Count;
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

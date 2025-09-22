@@ -1,10 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
-public static partial class Polyline 
+public static partial class Polyline
 {
     public static class Creation
     {
@@ -44,11 +45,11 @@ public static partial class Polyline
                 }
                 else if (currentStart.IsApprox(line.Start, epsilon))
                 {
-                    connected.AddFirst(line.Reversed);
+                    connected.AddFirst(line.Reversed());
                 }
                 else if (currentEnd.IsApprox(line.End, epsilon))
                 {
-                    connected.AddLast(line.Reversed);
+                    connected.AddLast(line.Reversed());
                 }
                 else
                 {
@@ -150,7 +151,9 @@ public static partial class Polyline
         {
             if (connected.Count < 2) return;
 
-            var poly = new Polyline<TVec, TNum>(connected.ToArrayFast());
+            TryTrimTail<TVec, TNum>(connected);
+            
+            var poly = new Polyline<TVec, TNum>(connected.ToArray());
             if (poly.Count < 1) return;
             var length = poly.Length;
             if (length < minLength) return;
@@ -158,5 +161,143 @@ public static partial class Polyline
             polyLines.Add(poly);
         }
 
+        private static void TryTrimTail<TVec, TNum>(RollingList<TVec> connected) where TVec : unmanaged, IFloatingVector<TVec, TNum>
+            where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        {
+            if (connected.Count <= 3 || !connected[0].IsApprox(connected[^1])) return;
+            var tailDir=connected[^1]-connected[^2];
+            var headDir=connected[0]-connected[1];
+            if (!tailDir.IsApprox(headDir)) return;
+            connected.PopBack();
+            connected[0] = connected.Tail;
+        }
+
+
+        public static Polyline<TVec, TNum>[] UnifyNonReversing<TVec, TNum>(
+            RollingList<Polyline<TVec, TNum>> segments,
+            TNum? tolerance = null)
+            where TNum : unmanaged, IFloatingPointIeee754<TNum>
+            where TVec : unmanaged, IFloatingVector<TVec, TNum>
+        {
+            var epsilon = tolerance ?? TNum.Epsilon;
+            if (segments is { Count: 0 }) return [];
+            if (segments is { Count: 1 }) return segments.ToArray();
+
+            List<Polyline<TVec, TNum>> polyLines = [];
+            RollingList<TVec> connected = new(0);
+            var checkedSinceLastAdd = int.MaxValue;
+            while (segments.TryPopBack(out var segment))
+            {
+                if (segment.Length < epsilon)
+                    continue; //remove
+                if (segment.IsClosed)
+                {
+                    polyLines.Add(segment);
+                    continue;
+                }
+
+                if (checkedSinceLastAdd > segments.Count + 1 
+                    || connected.Count > 3 && connected[0].IsApprox(connected[^1], epsilon))
+                {
+                    AddIfValid(polyLines, connected, epsilon);
+                    connected = [..segment.Points];
+                    checkedSinceLastAdd = 0;
+                    continue;
+                }
+
+                var connectedStart = connected[0];
+                var connectedEnd = connected[^1];
+                if (connectedStart.IsApprox(segment.End, epsilon))
+                {
+                    connected.PushFront(segment.Points.AsSpan(..^1));
+                    checkedSinceLastAdd = 0;
+                }
+                else if (connectedEnd.IsApprox(segment.Start, epsilon))
+                {
+                    connected.PushBack(segment.Points.AsSpan(1));
+                    checkedSinceLastAdd = 0;
+                }
+                else
+                {
+                    segments.PushFront(segment);
+                    checkedSinceLastAdd++;
+                }
+            }
+
+            AddIfValid(polyLines, connected, epsilon);
+            return polyLines.ToArray();
+        }
+
+
+        public static Polyline<TVec, TNum>[] BuildAllConnectedCurves<TVec, TNum>(
+            IDictionary<int, RollingList<(int NextPolyline, Polyline<TVec, TNum> seg)>> segments,
+            TNum epsilon) where TVec : unmanaged, IFloatingVector<TVec, TNum>
+            where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        {
+            List<Polyline<TVec, TNum>> results = [];
+            while (segments.Count > 0)
+            {
+                var start = segments.Keys.First();
+                if (!TryBuildConnectedCurve(segments, start, epsilon, out var polyline)) continue;
+                results.Add(polyline);
+            }
+
+            return results.ToArray();
+        }
+
+        public static bool TryBuildConnectedCurve<TVec, TNum>(
+            IDictionary<int, RollingList<(int NextPolyline, Polyline<TVec, TNum> seg)>> segments,
+            int startingPoint,
+            TNum epsilon,
+            [NotNullWhen(returnValue: true)] out Polyline<TVec, TNum>? result)
+            where TNum : unmanaged, IFloatingPointIeee754<TNum>
+            where TVec : unmanaged, IFloatingVector<TVec, TNum>
+        {
+            var startingPointFound = segments.TryGetValue(startingPoint, out var startingSegments);
+            if (!startingPointFound || startingSegments is not { Count: > 0 })
+            {
+                result = null;
+                return false;
+            }
+
+            var startingSeg = startingSegments.PopFront();
+            if (startingSegments.Count == 0) segments.Remove(startingPoint);
+
+            if (startingSeg.seg.IsClosed)
+            {
+                result = startingSeg.seg;
+                return true;
+            }
+
+            RollingList<TVec> connected = new(startingSeg.seg.Points);
+            var nextIndex = startingSeg.NextPolyline;
+
+            while (segments.TryGetValue(nextIndex, out var nextSegs))
+            {
+                var tested = 0;
+                while ((tested++) < nextSegs.Count && nextSegs.TryPopFront(out var nextSeg))
+                {
+                    var (currentNextIndex, currentSeg) = nextSeg;
+                    if (!currentSeg.Start.IsApprox(connected.Tail, epsilon))
+                    {
+                        nextSegs.PushBack(nextSeg);
+                        continue;
+                    }
+
+                    nextIndex = currentNextIndex;
+                    connected.PushBack(currentSeg.Points.AsSpan(1));
+                    break;
+                }
+
+                if (segments.Count == 0) segments.Remove(nextIndex);
+
+                if (!connected.Head.IsApprox(connected.Tail, epsilon)) continue;
+                result = new(connected.ToArray());
+                return true;
+            }
+
+            result = new Polyline<TVec, TNum>(connected.ToArray());
+            return true;
+        }
     }
 }

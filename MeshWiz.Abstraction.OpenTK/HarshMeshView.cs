@@ -96,7 +96,7 @@ public class HarshMeshView : IOpenGLControl
                 .SetUniform("shininess", SolidShininessStrength)
                 .SetUniform("lightPos", LightPosition.ToOpenTK())
                 .Unbind();
-        OpenGLHelper.LogGlError(nameof(HarshMeshView), nameof(UpdateShaders));
+        OpenGLHelper.LogGlError(nameof(HarshMeshView));
     }
 
     public void Render()
@@ -133,7 +133,7 @@ public class HarshMeshView : IOpenGLControl
 
 
         _vao.Unbind();
-        OpenGLHelper.LogGlError(nameof(HarshMeshView), nameof(Render));
+        OpenGLHelper.LogGlError(nameof(HarshMeshView));
     }
 
     public float LineWidth

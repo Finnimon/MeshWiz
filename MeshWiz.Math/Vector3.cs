@@ -781,14 +781,19 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
         => ArrayParser.TryFormat(this.AsSpan(), destination, out charsWritten, format, provider);
 
 
-    [SuppressMessage("ReSharper", "UseStringInterpolation")]
+    
     public override string ToString()
-        => ToString(null, null);
+        => ToString("G", CultureInfo.CurrentCulture);
 
-    public string ToString(string? format, IFormatProvider? formatProvider)
+    public string ToString(string? format, IFormatProvider? formatProvider = null)
     {
-        formatProvider ??= CultureInfo.InvariantCulture;
-        FormattableString formattable = $"{this}";
-        return formattable.ToString(formatProvider);
+        Span<char> buffer = stackalloc char[64]; // plenty for two numbers
+        if (TryFormat(buffer, out int charsWritten, format, formatProvider))
+            return new string(buffer[..charsWritten]);
+        buffer = stackalloc char[128];
+        if (TryFormat(buffer, out charsWritten, format, formatProvider))
+            return new string(buffer[..charsWritten]);
+        throw new InvalidOperationException();   
     }
+    
 }
