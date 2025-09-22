@@ -1,6 +1,12 @@
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
+using System.Drawing;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
+using System.Xml.Serialization;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
@@ -10,20 +16,35 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
     where TVector : unmanaged, IFloatingVector<TVector, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    private TVector? _centroid;
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember]
+    private TVector? _vertexCentroid;
 
     private Polyline() : this(Points: []) { }
 
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public TVector Start => Points[0];
+
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public TVector End => Points[^1];
-    public int Count => Points.Length - 1;
+
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
+    public int Count => int.Max(Points.Length - 1, 0);
+
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public static Polyline<TVector, TNum> Empty { get; } = [];
+
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember]
     private AABB<TVector>? _bbox;
+
+    private TNum? _length;
+
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public AABB<TVector> BBox => _bbox ??= AABB<TVector>.From(Points);
 
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public unsafe Line<TVector, TNum> this[int index]
     {
-        [Pure]
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
             if (Count > (uint)index)
@@ -33,7 +54,8 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
         }
     }
 
-    public TVector VertexCentroid => _centroid ??= GetVertexCentroid();
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
+    public TVector VertexCentroid => _vertexCentroid ??= GetVertexCentroid();
 
     private TVector GetVertexCentroid()
     {
@@ -49,29 +71,20 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
             return centroid / count;
         }
 
-        foreach (var line in this) centroid += line.MidPoint;
-        return centroid / count;
+        for (var i = 1; i < Points.Length - 1; i++) centroid += Points[i];
+        centroid *= Numbers<TNum>.Two;
+        centroid += Points[0] + Points[^1];
+        return centroid / Numbers<TNum>.Two / count;
     }
 
-    private bool? _isClosed;
 
-    public bool IsClosed
-    {
-        get
-        {
-            if (_isClosed.HasValue) return _isClosed.Value;
-            _isClosed = Points.Length > 1 && Points[0].IsApprox(Points[^1], TNum.CreateChecked(0.000001));
-            if (_isClosed.Value) Points[^1] = Points[0];
-            return _isClosed.Value;
-        }
-    }
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
+    public bool IsClosed => Count > 2 && Points[0].IsApprox(Points[^1]);
 
-    private TNum? _length;
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public TNum Length => _length ??= CalculateLength();
 
-    private TNum[]? _positions;
-    internal TNum[] CumulativeDistances => _positions ??= CalculateCumulativeDistances();
-
+    [field: AllowNull, MaybeNull] internal TNum[] CumulativeDistances => field ??= CalculateCumulativeDistances();
     private TNum[] CalculateCumulativeDistances()
     {
         if (Points.Length == 0)
@@ -165,7 +178,8 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
 
     public Polyline<TVector, TNum> this[TNum start, TNum end] => Section(start, end);
 
-    public Polyline<TVector, TNum> Section(TNum start, TNum end)=>ExactSection(Length*start, Length*end);
+    public Polyline<TVector, TNum> Section(TNum start, TNum end) => ExactSection(Length * start, Length * end);
+
     public Polyline<TVector, TNum> ExactSection(TNum start, TNum end)
     {
         if (start.IsApprox(end)) return Empty;
@@ -173,7 +187,7 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
         if (!foundStart) throw new ArgumentOutOfRangeException(nameof(start), start, "Could not find");
         var foundEnd = TryFindContainingSegmentExactly(end, out var endSeg, out var endRem);
         if (!foundEnd) throw new ArgumentOutOfRangeException(nameof(end), end, "Could not find");
-        var wrappingAroundEnd = endSeg < startSeg||(endSeg==startSeg&&endRem<startRem);
+        var wrappingAroundEnd = endSeg < startSeg || (endSeg == startSeg && endRem < startRem);
         if (wrappingAroundEnd && !IsClosed) throw new ArgumentOutOfRangeException(nameof(end));
         TVector[] section;
         if (!wrappingAroundEnd)
@@ -183,11 +197,13 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
                 startSeg++;
                 startRem = TNum.Zero;
             }
+
             if (endRem.IsApprox(TNum.Zero))
             {
                 endSeg--;
                 endRem = this[endSeg].Length;
             }
+
             var exlusivePIndex = endSeg + 2;
             section = Points[startSeg..exlusivePIndex];
         }

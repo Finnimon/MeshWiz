@@ -224,6 +224,12 @@ namespace MeshWiz.Math
         public static Matrix3<TNum> operator -(Matrix3<TNum> mat)
             => new(-mat.X, -mat.Y, -mat.Z);
 
+        /// <inheritdoc />
+        public unsafe ReadOnlySpan<TNum> AsSpan()
+        {
+            fixed (TNum* ptr = &this.X.X) return new(ptr,ColumnCount*RowCount);
+        }
+
         public override bool Equals(object? obj)
             => obj is Matrix3<TNum> m && this == m;
 

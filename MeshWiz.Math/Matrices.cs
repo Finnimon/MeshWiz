@@ -5,7 +5,7 @@ namespace MeshWiz.Math;
 public static class Matrices
 {
     public static TNum Determinant<TNum, TMatrix>(ref this TMatrix matrix)
-        where TNum : IFloatingPointIeee754<TNum>
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
         where TMatrix : struct, IMatrix<TNum>
     
     {

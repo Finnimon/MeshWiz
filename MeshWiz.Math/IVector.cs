@@ -2,6 +2,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Globalization;
 using System.Numerics;
+using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
+using System.Xml.Serialization;
 using MeshWiz.Contracts;
 using MeshWiz.Utility;
 
@@ -36,13 +39,12 @@ public interface IVector<TSelf, TNum>
     [Pure]
     static abstract TSelf FromValue<TOtherNum>(TOtherNum other)
         where TOtherNum : INumberBase<TOtherNum>;
-
-
-    [Pure] static abstract uint Dimensions { get; }
-    [Pure] int IReadOnlyCollection<TNum>.Count => (int)TSelf.Dimensions;
-    [Pure] TNum Length { get; }
-    [Pure] TNum SquaredLength { get; }
-    [Pure] TSelf Normalized { get; }
+    
+    [JsonIgnore,XmlIgnore,SoapIgnore,IgnoreDataMember,Pure] static abstract uint Dimensions { get; }
+    [JsonIgnore,XmlIgnore,SoapIgnore,IgnoreDataMember,Pure] int IReadOnlyCollection<TNum>.Count => (int)TSelf.Dimensions;
+    [JsonIgnore,XmlIgnore,SoapIgnore,IgnoreDataMember,Pure] TNum Length { get; }
+    [JsonIgnore,XmlIgnore,SoapIgnore,IgnoreDataMember,Pure] TNum SquaredLength { get; }
+    [JsonIgnore,XmlIgnore,SoapIgnore,IgnoreDataMember,Pure] TSelf Normalized { get; }
 
     [Pure]
     TSelf Add(TSelf other);
@@ -95,9 +97,8 @@ public interface IVector<TSelf, TNum>
     public static abstract TSelf operator /(TNum l, TSelf r);
 
 
-    [Pure] public TNum Sum { get; }
-
-
+    [JsonIgnore,XmlIgnore,SoapIgnore,IgnoreDataMember,Pure] public TNum Sum { get; }
+    
     static bool INumberBase<TSelf>.TryConvertFromChecked<TOther>(TOther value, out TSelf result)
     {
         if (value is TNum)

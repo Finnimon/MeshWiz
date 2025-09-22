@@ -2,6 +2,9 @@ using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
+using System.Xml.Serialization;
 
 namespace MeshWiz.Math;
 
@@ -13,7 +16,7 @@ public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
     public static int ColumnCount => 4;
 
 
-    [Pure]
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public static Matrix4<TNum> Identity
     {
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -25,29 +28,36 @@ public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
             Vector4<TNum>.UnitW);
 
 
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public static Matrix4<TNum> Zero
     {
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get;
     } = new(TNum.Zero);
 
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public static Matrix4<TNum> One
     {
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get;
     } = new(TNum.One);
 
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public static Matrix4<TNum> NaN
     {
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get;
     } = new(TNum.NaN);
 
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public TNum Det => Determinant();
 
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public Vector4<TNum> Diagonal => new(M00, M11, M22, M33);
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public TNum Trace => M00 + M11 + M22 + M33;
-    public Matrix4<TNum> Normlized => this / Det;
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
+    public Matrix4<TNum> Normalized => this / Det;
 
     public readonly Vector4<TNum> X, Y, Z, W;
 
@@ -59,6 +69,11 @@ public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
 // @formatter:on
 
 
+    /// <inheritdoc />
+    public unsafe ReadOnlySpan<TNum> AsSpan()
+    {
+        fixed (TNum* ptr = &this.X.X) return new(ptr,ColumnCount*RowCount);
+    }
     public Matrix4(
         TNum m00, TNum m01, TNum m02, TNum m03,
         TNum m10, TNum m11, TNum m12, TNum m13,

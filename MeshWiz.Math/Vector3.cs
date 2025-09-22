@@ -421,21 +421,25 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
     /// <inheritdoc />
     public static Vector3<TNum> AdditiveIdentity => Zero;
 
+    
     /// <inheritdoc />
     public static bool operator >(Vector3<TNum> left, Vector3<TNum> right)
-        => left.SquaredLength > right.SquaredLength;
+    {
+        var max= Max(left, right);
+        return max == left && max != right;
+    }
 
     /// <inheritdoc />
     public static bool operator >=(Vector3<TNum> left, Vector3<TNum> right)
-        => left.SquaredLength >= right.SquaredLength;
+        => Max(left,right)==left;
 
     /// <inheritdoc />
     public static bool operator <(Vector3<TNum> left, Vector3<TNum> right)
-        => left.SquaredLength < right.SquaredLength;
+        => right>left;
 
     /// <inheritdoc />
     public static bool operator <=(Vector3<TNum> left, Vector3<TNum> right)
-        => left.SquaredLength <= right.SquaredLength;
+        => right >= left;
 
     /// <inheritdoc />
     public static Vector3<TNum> operator --(Vector3<TNum> v)

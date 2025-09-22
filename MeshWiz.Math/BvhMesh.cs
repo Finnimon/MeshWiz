@@ -228,7 +228,7 @@ public class BvhMesh<TNum> : IIndexedMesh<TNum>
         {
             var node = Hierarchy[index];
             var bbox = node.Bounds;
-            AABB<Vector3<TOther>> oBBox = new(bbox.Min.To<TOther>(), bbox.Max.To<TOther>());
+            AABB<Vector3<TOther>> oBBox = bbox.To<Vector3<TOther>>();
             BoundedVolume<TOther> otherNode = node.IsParent
                 ? BoundedVolume<TOther>.MakeParent(oBBox, node.FirstChild, node.SecondChild)
                 : BoundedVolume<TOther>.MakeLeaf(oBBox, node.Start, node.Length);

@@ -340,19 +340,22 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
 
     /// <inheritdoc />
     public static bool operator >(Vector2<TNum> left, Vector2<TNum> right)
-        => left.SquaredLength > right.SquaredLength;
+    {
+        var max= Max(left, right);
+        return max == left && max != right;
+    }
 
     /// <inheritdoc />
     public static bool operator >=(Vector2<TNum> left, Vector2<TNum> right)
-        => left.SquaredLength >= right.SquaredLength;
+        => Max(left,right)==left;
 
     /// <inheritdoc />
     public static bool operator <(Vector2<TNum> left, Vector2<TNum> right)
-        => left.SquaredLength < right.SquaredLength;
+        => right>left;
 
     /// <inheritdoc />
     public static bool operator <=(Vector2<TNum> left, Vector2<TNum> right)
-        => left.SquaredLength <= right.SquaredLength;
+        => right >= left;
 
     /// <inheritdoc />
     public static Vector2<TNum> operator --(Vector2<TNum> v)

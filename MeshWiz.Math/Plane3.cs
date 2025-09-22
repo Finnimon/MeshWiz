@@ -2,6 +2,9 @@ using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
+using System.Xml.Serialization;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
@@ -20,6 +23,7 @@ public readonly struct Plane3<TNum>
 
     public readonly TNum D;
     public readonly Vector3<TNum> Normal;
+    [JsonIgnore,XmlIgnore,SoapIgnore,IgnoreDataMember,Pure]
     public Vector4<TNum> AsVector4 => new(Normal, D);
 
     public Plane3(in Triangle3<TNum> triangleOnPlane) : this(triangleOnPlane.Normal, triangleOnPlane.A) { }

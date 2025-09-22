@@ -415,22 +415,26 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
     /// <inheritdoc />
     public static Vector4<TNum> AdditiveIdentity => Zero;
 
+    
     /// <inheritdoc />
     public static bool operator >(Vector4<TNum> left, Vector4<TNum> right)
-        => left.SquaredLength > right.SquaredLength;
+    {
+        var max= Max(left, right);
+        return max == left && max != right;
+    }
 
     /// <inheritdoc />
     public static bool operator >=(Vector4<TNum> left, Vector4<TNum> right)
-        => left.SquaredLength >= right.SquaredLength;
+        => Max(left,right)==left;
 
     /// <inheritdoc />
     public static bool operator <(Vector4<TNum> left, Vector4<TNum> right)
-        => left.SquaredLength < right.SquaredLength;
+        => right>left;
 
     /// <inheritdoc />
     public static bool operator <=(Vector4<TNum> left, Vector4<TNum> right)
-        => left.SquaredLength <= right.SquaredLength;
-
+        => right >= left;
+    
     /// <inheritdoc />
     public static Vector4<TNum> operator --(Vector4<TNum> v)
         => v - One;

@@ -337,6 +337,4 @@ public static partial class Mesh
             return newBounds;
         }
     }
-
-
 }

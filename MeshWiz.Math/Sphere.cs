@@ -13,15 +13,7 @@ public readonly record struct Sphere<TNum>(Vector3<TNum> Centroid, TNum Radius)
 
     public ISurface<Vector3<TNum>, TNum> Surface => throw new NotImplementedException("Explicit Sphere face missing");
 
-    public AABB<Vector3<TNum>> BBox
-    {
-        get
-        {
-            var offset = Vector3<TNum>.One * Radius;
-            return new AABB<Vector3<TNum>>(Centroid - offset, Centroid + offset);
-        }
-    }
-    
+    public AABB<Vector3<TNum>> BBox => AABB.Around(Centroid, Numbers<Vector3<TNum>>.Two * Radius);
     
     public static Triangle3<TNum>[] GenerateTessellation(in Sphere<TNum> sphere, int stacks, int slices)=>GenerateTessellation(sphere.Centroid, sphere.Radius, stacks, slices);
 

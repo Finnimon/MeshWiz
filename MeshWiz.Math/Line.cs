@@ -1,5 +1,9 @@
+using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
+using System.Xml.Serialization;
 
 namespace MeshWiz.Math;
 
@@ -10,57 +14,86 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public Line<TVector, TNum> Normalized() => FromDirection(Start, NormalDirection);
+
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public TVector MidPoint => (Start + End) * Numbers<TNum>.Half;
+
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     bool ICurve<TVector, TNum>.IsClosed => false;
+
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public TNum Length => Direction.Length;
+
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public TVector Direction => End.Subtract(Start);
+
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public TVector NormalDirection => Direction.Normalized;
+
     public Line<TVector, TNum> Reversed() => new(End, Start);
+
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     TNum IDiscreteCurve<TVector, TNum>.Length => Direction.Length;
+
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public TNum SquaredLength => Direction.SquaredLength;
-    public AABB<TVector> Bounds =>AABB<TVector>.From(Start, End);
 
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
+    public AABB<TVector> Bounds => AABB<TVector>.From(Start, End);
 
+    [Pure]
     public static Line<TVector, TNum> FromDirection(TVector start, TVector direction)
         => new(start, start.Add(direction));
 
+    [Pure]
     public static Line<TVector, TNum> FromDirection(TVector direction)
         => new(TVector.Zero, direction);
 
+    [Pure]
     public TVector Traverse(TNum distance)
         => Start + Direction * distance;
 
+    [Pure]
     public TVector TraverseOnCurve(TNum distance)
         => Traverse(TNum.Clamp(distance, TNum.Zero, TNum.One));
 
+    [Pure]
     public static Line<TVector, TNum> operator +(Line<TVector, TNum> l, Line<TVector, TNum> r)
         => FromDirection(l.Start + r.Start, l.Direction + r.Direction);
 
+    [Pure]
     public static Line<TVector, TNum> operator +(Line<TVector, TNum> l, TVector r)
-        => new(l.Start+r, l.End + r);
+        => new(l.Start + r, l.End + r);
 
+    [Pure]
     public static Line<TVector, TNum> operator +(TVector l, Line<TVector, TNum> r)
         => r + l;
 
+    [Pure]
     public static Line<TVector, TNum> operator -(Line<TVector, TNum> l, Line<TVector, TNum> r)
         => FromDirection(l.Start - r.Start, l.Direction - r.Direction);
 
+    [Pure]
     public static Line<TVector, TNum> operator *(Line<TVector, TNum> l, TNum r)
         => FromDirection(l.Start * r, l.Direction * r);
 
+    [Pure]
     public TNum DistanceTo(TVector p)
         => ClosestPoint(p).DistanceTo(p);
 
+    [Pure]
     public TNum DistanceToSegment(TVector p)
         => ClosestPointOnSegment(p).DistanceTo(p);
 
+    [Pure]
     public TNum SquaredDistanceTo(TVector p)
         => ClosestPoint(p).SquaredDistanceTo(p);
 
+    [Pure]
     public TNum SquaredDistanceToSegment(TVector p)
         => ClosestPointOnSegment(p).SquaredDistanceTo(p);
 
-
+    [Pure]
     public TVector ClosestPoint(TVector p)
     {
         var v = p - Start;
@@ -70,6 +103,7 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
         return Start + alongVector;
     }
 
+    [Pure]
     public TVector ClosestPointOnSegment(TVector p)
     {
         var v = p - Start;
@@ -85,6 +119,7 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
 
 public static class Line
 {
+    [Pure]
     public static bool TryIntersect<TNum>(
         in Line<Vector2<TNum>, TNum> a,
         in Line<Vector2<TNum>, TNum> b,
@@ -108,6 +143,7 @@ public static class Line
         return true;
     }
 
+    [Pure]
     public static bool TryIntersectOnSegment<TNum>(
         in Line<Vector2<TNum>, TNum> a,
         in Line<Vector2<TNum>, TNum> b,
@@ -137,6 +173,7 @@ public static class Line
                && TNum.Clamp(t2, TNum.Zero, TNum.One) == t2;
     }
 
+    [Pure]
     public static bool TryIntersectOnSegment<TNum>(
         in Line<Vector2<TNum>, TNum> a,
         in Line<Vector2<TNum>, TNum> b,

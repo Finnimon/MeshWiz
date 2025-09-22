@@ -16,7 +16,7 @@ public readonly struct BBox3<TNum> : IBody<TNum>, IEquatable<BBox3<TNum>>
         new(TNum.NegativeInfinity, TNum.NegativeInfinity, TNum.NegativeInfinity));
 
     public readonly Vector3<TNum> Min, Max;
-    public AABB<Vector3<TNum>> BBox => new(Min,Max);
+    public AABB<Vector3<TNum>> BBox => AABB.From(Min,Max);
     public Vector3<TNum> Centroid => (Min + Max) / Numbers<TNum>.Two;
     public Vector3<TNum> Size => Max - Min;
     private Vector3<TNum> Diagonal => Max - Min;

@@ -17,7 +17,7 @@ public interface IFloatingVector<TSelf, TNum>
                 return true;
         return false;
     }
-
+    [Pure]
     public Line<TSelf, TNum> LineTo(TSelf end);
     /// <inheritdoc />
     int IFloatingPoint<TSelf>.GetExponentByteCount()

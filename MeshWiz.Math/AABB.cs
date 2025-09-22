@@ -1,6 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
+using System.Xml.Serialization;
 
 namespace MeshWiz.Math;
 
@@ -8,17 +13,31 @@ namespace MeshWiz.Math;
 /// Axis aligned Bounding Box
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
-public readonly struct AABB<TNum>(TNum min, TNum max)
+public readonly struct AABB<TNum>
     : IEqualityOperators<AABB<TNum>, AABB<TNum>, bool>,
         IEquatable<AABB<TNum>>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember]
     public static readonly AABB<TNum> Empty = new(TNum.PositiveInfinity, TNum.NegativeInfinity);
-    public readonly TNum Min = min, Max = max;
+
+    public readonly TNum Min, Max;
+
+    private AABB(TNum min, TNum max)
+    {
+        Min = min;
+        Max = max;
+    }
+
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public TNum Size => Max - Min;
+
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public TNum Center => Min + Size / Numbers<TNum>.Two;
+
     private AABB(TNum p) : this(p, p) { }
 
+    [Pure]
     public AABB<TNum> CombineWith(TNum p)
     {
         var min = TNum.Min(p, Min);
@@ -26,6 +45,8 @@ public readonly struct AABB<TNum>(TNum min, TNum max)
         return new AABB<TNum>(min, max);
     }
 
+    [Pure]
+    [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     public AABB<TNum> CombineWith(TNum p1, TNum p2)
     {
         var min = TNum.Min(p1, Min);
@@ -35,6 +56,7 @@ public readonly struct AABB<TNum>(TNum min, TNum max)
         return new AABB<TNum>(min, max);
     }
 
+    [Pure]
     public AABB<TNum> CombineWith(TNum p1, TNum p2, TNum p3)
     {
         var min = TNum.Min(p1, Min);
@@ -46,6 +68,8 @@ public readonly struct AABB<TNum>(TNum min, TNum max)
         return new AABB<TNum>(min, max);
     }
 
+    [Pure]
+    [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     public AABB<TNum> CombineWith(TNum p1, TNum p2, TNum p3, TNum p4)
     {
         var min = TNum.Min(p1, Min);
@@ -59,50 +83,62 @@ public readonly struct AABB<TNum>(TNum min, TNum max)
         return new AABB<TNum>(min, max);
     }
 
+    [Pure]
     public AABB<TNum> CombineWith(AABB<TNum> other)
         => new(TNum.Min(Min, other.Min), TNum.Max(Max, other.Max));
 
+    [Pure]
     public AABB<TNum> CombineWith(AABB<TNum> aabb1, AABB<TNum> aabb2)
         => new(TNum.Min(TNum.Min(Min, aabb1.Min), aabb2.Min),
             TNum.Max(TNum.Max(Max, aabb1.Max), aabb2.Max));
 
 
+    [Pure]
     public static AABB<TNum> Combine(AABB<TNum> a, AABB<TNum> b)
         => a.CombineWith(b);
 
+    [Pure]
     public static AABB<TNum> Combine(AABB<TNum> a, AABB<TNum> b, AABB<TNum> c)
         => a.CombineWith(b, c);
 
+    [Pure]
     public static AABB<TNum> Combine(AABB<TNum> a, TNum p)
         => a.CombineWith(p);
 
+    [Pure]
     public static AABB<TNum> Combine(AABB<TNum> a, TNum p1, TNum p2)
         => a.CombineWith(p1, p2);
 
+    [Pure]
     public static AABB<TNum> Combine(AABB<TNum> a, TNum p1, TNum p2, TNum p3)
         => a.CombineWith(p1, p2, p3);
 
+    [Pure]
     public static AABB<TNum> Combine(AABB<TNum> a, TNum p1, TNum p2, TNum p3, TNum p4)
         => a.CombineWith(p1, p2, p3, p4);
 
 
+    [Pure]
     public static AABB<TNum> From(TNum p)
         => new(p);
 
+    [Pure]
     public static AABB<TNum> From(TNum p1, TNum p2)
     {
         var min = TNum.Min(p1, p2);
         var max = TNum.Max(p1, p2);
         return new(min, max);
     }
-    
+
+    [Pure]
     public static AABB<TNum> Around(TNum center, TNum size)
     {
-        size/=Numbers<TNum>.Two;
-        return From(center-size,center+size);
+        size = TNum.Abs(size) * Numbers<TNum>.Half;
+        return From(center - size, center + size);
     }
-    
 
+
+    [Pure]
     public static AABB<TNum> From(TNum p1, TNum p2, TNum p3)
     {
         var min = TNum.Min(p1, p2);
@@ -112,6 +148,7 @@ public readonly struct AABB<TNum>(TNum min, TNum max)
         return new AABB<TNum>(min, max);
     }
 
+    [Pure]
     public static AABB<TNum> From(TNum p1, TNum p2, TNum p3, TNum p4)
     {
         var min = TNum.Min(p1, p2);
@@ -124,54 +161,114 @@ public readonly struct AABB<TNum>(TNum min, TNum max)
     }
 
 
+    [Pure]
     public static AABB<TNum> From(params TNum[] pts)
-    {
-        var min = TNum.PositiveInfinity;
-        var max = TNum.NegativeInfinity;
-        foreach (var p in pts)
+        => pts.Length switch
         {
-            min = TNum.Min(p, min);
-            max = TNum.Max(p, max);
+            0 => Empty,
+            1 => From(pts[0]),
+            2 => From(pts[0], pts[1]),
+            3 => From(pts[0], pts[1], pts[2]),
+            4 => From(pts[0], pts[1], pts[2], pts[3]),
+            _ => FromNotEmptyArray(pts)
+        };
+
+    private static AABB<TNum> FromNotEmptyArray(TNum[] pts)
+    {
+        var min = pts[0];
+        var max = pts[0];
+
+        for (var i = 1; i < pts.Length; i++)
+        {
+            min = TNum.Min(min, min);
+            max = TNum.Max(max, max);
         }
 
-        return new(min, max);
+        return new AABB<TNum>(min, max);
     }
 
+    [Pure]
     public bool Contains(TNum p) => Clamp(p) == p;
+
+    [Pure]
     public bool Contains(TNum p, TNum epsilon) => TNum.Abs(Clamp(p) - p) < epsilon;
 
+    [Pure]
     public bool IntersectsWith(AABB<TNum> other) => Contains(TNum.Clamp(Center, other.Min, other.Max));
 
 
     /// <inheritdoc />
+    [Pure]
     public static bool operator ==(AABB<TNum> left, AABB<TNum> right)
         => left.Equals(right);
 
     /// <inheritdoc />
+    [Pure]
     public static bool operator !=(AABB<TNum> left, AABB<TNum> right)
         => !left.Equals(right);
 
     /// <inheritdoc />
+    [Pure]
     public bool Equals(AABB<TNum> other)
         => Min == other.Min && Max == other.Max;
 
 
     /// <inheritdoc />
+    [Pure]
     public override bool Equals(object? obj) => obj is AABB<TNum> other && Equals(other);
 
     /// <inheritdoc />
+    [Pure]
     public override int GetHashCode() => HashCode.Combine(Min, Max);
 
+    [Pure]
     public TNum DistanceTo(TNum p)
         => TNum.Abs(p - Clamp(p));
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Pure]
     public TNum Clamp(TNum value) => TNum.Clamp(value, Min, Max);
+
+    public AABB<TOther> To<TOther>() where TOther : unmanaged, IFloatingPointIeee754<TOther>
+    {
+        return new AABB<TOther>(TOther.CreateTruncating(Min), TOther.CreateTruncating(Max));
+    }
 }
 
 public static class AABB
 {
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static AABB<TNum> From<TNum>(TNum p1)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        => AABB<TNum>.From(p1);
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static AABB<TNum> From<TNum>(TNum p1, TNum p2)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        => AABB<TNum>.From(p1, p2);
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static AABB<TNum> From<TNum>(TNum p1, TNum p2, TNum p3)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        => AABB<TNum>.From(p1, p2, p3);
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static AABB<TNum> From<TNum>(TNum p1, TNum p2, TNum p3, TNum p4)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        => AABB<TNum>.From(p1, p2, p3, p4);
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static AABB<TNum> From<TNum>(params TNum[] pts)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        => AABB<TNum>.From(pts);
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static AABB<TNum> Around<TNum>(TNum center, TNum size)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum> =>
+        AABB<TNum>.Around(center, size);
+
+    [Pure]
     public static TNum GetArea<TNum>(this AABB<Vector2<TNum>> aabb)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
@@ -181,6 +278,7 @@ public static class AABB
             : TNum.NaN;
     }
 
+    [Pure]
     public static TNum GetVolume<TNum>(this AABB<Vector3<TNum>> aabb)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
@@ -190,6 +288,7 @@ public static class AABB
             : TNum.NaN;
     }
 
+    [Pure]
     public static TNum GetArea<TNum>(this AABB<Vector3<TNum>> aabb)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
@@ -199,10 +298,13 @@ public static class AABB
             : TNum.NaN;
     }
 
+    [Pure]
     public static IndexedMesh<TNum> Tessellate<TNum>(this AABB<Vector3<TNum>> box)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
         => new(Vertices(box), Indices());
 
+    [Pure]
+    [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     public static TriangleIndexer[] Indices() => TesselationIndices[..];
 
     private static readonly TriangleIndexer[] TesselationIndices =
@@ -215,6 +317,8 @@ public static class AABB
         new(0b011, 0b111, 0b010), new(0b111, 0b110, 0b010)
     ];
 
+    [Pure]
+    [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     public static Vector3<TNum>[] Vertices<TNum>(AABB<Vector3<TNum>> box)
         where TNum : unmanaged, IFloatingPointIeee754<TNum> =>
     [
