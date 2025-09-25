@@ -9,7 +9,7 @@ public class BvhMesh<TNum> : IIndexedMesh<TNum>
     public Vector3<TNum> VertexCentroid => _vertexCentroid ??= Mesh.Math.VertexCentroid(this);
     public Vector3<TNum> SurfaceCentroid => _surfaceCentroid ??= Mesh.Math.SurfaceCentroid(this).XYZ;
     public Vector3<TNum> VolumeCentroid => _volumeCentroid ??= Mesh.Math.VolumeCentroid(this).XYZ;
-
+    public readonly uint Depth;
     public TNum Volume => _volume ??= Mesh.Math.Volume(this);
     public TNum SurfaceArea => _surfaceArea ??= Mesh.Math.SurfaceArea(this);
     public AABB<Vector3<TNum>> BBox { get; }
@@ -31,7 +31,7 @@ public class BvhMesh<TNum> : IIndexedMesh<TNum>
 
     public BvhMesh(IReadOnlyList<Triangle3<TNum>> mesh, uint maxDepth=32,uint splitTests=4)
     {
-        (var hierarchy, Indices, Vertices) = Mesh.Bvh.Hierarchize(mesh,maxDepth,splitTests);
+        (var hierarchy, Indices, Vertices,Depth) = Mesh.Bvh.Hierarchize(mesh,maxDepth,splitTests);
         hierarchy.Trim();
         Hierarchy = hierarchy.GetUnsafeAccess();
         BBox = Hierarchy.Length>0? Hierarchy[0].Bounds: AABB<Vector3<TNum>>.Empty;

@@ -12,6 +12,14 @@
     <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
     <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
   </Project>
+  <Project Path="MeshWiz.Abstraction.OpenCL\MeshWiz.Abstraction.OpenCL.csproj" Type="Classic C#">
+    <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x86 " Project="Debug|Any CPU" />
+    <Configuration Solution="Release|Any CPU " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
+  </Project>
   <Project Path="MeshWiz.Abstraction.OpenTK\MeshWiz.Abstraction.OpenTK.csproj" Type="Classic C#">
     <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
     <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />

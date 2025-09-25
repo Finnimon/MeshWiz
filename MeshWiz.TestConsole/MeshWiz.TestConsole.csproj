@@ -6,6 +6,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\MeshWiz.Abstraction.OpenCL\MeshWiz.Abstraction.OpenCL.csproj" />
       <ProjectReference Include="..\MeshWiz.IO.Stl\MeshWiz.IO.Stl.csproj" />
       <ProjectReference Include="..\MeshWiz.IO\MeshWiz.IO.csproj" />
       <ProjectReference Include="..\MeshWiz.Math\MeshWiz.Math.csproj" />
@@ -13,6 +14,9 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Reference Include="OpenTK.Compute">
+        <HintPath>..\..\..\..\.nuget\packages\opentk.compute\4.9.4\lib\netcoreapp3.1\OpenTK.Compute.dll</HintPath>
+      </Reference>
       <Reference Include="OpenTK.Graphics">
         <HintPath>..\..\..\..\.nuget\packages\opentk.graphics\4.9.4\lib\netcoreapp3.1\OpenTK.Graphics.dll</HintPath>
       </Reference>

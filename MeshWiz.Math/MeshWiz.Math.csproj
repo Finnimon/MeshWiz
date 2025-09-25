@@ -8,5 +8,6 @@
     </ItemGroup>
     <ItemGroup>
       <PackageReference Include="JetBrains.Annotations" Version="2025.2.0" />
+      <PackageReference Include="OpenTK.Compute" Version="4.9.4" />
     </ItemGroup>
 </Project>

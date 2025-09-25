@@ -5,7 +5,7 @@ namespace MeshWiz.Math;
 
 public static partial class Mesh
 {
-    public static class Bvh
+    public static partial class Bvh
     {
         private readonly struct BvhSortingTriangle<TNum>(Triangle3<TNum> triangle)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
@@ -15,7 +15,10 @@ public static partial class Mesh
             public readonly Vector3<TNum> Centroid = triangle.Centroid;
         }
 
-        public static (BoundedVolumeHierarchy<TNum> hierarchy, TriangleIndexer[] indices, Vector3<TNum>[] vertices)
+        public static (BoundedVolumeHierarchy<TNum> hierarchy,
+            TriangleIndexer[] indices,
+            Vector3<TNum>[] vertices,
+            uint depth)
             Hierarchize<TNum>(
                 IReadOnlyList<Triangle3<TNum>> mesh,
                 uint maxDepth = 32,
@@ -24,7 +27,8 @@ public static partial class Mesh
         {
             splitTests = uint.Clamp(splitTests, 2, 32);
             var triangles = new BvhSortingTriangle<TNum>[mesh.Count];
-            var rootBox = AABB<Vector3<TNum>>.Empty;;
+            var rootBox = AABB<Vector3<TNum>>.Empty;
+            var resultDepth = 0U;
             for (var i = 0; i < mesh.Count; i++)
             {
                 var sorting = new BvhSortingTriangle<TNum>(mesh[i]);
@@ -35,7 +39,7 @@ public static partial class Mesh
             BoundedVolumeHierarchy<TNum> hierarchy = [BoundedVolume<TNum>.MakeLeaf(rootBox, 0, triangles.Length)];
 
             Stack<(int parentIndex, uint depth)> recursiveStack = new((int)maxDepth);
-            recursiveStack.Push((0, 0));
+            recursiveStack.Push((0, 1));
             while (recursiveStack.TryPop(out var job))
             {
                 var (parentIndex, depth) = job;
@@ -45,6 +49,7 @@ public static partial class Mesh
 
                 var (axis, level, cost, bboxLeft, bboxRight) = ChooseSplit(parent, triangles, splitTests);
                 if (parent.Cost <= cost) continue;
+                resultDepth = uint.Max(resultDepth, depth);
 
                 var i = parent.Start;
                 var j = parent.End - 1;
@@ -62,7 +67,8 @@ public static partial class Mesh
 
                 if (leftChildLength.OutsideInclusiveRange(0, parent.Length - 1)) continue;
                 BoundedVolume<TNum> leftChild = BoundedVolume<TNum>.MakeLeaf(bboxLeft, parent.Start, leftChildLength);
-                BoundedVolume<TNum> rightChild = BoundedVolume<TNum>.MakeLeaf(bboxRight, leftChild.End, parent.Length - leftChildLength);
+                BoundedVolume<TNum> rightChild =
+                    BoundedVolume<TNum>.MakeLeaf(bboxRight, leftChild.End, parent.Length - leftChildLength);
                 var leftIndex = hierarchy.Add(leftChild);
                 var rightIndex = hierarchy.Add(rightChild);
 
@@ -77,7 +83,7 @@ public static partial class Mesh
             var trianglesNaked = new Triangle3<TNum>[triangles.Length];
             for (var i = 0; i < triangles.Length; i++) trianglesNaked[i] = triangles[i].Triangle;
             var (indices, vertices) = Indexing.Indicate(trianglesNaked);
-            return (hierarchy, indices, vertices);
+            return (hierarchy, indices, vertices, resultDepth);
         }
 
         private static (int bestSplitAxis,
@@ -166,7 +172,8 @@ public static partial class Mesh
         {
             splitTests = uint.Clamp(splitTests, 2, 10);
             Vec3Comparer<TNum> comparer = new(vertices);
-            BoundedVolumeHierarchy<TNum> hierarchy = [BoundedVolume<TNum>.MakeLeaf(AABB<Vector3<TNum>>.From(vertices), 0, indices.Length)];
+            BoundedVolumeHierarchy<TNum> hierarchy =
+                [BoundedVolume<TNum>.MakeLeaf(AABB<Vector3<TNum>>.From(vertices), 0, indices.Length)];
             Stack<(int parentIndex, uint depth)> recursiveStack = new((int)maxDepth);
             recursiveStack.Push((0, 0));
             while (recursiveStack.TryPop(out var job))
@@ -225,7 +232,8 @@ public static partial class Mesh
         }
 
         [Obsolete]
-        private static (int bestSplitAxis, TNum bestLevel, TNum bestCost, AABB<Vector3<TNum>> leftBounds, AABB<Vector3<TNum>>
+        private static (int bestSplitAxis, TNum bestLevel, TNum bestCost, AABB<Vector3<TNum>> leftBounds,
+            AABB<Vector3<TNum>>
             rightBounds)
             ChooseSplit<TNum>(
                 in BoundedVolume<TNum> toSplit,

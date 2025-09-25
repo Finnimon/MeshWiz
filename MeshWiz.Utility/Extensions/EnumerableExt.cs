@@ -9,6 +9,11 @@ public static class EnumerableExt
     {
         foreach (var item in enumerable) action(item);
     }
+    
+    public static void ForEach<TArg,TIgnore>(this IEnumerable<TArg> enumerable, Func<TArg,TIgnore> func)
+    {
+        foreach (var item in enumerable) func(item);
+    }
 
     [Pure]
     public static TAdd Sum<TAdd>(this IEnumerable<TAdd> enumerable)
