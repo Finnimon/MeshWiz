@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace MeshWiz.Math;
 
-public readonly struct Torus<TNum> : IBody<TNum>
+public readonly struct Torus<TNum> : IBody<TNum>, IRotationalSurface<TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public Circle3<TNum> MajorCircle=>new(Centroid,Normal,MajorRadius);
@@ -112,4 +112,18 @@ public readonly struct Torus<TNum> : IBody<TNum>
 
         return new IndexedMesh<TNum>(vertices, indices);
     }
+
+    /// <inheritdoc />
+    public IDiscreteCurve<Vector3<TNum>, TNum> SweepCurve {
+        get
+        {
+            var p= InnerCircle.TraverseByAngle(TNum.Zero);
+            var radius=MajorRadius-InnerCircle.Radius;
+            var normal= Normal.Cross(Centroid-p);
+            return new Circle3<TNum>(p,normal,radius);
+        }
+    }
+
+    /// <inheritdoc />
+    public Ray3<TNum> SweepAxis => new(Centroid, Normal);
 }

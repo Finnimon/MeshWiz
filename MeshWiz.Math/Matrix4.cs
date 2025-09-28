@@ -72,7 +72,7 @@ public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
     /// <inheritdoc />
     public unsafe ReadOnlySpan<TNum> AsSpan()
     {
-        fixed (TNum* ptr = &this.X.X) return new(ptr,ColumnCount*RowCount);
+        fixed (TNum* ptr = &X.X) return new(ptr,ColumnCount*RowCount);
     }
     public Matrix4(
         TNum m00, TNum m01, TNum m02, TNum m03,
@@ -228,8 +228,8 @@ public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
     {
         axis = axis.Normalized;
 
-        var cos = TNum.Cos(-angle);
-        var sin = TNum.Sin(-angle);
+        var cos = TNum.Cos(angle);
+        var sin = TNum.Sin(angle);
         var t = TNum.One - cos;
         var tAxis = t * axis;
         var x = axis.XXX*tAxis;

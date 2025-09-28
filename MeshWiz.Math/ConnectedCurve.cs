@@ -12,6 +12,24 @@ public sealed record ConnectedCurve<TVector,TNum>(IDiscreteCurve<TVector,TNum>[]
     private TNum? _length;
     public TNum Length =>_length??=Children.Aggregate(TNum.Zero, (length,child) => length+child.Length);
     public bool IsClosed => Start.Equals(End);
+
+    /// <inheritdoc />
+    public Polyline<TVector, TNum> ToPolyline()
+    {
+        return Children.Length == 0
+            ? Polyline<TVector, TNum>.Empty
+            : Polyline.Creation.UnifyNonReversing([..Children.Select(child => child.ToPolyline())])
+                .OrderByDescending(pl => pl.Length).First();
+    }
+    
+    public Polyline<TVector, TNum> ToPolyline(PolylineTessellationParameter<TNum> parameter)
+    {
+        return Children.Length == 0
+            ? Polyline<TVector, TNum>.Empty
+            : Polyline.Creation.UnifyNonReversing([..Children.Select(child => child.ToPolyline(parameter))])
+                .OrderByDescending(pl => pl.Length).First();
+    }
+    
     public TVector Start =>Children[0].Start;
     public TVector End=>Children[^1].End;
     public TVector Traverse(TNum distance)

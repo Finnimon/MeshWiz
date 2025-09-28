@@ -40,17 +40,21 @@ var platformIds = new CLPlatform[64];
 //     deviceIds.ForEach(CL.ReleaseDevice);
 // }
 //
-
-var platforms=OclPlatform.GetAll();
-foreach (var oclPlatform in platforms)
-{
-    using var disp = oclPlatform;
-    Console.WriteLine($"{oclPlatform.Name}");
-    foreach (var device in oclPlatform.AllDevices)
-    {
-        using var deviceDisp = device;
-        Console.WriteLine($"\t{device.Name} - {device.MaxComputeUnits} - {device.Type} - {device.VendorId} - {device.Version} - {device.OclVersion}");
-        using var context = OclContext.FromDevices(device);
-        Console.WriteLine($"\t\t{context.Devices.Contains(deviceDisp)}");
-    }
-}
+//
+// var platforms=OclPlatform.GetAll();
+// foreach (var oclPlatform in platforms)
+// {
+//     using var disp = oclPlatform;
+//     Console.WriteLine($"{oclPlatform.Name}");
+//     foreach (var device in oclPlatform.AllDevices)
+//     {
+//         using var deviceDisp = device;
+//         Console.WriteLine($"\t{device.Name} - {device.MaxComputeUnits} - {device.Type} - {device.VendorId} - {device.Version} - {device.OclVersion}");
+//         using var context = OclContext.FromDevices(device);
+//         Console.WriteLine($"\t\t{context.Devices.Contains(deviceDisp)}");
+//     }
+// }
+var circle=new Circle3<float>(Vector3<float>.Zero, Vector3<float>.UnitY, 1);
+var rev=circle.Reversed();
+Console.WriteLine(circle.TraverseByAngle(0));
+Console.WriteLine(rev.TraverseByAngle(0));

@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace MeshWiz.Math;
 
-public readonly struct Cone<TNum> : IBody<TNum>
+public readonly struct Cone<TNum> : IBody<TNum>, IRotationalSurface<TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly Line<Vector3<TNum>, TNum> Axis;
@@ -81,4 +81,10 @@ public readonly struct Cone<TNum> : IBody<TNum>
         var topRadius = GetRadiusAt(end);
         return new ConeSection<TNum>(axis, baseRadius, topRadius);
     }
+
+    /// <inheritdoc />
+    public IDiscreteCurve<Vector3<TNum>, TNum> SweepCurve => Base.Traverse(TNum.Zero).LineTo(Tip);
+
+    /// <inheritdoc />
+    public Ray3<TNum> SweepAxis => Axis.Start.RayThrough(Axis.End);
 }

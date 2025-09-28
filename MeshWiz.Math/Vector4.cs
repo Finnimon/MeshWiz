@@ -815,5 +815,5 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
     /// <inheritdoc />
     public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format,
         IFormatProvider? provider = null)
-        => ArrayParser.TryFormat(this.AsSpan(), destination, out charsWritten, format, provider);
+        => ArrayParser.TryFormat(AsSpan(), destination, out charsWritten, format, provider);
 }

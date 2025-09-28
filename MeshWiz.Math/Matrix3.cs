@@ -227,7 +227,7 @@ namespace MeshWiz.Math
         /// <inheritdoc />
         public unsafe ReadOnlySpan<TNum> AsSpan()
         {
-            fixed (TNum* ptr = &this.X.X) return new(ptr,ColumnCount*RowCount);
+            fixed (TNum* ptr = &X.X) return new(ptr,ColumnCount*RowCount);
         }
 
         public override bool Equals(object? obj)

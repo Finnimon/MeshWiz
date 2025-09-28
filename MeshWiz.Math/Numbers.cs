@@ -9,6 +9,8 @@ namespace MeshWiz.Math;
 public static class Numbers<TNum>
     where TNum : INumberBase<TNum>
 {
+    public static readonly TNum ThirtyTwo = TNum.CreateTruncating(32);
+
     /// <summary>
     /// <c>=> 2</c>
     /// </summary>

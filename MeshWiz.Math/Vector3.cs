@@ -143,7 +143,7 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
     public Vector3<TOther> To<TOther>() where TOther : unmanaged, IFloatingPointIeee754<TOther>
         => new(TOther.CreateTruncating(X), TOther.CreateTruncating(Y), TOther.CreateTruncating(Z));
 
-    public static implicit operator System.Numerics.Vector3(Vector3<TNum> v)
+    public static implicit operator Vector3(Vector3<TNum> v)
         => new(float.CreateTruncating(v.X), float.CreateTruncating(v.Y), float.CreateTruncating(v.Z));
 
     public static implicit operator Vector3<TNum>(Vector3 v)
@@ -782,7 +782,7 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
     /// <inheritdoc />
     public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format,
         IFormatProvider? provider = null)
-        => ArrayParser.TryFormat(this.AsSpan(), destination, out charsWritten, format, provider);
+        => ArrayParser.TryFormat(AsSpan(), destination, out charsWritten, format, provider);
 
 
     

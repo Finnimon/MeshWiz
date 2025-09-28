@@ -79,7 +79,7 @@ public interface IVector<TSelf, TNum>
 
     [Pure]
     bool IsApprox(TSelf other, TNum squareTolerance)
-        => this.SquaredDistanceTo(other) < squareTolerance;
+        => SquaredDistanceTo(other) < squareTolerance;
 
     [Pure]
     bool IsApprox(TSelf other);

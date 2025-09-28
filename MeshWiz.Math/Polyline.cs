@@ -81,6 +81,14 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public bool IsClosed => Count > 2 && Points[0].IsApprox(Points[^1]);
 
+    /// <inheritdoc />
+    public Polyline<TVector, TNum> ToPolyline()
+        => this;
+
+    /// <inheritdoc />
+    public Polyline<TVector, TNum> ToPolyline(PolylineTessellationParameter<TNum> tessellationParameter)
+        => this;
+
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public TNum Length => _length ??= CalculateLength();
 

@@ -3,7 +3,7 @@ using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
-public readonly struct ConeSection<TNum> : IBody<TNum>
+public readonly struct ConeSection<TNum> : IBody<TNum>, IRotationalSurface<TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly Line<Vector3<TNum>, TNum> Axis;
@@ -158,4 +158,26 @@ public readonly struct ConeSection<TNum> : IBody<TNum>
         return new Cone<TNum>(Base.Centroid.LineTo(tip), Base.Radius).Volume
                + new Cone<TNum>(Top.Centroid.LineTo(tip), Top.Radius).Volume;
     }
+
+    /// <inheritdoc />
+    public IDiscreteCurve<Vector3<TNum>, TNum> SweepCurve => IsComplex ? ComplexSweepCurve() : SimpleSweepCurve();
+
+    private Polyline<Vector3<TNum>,TNum> ComplexSweepCurve()
+    {
+        var failed=!TryGetInflection(out var tip);
+        if (failed) throw new InvalidOperationException();
+        //both forced same up for same 0 angle result
+        var baseRad=TNum.Abs(BaseRadius);
+        var topRad=TNum.Abs(TopRadius);
+        var normal = Axis.Direction;//gets normalized in ctor
+        var start=new Circle3<TNum>(Axis.Start,normal,baseRad).TraverseByAngle(TNum.Zero);
+        var end=new Circle3<TNum>(Axis.End,normal,topRad).TraverseByAngle(TNum.Zero);
+        return new Polyline<Vector3<TNum>, TNum>(start, tip, end);
+    }
+
+    private Line<Vector3<TNum>, TNum> SimpleSweepCurve() 
+        => Base.TraverseByAngle(TNum.Zero).LineTo(Top.TraverseByAngle(TNum.Zero));
+
+    /// <inheritdoc />
+    public Ray3<TNum> SweepAxis =>Axis.Start.RayThrough(Axis.End);
 }

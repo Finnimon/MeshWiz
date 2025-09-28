@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace MeshWiz.Math;
 
-public readonly struct Cylinder<TNum> : IBody<TNum>
+public readonly struct Cylinder<TNum> : IBody<TNum>, IRotationalSurface<TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly TNum Radius;
@@ -29,4 +29,18 @@ public readonly struct Cylinder<TNum> : IBody<TNum>
     }
 
     public IMesh<TNum> Tessellate() => ConeSection<TNum>.TessellateCylindrical(Base, Top, 32);
+
+    /// <inheritdoc />
+    public IDiscreteCurve<Vector3<TNum>, TNum> SweepCurve
+    {
+        get
+        {
+            var start= Base.TraverseByAngle(TNum.Zero);
+            var end = start + Axis.Direction;
+            return start.LineTo(end);
+        }
+    }
+
+    /// <inheritdoc />
+    public Ray3<TNum> SweepAxis => Axis.Start.RayThrough(Axis.End);
 }

@@ -11,4 +11,8 @@ public interface IDiscreteCurve<TVector, TNum> : ICurve<TVector, TNum>
     TVector TraverseOnCurve(TNum distance);
     TNum Length { get; }
     bool ICurve<TVector, TNum>.IsClosed=>Start.Equals(End);
+    
+    
+    Polyline<TVector, TNum> ToPolyline();
+    Polyline<TVector, TNum> ToPolyline(PolylineTessellationParameter<TNum> tessellationParameter);
 }

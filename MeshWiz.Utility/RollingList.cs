@@ -344,7 +344,7 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
         throw new NotImplementedException();
     }
 
-    public void Trim() => this.Capacity = Count;
+    public void Trim() => Capacity = Count;
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

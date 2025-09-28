@@ -39,8 +39,10 @@ public partial class MainWindow : Window
         var coneSection = new Cone<float>(Vector3<float>.Zero.LineTo(Vector3<float>.UnitY), 1.0f).Section(0, 2);
         _ = coneSection.TryGetComplete(out var cone);
         meshi = coneSection.Tessellate(32);
+        
         meshi = new Torus<float>(Vector3<float>.Zero, Vector3<float>.UnitY, 0.5F, 1F).Tessellate().Indexed();
         meshi = new Sphere<float>(Vector3<float>.Zero, 1).Tessellate(32, 32);
+        meshi = Surface.Rotational.Tessellate<Torus<float>, float>(new Torus<float>(Vector3<float>.Zero, Vector3<float>.UnitY, 0.5F, 1F), 128);
         var mesh = new BvhMesh<float>(meshi);
         // mesh=new  IndexedMesh3<float>(new Sphere<float>(Vector3<float>.Zero, 1).TessellatedSurface);
         Console.WriteLine(
@@ -253,7 +255,7 @@ public partial class MainWindow : Window
     {
         e.Handled = true;
 
-        var topLevel = TopLevel.GetTopLevel(this);
+        var topLevel = GetTopLevel(this);
         var storageProvider = topLevel?.StorageProvider ?? throw new PlatformNotSupportedException();
 
         var options = new FilePickerOpenOptions

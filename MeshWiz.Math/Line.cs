@@ -118,6 +118,9 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
 
     public Line<TVector, TNum> Section(TNum start, TNum end)
         => Traverse(start).LineTo(Traverse(end));
+    public Polyline<TVector,TNum> ToPolyline()=>new(Start, End);
+    public Polyline<TVector,TNum> ToPolyline(PolylineTessellationParameter<TNum> _)=>new(Start, End);
+    
 }
 
 public static class Line
@@ -208,4 +211,5 @@ public static class Line
         return TNum.Clamp(t, TNum.Zero, TNum.One) == t
                && TNum.Clamp(t2, TNum.Zero, TNum.One) == t2;
     }
+    
 }

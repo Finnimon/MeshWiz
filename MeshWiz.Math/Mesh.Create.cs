@@ -92,5 +92,45 @@ public static partial class Mesh
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
             => throw new NotImplementedException();
 
+        public static IndexedMesh<TNum> LoftRibsClosed<TNum>(IReadOnlyList<Vector3<TNum>[]> ribs) 
+            where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        {
+            if (ribs.Count < 2) throw new ArgumentException("At least two ribs required.", nameof(ribs));
+
+            var ribCount = ribs.Count;
+            var rowCount = ribs[0].Length;
+
+            // check uniform rowCount
+            for (var i = 1; i < ribCount; i++)
+                if (ribs[i].Length != rowCount) 
+                    throw new ArgumentException("All ribs must have same number of points.");
+
+            var verts = ribs.SelectMany(v => v).ToArray();
+
+            var triCount = (rowCount - 1) * 2 * ribCount;
+            var indices = new TriangleIndexer[triCount];
+            var t = 0;
+
+            for (var row = 0; row < rowCount - 1; row++)
+            {
+                for (var rib = 0; rib < ribCount; rib++)
+                {
+                    var nextRib = (rib + 1) % ribCount;
+
+                    var a = rib * rowCount + row;
+                    var b = nextRib * rowCount + row;
+                    var c = a + 1;
+                    indices[t++] = new TriangleIndexer(a, b, c);
+
+                    var revA = b;
+                    var revB = nextRib * rowCount + row + 1;
+                    var revC = a + 1;
+                    indices[t++] = new TriangleIndexer(revA, revB, revC);
+                }
+            }
+
+            return new IndexedMesh<TNum>(verts, indices);
+        }
+
     }
 }

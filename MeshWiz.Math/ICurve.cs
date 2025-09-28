@@ -8,4 +8,7 @@ public interface ICurve<TVector, TNum>
 {
     TVector Traverse(TNum distance);
     bool IsClosed { get; }
+    
 }
+
+public readonly record struct PolylineTessellationParameter<TNum>(TNum MaxAbsDeviation, TNum MaxAngularDeviation);
