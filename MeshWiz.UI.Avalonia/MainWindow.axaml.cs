@@ -43,6 +43,7 @@ public partial class MainWindow : Window
         meshi = new Torus<float>(Vector3<float>.Zero, Vector3<float>.UnitY, 0.5F, 1F).Tessellate().Indexed();
         meshi = new Sphere<float>(Vector3<float>.Zero, 1).Tessellate(32, 32);
         meshi = Surface.Rotational.Tessellate<Torus<float>, float>(new Torus<float>(Vector3<float>.Zero, Vector3<float>.UnitY, 0.5F, 1F), 128);
+        meshi=new Circle3<float>(Vector3<float>.Zero, Vector3<float>.UnitY, 1f).Section(0.5f, 2).Tessellate(32);
         var mesh = new BvhMesh<float>(meshi);
         // mesh=new  IndexedMesh3<float>(new Sphere<float>(Vector3<float>.Zero, 1).TessellatedSurface);
         Console.WriteLine(
@@ -50,7 +51,7 @@ public partial class MainWindow : Window
         var distance = mesh.BBox.Min.DistanceTo(mesh.BBox.Max) * 2;
         camera.Distance = 0.5f;
         camera.LookAt = mesh.SurfaceCentroid;
-        MeshViewWrap.Unwrap.Mesh = mesh;
+        MeshViewWrap.Unwrap.Mesh = meshi;
         BBoxWrap.Unwrap.Camera = camera;
         BBoxWrap.Unwrap.BBox = mesh.BBox;
         var minY = mesh.BBox.Min.Y + 0.0001f;
@@ -125,9 +126,7 @@ public partial class MainWindow : Window
                 Show = false,
             }
         });
-
-
-        camera.LookAt = mesh.VolumeCentroid;
+        
         Console.WriteLine($"distance: {distance}");
         Console.WriteLine(mesh.BBox.Min);
         Console.WriteLine(mesh.BBox.Max);

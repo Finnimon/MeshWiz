@@ -25,12 +25,12 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, ISurface3<TNum>, IDiscreteCu
     Polyline<Vector3<TNum>, TNum> IDiscreteCurve<Vector3<TNum>, TNum>.ToPolyline()
     {
         const int edgeCount = 32;
-        var verts = new Vector3<TNum>[edgeCount+1];
-        var edgeCountNum=TNum.CreateTruncating(edgeCount);
-        for (var i = 0; i < verts.Length-1; i++)
+        var verts = new Vector3<TNum>[edgeCount + 1];
+        var edgeCountNum = TNum.CreateTruncating(edgeCount);
+        for (var i = 0; i < verts.Length - 1; i++)
         {
-            var angle=TNum.CreateTruncating(i)/edgeCountNum*Numbers<TNum>.TwoPi;
-            verts[i]=TraverseByAngle(angle);
+            var angle = TNum.CreateTruncating(i) / edgeCountNum * Numbers<TNum>.TwoPi;
+            verts[i] = TraverseByAngle(angle);
         }
 
         verts[^1] = verts[0];
@@ -99,10 +99,17 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, ISurface3<TNum>, IDiscreteCu
 
     public Circle3<TNum> Reversed()
         => new(Centroid, -Normal, Radius);
-    
-    /// <inheritdoc />
-    public IDiscreteCurve<Vector3<TNum>, TNum> SweepCurve => Uv.u*Radius+Centroid.LineTo(Centroid);
 
     /// <inheritdoc />
-    public Ray3<TNum> SweepAxis => new(Centroid,Normal);
+    public IDiscreteCurve<Vector3<TNum>, TNum> SweepCurve => (Uv.u * Radius + Centroid).LineTo(Centroid);
+
+    /// <inheritdoc />
+    public Ray3<TNum> SweepAxis => new(Centroid, Normal);
+
+    public Circle3Section<TNum> Section(TNum start, TNum end)
+    {
+        var minor = start * Radius;
+        var major = end * Radius;
+        return new Circle3Section<TNum>(Centroid,Normal, minor, major);
+    }
 }
