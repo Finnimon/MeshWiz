@@ -70,4 +70,8 @@ public static class Numbers<TNum>
     /// <c>=> 1e-10</c>
     /// </summary>
     public static readonly TNum Eps10 = TNum.CreateTruncating(1e-10);
+
+    public static readonly TNum Fourth =TNum.CreateTruncating(0.25);
+    public static readonly TNum TwoPi = TNum.CreateTruncating(2 * double.Pi);
+    public static readonly TNum Third = TNum.CreateTruncating(1.0 / 3.0);
 }

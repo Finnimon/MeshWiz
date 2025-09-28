@@ -31,11 +31,16 @@ public partial class MainWindow : Window
         var box = AABB<Vector3<float>>
             .From(new Vector3<float>(-10, -10, -10))
             .CombineWith(new Vector3<float>(10, 10, 10));
-        IIndexedMesh<float> meshi = AABB.Tessellate(box).Indexed();
+        IIndexedMesh<float> meshi = box.Tessellate().Indexed();
         // meshi = new Sphere<float>(Vector3<float>.Zero, 10).Tessellate().Indexed();
 
         // meshi =new IndexedMesh3<float>(new Sphere<float>(Vector3<float>.Zero, 1).TessellatedSurface);
-        meshi = MeshIO.ReadFile<FastStlReader, float>("/home/finnimon/source/repos/TestFiles/drag.stl").Indexed();
+        // meshi = MeshIO.ReadFile<FastStlReader, float>("/home/finnimon/source/repos/TestFiles/drag.stl").Indexed();
+        var coneSection = new Cone<float>(Vector3<float>.Zero.LineTo(Vector3<float>.UnitY), 1.0f).Section(0, 2);
+        _ = coneSection.TryGetComplete(out var cone);
+        meshi = coneSection.Tessellate(32);
+        meshi = new Torus<float>(Vector3<float>.Zero, Vector3<float>.UnitY, 0.5F, 1F).Tessellate().Indexed();
+        meshi = new Sphere<float>(Vector3<float>.Zero, 1).Tessellate(32, 32);
         var mesh = new BvhMesh<float>(meshi);
         // mesh=new  IndexedMesh3<float>(new Sphere<float>(Vector3<float>.Zero, 1).TessellatedSurface);
         Console.WriteLine(
@@ -115,7 +120,7 @@ public partial class MainWindow : Window
                 Lines = concentricPattern.SelectMany(manyLine => manyLine),
                 Camera = camera,
                 LineWidth = 1,
-                Show = true,
+                Show = false,
             }
         });
 

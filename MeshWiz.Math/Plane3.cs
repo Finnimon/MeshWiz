@@ -278,14 +278,14 @@ public readonly struct Plane3<TNum>
 
     public Vector2<TNum> ProjectIntoLocal(Vector3<TNum> world)
     {
-        var (u, v) = LocalAxes;
+        var (u, v) = Uv;
         var local = world - Origin;
         return new Vector2<TNum>(local.Dot(u), local.Dot(v));
     }
 
     public Vector2<TNum>[] ProjectIntoLocal(IReadOnlyList<Vector3<TNum>> world)
     {
-        var (u, v) = LocalAxes;
+        var (u, v) = Uv;
         var origin = Origin;
         var pCount = world.Count;
         var local = new Vector2<TNum>[pCount];
@@ -300,7 +300,7 @@ public readonly struct Plane3<TNum>
 
     public Line<Vector2<TNum>, TNum>[] ProjectIntoLocal(IReadOnlyList<Line<Vector3<TNum>, TNum>> world)
     {
-        var (u, v) = LocalAxes;
+        var (u, v) = Uv;
         var origin = Origin;
         var count = world.Count;
         var local = new Line<Vector2<TNum>, TNum>[count];
@@ -320,14 +320,14 @@ public readonly struct Plane3<TNum>
 
     public Vector3<TNum> ProjectIntoWorld(Vector2<TNum> local)
     {
-        var (u, v) = LocalAxes;
+        var (u, v) = Uv;
         return Origin + local.X * u + local.Y * v;
     }
 
 
     public Vector3<TNum>[] ProjectIntoWorld(IReadOnlyList<Vector2<TNum>> local)
     {
-        var (u, v) = LocalAxes;
+        var (u, v) = Uv;
         var origin = Origin;
         var pCount = local.Count;
         var world = new Vector3<TNum>[pCount];
@@ -342,7 +342,7 @@ public readonly struct Plane3<TNum>
 
     public Line<Vector3<TNum>, TNum>[] ProjectIntoWorld(IReadOnlyList<Line<Vector2<TNum>, TNum>> local)
     {
-        var (u, v) = LocalAxes;
+        var (u, v) = Uv;
         var origin = Origin;
         var count = local.Count;
         var world = new Line<Vector3<TNum>, TNum>[count];
@@ -361,7 +361,7 @@ public readonly struct Plane3<TNum>
 
     public Polyline<Vector3<TNum>, TNum> ProjectIntoWorld(Polyline<Vector2<TNum>, TNum> local)
     {
-        var (u, v) = LocalAxes;
+        var (u, v) = Uv;
         var origin = Origin;
         var count = local.Points.Length;
         var localPts = local.Points;
@@ -376,7 +376,7 @@ public readonly struct Plane3<TNum>
     }
 
 
-    public (Vector3<TNum> u, Vector3<TNum> v) LocalAxes
+    public (Vector3<TNum> u, Vector3<TNum> v) Uv
     {
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
@@ -391,7 +391,7 @@ public readonly struct Plane3<TNum>
 
     public Line<Vector2<TNum>, TNum> ProjectIntoLocal(Line<Vector3<TNum>, TNum> world)
     {
-        var (u, v) = LocalAxes;
+        var (u, v) = Uv;
         var origin = Origin;
 
         var lineStart = world.Start - origin;

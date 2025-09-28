@@ -13,8 +13,9 @@ public class Ray3Bench<TNum>
     [GlobalSetup]
     public void Setup()
     {
-        Mesh = new(Sphere<TNum>.GenerateTessellation(Vector3<TNum>.Zero, TNum.One, 512, 1024));
-        BvhMesh = new BvhMesh<TNum>(Mesh);
+        var iMesh = new Sphere<TNum>(Vector3<TNum>.Zero, TNum.One).Tessellate(512, 1024);
+        Mesh = new(iMesh.ToArray());
+        BvhMesh = new BvhMesh<TNum>(iMesh);
         _ray = new(Vector3<TNum>.One*TNum.CreateTruncating(100), Mesh.VolumeCentroid);
     }
 

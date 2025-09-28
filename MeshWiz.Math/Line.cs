@@ -115,6 +115,9 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
         var alongVector = dotProduct * ndir;
         return Start + alongVector;
     }
+
+    public Line<TVector, TNum> Section(TNum start, TNum end)
+        => Traverse(start).LineTo(Traverse(end));
 }
 
 public static class Line

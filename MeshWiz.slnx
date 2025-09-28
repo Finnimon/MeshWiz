@@ -69,14 +69,6 @@
     <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
     <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
   </Project>
-  <Project Path="MeshWiz.Math.Generation\MeshWiz.Math.Generation.csproj" Type="Classic C#">
-    <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
-    <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
-    <Configuration Solution="Debug|x86 " Project="Debug|Any CPU" />
-    <Configuration Solution="Release|Any CPU " Project="Release|Any CPU" />
-    <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
-    <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
-  </Project>
   <Project Path="MeshWiz.Math.Tests\MeshWiz.Math.Tests.csproj" Type="Classic C#">
     <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
     <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
