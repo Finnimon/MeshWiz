@@ -28,7 +28,7 @@ public readonly struct Torus<TNum> : IBody<TNum>, IRotationalSurface<TNum>
         get
         {
             var plane = MajorCircle.Plane;
-            var (u, v) = plane.Uv;
+            var (u, v) = plane.Basis;
             var n = Normal;
 
             var two = TNum.CreateTruncating(2);
@@ -59,7 +59,7 @@ public readonly struct Torus<TNum> : IBody<TNum>, IRotationalSurface<TNum>
         var vertices = new Vector3<TNum>[radialSegments * tubularSegments];
 
         var plane = MajorCircle.Plane;
-        var (u, v) = plane.Uv;
+        var (u, v) = plane.Basis;
         var n = MajorCircle.Normal;
 
         var twoPi = Numbers<TNum>.TwoPi;

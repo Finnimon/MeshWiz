@@ -119,4 +119,7 @@ public readonly struct Ray3<TNum>
 
     public bool Intersect(AABB<Vector3<TNum>> test, out TNum result)
         => HitTest(test, out result, out _);
+
+    public Line<Vector3<TNum>, TNum> LineSection(TNum start, TNum end)
+        => new(Origin + Direction * start, Origin + Direction * end);
 }

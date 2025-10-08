@@ -31,7 +31,7 @@ public sealed class OpenGLParent : OpenGlControlBase, IDisposable
 
     private void ChildrenChangeHandler(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if(e.Action is NotifyCollectionChangedAction.Add or NotifyCollectionChangedAction.Move)
+        if (e.Action is NotifyCollectionChangedAction.Add or NotifyCollectionChangedAction.Move)
             return;
         e.OldItems?.OfType<IDisposable>().ForEach(dispo => dispo.Dispose());
     }
@@ -45,12 +45,13 @@ public sealed class OpenGLParent : OpenGlControlBase, IDisposable
         Console.WriteLine("GLSL Version: " + GL.GetString(StringName.ShadingLanguageVersion));
         Console.WriteLine("GL Renderer: " + GL.GetString(StringName.Renderer));
         Console.WriteLine("GL Vendor: " + GL.GetString(StringName.Vendor));
-
     }
-    private readonly Stopwatch _sw=Stopwatch.StartNew();
+
+    private readonly Stopwatch _sw = Stopwatch.StartNew();
     private const int TickerMax = 30;
     private int _ticker = TickerMax;
     private long _millis = 0;
+
     protected override void OnOpenGlRender(GlInterface gl, int fb)
     {
         UpdateFps();
@@ -62,7 +63,7 @@ public sealed class OpenGLParent : OpenGlControlBase, IDisposable
 
     private void UpdateFps()
     {
-        _millis+= _sw.ElapsedMilliseconds;
+        _millis += _sw.ElapsedMilliseconds;
         _sw.Restart();
         _ticker--;
 
@@ -76,7 +77,7 @@ public sealed class OpenGLParent : OpenGlControlBase, IDisposable
     {
         var trueBound = new Vector2<double>(Bounds.Width, Bounds.Height) * RenderScale;
         GL.Viewport(0, 0, (int)trueBound.X, (int)trueBound.Y);
-        return (trueBound.Length >= 1,(float)(trueBound.X / trueBound.Y));
+        return (trueBound.Length >= 1, (float)(trueBound.X / trueBound.Y));
     }
 
     private void RenderChildren(float aspectRatio)
@@ -89,10 +90,10 @@ public sealed class OpenGLParent : OpenGlControlBase, IDisposable
             child.Update(aspectRatio);
             child.Render();
         }
+
         GL.Disable(EnableCap.DepthTest);
     }
-    
-    
+
 
     protected override void OnOpenGlDeinit(GlInterface gl) => Dispose();
 

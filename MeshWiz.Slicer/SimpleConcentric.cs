@@ -10,8 +10,7 @@ public class SimpleConcentric
         TNum pathWidth)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
-        var epsilon = TNum.Epsilon;
-        var areaEpsilon = TNum.CreateTruncating(0.00001);
+        var epsilon = Numbers<TNum>.Eps4;
         if (outerBounds.Count < 3) yield break;
         if (outerBounds.Length < epsilon) yield break;
         if (!outerBounds.IsClosed) yield break;
@@ -26,7 +25,7 @@ public class SimpleConcentric
             ..Polyline.Simplicity.MakeSimple(outerBounds, epsilon)
                 .Select(polyline=>polyline.CullDeadSegments())
                 .Where(polyline => Polyline.Evaluate.GetWindingOrder(polyline) == wallWinding)
-                .Where(polyline=>Polyline.Evaluate.SignedArea(polyline)>areaEpsilon)
+                .Where(polyline=>Polyline.Evaluate.SignedArea(polyline)>epsilon)
                 .Select(polyline => (polyline, -halfPathWidth, Polyline.Evaluate.IsConvex(polyline), 0))
         ];
 

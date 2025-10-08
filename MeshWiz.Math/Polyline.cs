@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
-using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
@@ -93,6 +92,7 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
     public TNum Length => _length ??= CalculateLength();
 
     [field: AllowNull, MaybeNull] internal TNum[] CumulativeDistances => field ??= CalculateCumulativeDistances();
+
     private TNum[] CalculateCumulativeDistances()
     {
         if (Points.Length == 0)
@@ -444,5 +444,18 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
         }
 
         return new(culled);
+    }
+
+    [Pure]
+    public Polyline<TVector, TNum> Shift(TVector shift)
+    {
+        Polyline<TVector, TNum> pl = new(Points.Select(p => p + shift).ToArray())
+        {
+            _vertexCentroid = _vertexCentroid is null ? null : VertexCentroid + shift,
+            _length = TVector.IsFinite(shift) ? _length : null,
+            _bbox = _bbox is null ? null : _bbox + shift
+        };
+
+        return pl;
     }
 }

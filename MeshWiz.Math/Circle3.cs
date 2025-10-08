@@ -1,8 +1,10 @@
+using System.Diagnostics;
 using System.Numerics;
 
 namespace MeshWiz.Math;
 
-public readonly struct Circle3<TNum> : IFlat<TNum>, ISurface3<TNum>, IDiscreteCurve<Vector3<TNum>, TNum>, IRotationalSurface<TNum>
+public readonly struct Circle3<TNum> : IFlat<TNum>, ISurface3<TNum>, IDiscreteCurve<Vector3<TNum>, TNum>,
+    IRotationalSurface<TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     /// <inheritdoc />
@@ -22,7 +24,7 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, ISurface3<TNum>, IDiscreteCu
     public bool IsClosed => true;
 
     /// <inheritdoc />
-    Polyline<Vector3<TNum>, TNum> IDiscreteCurve<Vector3<TNum>, TNum>.ToPolyline()
+    public Polyline<Vector3<TNum>, TNum> ToPolyline()
     {
         const int edgeCount = 32;
         var verts = new Vector3<TNum>[edgeCount + 1];
@@ -40,7 +42,20 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, ISurface3<TNum>, IDiscreteCu
     /// <inheritdoc />
     public Polyline<Vector3<TNum>, TNum> ToPolyline(PolylineTessellationParameter<TNum> tessellationParameter)
     {
-        throw new NotImplementedException();
+        var steps = Numbers<TNum>.TwoPi / tessellationParameter.MaxAngularDeviation;
+        steps = TNum.Round(steps, MidpointRounding.AwayFromZero);
+        var intSteps = int.CreateTruncating(steps);
+        intSteps = int.Abs(intSteps);
+        var verts = new Vector3<TNum>[intSteps + 1];
+        var angleStep = Numbers<TNum>.TwoPi / TNum.CreateTruncating(intSteps);
+        var i = -1;
+        for (var angle = TNum.Zero; angle < Numbers<TNum>.TwoPi; angle += angleStep)
+        {
+            verts[++i] = this.TraverseByAngle(angle);
+        }
+
+        verts[^1] = verts[0];
+        return new(verts);
     }
 
     public TNum Circumference => Numbers<TNum>.TwoPi;
@@ -63,7 +78,7 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, ISurface3<TNum>, IDiscreteCu
     public TNum Diameter => Radius * Numbers<TNum>.Two;
     public Plane3<TNum> Plane => new(Normal, Centroid);
     public TNum SurfaceArea => Radius * Radius * TNum.Pi;
-    public (Vector3<TNum> u, Vector3<TNum> v) Uv => Plane.Uv;
+    public (Vector3<TNum> U, Vector3<TNum> V) Uv => Plane.Basis;
 
 
     /// <inheritdoc />
@@ -71,7 +86,7 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, ISurface3<TNum>, IDiscreteCu
     {
         get
         {
-            var (u, v) = Plane.Uv;
+            var (u, v) = Plane.Basis;
             var diag = Vector3<TNum>.Abs(u) + Vector3<TNum>.Abs(v);
             diag *= Diameter;
             return AABB.Around(Centroid, diag);
@@ -89,7 +104,7 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, ISurface3<TNum>, IDiscreteCu
 
     public Vector3<TNum> TraverseByAngle(TNum angle)
     {
-        var (u, v) = Plane.Uv; // assumed normalized orthonormal basis
+        var (u, v) = Plane.Basis; // assumed normalized orthonormal basis
 
         var cos = TNum.Cos(angle);
         var sin = TNum.Sin(angle);
@@ -101,15 +116,24 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, ISurface3<TNum>, IDiscreteCu
         => new(Centroid, -Normal, Radius);
 
     /// <inheritdoc />
-    public IDiscreteCurve<Vector3<TNum>, TNum> SweepCurve => (Uv.u * Radius + Centroid).LineTo(Centroid);
+    public IDiscreteCurve<Vector3<TNum>, TNum> SweepCurve => (Uv.U * Radius + Centroid).LineTo(Centroid);
 
     /// <inheritdoc />
     public Ray3<TNum> SweepAxis => new(Centroid, Normal);
 
-    public Circle3Section<TNum> Section(TNum start, TNum end)
+    public Circle3Section<TNum> Cutout(TNum start, TNum end)
     {
         var minor = start * Radius;
         var major = end * Radius;
-        return new Circle3Section<TNum>(Centroid,Normal, minor, major);
+        return new Circle3Section<TNum>(Centroid, Normal, minor, major);
     }
+
+    public Arc3<TNum> Section(TNum start, TNum end)
+    {
+        var startAngle=start*Numbers<TNum>.TwoPi;
+        var endAngle=end*Numbers<TNum>.TwoPi;
+        return ArcSection(startAngle, endAngle);
+    }
+
+    public Arc3<TNum> ArcSection(TNum startAngle, TNum endAngle) => new(this,startAngle,endAngle);
 }

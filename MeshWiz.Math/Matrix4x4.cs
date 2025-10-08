@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -9,15 +10,15 @@ using System.Xml.Serialization;
 namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
+// ReSharper disable once InconsistentNaming
+public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vector4<TNum>, Vector4<TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public static int RowCount => 4;
-    public static int ColumnCount => 4;
-
+    public static int ColCount => 4;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public static Matrix4<TNum> Identity
+    public static Matrix4x4<TNum> Identity
     {
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get;
@@ -29,21 +30,21 @@ public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
 
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public static Matrix4<TNum> Zero
+    public static Matrix4x4<TNum> Zero
     {
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get;
     } = new(TNum.Zero);
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public static Matrix4<TNum> One
+    public static Matrix4x4<TNum> One
     {
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get;
     } = new(TNum.One);
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public static Matrix4<TNum> NaN
+    public static Matrix4x4<TNum> NaN
     {
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get;
@@ -54,10 +55,12 @@ public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public Vector4<TNum> Diagonal => new(M00, M11, M22, M33);
+
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public TNum Trace => M00 + M11 + M22 + M33;
+
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public Matrix4<TNum> Normalized => this / Det;
+    public Matrix4x4<TNum> Normalized => this / Det;
 
     public readonly Vector4<TNum> X, Y, Z, W;
 
@@ -72,9 +75,10 @@ public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
     /// <inheritdoc />
     public unsafe ReadOnlySpan<TNum> AsSpan()
     {
-        fixed (TNum* ptr = &X.X) return new(ptr,ColumnCount*RowCount);
+        fixed (TNum* ptr = &X.X) return new(ptr, ColCount * RowCount);
     }
-    public Matrix4(
+
+    public Matrix4x4(
         TNum m00, TNum m01, TNum m02, TNum m03,
         TNum m10, TNum m11, TNum m12, TNum m13,
         TNum m20, TNum m21, TNum m22, TNum m23,
@@ -86,7 +90,7 @@ public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
         W = new(m30, m31, m32, m33);
     }
 
-    public Matrix4(TNum value)
+    public Matrix4x4(TNum value)
     {
         X = new(value);
         Y = X;
@@ -94,15 +98,15 @@ public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
         W = Z;
     }
 
-    public unsafe Matrix4(TNum[] components)
+    public unsafe Matrix4x4(TNum[] components)
     {
         if (components.Length != 16)
             throw new ArgumentException("Components must be of length 16");
         fixed (TNum* ptr = &components[0])
-            this = *(Matrix4<TNum>*)ptr;
+            this = *(Matrix4x4<TNum>*)ptr;
     }
 
-    public Matrix4(Vector4<TNum> x, Vector4<TNum> y, Vector4<TNum> z, Vector4<TNum> w)
+    public Matrix4x4(Vector4<TNum> x, Vector4<TNum> y, Vector4<TNum> z, Vector4<TNum> w)
     {
         X = x;
         Y = y;
@@ -117,7 +121,7 @@ public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
         {
             if (RowCount > (uint)row && RowCount > (uint)column)
                 fixed (TNum* ptr = &X.X)
-                    return ptr[row * ColumnCount + column];
+                    return ptr[row * ColCount + column];
             throw new ArgumentOutOfRangeException();
         }
     }
@@ -135,23 +139,23 @@ public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
         return result;
     }
 
-    public static unsafe ReadOnlySpan<TNum> AsSpan(in Matrix4<TNum> matrix)
+    public static unsafe ReadOnlySpan<TNum> AsSpan(in Matrix4x4<TNum> matrix)
     {
-        fixed (void* sourcePtr = &matrix) return new(sourcePtr, RowCount * ColumnCount);
+        fixed (void* sourcePtr = &matrix) return new(sourcePtr, RowCount * ColCount);
     }
 
-    public Matrix4<TNum> Transpose() => FromColumns(X, Y, Z, W);
+    public Matrix4x4<TNum> Transpose() => FromColumns(X, Y, Z, W);
 
-    public static Matrix4<TNum> Transpose(Matrix4<TNum> m) => m.Transpose();
+    public static Matrix4x4<TNum> Transpose(Matrix4x4<TNum> m) => m.Transpose();
 
-    public static Matrix4<TNum> operator *(Matrix4<TNum> a, Matrix4<TNum> b)
+    public static Matrix4x4<TNum> operator *(Matrix4x4<TNum> a, Matrix4x4<TNum> b)
     {
         b = b.Transpose();
-        return new Matrix4<TNum>(
-            a.X.Dot( b.X), a.X.Dot(b.Y), a.X.Dot(b.Z), a.X.Dot(b.W),
-            a.Y.Dot( b.X), a.Y.Dot(b.Y), a.Y.Dot(b.Z), a.Y.Dot(b.W),
-            a.Z.Dot( b.X), a.Z.Dot(b.Y), a.Z.Dot(b.Z), a.Z.Dot(b.W),
-            a.W.Dot( b.X), a.W.Dot(b.Y), a.W.Dot(b.Z), a.W.Dot(b.W)
+        return new Matrix4x4<TNum>(
+            a.X.Dot(b.X), a.X.Dot(b.Y), a.X.Dot(b.Z), a.X.Dot(b.W),
+            a.Y.Dot(b.X), a.Y.Dot(b.Y), a.Y.Dot(b.Z), a.Y.Dot(b.W),
+            a.Z.Dot(b.X), a.Z.Dot(b.Y), a.Z.Dot(b.Z), a.Z.Dot(b.W),
+            a.W.Dot(b.X), a.W.Dot(b.Y), a.W.Dot(b.Z), a.W.Dot(b.W)
         );
     }
 
@@ -169,21 +173,21 @@ public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
     public Vector4<TNum> Multiply(Vector4<TNum> v)
         => new(X.Dot(v), Y.Dot(v), Z.Dot(v), W.Dot(v));
 
-    public static Vector4<TNum> operator *(Matrix4<TNum> m, Vector4<TNum> v) => m.Multiply(v);
-    public static Vector3<TNum> operator *(Matrix4<TNum> m, Vector3<TNum> v) => m.MultiplyPoint(v);
+    public static Vector4<TNum> operator *(Matrix4x4<TNum> m, Vector4<TNum> v) => m.Multiply(v);
+    public static Vector3<TNum> operator *(Matrix4x4<TNum> m, Vector3<TNum> v) => m.MultiplyPoint(v);
 
-    public static Matrix4<TNum> operator *(Matrix4<TNum> m, TNum scalar) =>
+    public static Matrix4x4<TNum> operator *(Matrix4x4<TNum> m, TNum scalar) =>
         new(m.X * scalar, m.Y * scalar, m.Z * scalar, m.W * scalar);
 
-    public static Matrix4<TNum> operator *(TNum scalar, Matrix4<TNum> m) => m * scalar;
-    public static Matrix4<TNum> operator /(Matrix4<TNum> m, TNum divisor) => m * (TNum.One / divisor);
+    public static Matrix4x4<TNum> operator *(TNum scalar, Matrix4x4<TNum> m) => m * scalar;
+    public static Matrix4x4<TNum> operator /(Matrix4x4<TNum> m, TNum divisor) => m * (TNum.One / divisor);
 
-    public static Matrix4<TNum> operator +(Matrix4<TNum> l, Matrix4<TNum> r) =>
+    public static Matrix4x4<TNum> operator +(Matrix4x4<TNum> l, Matrix4x4<TNum> r) =>
         new(l.X + r.X, l.Y + r.Y, l.Z + r.Z, l.W + r.W);
 
-    public static Matrix4<TNum> operator -(Matrix4<TNum> m) => new(-m.X, -m.Y, -m.Z, -m.W);
+    public static Matrix4x4<TNum> operator -(Matrix4x4<TNum> m) => new(-m.X, -m.Y, -m.Z, -m.W);
 
-    public static Matrix4<TNum> operator -(Matrix4<TNum> l, Matrix4<TNum> r)
+    public static Matrix4x4<TNum> operator -(Matrix4x4<TNum> l, Matrix4x4<TNum> r)
         => new(l.X - r.X, l.Y - r.Y, l.Z - r.Z, l.W - r.W);
 
 
@@ -192,12 +196,12 @@ public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
     {
         if (RowCount > (uint)row)
             fixed (Vector4<TNum>* ptr = &X)
-                return ptr[row * ColumnCount];
+                return ptr[row * ColCount];
         throw new ArgumentOutOfRangeException(nameof(row));
     }
 
 
-    public Vector4<TNum> GetColumn(int col) => Transpose().GetRow(col);
+    public Vector4<TNum> GetCol(int col) => Transpose().GetRow(col);
 
     // Homogeneous utilities
     public static Vector3<TNum> Homogenize(Vector4<TNum> v)
@@ -207,7 +211,7 @@ public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
         => new(v.X, v.Y, v.Z, w);
 
     // Linear interpolation
-    public static Matrix4<TNum> Lerp(Matrix4<TNum> from, Matrix4<TNum> to, TNum t)
+    public static Matrix4x4<TNum> Lerp(Matrix4x4<TNum> from, Matrix4x4<TNum> to, TNum t)
         => FromRows(
             Vector4<TNum>.Lerp(from.X, to.X, t),
             Vector4<TNum>.Lerp(from.Y, to.Y, t),
@@ -216,7 +220,7 @@ public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
         );
 
     // Shear
-    public static Matrix4<TNum> CreateShear(
+    public static Matrix4x4<TNum> CreateShear(
         TNum xy, TNum xz, TNum yx, TNum yz, TNum zx, TNum zy)
         => new(
             TNum.One, xy, xz, TNum.Zero,
@@ -224,7 +228,7 @@ public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
             zx, zy, TNum.One, TNum.Zero,
             TNum.Zero, TNum.Zero, TNum.Zero, TNum.One);
 
-    public static Matrix4<TNum> CreateRotation(Vector3<TNum> axis, TNum angle)
+    public static Matrix4x4<TNum> CreateRotation(Vector3<TNum> axis, TNum angle)
     {
         axis = axis.Normalized;
 
@@ -232,9 +236,9 @@ public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
         var sin = TNum.Sin(angle);
         var t = TNum.One - cos;
         var tAxis = t * axis;
-        var x = axis.XXX*tAxis;
-        var y = axis.YYY*tAxis;
-        var z = axis.ZZZ*tAxis;
+        var x = axis.XXX * tAxis;
+        var y = axis.YYY * tAxis;
+        var z = axis.ZZZ * tAxis;
         var (sinX, sinY, sinZ) = sin * axis;
         x += new Vector3<TNum>(cos, -sinZ, sinY);
         y += new Vector3<TNum>(sinZ, cos, -sinX);
@@ -242,25 +246,25 @@ public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
         return FromRows(x, y, z, Vector4<TNum>.UnitW);
     }
 
-    public static Matrix4<TNum> CreateTranslation(Vector3<TNum> translation)
+    public static Matrix4x4<TNum> CreateTranslation(Vector3<TNum> translation)
         => Identity + FromRows(Vector4<TNum>.Zero,
             Vector4<TNum>.Zero,
             Vector4<TNum>.Zero,
             translation);
 
-    public static Matrix4<TNum> CreateScale(TNum scalar)
+    public static Matrix4x4<TNum> CreateScale(TNum scalar)
         => new(scalar, TNum.Zero, TNum.Zero, TNum.Zero,
             TNum.Zero, scalar, TNum.Zero, TNum.Zero,
             TNum.Zero, TNum.Zero, scalar, TNum.Zero,
             TNum.Zero, TNum.Zero, TNum.Zero, TNum.One);
 
-    public static Matrix4<TNum> CreateScale(Vector3<TNum> scalar)
+    public static Matrix4x4<TNum> CreateScale(Vector3<TNum> scalar)
         => new(scalar.X, TNum.Zero, TNum.Zero, TNum.Zero,
             TNum.Zero, scalar.Y, TNum.Zero, TNum.Zero,
             TNum.Zero, TNum.Zero, scalar.Z, TNum.Zero,
             TNum.Zero, TNum.Zero, TNum.Zero, TNum.One);
 
-    public static Matrix4<TNum> CreateViewAt(Vector3<TNum> eye, Vector3<TNum> target, Vector3<TNum> up)
+    public static Matrix4x4<TNum> CreateViewAt(Vector3<TNum> eye, Vector3<TNum> target, Vector3<TNum> up)
     {
         var z = (eye - target).Normalized;
         var x = (up ^ z).Normalized;
@@ -278,41 +282,48 @@ public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
     }
 
 
-    public static Matrix4<TNum> FromTopLeft(Matrix3<TNum> topleft)
+    public static Matrix4x4<TNum> FromTopLeft(Matrix3x3<TNum> topleft)
         => new(new Vector4<TNum>(topleft.X), new Vector4<TNum>(topleft.Y), new Vector4<TNum>(topleft.Z),
             new Vector4<TNum>(Vector3<TNum>.Zero, TNum.Zero));
 
-    public static Matrix4<TNum> FromRows(Vector4<TNum> x, Vector4<TNum> y, Vector4<TNum> z, Vector4<TNum> w)
+    public static Matrix4x4<TNum> FromRows(Vector4<TNum> x, Vector4<TNum> y, Vector4<TNum> z, Vector4<TNum> w)
         => new(x, y, z, w);
 
-    public static Matrix4<TNum> FromColumns(Vector4<TNum> x, Vector4<TNum> y, Vector4<TNum> z, Vector4<TNum> w)
+    public static Matrix4x4<TNum> FromColumns(Vector4<TNum> x, Vector4<TNum> y, Vector4<TNum> z, Vector4<TNum> w)
         => new(x.X, y.X, z.X, w.X,
             x.Y, y.Y, z.Y, w.Y,
             x.Z, y.Z, z.Z, w.Z,
             x.W, y.W, z.W, w.W);
 
-    public override bool Equals(object? obj) => obj is Matrix4<TNum> m && this == m;
+    public override bool Equals(object? obj) => obj is Matrix4x4<TNum> m && this == m;
 
-    public static bool operator ==(Matrix4<TNum> a, Matrix4<TNum> b) =>
+    public static bool operator ==(Matrix4x4<TNum> a, Matrix4x4<TNum> b) =>
         a.M00 == b.M00 && a.M01 == b.M01 && a.M02 == b.M02 && a.M03 == b.M03 &&
         a.M10 == b.M10 && a.M11 == b.M11 && a.M12 == b.M12 && a.M13 == b.M13 &&
         a.M20 == b.M20 && a.M21 == b.M21 && a.M22 == b.M22 && a.M23 == b.M23 &&
         a.M30 == b.M30 && a.M31 == b.M31 && a.M32 == b.M32 && a.M33 == b.M33;
 
-    public static bool operator !=(Matrix4<TNum> a, Matrix4<TNum> b) => !(a == b);
+    public static bool operator !=(Matrix4x4<TNum> a, Matrix4x4<TNum> b) => !(a == b);
 
     public override int GetHashCode() => HashCode.Combine(X, Y, Z, W);
 
-    public override string ToString() =>
-        $"[{M00},{M01},{M02},{M03}; {M10},{M11},{M12},{M13}; {M20},{M21},{M22},{M23}; {M30},{M31},{M32},{M33}]";
+
+    public static implicit operator Vector4<Vector4<TNum>>(Matrix4x4<TNum> m) =>
+        Unsafe.As<Matrix4x4<TNum>, Vector4<Vector4<TNum>>>(ref m);
+
+    public static implicit operator Matrix4x4<TNum>(Vector4<Vector4<TNum>> n) =>
+        Unsafe.As<Vector4<Vector4<TNum>>, Matrix4x4<TNum>>(ref n);
+
+    private Vector4<Vector4<TNum>> Nested()
+        => this;
 
     public TNum Determinant()
     {
         // Compute 3x3 minors
-        TNum det00 = M11 * (M22 * M33 - M23 * M32) - M12 * (M21 * M33 - M23 * M31) + M13 * (M21 * M32 - M22 * M31);
-        TNum det01 = M10 * (M22 * M33 - M23 * M32) - M12 * (M20 * M33 - M23 * M30) + M13 * (M20 * M32 - M22 * M30);
-        TNum det02 = M10 * (M21 * M33 - M23 * M31) - M11 * (M20 * M33 - M23 * M30) + M13 * (M20 * M31 - M21 * M30);
-        TNum det03 = M10 * (M21 * M32 - M22 * M31) - M11 * (M20 * M32 - M22 * M30) + M12 * (M20 * M31 - M21 * M30);
+        var det00 = M11 * (M22 * M33 - M23 * M32) - M12 * (M21 * M33 - M23 * M31) + M13 * (M21 * M32 - M22 * M31);
+        var det01 = M10 * (M22 * M33 - M23 * M32) - M12 * (M20 * M33 - M23 * M30) + M13 * (M20 * M32 - M22 * M30);
+        var det02 = M10 * (M21 * M33 - M23 * M31) - M11 * (M20 * M33 - M23 * M30) + M13 * (M20 * M31 - M21 * M30);
+        var det03 = M10 * (M21 * M32 - M22 * M31) - M11 * (M20 * M32 - M22 * M30) + M12 * (M20 * M31 - M21 * M30);
         return
             M00 * det00
             - M01 * det01
@@ -321,7 +332,7 @@ public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
     }
 
 
-    public bool Equals(Matrix4<TNum> other)
+    public bool Equals(Matrix4x4<TNum> other)
         => M00 == other.M00 &&
            M01 == other.M01 &&
            M02 == other.M02 &&
@@ -353,5 +364,45 @@ public readonly struct Matrix4<TNum> : IMatrix<TNum>, IEquatable<Matrix4<TNum>>
         var bottom = depthNear * (M21 - TNum.One) / M11;
         var top = depthNear * (M21 + TNum.One) / M11;
         return (left, right, bottom, top, depthNear, depthFar);
+    }
+
+    public override string ToString() => Nested().ToString();
+
+
+
+    /// <inheritdoc />
+    public string ToString(string? format, IFormatProvider? formatProvider)
+    {
+        return Nested().ToString(format, formatProvider);
+    }
+
+    /// <inheritdoc />
+    public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format,
+        IFormatProvider? provider)
+    {
+        return Nested().TryFormat(destination, out charsWritten, format, provider);
+    }
+
+    /// <inheritdoc />
+    public static Matrix4x4<TNum> Parse(string s, IFormatProvider? provider)
+        => Vector4<Vector4<TNum>>.Parse(s, provider);
+
+    /// <inheritdoc />
+    public static Matrix4x4<TNum> Parse(ReadOnlySpan<char> s, IFormatProvider? provider) =>
+        Vector4<Vector4<TNum>>.Parse(s, provider);
+
+    /// <inheritdoc />
+    public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, out Matrix4x4<TNum> result)
+    {
+        result = default;
+        return s is { Length: > 0 } && TryParse(s, provider, out result);
+    }
+
+    /// <inheritdoc />
+    public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out Matrix4x4<TNum> result)
+    {
+        var success = Vector4<Vector4<TNum>>.TryParse(s, provider, out var n);
+        result = n;
+        return success;
     }
 }

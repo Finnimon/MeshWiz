@@ -68,9 +68,9 @@ public class OrbitCamera(float fovRad, Vector3<float> orbitAround, float distanc
     public (Matrix4 model, Matrix4 view, Matrix4 projection) CreateRenderMatrices(float aspect)
     {
         var model = Matrix4.Identity;
-        var view = Matrix4<float>.CreateViewAt(GetPosition(), LookAt, UnitUp);
+        var view = Matrix4x4<float>.CreateViewAt(GetPosition(), LookAt, UnitUp);
         var projection = Matrix4.CreatePerspectiveFieldOfView(FovRad, aspect, 0.001f, float.Max(100000,Distance * 1000));
-        return (model,Unsafe.As<Matrix4<float>,Matrix4>(ref view), projection);
+        return (model,Unsafe.As<Matrix4x4<float>,Matrix4>(ref view), projection);
     }
 
     public static ICamera Default()

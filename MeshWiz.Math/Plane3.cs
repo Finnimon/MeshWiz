@@ -20,7 +20,7 @@ public readonly struct Plane3<TNum>
     public static Plane3<TNum> XY => new(Vector3<TNum>.UnitZ, TNum.Zero);
     public static Plane3<TNum> YZ => new(Vector3<TNum>.UnitX, TNum.Zero);
     public static Plane3<TNum> ZX => new(Vector3<TNum>.UnitY, TNum.Zero);
-
+    
     public readonly TNum D;
     public readonly Vector3<TNum> Normal;
     [JsonIgnore,XmlIgnore,SoapIgnore,IgnoreDataMember,Pure]
@@ -278,14 +278,14 @@ public readonly struct Plane3<TNum>
 
     public Vector2<TNum> ProjectIntoLocal(Vector3<TNum> world)
     {
-        var (u, v) = Uv;
+        var (u, v) = Basis;
         var local = world - Origin;
         return new Vector2<TNum>(local.Dot(u), local.Dot(v));
     }
 
     public Vector2<TNum>[] ProjectIntoLocal(IReadOnlyList<Vector3<TNum>> world)
     {
-        var (u, v) = Uv;
+        var (u, v) = Basis;
         var origin = Origin;
         var pCount = world.Count;
         var local = new Vector2<TNum>[pCount];
@@ -298,9 +298,12 @@ public readonly struct Plane3<TNum>
         return local;
     }
 
+    public Polyline<Vector2<TNum>, TNum> ProjectIntoLocal(Polyline<Vector3<TNum>, TNum> world) =>
+        new(ProjectIntoLocal(world.Points));
+
     public Line<Vector2<TNum>, TNum>[] ProjectIntoLocal(IReadOnlyList<Line<Vector3<TNum>, TNum>> world)
     {
-        var (u, v) = Uv;
+        var (u, v) = Basis;
         var origin = Origin;
         var count = world.Count;
         var local = new Line<Vector2<TNum>, TNum>[count];
@@ -320,14 +323,14 @@ public readonly struct Plane3<TNum>
 
     public Vector3<TNum> ProjectIntoWorld(Vector2<TNum> local)
     {
-        var (u, v) = Uv;
+        var (u, v) = Basis;
         return Origin + local.X * u + local.Y * v;
     }
 
 
     public Vector3<TNum>[] ProjectIntoWorld(IReadOnlyList<Vector2<TNum>> local)
     {
-        var (u, v) = Uv;
+        var (u, v) = Basis;
         var origin = Origin;
         var pCount = local.Count;
         var world = new Vector3<TNum>[pCount];
@@ -342,7 +345,7 @@ public readonly struct Plane3<TNum>
 
     public Line<Vector3<TNum>, TNum>[] ProjectIntoWorld(IReadOnlyList<Line<Vector2<TNum>, TNum>> local)
     {
-        var (u, v) = Uv;
+        var (u, v) = Basis;
         var origin = Origin;
         var count = local.Count;
         var world = new Line<Vector3<TNum>, TNum>[count];
@@ -359,39 +362,33 @@ public readonly struct Plane3<TNum>
         return world;
     }
 
-    public Polyline<Vector3<TNum>, TNum> ProjectIntoWorld(Polyline<Vector2<TNum>, TNum> local)
-    {
-        var (u, v) = Uv;
-        var origin = Origin;
-        var count = local.Points.Length;
-        var localPts = local.Points;
-        var world = new Vector3<TNum>[count];
-        for (var i = 0; i < count; i++)
-        {
-            var localPt = localPts[i];
-            world[i] = origin + localPt.X * u + localPt.Y * v;
-        }
-
-        return new(world);
-    }
+    public Polyline<Vector3<TNum>, TNum> ProjectIntoWorld(Polyline<Vector2<TNum>, TNum> local) 
+        => new(ProjectIntoWorld(local.Points));
 
 
-    public (Vector3<TNum> u, Vector3<TNum> v) Uv
+    public (Vector3<TNum> U, Vector3<TNum> V) Basis
     {
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            var reference = Normal.IsParallelTo(Vector3<TNum>.UnitY) ? Vector3<TNum>.UnitX : Vector3<TNum>.UnitY;
-            var u = Normal ^ reference;
-            var v = Normal ^ u;
-            return (u, v);
-        }
+        get => BuildBasisDuff(Normal);
     }
+    
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static (Vector3<TNum> U, Vector3<TNum> V) BuildBasisDuff(Vector3<TNum> n)
+    {
+        var sign = TNum.CopySign(TNum.One, n.Z);
+        var a = -TNum.One / (sign + n.Z);
+        var b = n.X * n.Y * a;
+        var u = new Vector3<TNum>(TNum.One + sign * n.X * n.X * a, sign * b, -sign * n.X);
+        var v = new Vector3<TNum>(b, sign + n.Y * n.Y * a, -n.Y);
+        return (u, v);
+    }
+
+
 
 
     public Line<Vector2<TNum>, TNum> ProjectIntoLocal(Line<Vector3<TNum>, TNum> world)
     {
-        var (u, v) = Uv;
+        var (u, v) = Basis;
         var origin = Origin;
 
         var lineStart = world.Start - origin;

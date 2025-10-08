@@ -228,11 +228,40 @@ public readonly struct AABB<TNum>
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [Pure]
-    public TNum Clamp(TNum value) => TNum.Clamp(value, Min, Max);
+    public TNum Clamp(TNum value) => TNum.Max(Min,TNum.Min(value, Max));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Pure]
+    public AABB<TNum> Clamp(AABB<TNum> value) => new(Clamp(value.Min),Clamp(value.Max));
 
     public AABB<TOther> To<TOther>() where TOther : unmanaged, IFloatingPointIeee754<TOther>
     {
         return new AABB<TOther>(TOther.CreateTruncating(Min), TOther.CreateTruncating(Max));
+    }
+
+    public static AABB<TNum> Combine(IEnumerable<AABB<TNum>> select)
+    {
+        var min = TNum.PositiveInfinity;
+        var max = TNum.NegativeInfinity;
+        foreach (var aabb in select)
+        {
+            min = TNum.Min(min, aabb.Min);
+            max = TNum.Max(max, aabb.Max);
+        }
+
+        return new AABB<TNum>(min, max);
+    }
+    
+    public static AABB<TNum> operator +(AABB<TNum> l, TNum r)=>new(l.Min+r,l.Max+r); 
+    public static AABB<TNum> operator +(TNum l, AABB<TNum> r)=>r+l;
+    public static AABB<TNum> operator |(AABB<TNum> l, AABB<TNum> r) => l.CombineWith(r);
+
+    public static AABB<TNum> operator &(AABB<TNum> l, AABB<TNum> r)
+    {
+        if (r.Max < l.Max) (l, r) = (r, l);
+        var rcl= r.Clamp(l.Max);
+        if (!l.Contains(rcl)) return Empty;
+        return new AABB<TNum>(l.Clamp(r.Min), rcl);
     }
 }
 
@@ -267,6 +296,10 @@ public static class AABB
     public static AABB<TNum> Around<TNum>(TNum center, TNum size)
         where TNum : unmanaged, IFloatingPointIeee754<TNum> =>
         AABB<TNum>.Around(center, size);
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static AABB<TNum> Combine<TNum>(IEnumerable<AABB<TNum>> select) 
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+    =>AABB<TNum>.Combine(select);
 
     [Pure]
     public static TNum GetArea<TNum>(this AABB<Vector2<TNum>> aabb)

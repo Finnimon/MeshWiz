@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace MeshWiz.Math;
 
-public readonly struct Circle3Section<TNum> : IFlat<TNum>, ISurface3<TNum>, IRotationalSurface<TNum>
+public readonly struct Circle3Section<TNum> : IFlat<TNum>, IRotationalSurface<TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public Vector3<TNum> Centroid { get; }
@@ -20,9 +20,10 @@ public readonly struct Circle3Section<TNum> : IFlat<TNum>, ISurface3<TNum>, IRot
     {
         MinorRadius = TNum.Abs(minorRadius);
         MajorRadius = TNum.Abs(majorRadius);
-        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(MajorRadius,MinorRadius,nameof(minorRadius));
         Centroid = centroid;
-        Normal = TNum.Sign(minorRadius) == TNum.Sign(majorRadius) ? normal.Normalized : -normal.Normalized;
+        ArgumentOutOfRangeException.ThrowIfEqual(MajorRadius,MinorRadius,nameof(MajorRadius));
+        var sign = TNum.Sign(minorRadius) != TNum.Sign(majorRadius) ^ majorRadius<minorRadius;
+        Normal = sign ? -normal.Normalized : normal.Normalized;
     }
 
     public Plane3<TNum> Plane => new(Normal, Centroid);
@@ -40,7 +41,7 @@ public readonly struct Circle3Section<TNum> : IFlat<TNum>, ISurface3<TNum>, IRot
     
 
     /// <inheritdoc />
-    public IDiscreteCurve<Vector3<TNum>, TNum> SweepCurve => Major.TraverseByAngle(TNum.Zero).LineTo(Minor.TraverseByAngle(TNum.Zero));
+    public IDiscreteCurve<Vector3<TNum>, TNum> SweepCurve => Minor.TraverseByAngle(TNum.Zero).LineTo(Major.TraverseByAngle(TNum.Zero));
 
     /// <inheritdoc />
     public Ray3<TNum> SweepAxis => new(Centroid, Normal);
