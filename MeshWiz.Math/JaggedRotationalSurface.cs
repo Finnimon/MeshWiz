@@ -1,31 +1,28 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
-public sealed class JaggedRotationalSurface<TNum> : IReadOnlyList<IRotationalSurface<TNum>>, IRotationalSurface<TNum>
+public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum>[] Positions)
+    : IReadOnlyList<IRotationalSurface<TNum>>, IRotationalSurface<TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    public readonly Ray3<TNum> Axis;
-    public readonly TNum[] Radii;
-    public readonly TNum[] EndPositions;
-    public TNum Height => EndPositions.Length > 0 ? EndPositions[^1] : TNum.Zero;
-    public int Count => EndPositions.Length;
-    private Vector3<TNum>? _centroid = null;
-
+    private TNum? _height;
+    public TNum Height => _height ??= AABB.From(Positions).Size.Y;
+    private Vector3<TNum>? _basisU;
+    private Vector3<TNum> BasisU => _basisU ??= new Plane3<TNum>(Axis.Direction, Axis.Origin).Basis.U;
+    public int Count => int.Max(Positions.Length - 1, 0);
+    private Vector3<TNum>? _centroid;
     /// <inheritdoc />
-    public Vector3<TNum> Centroid => GetCentroid();
+    public Vector3<TNum> Centroid => _centroid ??= ComputeCentroid();
 
-    public JaggedRotationalSurface(Ray3<TNum> axis, TNum[] radii, TNum[] endPositions)
-    {
-        ArgumentOutOfRangeException.ThrowIfEqual(endPositions.Length, 0, nameof(endPositions));
-        ArgumentOutOfRangeException.ThrowIfNotEqual(radii.Length, endPositions.Length + 1, nameof(radii));
-        Axis = axis;
-        Radii = radii;
-        EndPositions = endPositions;
-    }
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector3<TNum> Project(Vector2<TNum> p,in Vector3<TNum> u, in Ray3<TNum> axis) 
+        => axis.Traverse(p.X) + u * p.Y;
 
     public IRotationalSurface<TNum> this[int index]
         => GetChildSurface(index);
@@ -33,15 +30,12 @@ public sealed class JaggedRotationalSurface<TNum> : IReadOnlyList<IRotationalSur
     public IRotationalSurface<TNum> GetChildSurface(int index)
     {
         if (Count <= (uint)index) throw new IndexOutOfRangeException();
-        var startRadius = Radii[index];
-        var endRadius = Radii[index + 1];
-        var start = index == 0 ? TNum.Zero : EndPositions[index - 1];
-        var end = EndPositions[index];
-        var isNotCircle = start != end;
-        IRotationalSurface<TNum> surf = isNotCircle
-            ? new ConeSection<TNum>(Axis.LineSection(start, end), startRadius, endRadius)
-            : new Circle3Section<TNum>(Axis.Traverse(start), Axis.Direction, startRadius, endRadius);
-        return surf;
+        var start = Positions[index];
+        var end=Positions[index+1];
+        var isNotCircle = start.X != end.X;
+        return isNotCircle
+            ? new ConeSection<TNum>(Axis.LineSection(start.X, end.X), start.Y, end.Y)
+            : new Circle3Section<TNum>(Axis.Traverse(start.X), Axis.Direction, start.Y, end.Y);
     }
 
 
@@ -79,49 +73,47 @@ public sealed class JaggedRotationalSurface<TNum> : IReadOnlyList<IRotationalSur
 
     private Polyline<Vector3<TNum>, TNum> CreateSweepCurve(JaggedRotationalSurface<TNum> jaggedRotationalSurface)
     {
-        var pCOunt = EndPositions.Length + 1;
-        var pts = new Vector3<TNum>[pCOunt];
-        var right = new Plane3<TNum>(Axis.Direction, Axis.Origin).Basis.U;
-
-        for (var i = 0; i < this.Radii.Length; i++)
-        {
-            var radius = Radii[i];
-            var alongAxis = i - 1 < 0 ? TNum.Zero : EndPositions[i - 1];
-            var onAxis = Axis.Traverse(alongAxis);
-            pts[i] = onAxis + right * radius;
-        }
-
+        var u = BasisU;
+        var axis = Axis;
+        var pts=new Vector3<TNum>[Positions.Length];
+        for (var i = 0; i < Positions.Length; i++)
+            pts[i]=Project(Positions[i],in u,in axis);
         return new Polyline<Vector3<TNum>, TNum>(pts);
-    }
+    }   
+
 
     public static JaggedRotationalSurface<TNum> FromSweepCurve(Polyline<Vector3<TNum>, TNum> sweepCurve,
         Ray3<TNum> axis)
     {
         var axisLine = axis.Origin.LineTo(axis.Origin + axis.Direction);
-        var endPositions = new TNum[sweepCurve.Count];
-        var radii = new TNum[sweepCurve.Points.Length];
+        var positions = new Vector2<TNum>[sweepCurve.Points.Length];
         for (var i = 0; i < sweepCurve.Points.Length; i++)
         {
             var p = sweepCurve.Points[i];
             var closest = axisLine.ClosestPoint(p);
-            radii[i] = p.DistanceTo(closest);
+            var radius = p.DistanceTo(closest);
             if (i == 0)
             {
                 axisLine = closest.LineTo(closest + axis.Direction);
+                positions[0]=new Vector2<TNum>(TNum.Zero,radius);
                 continue;
             }
 
-            var endPosAbs = closest.DistanceTo(axisLine.Start);
-            endPositions[i - 1] = endPosAbs;
+            var absAlong = closest.DistanceTo(axisLine.Start);
+            var startToP = p - axisLine.Start;
+            var sign = startToP.Dot(axisLine.Direction);
+            var along = TNum.CopySign(absAlong, sign);
+            positions[i]=new Vector2<TNum>(along,radius);
         }
 
-        return new JaggedRotationalSurface<TNum>(axisLine, radii, endPositions) { SweepCurve = sweepCurve };
+        return new JaggedRotationalSurface<TNum>(axisLine, positions)
+        { SweepCurve = sweepCurve };
     }
 
     /// <inheritdoc />
     public Ray3<TNum> SweepAxis => Axis;
 
-    private Vector3<TNum> GetCentroid()
+    private Vector3<TNum> ComputeCentroid()
     {
         var total = TNum.Zero;
         var centroid = Vector3<TNum>.Zero;

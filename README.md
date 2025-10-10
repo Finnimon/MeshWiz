@@ -1,5 +1,5 @@
 # Intro
-This entire repo is meant to provide various utilities around [Meshes](./MeshWiz.Math/IMesh3.cs).
+This entire repo is meant to provide various utilities around [Meshes](./MeshWiz.Math/IMesh.cs).
 
 # Features
 ## Interface
@@ -20,18 +20,19 @@ This entire repo is meant to provide various utilities around [Meshes](./MeshWiz
 - [ ] Planar Slicing
 - [ ] Non Planar Slicing
 - [ ] Flat segmentation slicing
-- [ ] Mesh generation (ie "meshwiz gen sphere --radius ~~~~1 --centroid 0 0 0")
-- [ ] geometry streaming from other services~~~~
+- [ ] Mesh generation (ie "meshwiz gen sphere --radius 1 --centroid 0 0 0")
+- [ ] geometry streaming from other services
 
 # Roadmap
 - [X] STL IO
 - [X] Experimental 3d viewer 
 - [ ] Mesh computation
   - [X] Indexing
-  - [ ] **BVH** (CURRENT WIP)
+  - [X] BVH
+  - 
 - [ ] CLI interface
 - [ ] Basic CAM
-  - [ ] Planar Slicing
+  - [ ] Planar Slicing (WIP)
   - [ ] G-Code postprocessor
   - [ ] Triangle flat packing (Assembling parts from flat cut triangles)
 - [ ] Other filetypes

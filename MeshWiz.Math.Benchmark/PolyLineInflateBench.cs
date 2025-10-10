@@ -14,7 +14,7 @@ public class PolyLineInflateBench
     public void Setup()
     {
         var mesh= MeshIO.ReadFile<FastStlReader, float>("/home/finnimon/source/repos/TestFiles/artillery-witch.stl");
-        BvhMesh<float> bvh = new (mesh);
+        var bvh = BvhMesh<float>.SurfaceAreaHeuristic(mesh);
         var plane = new Plane3<float>(Vector3<float>.UnitY, bvh.VolumeCentroid);
         _basePl = bvh.IntersectRolling(plane).OrderByDescending(x=>x.Length).First();
     }

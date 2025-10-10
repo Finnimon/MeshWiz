@@ -14,13 +14,13 @@ public sealed class PlanarSlicer<TNum>(Vector3<TNum> layerNormal, Vector3<TNum> 
         var floorPlane = new Plane3<TNum>(layerNormal, bbox.Min);
         var distance = bbox.Size.Length;
         var indexedMesh = mesh.Indexed();
-        var shrunkenForOuterPasses = new BvhMesh<TNum>(Slicing.GrowMesh(indexedMesh, -directive.PathWidth));
+        var shrunkenForOuterPasses = BvhMesh<TNum>.SurfaceAreaHeuristic(Slicing.GrowMesh(indexedMesh, -directive.PathWidth));
         List<Plane3<TNum>> layerList = new(int.CreateTruncating(distance / directive.LayerHeight));
         for (var h = TNum.CreateTruncating(0.000001); h <= distance; h += directive.LayerHeight)
             layerList.Add(new(layerNormal, floorPlane.D - h));
         var layers = layerList.ToArray();
         var outerPassesTask = Task.Run(() => CreateOuterPasses(shrunkenForOuterPasses, layers));
-        var shrunkenForInfill = new BvhMesh<TNum>(Slicing.GrowMesh(shrunkenForOuterPasses, -directive.PathWidth));
+        var shrunkenForInfill = BvhMesh<TNum>.SurfaceAreaHeuristic(Slicing.GrowMesh(shrunkenForOuterPasses, -directive.PathWidth));
         var infill=CreateInfill(shrunkenForInfill, layers,directive.PathWidth);
         return [];
     }

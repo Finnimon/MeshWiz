@@ -30,9 +30,10 @@ public readonly struct Plane3<TNum>
 
     public Plane3(Vector3<TNum> normal, Vector3<TNum> pointOnPlane)
     {
-        Normal = normal;
+        Normal = normal.Normalized;
         D = -(Normal.Dot(pointOnPlane));
     }
+    
 
     public Plane3(Vector3<TNum> a, Vector3<TNum> b, Vector3<TNum> c)
     {

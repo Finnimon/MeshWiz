@@ -62,7 +62,7 @@ public partial class MainWindow : Window
         // meshi = Mesh.Create.PipeAlong(baseFace, along);
         // var baseFace2d = Plane3<float>.ZX.ProjectIntoLocal(baseFace);
         // meshi=Mesh.Create.PipeAlongAligned(baseFace2d, along);
-        var mesh = new BvhMesh<float>(meshi);
+        var mesh = BvhMesh<float>.SurfaceAreaHeuristic(meshi);
         // mesh=new  IndexedMesh3<float>(new Sphere<float>(Vector3<float>.Zero, 1).TessellatedSurface);
         Console.WriteLine(
             $"Tri count: {mesh.Count}, Effec vert count: {mesh.Count * 3}, Indexed vert count: {mesh.Vertices.Length}");

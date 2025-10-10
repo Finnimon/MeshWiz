@@ -22,10 +22,10 @@ where TNum:unmanaged, IFloatingPointIeee754<TNum>
     public BoundedVolumeHierarchy<TNum> ObsoleteHierarchize()
     {
         var (indices, vertices) = Mesh.Indexing.Indicate(_mesh!);
-        return Mesh.Bvh.Hierarchize(indices, vertices,MaxDepth,SplitTests);
+        return Mesh.Bvh.HierarchizeSah(indices, vertices,MaxDepth,SplitTests);
     }
 
     [Benchmark]
     public (BoundedVolumeHierarchy<TNum> hierarchy, TriangleIndexer[] indices, Vector3<TNum>[] vertices, uint d) OptimizedHierarchize() 
-        => Mesh.Bvh.Hierarchize(_mesh!, MaxDepth,SplitTests);
+        => Mesh.Bvh.HierarchizeSah(_mesh!, MaxDepth,SplitTests);
 }

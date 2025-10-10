@@ -19,7 +19,7 @@ public static partial class Mesh
             TriangleIndexer[] indices,
             Vector3<TNum>[] vertices,
             uint depth)
-            Hierarchize<TNum>(
+            HierarchizeSah<TNum>(
                 IReadOnlyList<Triangle3<TNum>> mesh,
                 uint maxDepth = 32,
                 uint splitTests = 4)
@@ -163,7 +163,7 @@ public static partial class Mesh
         }
 
         [Obsolete($"Use the other overload. It has no side effects and is much faster.")]
-        public static BoundedVolumeHierarchy<TNum> Hierarchize<TNum>(
+        public static BoundedVolumeHierarchy<TNum> HierarchizeSah<TNum>(
             TriangleIndexer[] indices,
             Vector3<TNum>[] vertices,
             uint maxDepth = 32,

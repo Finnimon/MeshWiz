@@ -16,13 +16,21 @@ public static class EnumerableExt
     }
 
     [Pure]
-    public static TAdd Sum<TAdd>(this IEnumerable<TAdd> enumerable)
-        where TAdd : struct, IAdditionOperators<TAdd, TAdd, TAdd>
+    public static TAdd Sum<TAdd>(this IEnumerable<TAdd> enumerable,TAdd zero)
+        where TAdd :IAdditionOperators<TAdd, TAdd, TAdd> 
     {
-        var sum = default(TAdd);
+        var sum = zero;
         return enumerable.Aggregate(sum, (current, item) => current + item);
     }
 
+    
+    [Pure]
+    public static TAdd Sum<TAdd>(this IEnumerable<TAdd> enumerable)
+        where TAdd : INumberBase<TAdd> 
+    {
+        return enumerable.Aggregate(TAdd.AdditiveIdentity, (current, item) => current + item);
+    }
+    
     [Pure]
     public static TAdd Sum<TSource, TAdd>(this IEnumerable<TSource> enumerable, Func<TSource, TAdd> selector)
         where TAdd : struct, IAdditionOperators<TAdd, TAdd, TAdd>

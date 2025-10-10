@@ -17,7 +17,7 @@ public class PlaneBvhIntersectBench
             // ..Sphere<float>.GenerateTessellation(Vector3<float>.One * 2, 1, 256, 512)
         ];
         tris = MeshIO.ReadFile<FastStlReader, float>("/home/finnimon/source/repos/TestFiles/drag.stl").ToArray();
-        _mesh = new BvhMesh<float>(tris);
+        _mesh = BvhMesh<float>.SurfaceAreaHeuristic(tris);
         _plane = new Plane3<float>(Vector3<float>.UnitZ, _mesh.VolumeCentroid);
             
     }
