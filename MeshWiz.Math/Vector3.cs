@@ -302,13 +302,13 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
 
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector3<TNum> Lerp(Vector3<TNum> from, Vector3<TNum> to, TNum normalDistance)
-        => (to - from) * normalDistance + from;
+    public static Vector3<TNum> Lerp(Vector3<TNum> a, Vector3<TNum> b, TNum t)
+        => b * t + a * (TNum.One - t);
 
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector3<TNum> ExactLerp(Vector3<TNum> from, Vector3<TNum> toward, TNum exactDistance)
-        => (toward - from).Normalized * exactDistance + from;
+        => Lerp(from, toward, exactDistance * from.DistanceTo(toward));
 
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -421,21 +421,21 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
     /// <inheritdoc />
     public static Vector3<TNum> AdditiveIdentity => Zero;
 
-    
+
     /// <inheritdoc />
     public static bool operator >(Vector3<TNum> left, Vector3<TNum> right)
     {
-        var max= Max(left, right);
+        var max = Max(left, right);
         return max == left && max != right;
     }
 
     /// <inheritdoc />
     public static bool operator >=(Vector3<TNum> left, Vector3<TNum> right)
-        => Max(left,right)==left;
+        => Max(left, right) == left;
 
     /// <inheritdoc />
     public static bool operator <(Vector3<TNum> left, Vector3<TNum> right)
-        => right>left;
+        => right > left;
 
     /// <inheritdoc />
     public static bool operator <=(Vector3<TNum> left, Vector3<TNum> right)
@@ -740,7 +740,7 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
 
     /// <inheritdoc />
     public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, out Vector3<TNum> result)
-    =>TryParse(s,NumberStyles.Any,provider, out result);
+        => TryParse(s, NumberStyles.Any, provider, out result);
 
     /// <inheritdoc />
     public static Vector3<TNum> Parse(ReadOnlySpan<char> s, IFormatProvider? provider = null)
@@ -785,7 +785,6 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
         => ArrayParser.TryFormat(AsSpan(), destination, out charsWritten, format, provider);
 
 
-    
     public override string ToString()
         => ToString("G", CultureInfo.CurrentCulture);
 
@@ -797,7 +796,55 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
         buffer = stackalloc char[128];
         if (TryFormat(buffer, out charsWritten, format, formatProvider))
             return new string(buffer[..charsWritten]);
-        throw new InvalidOperationException();   
+        throw new InvalidOperationException();
     }
-    
+
+    public TNum AngleTo(Vector3<TNum> other) => AngleBetween(this, other);
+
+    public static TNum AngleBetween(Vector3<TNum> a, Vector3<TNum> b)
+    {
+        a = a.Normalized;
+        b = b.Normalized;
+        var dot = a.Dot(b);
+        return TNum.Acos(dot);
+    }
+
+    public static TNum SignedAngleBetween(Vector3<TNum> a, Vector3<TNum> b, Vector3<TNum> about)
+    {
+        about = about.Normalized;
+        if (a.IsParallelTo(about))
+        {
+            throw new ArgumentException("FromVector parallel to aboutVector");
+        }
+
+        if (b.IsParallelTo(about))
+        {
+            throw new ArgumentException("FromVector parallel to aboutVector");
+        }
+
+        var rp = new Plane3<TNum>(about, TNum.Zero);
+        var a2D = rp.ProjectIntoLocal(a);
+        var b2D = rp.ProjectIntoLocal(b);
+        var dp = a2D.Dot(b2D);
+        if (dp.IsApprox(TNum.Zero))
+        {
+            return TNum.Zero;
+        }
+
+        if (dp.IsApprox(TNum.One))
+        {
+            return TNum.Pi;
+        }
+
+        var angle = TNum.Acos(dp);
+        var cpv = rp.ProjectIntoWorld(a2D).Cross(rp.ProjectIntoWorld(b2D));
+        var sign = cpv.Dot(rp.Normal);
+        var signedAngle = sign * angle;
+        return signedAngle;
+    }
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector3<TNum> FusedMultiplyAdd(Vector3<TNum> a, TNum b, Vector3<TNum> addend)
+        => new(TNum.FusedMultiplyAdd(a.X, b, addend.X), TNum.FusedMultiplyAdd(a.Y, b, addend.Y),
+            TNum.FusedMultiplyAdd(a.Z, b, addend.Z));
 }

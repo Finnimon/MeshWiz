@@ -737,4 +737,14 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
     /// <inheritdoc />
     public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) 
         => ArrayParser.TryFormat(AsSpan(), destination, out charsWritten, format, provider);
+    
+    
+    public TNum AngleTo(Vector2<TNum> other) => AngleBetween(this, other);
+    public static TNum AngleBetween(Vector2<TNum> a, Vector2<TNum> b)
+    {
+        a = a.Normalized;
+        b = b.Normalized;
+        var dot= a.Dot(b);
+        return TNum.Acos(dot);
+    }
 }

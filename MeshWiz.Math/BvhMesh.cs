@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
@@ -9,6 +10,9 @@ public class BvhMesh<TNum> : IIndexedMesh<TNum>
     public Vector3<TNum> VertexCentroid => _vertexCentroid ??= Mesh.Math.VertexCentroid(this);
     public Vector3<TNum> SurfaceCentroid => _surfaceCentroid ??= Mesh.Math.SurfaceCentroid(this).XYZ;
     public Vector3<TNum> VolumeCentroid => _volumeCentroid ??= Mesh.Math.VolumeCentroid(this).XYZ;
+    /// <summary>
+    /// Depth of the recursive Tree in <see cref="_hierarchy"/>
+    /// </summary>
     public readonly uint Depth;
     public TNum Volume => _volume ??= Mesh.Math.Volume(this);
     public TNum SurfaceArea => _surfaceArea ??= Mesh.Math.SurfaceArea(this);
@@ -27,8 +31,8 @@ public class BvhMesh<TNum> : IIndexedMesh<TNum>
     public Triangle3<TNum> this[int index] => Indices[index].Extract(Vertices);
 
 
-    public readonly BoundedVolume<TNum>[] Hierarchy;
-
+    private readonly BoundedVolume<TNum>[] _hierarchy;
+    public ReadOnlySpan<BoundedVolume<TNum>> Hierarchy => _hierarchy;
 
     public static BvhMesh<TNum> SurfaceAreaHeuristic(IReadOnlyList<Triangle3<TNum>> triangles)
     {
@@ -40,10 +44,10 @@ public class BvhMesh<TNum> : IIndexedMesh<TNum>
 
     private BvhMesh(BoundedVolume<TNum>[] hierarchy, TriangleIndexer[] indices, Vector3<TNum>[] vertices, uint depth)
     {
-        Hierarchy = hierarchy;
+        _hierarchy = hierarchy;
         Indices = indices;
         Vertices = vertices;
-        BBox = Hierarchy.Length > 0 ? Hierarchy[0].Bounds : AABB<Vector3<TNum>>.Empty;
+        BBox = _hierarchy.Length > 0 ? _hierarchy[0].Bounds : AABB<Vector3<TNum>>.Empty;
         Depth = depth;
     }
 
@@ -62,17 +66,18 @@ public class BvhMesh<TNum> : IIndexedMesh<TNum>
     public bool Intersect<THitTester>(THitTester tester, out TNum result)
         where THitTester : IIntersecter<Triangle3<TNum>, TNum>, IIntersecter<AABB<Vector3<TNum>>, TNum>
     {
-        Stack<int> nodeToTest = HitTestStack();
+        var nodeToTest = HitTestStack();
+        var count = 1;
         result = TNum.PositiveInfinity;
-        while (nodeToTest.TryPop(out var nodeIndex))
+        while (TryPop(nodeToTest, ref count, out var nodeIndex))
         {
-            ref readonly var node = ref Hierarchy[nodeIndex];
+            ref readonly var node = ref _hierarchy[nodeIndex];
             if (!tester.Intersect(node.Bounds, out var boundsResult)) continue;
             if (boundsResult > result) continue;
             if (node.IsParent)
             {
-                nodeToTest.Push(node.FirstChild);
-                nodeToTest.Push(node.SecondChild);
+                Push(nodeToTest, ref count, node.FirstChild);
+                Push(nodeToTest, ref count, node.SecondChild);
                 continue;
             }
 
@@ -88,18 +93,31 @@ public class BvhMesh<TNum> : IIndexedMesh<TNum>
     }
 
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void Push(int[] nodeToTest, ref int count, int nodeFirstChild) =>
+        nodeToTest[count++] = nodeFirstChild;
+
+    private static bool TryPop(int[] nodeToTest, ref int count, out int o)
+    {
+        o = 0;
+        if (count < 1) return false;
+        o = nodeToTest[--count];
+        return true;
+    }
+
     public bool DoesIntersect<TIntersecter>(TIntersecter tester)
         where TIntersecter : IIntersecter<Triangle3<TNum>, TNum>, IIntersecter<AABB<Vector3<TNum>>, TNum>
     {
-        Stack<int> nodeToTest = HitTestStack();
-        while (nodeToTest.TryPop(out var nodeIndex))
+        var nodeToTest = HitTestStack();
+        var count = 1;
+        while (TryPop(nodeToTest, ref count, out var nodeIndex))
         {
-            ref readonly var node = ref Hierarchy[nodeIndex];
+            ref readonly var node = ref _hierarchy[nodeIndex];
             if (!tester.DoIntersect(node.Bounds)) continue;
             if (node.IsParent)
             {
-                nodeToTest.Push(node.FirstChild);
-                nodeToTest.Push(node.SecondChild);
+                Push(nodeToTest, ref count, node.FirstChild);
+                Push(nodeToTest, ref count, node.SecondChild);
                 continue;
             }
 
@@ -116,18 +134,19 @@ public class BvhMesh<TNum> : IIndexedMesh<TNum>
     public bool Intersect<TIntersecter>(TIntersecter tester, out int triangleIndex)
         where TIntersecter : IIntersecter<Triangle3<TNum>, TNum>, IIntersecter<AABB<Vector3<TNum>>, TNum>
     {
-        Stack<int> nodeToTest = HitTestStack();
+        var nodeToTest = HitTestStack();
+        var count = 1;
         triangleIndex = -1;
         var distance = TNum.PositiveInfinity;
-        while (nodeToTest.TryPop(out var nodeIndex))
+        while (TryPop(nodeToTest, ref count, out var nodeIndex))
         {
-            ref readonly var node = ref Hierarchy[nodeIndex];
+            ref readonly var node = ref _hierarchy[nodeIndex];
             if (!tester.Intersect(node.Bounds, out var boundsResult)) continue;
             if (boundsResult > distance) continue;
             if (node.IsParent)
             {
-                nodeToTest.Push(node.FirstChild);
-                nodeToTest.Push(node.SecondChild);
+                Push(nodeToTest, ref count, node.FirstChild);
+                Push(nodeToTest, ref count, node.SecondChild);
                 continue;
             }
 
@@ -149,15 +168,16 @@ public class BvhMesh<TNum> : IIndexedMesh<TNum>
         where TIntersecter : IIntersecter<Triangle3<TNum>, TNum>, IIntersecter<AABB<Vector3<TNum>>, TNum>
     {
         var nodeToTest = HitTestStack();
+        var count = 1;
         List<BvhHitInfo<TNum>> hitMemory = [];
-        while (nodeToTest.TryPop(out var nodeIndex))
+        while (TryPop(nodeToTest, ref count, out var nodeIndex))
         {
-            ref readonly var node = ref Hierarchy[nodeIndex];
+            ref readonly var node = ref _hierarchy[nodeIndex];
             if (!tester.DoIntersect(node.Bounds)) continue;
             if (node.IsParent)
             {
-                nodeToTest.Push(node.FirstChild);
-                nodeToTest.Push(node.SecondChild);
+                Push(nodeToTest, ref count, node.FirstChild);
+                Push(nodeToTest, ref count, node.SecondChild);
                 continue;
             }
 
@@ -173,26 +193,21 @@ public class BvhMesh<TNum> : IIndexedMesh<TNum>
         return hitMemory.Count > 0;
     }
 
-    public Stack<int> HitTestStack()
-    {
-        Stack<int> nodeToTest = new((int)Depth * 2);
-        nodeToTest.Push(0);
-        return nodeToTest;
-    }
+    private int[] HitTestStack() => new int[GetDepthFirstStackSize()];
 
 
     public Polyline<Vector2<TNum>, TNum>[] IntersectRolling(Plane3<TNum> plane)
     {
-        RollingList<int> nodeToTest = [0];
+        RollingList<int> nodeToTest = new(capacity: GetDepthFirstStackSize()) { 0 };
         RollingList<Line<Vector2<TNum>, TNum>> intersections = [];
-        while (nodeToTest.TryPopFront(out var nodeIndex))
+        while (nodeToTest.TryPopBack(out var nodeIndex))
         {
-            ref readonly var node = ref Hierarchy[nodeIndex];
+            ref readonly var node = ref _hierarchy[nodeIndex];
             if (!plane.DoIntersect(node.Bounds)) continue;
             if (node.IsParent)
             {
-                nodeToTest.PushFront(node.FirstChild);
-                nodeToTest.PushFront(node.SecondChild);
+                nodeToTest.PushBack(node.FirstChild);
+                nodeToTest.PushBack(node.SecondChild);
                 continue;
             }
 
@@ -209,7 +224,8 @@ public class BvhMesh<TNum> : IIndexedMesh<TNum>
         return Polyline.Creation.UnifyNonReversing(intersections);
     }
 
-
+    private int GetDepthFirstStackSize() => (int)Depth * 2 + 1;
+    
     public BvhMesh<TNum> Indexed() => this;
 
     public BvhMesh<TOther> To<TOther>()
@@ -218,10 +234,10 @@ public class BvhMesh<TNum> : IIndexedMesh<TNum>
         var indices = Indices[..^1];
         var vertices = new Vector3<TOther>[Vertices.Length];
         for (var i = 0; i < Vertices.Length; i++) vertices[i] = Vertices[i].To<TOther>();
-        var hierarchy = new BoundedVolume<TOther>[Hierarchy.Length];
-        for (var index = 0; index < Hierarchy.Length; index++)
+        var hierarchy = new BoundedVolume<TOther>[_hierarchy.Length];
+        for (var index = 0; index < _hierarchy.Length; index++)
         {
-            var node = Hierarchy[index];
+            var node = _hierarchy[index];
             var bbox = node.Bounds;
             AABB<Vector3<TOther>> oBBox = bbox.To<Vector3<TOther>>();
             BoundedVolume<TOther> otherNode = node.IsParent

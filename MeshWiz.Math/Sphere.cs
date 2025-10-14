@@ -1,4 +1,5 @@
 using System.Numerics;
+using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
 

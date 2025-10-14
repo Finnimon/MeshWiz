@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using System.Xml.Serialization;
+using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
 

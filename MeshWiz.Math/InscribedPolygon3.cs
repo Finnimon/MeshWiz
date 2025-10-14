@@ -1,4 +1,5 @@
 using System.Numerics;
+using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
 
@@ -33,9 +34,15 @@ public readonly struct InscribedPolygon3<TNum>(int edgeCount, Circle3<TNum> boun
         var outerBounds = vertices.AsSpan(1);
         var pCount = TNum.CreateTruncating(EdgeCount);
         var step = StepAngle;
+
+        var (u, v) = Plane.Basis; // assumed normalized orthonormal basis
         var i = -1;
         for (var angle = TNum.Zero; angle < pCount * step; angle += step)
-            outerBounds[++i] = Boundary.TraverseByAngle(angle);
+        {
+            var cos = TNum.Cos(angle);
+            var sin = TNum.Sin(angle);
+            outerBounds[++i] = Boundary.Centroid + u * (cos * Boundary.Radius) + v * (sin * Boundary.Radius);
+        }
         var indices = new TriangleIndexer[EdgeCount];
         for (i = 0; i < EdgeCount - 1; i++) indices[i] = new TriangleIndexer(0, i + 1, i + 2);
         indices[^1] = new TriangleIndexer(0, EdgeCount, 1);

@@ -167,9 +167,10 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vector4<TNum>,
         return v4.XYZ / v4.W;
     }
 
+    [Pure]
     public Vector3<TNum> MultiplyDirection(Vector3<TNum> v)
         => new(X.XYZ.Dot(v), Y.XYZ.Dot(v), Z.XYZ.Dot(v));
-
+    [Pure]
     public Vector4<TNum> Multiply(Vector4<TNum> v)
         => new(X.Dot(v), Y.Dot(v), Z.Dot(v), W.Dot(v));
 
@@ -210,7 +211,7 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vector4<TNum>,
     public static Vector4<TNum> Dehomogenize(Vector3<TNum> v, TNum w)
         => new(v.X, v.Y, v.Z, w);
 
-    // Linear interpolation
+    [Pure]
     public static Matrix4x4<TNum> Lerp(Matrix4x4<TNum> from, Matrix4x4<TNum> to, TNum t)
         => FromRows(
             Vector4<TNum>.Lerp(from.X, to.X, t),
@@ -219,7 +220,7 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vector4<TNum>,
             Vector4<TNum>.Lerp(from.W, to.W, t)
         );
 
-    // Shear
+    [Pure]
     public static Matrix4x4<TNum> CreateShear(
         TNum xy, TNum xz, TNum yx, TNum yz, TNum zx, TNum zy)
         => new(
@@ -227,7 +228,7 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vector4<TNum>,
             yx, TNum.One, yz, TNum.Zero,
             zx, zy, TNum.One, TNum.Zero,
             TNum.Zero, TNum.Zero, TNum.Zero, TNum.One);
-
+    [Pure]
     public static Matrix4x4<TNum> CreateRotation(Vector3<TNum> axis, TNum angle)
     {
         axis = axis.Normalized;

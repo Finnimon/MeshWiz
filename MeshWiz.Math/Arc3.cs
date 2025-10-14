@@ -1,15 +1,25 @@
+using System.Diagnostics.Contracts;
 using System.Numerics;
+using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
 public readonly struct Arc3<TNum>(Circle3<TNum> underlying, TNum startAngle, TNum endAngle)
-    : IFlat<TNum>, IDiscreteCurve<Vector3<TNum>, TNum>
+    : IFlat<TNum>, IContiguousDiscreteCurve<Vector3<TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly Circle3<TNum> Underlying = underlying;
     public readonly TNum StartAngle = startAngle, EndAngle = endAngle;
     public TNum AngleRange => TNum.Abs(EndAngle - StartAngle);
+
+    public TNum WindingDirection => (EndAngle - StartAngle).EpsilonTruncatingSign() switch
+    {
+        -1 => TNum.NegativeOne,
+        0 => TNum.Zero,
+        1 => TNum.One,
+        _ => throw new ArgumentOutOfRangeException()
+    };
 
     /// <inheritdoc />
     public TNum Length => AngleRange / Numbers<TNum>.TwoPi * Underlying.Length;
@@ -34,7 +44,7 @@ public readonly struct Arc3<TNum>(Circle3<TNum> underlying, TNum startAngle, TNu
         get
         {
             var wrappedRange = AngleRange.Wrap(TNum.Zero, Numbers<TNum>.TwoPi);
-            return wrappedRange.IsApprox(TNum.Zero)||wrappedRange.IsApprox(Numbers<TNum>.TwoPi);
+            return wrappedRange.IsApprox(TNum.Zero) || wrappedRange.IsApprox(Numbers<TNum>.TwoPi);
         }
     }
 
@@ -54,26 +64,53 @@ public readonly struct Arc3<TNum>(Circle3<TNum> underlying, TNum startAngle, TNu
         var maxAngleStep = TNum.Abs(tessellationParameter.MaxAngularDeviation);
         var angleRange = EndAngle - StartAngle;
         var absAngleRange = TNum.Abs(angleRange);
-        var stepCount = int.CreateSaturating(TNum.Round(absAngleRange / maxAngleStep, MidpointRounding.AwayFromZero))+1;
+        var stepCount = int.CreateSaturating(TNum.Round(absAngleRange / maxAngleStep, MidpointRounding.AwayFromZero)) +
+                        1;
         var pts = new Vector3<TNum>[stepCount];
-        var angleStep = angleRange / TNum.CreateTruncating(stepCount-1);
+        var angleStep = angleRange / TNum.CreateTruncating(stepCount - 1);
         Console.WriteLine($"angleStep: {angleStep} maxAngleStep: {maxAngleStep}");
         var curAngle = StartAngle;
+
+        var (u, v) = Plane.Basis; // assumed normalized orthonormal basis
+
+
         for (var i = 0; i < stepCount; i++)
         {
-            pts[i] = Underlying.TraverseByAngle(curAngle);
+            var cos = TNum.Cos(curAngle);
+            var sin = TNum.Sin(curAngle);
+            pts[i] = Underlying.Centroid + u * (cos * Underlying.Radius) + v * (sin * Underlying.Radius);
             curAngle += angleStep;
         }
 
-        Console.WriteLine($"End:{EndAngle} actualEnd{curAngle-angleStep}");
+        Console.WriteLine($"End:{EndAngle} actualEnd{curAngle - angleStep}");
         return new Polyline<Vector3<TNum>, TNum>(pts);
     }
 
     /// <inheritdoc />
     public Vector3<TNum> Traverse(TNum distance)
     {
-        distance *= AngleRange;
-        var pos = StartAngle + distance;
+        var pos = GetAngleAtNormalPos(distance);
         return Underlying.TraverseByAngle(pos);
     }
+
+    [Pure]
+    public TNum GetAngleAtNormalPos(TNum distance)
+    {
+        distance *= AngleRange;
+        var pos = StartAngle + distance;
+        return pos;
+    }
+
+    /// <inheritdoc />
+    public Vector3<TNum> GetTangent(TNum at)
+        => GetTangentAtAngle(GetAngleAtNormalPos(at));
+
+    public Vector3<TNum> GetTangentAtAngle(TNum angle)
+        => Underlying.GetTangentAtAngle(angle) * WindingDirection;
+
+    /// <inheritdoc />
+    public Vector3<TNum> EntryDirection => GetTangentAtAngle(StartAngle);
+
+    /// <inheritdoc />
+    public Vector3<TNum> ExitDirection => GetTangentAtAngle(EndAngle);
 }

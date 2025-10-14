@@ -1,9 +1,10 @@
 using System.Diagnostics;
 using System.Numerics;
+using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
 
-public readonly struct Circle3<TNum> : IFlat<TNum>, ISurface3<TNum>, IDiscreteCurve<Vector3<TNum>, TNum>,
+public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vector3<TNum>, TNum>,
     IRotationalSurface<TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
@@ -78,7 +79,7 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, ISurface3<TNum>, IDiscreteCu
     public TNum Diameter => Radius * Numbers<TNum>.Two;
     public Plane3<TNum> Plane => new(Normal, Centroid);
     public TNum SurfaceArea => Radius * Radius * TNum.Pi;
-    public (Vector3<TNum> U, Vector3<TNum> V) Uv => Plane.Basis;
+    public (Vector3<TNum> U, Vector3<TNum> V) Basis => Plane.Basis;
 
 
     /// <inheritdoc />
@@ -86,7 +87,7 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, ISurface3<TNum>, IDiscreteCu
     {
         get
         {
-            var (u, v) = Plane.Basis;
+            var (u, v) = Basis;
             var diag = Vector3<TNum>.Abs(u) + Vector3<TNum>.Abs(v);
             diag *= Diameter;
             return AABB.Around(Centroid, diag);
@@ -116,7 +117,7 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, ISurface3<TNum>, IDiscreteCu
         => new(Centroid, -Normal, Radius);
 
     /// <inheritdoc />
-    public IDiscreteCurve<Vector3<TNum>, TNum> SweepCurve => (Uv.U * Radius + Centroid).LineTo(Centroid);
+    public IDiscreteCurve<Vector3<TNum>, TNum> SweepCurve => (Basis.U * Radius + Centroid).LineTo(Centroid);
 
     /// <inheritdoc />
     public Ray3<TNum> SweepAxis => new(Centroid, Normal);
@@ -130,10 +131,32 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, ISurface3<TNum>, IDiscreteCu
 
     public Arc3<TNum> Section(TNum start, TNum end)
     {
-        var startAngle=start*Numbers<TNum>.TwoPi;
-        var endAngle=end*Numbers<TNum>.TwoPi;
+        var startAngle = start * Numbers<TNum>.TwoPi;
+        var endAngle = end * Numbers<TNum>.TwoPi;
         return ArcSection(startAngle, endAngle);
     }
 
-    public Arc3<TNum> ArcSection(TNum startAngle, TNum endAngle) => new(this,startAngle,endAngle);
+    public Arc3<TNum> ArcSection(TNum startAngle, TNum endAngle) => new(this, startAngle, endAngle);
+
+    public Vector3<TNum> GetTangentAtAngle(TNum angle)
+    {
+        var (u, v) = Plane.Basis; // assumed orthonormal basis
+        var cos = TNum.Cos(angle);
+        var sin = TNum.Sin(angle);
+
+        var tangent = (-u * sin + v * cos) * Radius;
+
+        return tangent.Normalized;
+    }
+
+
+    /// <inheritdoc />
+    public Vector3<TNum> GetTangent(TNum at)
+        => GetTangentAtAngle(at * Numbers<TNum>.TwoPi);
+
+    /// <inheritdoc />
+    public Vector3<TNum> EntryDirection => GetTangentAtAngle(TNum.Zero);
+
+    /// <inheritdoc />
+    public Vector3<TNum> ExitDirection => EntryDirection;
 }

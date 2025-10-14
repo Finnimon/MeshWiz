@@ -45,8 +45,16 @@ public partial class MainWindow : Window
         var arc = new Circle3<float>(Vector3<float>.Zero, Vector3<float>.UnitY, 1f).ArcSection(0,5.14f);
         var arcPolyline = arc.ToPolyline(new PolylineTessellationParameter<float>{MaxAngularDeviation = 0.1f});
         var rotSurf = JaggedRotationalSurface<float>.FromSweepCurve(arcPolyline, arc.Start.RayThrough(arc.End));
-        meshi = rotSurf.Tessellate(32);
-        LineViewWrapper.Unwrap.Polyline=arcPolyline;
+        meshi = rotSurf.Tessellate(128);
+        var cylinder = new Cylinder<float>((-Vector3<float>.UnitY).LineTo(Vector3<float>.UnitY), 1f);
+        var helix = Helix<float>.FromOrigin(
+            cylinder,
+            new(1,-10,0),
+            new(0, 1, 20)
+        );
+        meshi = ConeSection<float>.TessellateCylindrical(cylinder.Base, cylinder.Top, 256);
+        var helixPolyline = helix.ToPolyline();
+        LineViewWrapper.Unwrap.Polyline=helixPolyline;
         LineViewWrapper.Unwrap.Show = true;
         // JaggedRotationalSurface<float> surf = new(Vector3<float>.Zero.RayThrough(Vector3<float>.UnitY), 
         //     [1,1.0f, 2.0f, 1.0f, 2.0f, 1.5f,1.2f,2f],
@@ -80,7 +88,7 @@ public partial class MainWindow : Window
         var levelHeight = range / layerCount;
         var pathWidth = levelHeight;
         var epsilon = range / 10000;
-
+        
         Stopwatch sw = Stopwatch.StartNew();
         var concentricPattern = ParallelEnumerable.Range(1, layerCount)
             .Select(i => minY + levelHeight * i+0.5f*levelHeight)
@@ -118,7 +126,7 @@ public partial class MainWindow : Window
         // }
         // polylines = selfCr3.ToList();
         MeshViewWrap.Show = true;
-        MeshViewWrap.Unwrap.RenderModeFlags = RenderMode.Wireframe|RenderMode.Solid;
+        MeshViewWrap.Unwrap.RenderModeFlags = RenderMode.None;
         // GlParent.Children.Add(
         //     new GLWrapper<ToolPathView>
         //     {
@@ -140,7 +148,7 @@ public partial class MainWindow : Window
                 Lines = concentricPattern.SelectMany(manyLine => manyLine),
                 Camera = camera,
                 LineWidth = 1,
-                Show = true,
+                Show = false,
             }
         });
         

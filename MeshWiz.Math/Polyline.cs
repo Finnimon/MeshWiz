@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using System.Xml.Serialization;
+using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;

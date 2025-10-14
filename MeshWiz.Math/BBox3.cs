@@ -3,6 +3,7 @@ using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
 

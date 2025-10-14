@@ -61,7 +61,7 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
         => Tessellate(32);
 
     public IndexedMesh<TNum> Tessellate(int tessellationCount)
-        => Surface.Rotational.Tessellate<JaggedRotationalSurface<TNum>, TNum>(this, tessellationCount);
+        => Surface.Rotational.Tessellate<JaggedRotationalSurface<TNum>, TNum>(this, tessellationCount,true);
 
     /// <inheritdoc />
     [field: AllowNull, MaybeNull]

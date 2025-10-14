@@ -1,7 +1,7 @@
 using System.Numerics;
 using MeshWiz.Utility.Extensions;
 
-namespace MeshWiz.Math;
+namespace MeshWiz.Utility;
 
 /// <summary>
 /// Useful number constants
@@ -10,6 +10,21 @@ namespace MeshWiz.Math;
 public static class Numbers<TNum>
     where TNum : INumberBase<TNum>
 {
+    public static readonly TNum ZeroEpsilon = GetZeroEpislon();
+
+    private static TNum GetZeroEpislon()
+    {
+        var tester = Half;
+        if (TNum.IsInteger(tester)) return TNum.Zero;
+        return tester switch
+        {
+            System.Half => Eps2,
+            float => Eps4,
+            double => Eps8,
+            _ => Eps6
+        };
+    }
+
     public static readonly TNum ThirtyTwo = TNum.CreateTruncating(32);
 
     /// <summary>

@@ -16,7 +16,7 @@ public class Ray3Bench<TNum>
         var iMesh = new Sphere<TNum>(Vector3<TNum>.Zero, TNum.One).Tessellate(512, 1024);
         Mesh = new(iMesh.ToArray());
         BvhMesh = BvhMesh<TNum>.SurfaceAreaHeuristic(iMesh);
-        _ray = new(Vector3<TNum>.One*TNum.CreateTruncating(100), Mesh.VolumeCentroid);
+        _ray = (Vector3<TNum>.One * TNum.CreateTruncating(100)).RayThrough(Mesh.VolumeCentroid);
     }
 
     [Benchmark]

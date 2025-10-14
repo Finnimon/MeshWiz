@@ -347,4 +347,9 @@ public interface IVector<TSelf, TNum>
         result = default;
         return s is not null && TSelf.TryParse(s.AsSpan(), style, provider, out result!);
     }
+
+    [Pure]
+    public static abstract TNum AngleBetween(TSelf a, TSelf b);
+
+    [Pure] public TNum AngleTo(TSelf other);
 }

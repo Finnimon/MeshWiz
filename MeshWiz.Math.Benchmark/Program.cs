@@ -2,4 +2,4 @@
 using MeshWiz.Math.Benchmark;
 
 
-BenchmarkRunner.Run<PlaneAabbIntersectionSpeed>();
+BenchmarkRunner.Run<Ray3Bench<float>>();

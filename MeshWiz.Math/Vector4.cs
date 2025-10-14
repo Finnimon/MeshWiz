@@ -816,4 +816,14 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
     public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format,
         IFormatProvider? provider = null)
         => ArrayParser.TryFormat(AsSpan(), destination, out charsWritten, format, provider);
+
+
+    public TNum AngleTo(Vector4<TNum> other) => AngleBetween(this, other);
+    public static TNum AngleBetween(Vector4<TNum> a, Vector4<TNum> b)
+    {
+        a = a.Normalized;
+        b = b.Normalized;
+        var dot= a.Dot(b);
+        return TNum.Acos(dot);
+    }
 }
