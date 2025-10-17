@@ -283,10 +283,9 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            if (Dimensions > (uint)index)
-                fixed (TNum* ptr = &X)
-                    return ptr[index];
-            throw new IndexOutOfRangeException();
+            if (Dimensions <= (uint)index) IndexThrowHelper.Throw(index, Count);
+            fixed (TNum* ptr = &X)
+                return ptr[index];
         }
     }
 
@@ -415,26 +414,26 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
     /// <inheritdoc />
     public static Vector4<TNum> AdditiveIdentity => Zero;
 
-    
+
     /// <inheritdoc />
     public static bool operator >(Vector4<TNum> left, Vector4<TNum> right)
     {
-        var max= Max(left, right);
+        var max = Max(left, right);
         return max == left && max != right;
     }
 
     /// <inheritdoc />
     public static bool operator >=(Vector4<TNum> left, Vector4<TNum> right)
-        => Max(left,right)==left;
+        => Max(left, right) == left;
 
     /// <inheritdoc />
     public static bool operator <(Vector4<TNum> left, Vector4<TNum> right)
-        => right>left;
+        => right > left;
 
     /// <inheritdoc />
     public static bool operator <=(Vector4<TNum> left, Vector4<TNum> right)
         => right >= left;
-    
+
     /// <inheritdoc />
     public static Vector4<TNum> operator --(Vector4<TNum> v)
         => v - One;
@@ -796,7 +795,7 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
     public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out Vector4<TNum> result)
         => TryParse(s, NumberStyles.Any, provider, out result);
 
-    
+
     public override string ToString()
         => ToString("G", CultureInfo.CurrentCulture);
 
@@ -808,7 +807,7 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
         buffer = stackalloc char[128];
         if (TryFormat(buffer, out charsWritten, format, formatProvider))
             return new string(buffer[..charsWritten]);
-        throw new InvalidOperationException();   
+        throw new InvalidOperationException();
     }
 
 
@@ -819,11 +818,12 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
 
 
     public TNum AngleTo(Vector4<TNum> other) => AngleBetween(this, other);
+
     public static TNum AngleBetween(Vector4<TNum> a, Vector4<TNum> b)
     {
         a = a.Normalized;
         b = b.Normalized;
-        var dot= a.Dot(b);
+        var dot = a.Dot(b);
         return TNum.Acos(dot);
     }
 }

@@ -9,6 +9,7 @@ using MeshWiz.Abstraction.OpenTK;
 using MeshWiz.IO.Stl;
 using MeshWiz.Math;
 using MeshWiz.Slicer;
+using MeshWiz.Utility;
 using OpenTK.Mathematics;
 
 namespace MeshWiz.UI.Avalonia;
@@ -34,27 +35,30 @@ public partial class MainWindow : Window
 
         // meshi =new IndexedMesh3<float>(new Sphere<float>(Vector3<float>.Zero, 1).TessellatedSurface);
         // meshi = MeshIO.ReadFile<FastStlReader, float>("/home/finnimon/source/repos/TestFiles/drag.stl").Indexed();
-        var coneSection = new Cone<float>(Vector3<float>.Zero.LineTo(Vector3<float>.UnitY), 1.0f).Section(0, 2);
+        var coneSection = new Cone<float>((-4*Vector3<float>.UnitY).LineTo(Vector3<float>.UnitY), 1f).Section(-1, 0);
         _ = coneSection.TryGetComplete(out var cone);
         meshi = coneSection.Tessellate(32);
         
-        meshi = new Torus<float>(Vector3<float>.Zero, Vector3<float>.UnitY, 0.5F, 1F).Tessellate().Indexed();
-        meshi = new Sphere<float>(Vector3<float>.Zero, 1).Tessellate(32, 32);
-        meshi = Surface.Rotational.Tessellate<Torus<float>, float>(new Torus<float>(Vector3<float>.Zero, Vector3<float>.UnitY, 0.5F, 1F), 128);
-        meshi=new Circle3<float>(Vector3<float>.Zero, Vector3<float>.UnitY, 1f).Cutout(0.5f, 2).Tessellate(32);
-        var arc = new Circle3<float>(Vector3<float>.Zero, Vector3<float>.UnitY, 1f).ArcSection(0,5.14f);
-        var arcPolyline = arc.ToPolyline(new PolylineTessellationParameter<float>{MaxAngularDeviation = 0.1f});
-        var rotSurf = JaggedRotationalSurface<float>.FromSweepCurve(arcPolyline, arc.Start.RayThrough(arc.End));
-        meshi = rotSurf.Tessellate(128);
-        var cylinder = new Cylinder<float>((-Vector3<float>.UnitY).LineTo(Vector3<float>.UnitY), 1f);
-        var helix = Helix<float>.FromOrigin(
+        //
+        // meshi = new Torus<float>(Vector3<float>.Zero, Vector3<float>.UnitY, 0.5F, 1F).Tessellate().Indexed();
+        // meshi = new Sphere<float>(Vector3<float>.Zero, 1).Tessellate(32, 32);
+        // meshi = Surface.Rotational.Tessellate<Torus<float>, float>(new Torus<float>(Vector3<float>.Zero, Vector3<float>.UnitY, 0.5F, 1F), 128);
+        // meshi=new Circle3<float>(Vector3<float>.Zero, Vector3<float>.UnitY, 1f).Cutout(0.5f, 2).Tessellate(32);
+        // var arc = new Circle3<float>(Vector3<float>.Zero, Vector3<float>.UnitY, 1f).ArcSection(0,5.14f);
+        // var arcPolyline = arc.ToPolyline(new PolylineTessellationParameter<float>{MaxAngularDeviation = 0.1f});
+        // var rotSurf = JaggedRotationalSurface<float>.FromSweepCurve(arcPolyline, arc.Start.RayThrough(arc.End));
+        // meshi = rotSurf.Tessellate(128);
+        var cylinder = new Cylinder<double>((-Vector3<double>.UnitY).LineTo(Vector3<double>.UnitY), 1f);
+        var helix = Helix<double>.FromOrigin(
             cylinder,
-            new(1,-10,0),
-            new(0, 1, 20)
+            new(1,-1,0),
+            new(0, 1, -6)
         );
-        meshi = ConeSection<float>.TessellateCylindrical(cylinder.Base, cylinder.Top, 256);
-        var helixPolyline = helix.ToPolyline();
-        LineViewWrapper.Unwrap.Polyline=helixPolyline;
+        //
+        meshi = ConeSection<double>.TessellateCylindrical(cylinder.Base, cylinder.Top, 128).To<float>();
+        var geodesic = helix.ToPolyline().To<Vector3<float>,float>();
+        // geodesic = coneSection.GetGeodesicFromEntry(coneSection.Base.TraverseByAngle(0), new(0, 1, 1)).ToPolyline();
+        LineViewWrapper.Unwrap.Polyline=geodesic;
         LineViewWrapper.Unwrap.Show = true;
         // JaggedRotationalSurface<float> surf = new(Vector3<float>.Zero.RayThrough(Vector3<float>.UnitY), 
         //     [1,1.0f, 2.0f, 1.0f, 2.0f, 1.5f,1.2f,2f],

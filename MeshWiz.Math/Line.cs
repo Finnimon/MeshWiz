@@ -10,7 +10,7 @@ namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
 public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
-    : ILine<TVector, TNum>
+    : ILine<TVector, TNum>, IContiguousDiscreteCurve<TVector, TNum> 
     where TVector : unmanaged, IFloatingVector<TVector, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
@@ -117,11 +117,44 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
         return Start + alongVector;
     }
 
+    public (TVector closest, TVector onSeg) ClosestPoints(TVector p)
+    {
+        var v = p - Start;
+        var direction = Direction;
+        var length = direction.Length;
+        var ndir = direction / length;
+        var dotProduct = v.Dot(ndir);
+        var closest=ndir*dotProduct+Start;
+        dotProduct = TNum.Clamp(dotProduct, TNum.Zero, length);
+        var onSeg= Start + dotProduct * ndir;
+        return (closest, onSeg);
+    }
+
+    public (TNum closest, TNum onSeg) GetClosestPositions(TVector p)
+    {
+        var v = p - Start;
+        var direction = Direction;
+        var length = direction.Length;
+        var ndir = direction / length;
+        var closest = v.Dot(ndir)/length;
+        var onSeg = TNum.Clamp(closest, TNum.Zero, TNum.One);
+        return (closest, onSeg);
+    }
+
     public Line<TVector, TNum> Section(TNum start, TNum end)
         => Traverse(start).LineTo(Traverse(end));
     public Polyline<TVector,TNum> ToPolyline()=>new(Start, End);
     public Polyline<TVector,TNum> ToPolyline(PolylineTessellationParameter<TNum> _)=>new(Start, End);
-    
+
+    /// <inheritdoc />
+    public TVector GetTangent(TNum _)
+        => NormalDirection;
+
+    /// <inheritdoc />
+    public TVector EntryDirection => NormalDirection;
+
+    /// <inheritdoc />
+    public TVector ExitDirection => NormalDirection;
 }
 
 public static class Line

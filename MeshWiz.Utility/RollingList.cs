@@ -1,5 +1,7 @@
 using System.Collections;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Utility;
@@ -24,7 +26,7 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
     public int Count { get; private set; }
 
     /// <inheritdoc />
-    public bool IsReadOnly { get; }
+    public bool IsReadOnly => false;
 
     public int Capacity
     {
@@ -55,13 +57,15 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
         _postTailIndex = Count;
     }
 
-    public RollingList(T[] source, int start = 0, int count = -1)
+    public RollingList(T[] source, int startIndex = 0, int count = -1)
     {
-        if (start < 0 || start >= source.Length) throw new ArgumentOutOfRangeException(nameof(start));
-        if (count == -1) count = source.Length - start;
-        if (count < 0 || count + start > source.Length) throw new ArgumentOutOfRangeException(nameof(count));
-        var end = start + count;
-        _items = source[start..end];
+        ArgumentOutOfRangeException.ThrowIfLessThan(startIndex, 0, nameof(startIndex));
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(startIndex, source.Length, nameof(startIndex));
+        if (count == -1) count = source.Length - startIndex;
+        ArgumentOutOfRangeException.ThrowIfLessThan(count, 0, nameof(count));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(count + startIndex, source.Length, nameof(count));
+        var end = startIndex + count;
+        _items = source[startIndex..end];
         Count = count;
         _headIndex = 0;
         _postTailIndex = count;
@@ -75,25 +79,23 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
         set => _items[ValidatedIndex(index)] = value;
     }
 
-    public ref readonly T this[uint index] => ref _items[ValidatedIndex((int)index)];
+    public ref readonly T GetRef(int index) => ref _items[ValidatedIndex(index)];
 
+    [StackTraceHidden]
     private int ValidatedIndex(int index)
     {
-        if (index.InsideInclusiveRange(0, Count - 1))
-        {
-            index += _headIndex;
-            return index < _items.Length ? index : index - _items.Length;
-        }
-
-        throw new IndexOutOfRangeException();
+        if (Count <= (uint)index) IndexThrowHelper.Throw(index, Count);
+        index += _headIndex;
+        return index < _items.Length ? index : index - _items.Length;
     }
+
 
     public T Head => this[0];
     public T Tail => this[Count - 1];
 
     public void PushFront(T item)
     {
-        if (Capacity < Count+1) Capacity *= 2;
+        if (Capacity < Count + 1) Capacity *= 2;
         Count++;
         if (_headIndex <= 0) _headIndex = _items.Length;
         _headIndex--;
@@ -105,7 +107,7 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
     public void PushFront(ReadOnlySpan<T> newItems)
     {
         var capacity = Capacity;
-        var newCount =Count+ newItems.Length;
+        var newCount = Count + newItems.Length;
         var mustGrow = capacity < newCount;
         if (mustGrow)
         {
@@ -116,6 +118,7 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
             Count = newCount;
             return;
         }
+
         Count = newCount;
         var targetSpan = _items.AsSpan();
 
@@ -135,11 +138,10 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
         newItems[..secondMoveSize].CopyTo(targetSpan[_headIndex..]);
     }
 
-    
 
     public void PushBack(T item)
     {
-        if (Capacity < Count+1) Capacity *= 2;
+        if (Capacity < Count + 1) Capacity *= 2;
         Count++;
         _postTailIndex++;
         if (_postTailIndex > _items.Length) _postTailIndex = 1;
@@ -153,9 +155,9 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
     {
         if (newItems.Length == 0) return;
         var capacity = Capacity;
-        var newCount =Count+ newItems.Length;
+        var newCount = Count + newItems.Length;
         var mustGrow = capacity < newCount;
-        
+
         if (mustGrow)
         {
             Capacity = newCount.NextPow2();
@@ -225,7 +227,7 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
         return back!;
     }
 
-    public bool TryPopFront([NotNullWhen(returnValue:true)] out T? item)
+    public bool TryPopFront([NotNullWhen(returnValue: true)] out T? item)
     {
         if (Count == 0)
         {
@@ -237,7 +239,7 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
         return true;
     }
 
-    public bool TryPopBack([NotNullWhen(returnValue:true)] out T? item)
+    public bool TryPopBack([NotNullWhen(returnValue: true)] out T? item)
     {
         if (Count == 0)
         {
@@ -303,10 +305,10 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
             ? itemSpan[_headIndex..itemSpan.Length]
             : itemSpan[_headIndex.._postTailIndex];
         firstChunk.CopyTo(array.AsSpan(arrayIndex));
-        
+
         var remainder = Count - firstChunk.Length;
         if (remainder < 1) return;
-        
+
         var secondChunk = itemSpan[..remainder];
         secondChunk.CopyTo(array.AsSpan(arrayIndex + firstChunk.Length));
     }

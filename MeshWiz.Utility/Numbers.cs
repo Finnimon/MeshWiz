@@ -10,20 +10,6 @@ namespace MeshWiz.Utility;
 public static class Numbers<TNum>
     where TNum : INumberBase<TNum>
 {
-    public static readonly TNum ZeroEpsilon = GetZeroEpislon();
-
-    private static TNum GetZeroEpislon()
-    {
-        var tester = Half;
-        if (TNum.IsInteger(tester)) return TNum.Zero;
-        return tester switch
-        {
-            System.Half => Eps2,
-            float => Eps4,
-            double => Eps8,
-            _ => Eps6
-        };
-    }
 
     public static readonly TNum ThirtyTwo = TNum.CreateTruncating(32);
 
@@ -35,7 +21,7 @@ public static class Numbers<TNum>
     /// <summary>
     /// <c>=> 0.5</c>
     /// </summary>
-    public static readonly TNum Half = TNum.One / Two;
+    public static readonly TNum Half = TNum.CreateTruncating(0.5);
 
     /// <summary>
     /// <c>=> 3</c>
@@ -45,7 +31,7 @@ public static class Numbers<TNum>
     /// <summary>
     /// <c>=> 2</c>
     /// </summary>
-    public static readonly TNum RootTwo = TNum.CreateTruncating(double.Sqrt(2f));
+    public static readonly TNum RootTwo = TNum.CreateTruncating(double.Sqrt(2));
 
     /// <summary>
     /// <c>=> 4</c>
@@ -106,8 +92,23 @@ public static class Numbers<TNum>
     public static readonly TNum TwoPi = TNum.CreateTruncating(2 * double.Pi);
     public static readonly TNum Third = TNum.CreateTruncating(1.0 / 3.0);
 
+    public static readonly TNum ZeroEpsilon = GetZeroEpislon();
+
+    private static TNum GetZeroEpislon()
+    {
+        var tester = Half;
+        if (TNum.IsInteger(tester)) return TNum.One;
+        return tester switch
+        {
+            System.Half => Eps2,
+            float => Eps4,
+            double => Eps8,
+            _ => Eps6
+        };
+    }
     public static TNum AverageOf(params TNum[] nums)
         => nums is not { Length: > 0 }
             ? TNum.Zero
             : nums.Sum() / TNum.CreateTruncating(nums.Length);
+    
 }

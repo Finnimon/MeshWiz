@@ -1,3 +1,4 @@
+using System.Diagnostics.Contracts;
 using System.Numerics;
 using MeshWiz.Utility;
 
@@ -8,7 +9,7 @@ public readonly struct Cone<TNum> : IBody<TNum>, IRotationalSurface<TNum>
 {
     public readonly Line<Vector3<TNum>, TNum> Axis;
     public readonly TNum Radius;
-    public TNum SlantHeight=>TNum.Sqrt(Radius*Radius+Axis.SquaredLength);
+    public TNum SlantHeight => TNum.Sqrt(Radius * Radius + Axis.SquaredLength);
 
     public Cone(Line<Vector3<TNum>, TNum> axis, TNum radius)
     {
@@ -75,7 +76,7 @@ public readonly struct Cone<TNum> : IBody<TNum>, IRotationalSurface<TNum>
 
     public ConeSection<TNum> Section(TNum start, TNum end)
     {
-        ArgumentOutOfRangeException.ThrowIfEqual(start,end);
+        ArgumentOutOfRangeException.ThrowIfEqual(start, end);
         if (start > end) (start, end) = (end, start);
         var axis = Axis.Section(start, end);
         var baseRadius = GetRadiusAt(start);
@@ -88,4 +89,33 @@ public readonly struct Cone<TNum> : IBody<TNum>, IRotationalSurface<TNum>
 
     /// <inheritdoc />
     public Ray3<TNum> SweepAxis => Axis.Start.RayThrough(Axis.End);
+
+    /// <inheritdoc />
+    public Vector3<TNum> NormalAt(Vector3<TNum> p)
+    {
+        var closest = Axis.ClosestPoint(p);
+        var axisToP = (p - closest).Normalized;
+        var axisN = Axis.Direction;
+        var axisLen = axisN.Length;
+        axisN /= axisLen;
+        //point==Tip we set up as normal
+        if (!axisToP.IsNormalized) return axisN;
+        var apexAngle = TNum.Atan(Radius / axisLen);
+        var (sin, cos) = TNum.SinCos(apexAngle);
+        return cos * axisN + sin * axisToP;
+    }
+
+    public TNum ApexAngle => TNum.Atan(Radius / Axis.Length);
+
+    [Pure]
+    public Vector3<TNum> ClampToSurface(Vector3<TNum> p)
+    {
+        var (closest, onseg) = Axis.ClosestPoints(p);
+        p += onseg - closest;
+        var pos = onseg.DistanceTo(Axis.Start) / Axis.Length;
+        var radius = TNum.Abs(RadiusAt(pos));
+        return Vector3<TNum>.ExactLerp(onseg, p, radius);
+    }
+
+    public TNum RadiusAt(TNum pos) => TNum.Lerp(Radius, TNum.Zero, pos);
 }

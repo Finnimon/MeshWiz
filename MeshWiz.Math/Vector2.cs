@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
@@ -15,15 +16,30 @@ namespace MeshWiz.Math;
 public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    public static Vector2<TNum> Zero { [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]get; }= new(TNum.Zero, TNum.Zero);
+    public static Vector2<TNum> Zero
+    {
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+    } = new(TNum.Zero, TNum.Zero);
 
     public Vector2<TNum> Right => new(Y, -X);
     public Vector2<TNum> Left => new(-Y, X);
 
-    public static Vector2<TNum> One { [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]get; }= new(TNum.One, TNum.One);
-    public static Vector2<TNum> NaN { [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]get; }= new(TNum.NaN, TNum.NaN);
+    public static Vector2<TNum> One
+    {
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+    } = new(TNum.One, TNum.One);
+
+    public static Vector2<TNum> NaN
+    {
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+    } = new(TNum.NaN, TNum.NaN);
+
     public static Vector2<TNum> UnitX { get; } = new(TNum.One, TNum.Zero);
     public static Vector2<TNum> UnitY { get; } = new(TNum.Zero, TNum.One);
+
     /// <inheritdoc />
     public static Vector2<TNum> NegativeInfinity { get; } = new(TNum.NegativeInfinity);
 
@@ -32,47 +48,50 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
 
     /// <inheritdoc />
     public static Vector2<TNum> PositiveInfinity { get; } = new(TNum.PositiveInfinity);
+
     public Vector2<TNum> YX => new(Y, X);
 
     /// <inheritdoc />
     public static Vector2<TNum> operator /(TNum l, Vector2<TNum> r)
         => new(l / r.X, l / r.Y);
+
     public TNum Sum => X + Y;
 
     public Vector2<TOther> To<TOther>() where TOther : unmanaged, IFloatingPointIeee754<TOther>
         => new(TOther.CreateTruncating(X), TOther.CreateTruncating(Y));
-    
+
     public readonly TNum X = x, Y = y;
     public static unsafe int ByteSize => sizeof(TNum) * 2;
     public int Count => 2;
     public Vector2<TNum> Normalized => this / Length;
     public TNum AlignedSquareVolume => X * Y;
     public static Vector2<TNum> FromXY(TNum x, TNum y) => new(x, y);
+
     public static Vector2<TNum> FromComponents<TList>(TList components)
         where TList : IReadOnlyList<TNum>
-        =>new(components[0], components[1]);
-    
-    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector2<TNum> FromComponents<TList,TOtherNum>(TList components)
+        => new(components[0], components[1]);
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector2<TNum> FromComponents<TList, TOtherNum>(TList components)
         where TList : IReadOnlyList<TOtherNum>
         where TOtherNum : INumberBase<TOtherNum>
-        =>new(TNum.CreateTruncating(components[0]), TNum.CreateTruncating(components[1]));
+        => new(TNum.CreateTruncating(components[0]), TNum.CreateTruncating(components[1]));
 
     /// <inheritdoc />
-    public static Vector2<TNum> FromComponentsConstrained<TList, TOtherNum>(TList components) 
-        where TList : IReadOnlyList<TOtherNum> 
+    public static Vector2<TNum> FromComponentsConstrained<TList, TOtherNum>(TList components)
+        where TList : IReadOnlyList<TOtherNum>
         where TOtherNum : INumberBase<TOtherNum>
     {
-        var x=components.Count>0?TNum.CreateTruncating(components[0]):TNum.Zero;
-        var y=components.Count>1?TNum.CreateTruncating(components[1]):TNum.Zero;
+        var x = components.Count > 0 ? TNum.CreateTruncating(components[0]) : TNum.Zero;
+        var y = components.Count > 1 ? TNum.CreateTruncating(components[1]) : TNum.Zero;
         return new(x, y);
     }
 
     /// <inheritdoc />
     public static Vector2<TNum> FromComponentsConstrained<TList>(TList components) where TList : IReadOnlyList<TNum>
     {
-        var x=components.Count>0?components[0]:TNum.Zero;
-        var y=components.Count>1?components[1]:TNum.Zero;
+        var x = components.Count > 0 ? components[0] : TNum.Zero;
+        var y = components.Count > 1 ? components[1] : TNum.Zero;
         return new(x, y);
     }
 
@@ -84,7 +103,7 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
     public static Vector2<TNum> FromValue<TOtherNum>(TOtherNum other) where TOtherNum : INumberBase<TOtherNum>
         => new(TNum.CreateTruncating(other));
 
-    private Vector2(TNum s) :this(s,s){ }
+    private Vector2(TNum s) : this(s, s) { }
 
     [Pure] public static uint Dimensions => 2;
     [Pure] public TNum Length => TNum.Sqrt(SquaredLength);
@@ -164,8 +183,9 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TNum DistanceTo(Vector2<TNum> other) => (this - other).Length;
+
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public TNum SquaredDistanceTo(Vector2<TNum> other) => (this-other).SquaredLength;
+    public TNum SquaredDistanceTo(Vector2<TNum> other) => (this - other).SquaredLength;
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TNum Cross(Vector2<TNum> other) => this ^ other;
@@ -174,15 +194,15 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
     public int CrossSign(Vector2<TNum> other) => Cross(other).EpsilonTruncatingSign();
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool IsParallelTo(Vector2<TNum> other, TNum tolerance) 
-        => TNum.Abs(Cross(other))<tolerance;
+    public bool IsParallelTo(Vector2<TNum> other, TNum tolerance)
+        => TNum.Abs(Cross(other)) < tolerance;
 
-    public static Vector2<TNum> ExactLerp(Vector2<TNum> from, Vector2<TNum> toward, TNum exactDistance) 
+    public static Vector2<TNum> ExactLerp(Vector2<TNum> from, Vector2<TNum> toward, TNum exactDistance)
         => (toward - from).Normalized * exactDistance + from;
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsParallelTo(Vector2<TNum> other)
-    =>IsParallelTo(other, TNum.Epsilon);
+        => IsParallelTo(other, TNum.Epsilon);
 
     #endregion
 
@@ -225,10 +245,10 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            if (index.InsideInclusiveRange(0, 2))
-                fixed (TNum* ptr = &X)
-                    return ptr[index];
-            throw new IndexOutOfRangeException();
+            if (2u <= (uint)index)
+                IndexThrowHelper.Throw(index, Count);
+            fixed (TNum* ptr = &X)
+                return ptr[index];
         }
     }
 
@@ -250,22 +270,22 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
     public static explicit operator Vector3<TNum>(Vector2<TNum> vec)
         => new(vec.X, vec.Y, TNum.Zero);
 
-    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Deconstruct(out TNum x, out TNum y)
     {
         x = X;
         y = Y;
     }
 
-    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector2<TNum> Lerp(Vector2<TNum> from, Vector2<TNum> to, TNum normalDistance)
-    =>(to-from)*normalDistance+from;
-    
+        => (to - from) * normalDistance + from;
+
     public static Vector2<TNum> SineLerp(Vector2<TNum> from, Vector2<TNum> to, TNum normalDistance)
     {
         var two = TNum.CreateTruncating(2);
         normalDistance = normalDistance.Wrap(TNum.Zero, two);
-        var sineDistance= TNum.Sin(normalDistance * TNum.Pi / two);
+        var sineDistance = TNum.Sin(normalDistance * TNum.Pi / two);
         sineDistance = TNum.Clamp(sineDistance, TNum.Zero, TNum.One);
         return Lerp(from, to, sineDistance);
     }
@@ -281,15 +301,14 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
 #pragma warning disable CS1718
         => vec != vec;
 #pragma warning restore CS1718
-    
-    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsApprox(Vector2<TNum> other, TNum squareTolerance) => SquaredDistanceTo(other) < squareTolerance;
-    
-    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool IsApprox(Vector2<TNum> other)=>SquaredDistanceTo(other)<=TNum.Epsilon;
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool IsApprox(Vector2<TNum> other) => SquaredDistanceTo(other) <= TNum.Epsilon;
 
     public Line<Vector2<TNum>, TNum> LineTo(Vector2<TNum> end) => new(this, end);
-
 
 
     /// <inheritdoc />
@@ -303,6 +322,7 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
     /// <inheritdoc />
     public static Vector2<TNum> Pow(Vector2<TNum> x, Vector2<TNum> y)
         => new(TNum.Pow(x.X, y.X), TNum.Pow(x.Y, y.Y));
+
     /// <inheritdoc />
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector2<TNum> Abs(Vector2<TNum> v)
@@ -335,23 +355,24 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
     /// <inheritdoc />
     public static bool IsInteger(Vector2<TNum> value)
         => TNum.IsInteger(value.Sum);
+
     /// <inheritdoc />
     public static Vector2<TNum> AdditiveIdentity => Zero;
 
     /// <inheritdoc />
     public static bool operator >(Vector2<TNum> left, Vector2<TNum> right)
     {
-        var max= Max(left, right);
+        var max = Max(left, right);
         return max == left && max != right;
     }
 
     /// <inheritdoc />
     public static bool operator >=(Vector2<TNum> left, Vector2<TNum> right)
-        => Max(left,right)==left;
+        => Max(left, right) == left;
 
     /// <inheritdoc />
     public static bool operator <(Vector2<TNum> left, Vector2<TNum> right)
-        => right>left;
+        => right > left;
 
     /// <inheritdoc />
     public static bool operator <=(Vector2<TNum> left, Vector2<TNum> right)
@@ -380,7 +401,7 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
 
     /// <inheritdoc />
     public static Vector2<TNum> Tau { get; } = new(TNum.Tau);
-    
+
     /// <inheritdoc />
     public static Vector2<TNum> Epsilon { get; } = new(TNum.Epsilon);
 
@@ -595,6 +616,7 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
         if (TNum.IsNaN(yMagnitude)) return x;
         return xMagnitude < yMagnitude ? x : y;
     }
+
     /// <inheritdoc />
     public static Vector2<TNum> MinMagnitudeNumber(Vector2<TNum> x, Vector2<TNum> y)
     {
@@ -641,21 +663,22 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
 
     /// <inheritdoc />
     public static Vector2<TNum> ScaleB(Vector2<TNum> x, int n)
-        => new(TNum.ScaleB(x.X, n), TNum.ScaleB(x.Y,n));
+        => new(TNum.ScaleB(x.X, n), TNum.ScaleB(x.Y, n));
 
 
     /// <inheritdoc />
     public static Vector2<TNum> operator *(Vector2<TNum> left, Vector2<TNum> right)
-    =>new(left.X * right.X, left.Y * right.Y);
+        => new(left.X * right.X, left.Y * right.Y);
 
-    public static Vector2<TNum> Min(Vector2<TNum> l, Vector2<TNum> r) 
-        => new(TNum.Min(l.X,r.X), TNum.Min(l.Y,r.Y));
+    public static Vector2<TNum> Min(Vector2<TNum> l, Vector2<TNum> r)
+        => new(TNum.Min(l.X, r.X), TNum.Min(l.Y, r.Y));
+
     public static Vector2<TNum> Max(Vector2<TNum> l, Vector2<TNum> r)
-    =>new(TNum.Max(l.X, r.X), TNum.Max(l.Y, r.Y));
+        => new(TNum.Max(l.X, r.X), TNum.Max(l.Y, r.Y));
 
-    public static Vector2<TNum> Clamp(Vector2<TNum> value, Vector2<TNum>  min, Vector2<TNum> max)
-    =>Min(max,Max(min,value));
-    
+    public static Vector2<TNum> Clamp(Vector2<TNum> value, Vector2<TNum> min, Vector2<TNum> max)
+        => Min(max, Max(min, value));
+
     /// <inheritdoc />
     public static bool TryParse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider,
         out Vector2<TNum> result)
@@ -681,18 +704,18 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
     }
 
     /// <inheritdoc />
-    public static Vector2<TNum> Parse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider=null)
+    public static Vector2<TNum> Parse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider = null)
         => TryParse(s, style, provider, out var result) ? result : throw new FormatException();
 
     /// <inheritdoc />
-    public static Vector2<TNum> Parse(string s, NumberStyles style, IFormatProvider? provider=null)
+    public static Vector2<TNum> Parse(string s, NumberStyles style, IFormatProvider? provider = null)
         => TryParse(s, style, provider, out var result) ? result : throw new FormatException();
 
 
     /// <inheritdoc />
-    public static Vector2<TNum> Parse(string s, IFormatProvider? provider=null)
+    public static Vector2<TNum> Parse(string s, IFormatProvider? provider = null)
         => TryParse(s, NumberStyles.Any, provider, out var result) ? result : throw new FormatException();
-    
+
 
     /// <inheritdoc />
     public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, out Vector2<TNum> result)
@@ -700,7 +723,7 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
 
 
     /// <inheritdoc />
-    public static Vector2<TNum> Parse(ReadOnlySpan<char> s, IFormatProvider? provider=null)
+    public static Vector2<TNum> Parse(ReadOnlySpan<char> s, IFormatProvider? provider = null)
         => TryParse(s, NumberStyles.Any, provider, out var result) ? result : throw new FormatException();
 
 
@@ -732,19 +755,20 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
         }
     }
 
-    
-    
+
     /// <inheritdoc />
-    public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) 
+    public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format,
+        IFormatProvider? provider)
         => ArrayParser.TryFormat(AsSpan(), destination, out charsWritten, format, provider);
-    
-    
+
+
     public TNum AngleTo(Vector2<TNum> other) => AngleBetween(this, other);
+
     public static TNum AngleBetween(Vector2<TNum> a, Vector2<TNum> b)
     {
         a = a.Normalized;
         b = b.Normalized;
-        var dot= a.Dot(b);
+        var dot = a.Dot(b);
         return TNum.Acos(dot);
     }
 }

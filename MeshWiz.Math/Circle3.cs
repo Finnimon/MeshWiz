@@ -159,4 +159,30 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
 
     /// <inheritdoc />
     public Vector3<TNum> ExitDirection => EntryDirection;
+
+    public Circle2<TNum> OnPlane => new(Plane.ProjectIntoLocal(Centroid), TNum.Abs(Radius));
+
+    /// <inheritdoc />
+    public Vector3<TNum> NormalAt(Vector3<TNum> _)
+        => Normal;
+
+    /// <inheritdoc />
+    public Vector3<TNum> ClampToSurface(Vector3<TNum> p)
+    {
+        p = Plane.Clamp(p);
+        var cToP = p - Centroid;
+        var len = cToP.Length;
+        cToP=cToP.Normalized;
+        var adjust = TNum.Clamp(len, TNum.Zero, TNum.One);
+        return adjust * cToP + Centroid;
+    }
+
+    public Vector3<TNum> ClampToEdge(Vector3<TNum> p)
+    {
+        p = Plane.Clamp(p);
+        var cToP = p - Centroid;
+        var len = cToP.Length;
+        var adjust = Radius / len;
+        return adjust * cToP + Centroid;
+    }
 }

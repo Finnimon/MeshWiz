@@ -7,6 +7,7 @@
         <ProjectReference Include="../MeshWiz.Utility/MeshWiz.Utility.csproj"/>
     </ItemGroup>
     <ItemGroup>
+      <PackageReference Include="CommunityToolkit.Diagnostics" Version="8.4.0" />
       <PackageReference Include="JetBrains.Annotations" Version="2025.2.0" />
       <PackageReference Include="OpenTK.Compute" Version="4.9.4" />
     </ItemGroup>

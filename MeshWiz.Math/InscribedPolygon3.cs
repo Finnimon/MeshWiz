@@ -32,19 +32,20 @@ public readonly struct InscribedPolygon3<TNum>(int edgeCount, Circle3<TNum> boun
         var vertices = new Vector3<TNum>[EdgeCount + 1];
         vertices[0] = Centroid;
         var outerBounds = vertices.AsSpan(1);
-        var pCount = TNum.CreateTruncating(EdgeCount);
         var step = StepAngle;
 
         var (u, v) = Plane.Basis; // assumed normalized orthonormal basis
-        var i = -1;
-        for (var angle = TNum.Zero; angle < pCount * step; angle += step)
+        outerBounds[0] = Boundary.Centroid + u * Boundary.Radius;
+        var angle = step;
+        for (var i = 1; i < EdgeCount; i++)
         {
-            var cos = TNum.Cos(angle);
-            var sin = TNum.Sin(angle);
-            outerBounds[++i] = Boundary.Centroid + u * (cos * Boundary.Radius) + v * (sin * Boundary.Radius);
+            var cos=TNum.Cos(angle);
+            var sin=TNum.Sin(angle);
+            outerBounds[i] = Boundary.Centroid + u * (cos * Boundary.Radius) + v * (sin * Boundary.Radius);
+            angle += step;
         }
         var indices = new TriangleIndexer[EdgeCount];
-        for (i = 0; i < EdgeCount - 1; i++) indices[i] = new TriangleIndexer(0, i + 1, i + 2);
+        for (var i = 0; i < EdgeCount - 1; i++) indices[i] = new TriangleIndexer(0, i + 1, i + 2);
         indices[^1] = new TriangleIndexer(0, EdgeCount, 1);
         return new IndexedMesh<TNum>(vertices, indices);
     }

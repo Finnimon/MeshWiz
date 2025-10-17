@@ -74,4 +74,9 @@ public sealed class IndexedMesh<TNum> : IIndexedMesh<TNum>
 
     public static IndexedMesh<TNum> Empty { get; } = new([]);
 
+    public IndexedMesh<TOther> To<TOther>() where TOther : unmanaged, IFloatingPointIeee754<TOther>
+    {
+        if (typeof(TOther) == typeof(TNum)) return (IndexedMesh<TOther>)(object) this;
+        return new(Vertices.Select(v => v.To<TOther>()).ToArray(), Indices);
+    }
 }

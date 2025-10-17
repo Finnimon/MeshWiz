@@ -1,10 +1,11 @@
+using System.Diagnostics.Contracts;
 using System.Numerics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
-public readonly struct ConeSection<TNum> : IBody<TNum>, IRotationalSurface<TNum>
+public readonly struct ConeSection<TNum> : IBody<TNum>, IRotationalSurface<TNum> // ,IGeodesicProvider<ConicalHelicoid<TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly Line<Vector3<TNum>, TNum> Axis;
@@ -16,15 +17,16 @@ public readonly struct ConeSection<TNum> : IBody<TNum>, IRotationalSurface<TNum>
     public bool IsComplex => TNum.Sign(BaseRadius) != TNum.Sign(TopRadius);
     public bool IsSimple => TNum.Sign(BaseRadius) == TNum.Sign(TopRadius);
     public bool IsCylinder => BaseRadius == TopRadius;
+
     public TNum SlantHeight
     {
         get
         {
-            var rDiff=BaseRadius-TopRadius;
-            return TNum.Sqrt(rDiff*rDiff+Axis.SquaredLength);
+            var rDiff = BaseRadius - TopRadius;
+            return TNum.Sqrt(rDiff * rDiff + Axis.SquaredLength);
         }
     }
-    
+
 
     public ConeSection(Line<Vector3<TNum>, TNum> axis, TNum baseRadius, TNum topRadius)
     {
@@ -49,7 +51,7 @@ public readonly struct ConeSection<TNum> : IBody<TNum>, IRotationalSurface<TNum>
         inflectionPoint = default;
         var failed = !Solver.Linear.TrySolveForZero(BaseRadius, TopRadius, out var at);
         if (failed) return false;
-        inflectionPoint = Axis.Traverse(at);
+        inflectionPoint = Axis.Traverse(TNum.Abs(at));
         return true;
     }
 
@@ -60,28 +62,29 @@ public readonly struct ConeSection<TNum> : IBody<TNum>, IRotationalSurface<TNum>
     {
         var failed = !TryGetInflection(out var tip);
         if (failed) throw new InvalidOperationException();
-        
-        var baseCone=new Cone<TNum>(Base.Centroid.LineTo(tip), Base.Radius);
-        var topCone=new Cone<TNum>(Top.Centroid.LineTo(tip), Top.Radius);
+
+        var baseCone = new Cone<TNum>(Base.Centroid.LineTo(tip), Base.Radius);
+        var topCone = new Cone<TNum>(Top.Centroid.LineTo(tip), Top.Radius);
         var baseV = baseCone.Volume;
-        var topV=topCone.Volume;
-        return (baseCone.Centroid * baseV + topCone.Centroid * topV)/(baseV+topV);
+        var topV = topCone.Volume;
+        return (baseCone.Centroid * baseV + topCone.Centroid * topV) / (baseV + topV);
     }
 
     private Vector3<TNum> SimpleCentroid()
     {
-        var baseRadius=TNum.Abs(BaseRadius);
-        var topRadius=TNum.Abs(TopRadius);
+        var baseRadius = TNum.Abs(BaseRadius);
+        var topRadius = TNum.Abs(TopRadius);
         var baseRadiusSq = baseRadius * baseRadius;
         var topRadiusSq = topRadius * topRadius;
-        var t = (baseRadiusSq + Numbers<TNum>.Two * baseRadius * topRadius + Numbers<TNum>.Three * topRadiusSq) 
+        var t = (baseRadiusSq + Numbers<TNum>.Two * baseRadius * topRadius + Numbers<TNum>.Three * topRadiusSq)
                 / (Numbers<TNum>.Four * (baseRadiusSq + baseRadius * topRadius + topRadiusSq));
         return Axis.Traverse(t);
     }
 
     public TNum SlantSurfaceArea => TNum.Pi * (BaseRadius + TopRadius) * SlantHeight;
+
     /// <inheritdoc />
-    public TNum SurfaceArea => SlantSurfaceArea+Top.SurfaceArea+Base.SurfaceArea;
+    public TNum SurfaceArea => SlantSurfaceArea + Top.SurfaceArea + Base.SurfaceArea;
 
     /// <inheritdoc />
     public AABB<Vector3<TNum>> BBox => Base.BBox.CombineWith(Top.BBox);
@@ -93,7 +96,7 @@ public readonly struct ConeSection<TNum> : IBody<TNum>, IRotationalSurface<TNum>
     public IndexedMesh<TNum> Tessellate(int edgeCount)
         => IsComplex ? TessellateComplex(edgeCount) : TessellateCylindrical(Base, Top, edgeCount);
 
-    
+
     /// <summary>
     /// assumes <paramref name="baseC"/> and <paramref name="topC"/> face the same direction
     /// </summary>
@@ -119,10 +122,10 @@ public readonly struct ConeSection<TNum> : IBody<TNum>, IRotationalSurface<TNum>
             //quadIndices
             var a = topIndexer.C;
             var b = topIndexer.B;
-            var c=baseIndexer.C;
-            var d=baseIndexer.B;
-            indices[sideWallBaseIndex] = new(a,c,d);
-            indices[sideWallTopIndex] = new(a,b,c);
+            var c = baseIndexer.C;
+            var d = baseIndexer.B;
+            indices[sideWallBaseIndex] = new(a, c, d);
+            indices[sideWallTopIndex] = new(a, b, c);
         }
 
         return new IndexedMesh<TNum>(vertices, indices);
@@ -132,10 +135,10 @@ public readonly struct ConeSection<TNum> : IBody<TNum>, IRotationalSurface<TNum>
     {
         var failed = !TryGetInflection(out var tip);
         if (failed) throw new InvalidOperationException();
-        var baseMesh=new Cone<TNum>(Base.Centroid.LineTo(tip), Base.Radius).Tessellate(edgeCount);
-        var topMesh=new Cone<TNum>(Top.Centroid.LineTo(tip), Top.Radius).Tessellate(edgeCount);
-        Vector3<TNum>[] vertices = [..baseMesh.Vertices, ..topMesh.Vertices];//acceptable duplication of tip
-        var shift=vertices.Length/2;
+        var baseMesh = new Cone<TNum>(Base.Centroid.LineTo(tip), Base.Radius).Tessellate(edgeCount);
+        var topMesh = new Cone<TNum>(Top.Centroid.LineTo(tip), Top.Radius).Tessellate(edgeCount);
+        Vector3<TNum>[] vertices = [..baseMesh.Vertices, ..topMesh.Vertices]; //acceptable duplication of tip
+        var shift = vertices.Length / 2;
         TriangleIndexer[] indices = [..baseMesh.Indices, ..topMesh.Indices.Select(i => i + shift)];
         return new(vertices, indices);
     }
@@ -163,22 +166,60 @@ public readonly struct ConeSection<TNum> : IBody<TNum>, IRotationalSurface<TNum>
     /// <inheritdoc />
     public IDiscreteCurve<Vector3<TNum>, TNum> SweepCurve => IsComplex ? ComplexSweepCurve() : SimpleSweepCurve();
 
-    private Polyline<Vector3<TNum>,TNum> ComplexSweepCurve()
+    private Polyline<Vector3<TNum>, TNum> ComplexSweepCurve()
     {
-        var failed=!TryGetInflection(out var tip);
+        var failed = !TryGetInflection(out var tip);
         if (failed) throw new InvalidOperationException();
         //both forced same up for same 0 angle result
-        var baseRad=TNum.Abs(BaseRadius);
-        var topRad=TNum.Abs(TopRadius);
-        var normal = Axis.Direction;//gets normalized in ctor
-        var start=new Circle3<TNum>(Axis.Start,normal,baseRad).TraverseByAngle(TNum.Zero);
-        var end=new Circle3<TNum>(Axis.End,normal,topRad).TraverseByAngle(TNum.Zero);
+        var baseRad = TNum.Abs(BaseRadius);
+        var topRad = TNum.Abs(TopRadius);
+        var normal = Axis.Direction; //gets normalized in ctor
+        var start = new Circle3<TNum>(Axis.Start, normal, baseRad).TraverseByAngle(TNum.Zero);
+        var end = new Circle3<TNum>(Axis.End, normal, topRad).TraverseByAngle(TNum.Zero);
         return new Polyline<Vector3<TNum>, TNum>(start, tip, end);
     }
 
-    private Line<Vector3<TNum>, TNum> SimpleSweepCurve() 
+    private Line<Vector3<TNum>, TNum> SimpleSweepCurve()
         => Base.TraverseByAngle(TNum.Zero).LineTo(Top.TraverseByAngle(TNum.Zero));
 
     /// <inheritdoc />
-    public Ray3<TNum> SweepAxis =>Axis.Start.RayThrough(Axis.End);
+    public Ray3<TNum> SweepAxis => Axis.Start.RayThrough(Axis.End);
+
+    /// <inheritdoc />
+    public Vector3<TNum> NormalAt(Vector3<TNum> p)
+    {
+        p=ClampToSurface(p);
+        return this.TryGetComplete(out var cone) 
+            ? cone.NormalAt(p) 
+            : new Cylinder<TNum>(Axis,BaseRadius).NormalAt(p);
+    }
+    //
+    // /// <inheritdoc />
+    // public ConicalHelicoid<TNum> GetGeodesic(Vector3<TNum> p1, Vector3<TNum> p2)
+    // {
+    //     return ConicalHelicoid<TNum>.BetweenPoints(in this, p1, p2);
+    // }
+    //
+    // /// <inheritdoc />
+    // public ConicalHelicoid<TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint, Vector3<TNum> direction)
+    // {
+    //     return ConicalHelicoid<TNum>.FromEntry(in this, entryPoint, direction);
+    // }
+
+    public Vector3<TNum> ClampToSurface(Vector3<TNum> p)
+    {
+        var (closest, onseg) = Axis.ClosestPoints(p);
+        p += onseg - closest;
+        var pos = onseg.DistanceTo(Axis.Start) / Axis.Length;
+        var radius = TNum.Abs(RadiusAt(pos));
+        return Vector3<TNum>.ExactLerp(onseg, p, radius);
+    }
+
+    public TNum RadiusAt(TNum pos) => TNum.Lerp(BaseRadius, TopRadius, pos);
+}
+
+public readonly struct ConicalHelicoid<TNum> 
+    where TNum : unmanaged, IFloatingPointIeee754<TNum>
+{
+   
 }

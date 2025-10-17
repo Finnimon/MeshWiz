@@ -3,6 +3,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
+using System.Security.Cryptography;
 using System.Text.Json.Serialization;
 using System.Xml.Serialization;
 using MeshWiz.Utility.Extensions;
@@ -20,10 +21,11 @@ public readonly struct Plane3<TNum>
     public static Plane3<TNum> XY => new(Vector3<TNum>.UnitZ, TNum.Zero);
     public static Plane3<TNum> YZ => new(Vector3<TNum>.UnitX, TNum.Zero);
     public static Plane3<TNum> ZX => new(Vector3<TNum>.UnitY, TNum.Zero);
-    
+
     public readonly TNum D;
     public readonly Vector3<TNum> Normal;
-    [JsonIgnore,XmlIgnore,SoapIgnore,IgnoreDataMember,Pure]
+
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public Vector4<TNum> AsVector4 => new(Normal, D);
 
     public Plane3(in Triangle3<TNum> triangleOnPlane) : this(triangleOnPlane.Normal, triangleOnPlane.A) { }
@@ -33,7 +35,7 @@ public readonly struct Plane3<TNum>
         Normal = normal.Normalized;
         D = -(Normal.Dot(pointOnPlane));
     }
-    
+
 
     public Plane3(Vector3<TNum> a, Vector3<TNum> b, Vector3<TNum> c)
     {
@@ -328,6 +330,14 @@ public readonly struct Plane3<TNum>
         return Origin + local.X * u + local.Y * v;
     }
 
+    public Vector3<TNum> Clamp(Vector3<TNum> p)
+    {
+        var (u, v) = Basis;
+        var local = p - Origin;
+        var v2 = new Vector2<TNum>(local.Dot(u), local.Dot(v));
+        return Origin + v2.X * u + v2.Y * v;
+    }
+
 
     public Vector3<TNum>[] ProjectIntoWorld(IReadOnlyList<Vector2<TNum>> local)
     {
@@ -363,7 +373,7 @@ public readonly struct Plane3<TNum>
         return world;
     }
 
-    public Polyline<Vector3<TNum>, TNum> ProjectIntoWorld(Polyline<Vector2<TNum>, TNum> local) 
+    public Polyline<Vector3<TNum>, TNum> ProjectIntoWorld(Polyline<Vector2<TNum>, TNum> local)
         => new(ProjectIntoWorld(local.Points));
 
 
@@ -372,7 +382,7 @@ public readonly struct Plane3<TNum>
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => BuildBasisDuff(Normal);
     }
-    
+
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static (Vector3<TNum> U, Vector3<TNum> V) BuildBasisDuff(Vector3<TNum> n)
     {
@@ -385,22 +395,22 @@ public readonly struct Plane3<TNum>
     }
 
 
-
+    public Line<Vector3<TNum>, TNum> ProjectIntoWorld(Line<Vector2<TNum>, TNum> l)
+    {
+        var (u, v) = Basis;
+        var p1 = Origin + l.Start.X * u + l.Start.Y * v;
+        var p2 = Origin + l.End.X * u + l.End.Y * v;
+        return new Line<Vector3<TNum>, TNum>(p1, p2);
+    }
 
     public Line<Vector2<TNum>, TNum> ProjectIntoLocal(Line<Vector3<TNum>, TNum> world)
     {
         var (u, v) = Basis;
         var origin = Origin;
-
         var lineStart = world.Start - origin;
         var lineEnd = world.End - origin;
         var localStart = new Vector2<TNum>(lineStart.Dot(u), lineStart.Dot(v));
         var localEnd = new Vector2<TNum>(lineEnd.Dot(u), lineEnd.Dot(v));
-        return new(localStart, localEnd);
-    }
-
-    public Line<Vector3<TNum>, TNum> ProjectIntoWorld(Line<Vector2<TNum>, TNum> local)
-    {
-        return new(ProjectIntoWorld(local.Start), ProjectIntoWorld(local.End));
+        return new Line<Vector2<TNum>, TNum>(localStart, localEnd);
     }
 }

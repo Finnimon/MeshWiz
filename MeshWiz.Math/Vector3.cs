@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
@@ -267,10 +268,9 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            if (index.InsideInclusiveRange(0, 2))
-                fixed (TNum* ptr = &X)
-                    return ptr[index];
-            throw new IndexOutOfRangeException();
+            if (Dimensions <= (uint)index) IndexThrowHelper.Throw(index,Count);
+            fixed (TNum* ptr = &X)
+                return ptr[index];
         }
     }
 
@@ -624,8 +624,9 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
 
     /// <inheritdoc />
     public static bool IsNormal(Vector3<TNum> value)
-        => value.Sum <= TNum.One;
+        => value.SquaredLength <= TNum.One;
 
+    public bool IsNormalized => this.SquaredLength.IsApprox(TNum.One, Numbers<TNum>.ZeroEpsilon);
     /// <inheritdoc />
     public static bool IsOddInteger(Vector3<TNum> value)
         => TNum.IsOddInteger(value.Sum);
@@ -799,8 +800,10 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
         throw new InvalidOperationException();
     }
 
+    [Pure]
     public TNum AngleTo(Vector3<TNum> other) => AngleBetween(this, other);
 
+    [Pure]
     public static TNum AngleBetween(Vector3<TNum> a, Vector3<TNum> b)
     {
         a = a.Normalized;
@@ -808,19 +811,13 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
         var dot = a.Dot(b);
         return TNum.Acos(dot);
     }
-
+    [Pure]
     public static TNum SignedAngleBetween(Vector3<TNum> a, Vector3<TNum> b, Vector3<TNum> about)
     {
         about = about.Normalized;
-        if (a.IsParallelTo(about))
-        {
-            throw new ArgumentException("FromVector parallel to aboutVector");
-        }
+        if (a.IsParallelTo(about)) ThrowHelper.ThrowArgumentException("a parallel to about");
 
-        if (b.IsParallelTo(about))
-        {
-            throw new ArgumentException("FromVector parallel to aboutVector");
-        }
+        if (b.IsParallelTo(about)) ThrowHelper.ThrowArgumentException("b parallel to about");
 
         var rp = new Plane3<TNum>(about, TNum.Zero);
         var a2D = rp.ProjectIntoLocal(a);

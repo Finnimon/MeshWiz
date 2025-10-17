@@ -1,3 +1,4 @@
+using System.Diagnostics.Contracts;
 using System.Numerics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
@@ -50,18 +51,12 @@ public readonly struct Cylinder<TNum> : IBody<TNum>, IRotationalSurface<TNum>, I
 
     public Vector3<TNum> ClampToSurface(Vector3<TNum> p)
     {
-        var closestOnAxis = Axis.ClosestPoint(p);
+        var (closestOnAxis, onSeg) = Axis.ClosestPoints(p);
         var d = closestOnAxis.DistanceTo(p);
         var radialDiff = Radius / d;
-        if (!radialDiff.IsApprox(TNum.One, Numbers<TNum>.Eps4))
-            p = Vector3<TNum>.Lerp(closestOnAxis, p, radialDiff);
-        var vPos = closestOnAxis.DistanceTo(Axis.Start);
-        var downWards = TNum.IsNegative((closestOnAxis - Axis.Start).Dot(Axis.Direction));
-        if (downWards) vPos = -vPos;
-        var newVPos = AABB.From(TNum.Zero, Height).Clamp(vPos);
-        if (newVPos == vPos) return p;
-        var vShift = newVPos - vPos;
-        return p + Axis.NormalDirection * vShift;
+        p = Vector3<TNum>.Lerp(closestOnAxis, p, radialDiff);
+        var vShift = onSeg - closestOnAxis;
+        return p + vShift;
     }
 
     /// <inheritdoc />
@@ -71,4 +66,12 @@ public readonly struct Cylinder<TNum> : IBody<TNum>, IRotationalSurface<TNum>, I
     /// <inheritdoc />
     public Helix<TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint, Vector3<TNum> direction)
         => Helix<TNum>.FromOrigin(in this, entryPoint, direction);
+
+    [Pure]
+    public Vector3<TNum> NormalAt(Vector3<TNum> p)
+    {
+        var cp= Axis.ClosestPoint(p);
+        return (p - cp).Normalized;
+    }
+
 }

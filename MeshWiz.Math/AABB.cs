@@ -233,6 +233,16 @@ public readonly struct AABB<TNum>
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [Pure]
+    public TNum ClampToBounds(TNum value)
+    {
+        var minDiff=TNum.Abs(value - Min);
+        var maxDiff=TNum.Abs(value - Max);
+        return minDiff < maxDiff ? minDiff : maxDiff;
+    }
+
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Pure]
     public AABB<TNum> Clamp(AABB<TNum> value) => new(Clamp(value.Min),Clamp(value.Max));
 
     public AABB<TOther> To<TOther>() where TOther : unmanaged, IFloatingPointIeee754<TOther>

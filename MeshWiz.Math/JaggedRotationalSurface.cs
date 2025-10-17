@@ -3,6 +3,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using CommunityToolkit.Diagnostics;
+using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
@@ -17,11 +19,12 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
     private Vector3<TNum> BasisU => _basisU ??= new Plane3<TNum>(Axis.Direction, Axis.Origin).Basis.U;
     public int Count => int.Max(Positions.Length - 1, 0);
     private Vector3<TNum>? _centroid;
+
     /// <inheritdoc />
     public Vector3<TNum> Centroid => _centroid ??= ComputeCentroid();
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector3<TNum> Project(Vector2<TNum> p,in Vector3<TNum> u, in Ray3<TNum> axis) 
+    private static Vector3<TNum> Project(Vector2<TNum> p, in Vector3<TNum> u, in Ray3<TNum> axis)
         => axis.Traverse(p.X) + u * p.Y;
 
     public IRotationalSurface<TNum> this[int index]
@@ -29,9 +32,9 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
 
     public IRotationalSurface<TNum> GetChildSurface(int index)
     {
-        if (Count <= (uint)index) throw new IndexOutOfRangeException();
+        if (Count <= (uint)index) IndexThrowHelper.Throw(index, Count);
         var start = Positions[index];
-        var end=Positions[index+1];
+        var end = Positions[index + 1];
         var isNotCircle = start.X != end.X;
         return isNotCircle
             ? new ConeSection<TNum>(Axis.LineSection(start.X, end.X), start.Y, end.Y)
@@ -61,7 +64,7 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
         => Tessellate(32);
 
     public IndexedMesh<TNum> Tessellate(int tessellationCount)
-        => Surface.Rotational.Tessellate<JaggedRotationalSurface<TNum>, TNum>(this, tessellationCount,true);
+        => Surface.Rotational.Tessellate<JaggedRotationalSurface<TNum>, TNum>(this, tessellationCount, true);
 
     /// <inheritdoc />
     [field: AllowNull, MaybeNull]
@@ -71,15 +74,15 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
         private init;
     }
 
-    private Polyline<Vector3<TNum>, TNum> CreateSweepCurve(JaggedRotationalSurface<TNum> jaggedRotationalSurface)
+    private static Polyline<Vector3<TNum>, TNum> CreateSweepCurve(JaggedRotationalSurface<TNum> surf)
     {
-        var u = BasisU;
-        var axis = Axis;
-        var pts=new Vector3<TNum>[Positions.Length];
-        for (var i = 0; i < Positions.Length; i++)
-            pts[i]=Project(Positions[i],in u,in axis);
+        var u = surf.BasisU;
+        var axis = surf.Axis;
+        var pts = new Vector3<TNum>[surf.Positions.Length];
+        for (var i = 0; i < surf.Positions.Length; i++)
+            pts[i] = Project(surf.Positions[i], in u, in axis);
         return new Polyline<Vector3<TNum>, TNum>(pts);
-    }   
+    }
 
 
     public static JaggedRotationalSurface<TNum> FromSweepCurve(Polyline<Vector3<TNum>, TNum> sweepCurve,
@@ -95,7 +98,7 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
             if (i == 0)
             {
                 axisLine = closest.LineTo(closest + axis.Direction);
-                positions[0]=new Vector2<TNum>(TNum.Zero,radius);
+                positions[0] = new Vector2<TNum>(TNum.Zero, radius);
                 continue;
             }
 
@@ -103,11 +106,10 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
             var startToP = p - axisLine.Start;
             var sign = startToP.Dot(axisLine.Direction);
             var along = TNum.CopySign(absAlong, sign);
-            positions[i]=new Vector2<TNum>(along,radius);
+            positions[i] = new Vector2<TNum>(along, radius);
         }
 
-        return new JaggedRotationalSurface<TNum>(axisLine, positions)
-        { SweepCurve = sweepCurve };
+        return new JaggedRotationalSurface<TNum>(axisLine, positions) { SweepCurve = sweepCurve };
     }
 
     /// <inheritdoc />
@@ -128,4 +130,57 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
         _surfaceArea ??= total;
         return centroid / total;
     }
+
+    /// <inheritdoc />
+    public Vector3<TNum> NormalAt(Vector3<TNum> p)
+    {
+        var foundAny = TryClosestFindSurface(p, out var surfIndex);
+        return foundAny
+            ? this[surfIndex].NormalAt(p)
+            : ThrowHelper.ThrowInvalidOperationException<Vector3<TNum>>("No surface found");
+    }
+
+    public Vector3<TNum> ClampToSurface(Vector3<TNum> p)
+    {
+        var foundAny = TryClosestFindSurface(p, out var surfIndex);
+        return foundAny
+            ? this[surfIndex].ClampToSurface(p)
+            : ThrowHelper.ThrowInvalidOperationException<Vector3<TNum>>("No surface found");
+    }
+
+    public bool TryClosestFindSurface(Vector3<TNum> p, out int surfaceIndex)
+    {
+        surfaceIndex = -1;
+        if (Count == 0) return false;
+        if (Count == 1)
+        {
+            surfaceIndex = 0;
+            return true;
+        }
+
+        var (closestPos, onSegPos) = AxisLine.GetClosestPositions(p);
+        var height = Height;
+        closestPos *= height;
+        onSegPos *= height;
+        var minDist = TNum.PositiveInfinity;
+        for (var i = 0; i < Positions.Length - 1; i++)
+        {
+            var start = Positions[i];
+            var end = Positions[i + 1];
+            var vBox = AABB.From(start.X, end.X);
+            var vDiff = vBox.DistanceTo(closestPos);
+            if (vDiff > minDist) continue;
+            var childSurf = this.GetChildSurface(i);
+            var diff = childSurf.ClampToSurface(p).DistanceTo(p);
+            if (diff >= minDist)
+                continue;
+            minDist = diff;
+            surfaceIndex = i;
+        }
+
+        return surfaceIndex != -1;
+    }
+
+    private Line<Vector3<TNum>, TNum>? _axisLine;
+    public Line<Vector3<TNum>, TNum> AxisLine => _axisLine ??= this.SweepAxis.Origin.LineTo(SweepAxis.Traverse(Height));
 }

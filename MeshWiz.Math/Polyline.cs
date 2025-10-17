@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using System.Xml.Serialization;
+using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
@@ -47,10 +48,9 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            if (Count > (uint)index)
-                fixed (void* ptr = &Points[index])
-                    return *(Line<TVector, TNum>*)ptr;
-            throw new IndexOutOfRangeException();
+            if (Count <= (uint)index) IndexThrowHelper.Throw(index, Count);
+            fixed (void* ptr = &Points[index])
+                return *(Line<TVector, TNum>*)ptr;
         }
     }
 
@@ -146,7 +146,7 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
         var distance = by * Length;
         var fromStart = by < TNum.Zero;
         var fromEnd = by > TNum.One;
-        if (!fromStart && !fromEnd) throw new ArgumentOutOfRangeException(nameof(by));
+        if (!fromStart && !fromEnd) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(by));
         TVector p1;
         TVector p2;
         if (fromEnd)
@@ -193,11 +193,11 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
     {
         if (start.IsApprox(end)) return Empty;
         var foundStart = TryFindContainingSegmentExactly(start, out var startSeg, out var startRem);
-        if (!foundStart) throw new ArgumentOutOfRangeException(nameof(start), start, "Could not find");
+        if (!foundStart) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(start), start, "Could not find");
         var foundEnd = TryFindContainingSegmentExactly(end, out var endSeg, out var endRem);
-        if (!foundEnd) throw new ArgumentOutOfRangeException(nameof(end), end, "Could not find");
+        if (!foundEnd) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(end), end, "Could not find");
         var wrappingAroundEnd = endSeg < startSeg || (endSeg == startSeg && endRem < startRem);
-        if (wrappingAroundEnd && !IsClosed) throw new ArgumentOutOfRangeException(nameof(end));
+        if (wrappingAroundEnd && !IsClosed) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(end));
         TVector[] section;
         if (!wrappingAroundEnd)
         {
@@ -459,4 +459,9 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
 
         return pl;
     }
+
+    public Polyline<TOtherVec, TOtherNum> To<TOtherVec, TOtherNum>()
+        where TOtherVec : unmanaged, IFloatingVector<TOtherVec, TOtherNum>
+        where TOtherNum : unmanaged, IFloatingPointIeee754<TOtherNum> =>
+        new(Points.Select(TOtherVec.FromComponentsConstrained<TVector, TNum>).ToArray());
 }
