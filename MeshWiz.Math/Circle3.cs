@@ -51,9 +51,7 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
         var angleStep = Numbers<TNum>.TwoPi / TNum.CreateTruncating(intSteps);
         var i = -1;
         for (var angle = TNum.Zero; angle < Numbers<TNum>.TwoPi; angle += angleStep)
-        {
             verts[++i] = this.TraverseByAngle(angle);
-        }
 
         verts[^1] = verts[0];
         return new(verts);
@@ -106,10 +104,7 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
     public Vector3<TNum> TraverseByAngle(TNum angle)
     {
         var (u, v) = Plane.Basis; // assumed normalized orthonormal basis
-
-        var cos = TNum.Cos(angle);
-        var sin = TNum.Sin(angle);
-
+        var (sin, cos) = TNum.SinCos(angle);
         return Centroid + u * (cos * Radius) + v * (sin * Radius);
     }
 

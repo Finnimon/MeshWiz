@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-public readonly struct Ray2<TNum> 
+public readonly struct Ray2<TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum> 
 {
     public readonly Vector2<TNum> Origin, Direction;
@@ -42,4 +42,5 @@ public readonly struct Ray2<TNum>
     
     public static implicit operator Ray2<TNum>(in Line<Vector2<TNum>,TNum> line)
         =>new(line.Start, line.Direction);
+    
 }

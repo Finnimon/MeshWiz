@@ -11,9 +11,6 @@ public readonly record struct Sphere<TNum>(Vector3<TNum> Centroid, TNum Radius)
         => TNum.CreateChecked(4) * TNum.Pi * Radius * Radius * Radius / TNum.CreateChecked(3);
     public TNum Diameter=>Numbers<TNum>.Two*Radius;
     public TNum SurfaceArea => TNum.CreateChecked(4) * TNum.Pi * Radius * Radius;
-
-    public ISurface<Vector3<TNum>, TNum> Surface => throw new NotImplementedException("Explicit Sphere face missing");
-
     public AABB<Vector3<TNum>> BBox => AABB.Around(Centroid, Numbers<Vector3<TNum>>.Two * Radius);
     public IMesh<TNum> Tessellate() => Tessellate(16, 32);
 

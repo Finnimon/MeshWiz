@@ -18,10 +18,7 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
     private int _postTailIndex;
 
     /// <inheritdoc />
-    public bool Remove(T item)
-    {
-        throw new NotImplementedException();
-    }
+    bool ICollection<T>.Remove(T item) => ThrowHelper.ThrowNotSupportedException<bool>();
 
     public int Count { get; private set; }
 
@@ -195,7 +192,7 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
 
     public T PopFront()
     {
-        if (Count == 0) throw new InvalidOperationException();
+        if (Count == 0) ThrowHelper.ThrowInvalidOperationException();
         return PopFrontUnchecked();
     }
 
@@ -212,7 +209,7 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
 
     public T PopBack()
     {
-        if (Count == 0) throw new InvalidOperationException();
+        if (Count == 0) ThrowHelper.ThrowInvalidOperationException();
         return PopBackUnchecked();
     }
 
@@ -335,16 +332,10 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
     }
 
     /// <inheritdoc />
-    public void Insert(int index, T item)
-    {
-        throw new NotImplementedException();
-    }
+    void IList<T>.Insert(int index, T item) => ThrowHelper.ThrowNotSupportedException();
 
     /// <inheritdoc />
-    public void RemoveAt(int index)
-    {
-        throw new NotImplementedException();
-    }
+    void IList<T>.RemoveAt(int index) => ThrowHelper.ThrowNotSupportedException();
 
     public void Trim() => Capacity = Count;
 

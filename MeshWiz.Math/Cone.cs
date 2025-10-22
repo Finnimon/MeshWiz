@@ -119,3 +119,45 @@ public readonly struct Cone<TNum> : IBody<TNum>, IRotationalSurface<TNum>
 
     public TNum RadiusAt(TNum pos) => TNum.Lerp(Radius, TNum.Zero, pos);
 }
+
+public readonly struct ConeGeodesic<TNum> where TNum : unmanaged, IFloatingPointIeee754<TNum>
+{
+    public readonly Cone<TNum> Surface;
+    public readonly Line<Vector2<TNum>, TNum> ProjectedLine;
+    public TNum AngleRangeSize => (Surface.Radius / Surface.SlantHeight) * Numbers<TNum>.TwoPi;
+    public AABB<TNum> AngleRange => AABB.Around(TNum.Zero, AngleRangeSize);
+    public Circle2<TNum> ProjectedCircle => new(Vector2<TNum>.Zero, Surface.SlantHeight);
+
+    [Pure]
+    public Vector3<TNum> ProjectPoint(Vector2<TNum> p)
+    {
+        var polarPt = p.CartesianToPolar();
+        var baseAngle = polarPt.PolarAngle;
+        var coneTip = Surface.Tip;
+        var baseCircle= Surface.Base;
+        var proj = ProjectedCircle;
+        var relativeAngleSpace= proj.Radius/baseCircle.Radius;
+        var realAngle = relativeAngleSpace * baseAngle;
+        var tipToBase = polarPt.PolarRadius/proj.Radius;
+        var basePt = baseCircle.TraverseByAngle(realAngle);
+        return Vector3<TNum>.Lerp(coneTip, basePt, tipToBase);
+    }
+
+    [Pure]
+    public Vector2<TNum> ProjectPoint(Vector3<TNum> p)
+    {
+        p = Surface.ClampToSurface(p);
+        if(p.IsApprox(Surface.Tip))return Vector2<TNum>.Zero;
+        var baseCircle= Surface.Base;
+        var basis = baseCircle.Basis;
+        var baseToP = p - baseCircle.Centroid;
+        var angle = Vector3<TNum>.SignedAngleBetween(baseToP, basis.U, baseCircle.Normal);
+        var projectedCircle = ProjectedCircle;
+        var relativeAngleSpace= baseCircle.Radius/projectedCircle.Radius;
+        var realAngle = angle * relativeAngleSpace;
+        var polarRadius = p.DistanceTo(Surface.Tip);
+        Vector2<TNum> polar = new(polarRadius, realAngle);
+        return polar.PolarToCartesian();
+    }
+    
+}

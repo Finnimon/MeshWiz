@@ -111,7 +111,7 @@ public partial class MainWindow : Window
 
         Console.WriteLine($"In {sw.Elapsed.TotalSeconds:F3} Total line count: {concentricPattern.Sum(layer => layer.Count)}");
 
-        var count = 0;
+        // var count = 0;
         // for (var h = minY; h <= maxY; h += levelHeight)
         // {
         //     var plane = new Plane3<float>(Vector3<float>.UnitY, Vector3<float>.UnitY * h);

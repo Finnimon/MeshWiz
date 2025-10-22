@@ -12,6 +12,7 @@ public readonly struct Arc3<TNum>(Circle3<TNum> underlying, TNum startAngle, TNu
     public readonly Circle3<TNum> Underlying = underlying;
     public readonly TNum StartAngle = startAngle, EndAngle = endAngle;
     public TNum AngleRange => TNum.Abs(EndAngle - StartAngle);
+    public TNum SignedAngleRange => EndAngle - StartAngle;
 
     public TNum WindingDirection => (EndAngle - StartAngle).EpsilonTruncatingSign() switch
     {

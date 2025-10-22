@@ -135,12 +135,14 @@ public readonly struct Helix<TNum> : IContiguousDiscreteCurve<Vector3<TNum>, TNu
         var curDist = TNum.Abs(start.X - end.X);
         var leftDist = TNum.Abs(start.X - (end.X - surface.Circumference));
         var rightDist = TNum.Abs(start.X - (end.X + surface.Circumference));
-        if (curDist <= leftDist && curDist <= rightDist) 
-            ;//end==end;
+        TNum bestEndX;
+        if (curDist <= leftDist && curDist <= rightDist)
+            bestEndX = end.X;
         else if (leftDist <= rightDist)
-            end = new Vector2<TNum>(end.X - surface.Circumference, end.Y);
+            bestEndX = end.X - surface.Circumference;
         else
-            end = new Vector2<TNum>(end.X + surface.Circumference,end.Y);
+            bestEndX = end.X + surface.Circumference;
+        end = new Vector2<TNum>(bestEndX, end.Y);
         return new Helix<TNum>(surface, start.LineTo(end));
     }
 

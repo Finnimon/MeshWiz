@@ -10,7 +10,7 @@ namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
 public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
-    : ILine<TVector, TNum>, IContiguousDiscreteCurve<TVector, TNum> 
+    : ILine<TVector, TNum>, IContiguousDiscreteCurve<TVector, TNum>
     where TVector : unmanaged, IFloatingVector<TVector, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
@@ -26,11 +26,12 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
     public TNum Length => Direction.Length;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public TVector Direction => End.Subtract(Start);
+    public TVector Direction => End - Start;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public TVector NormalDirection => Direction.Normalized;
 
+    [Pure]
     public Line<TVector, TNum> Reversed() => new(End, Start);
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
@@ -52,7 +53,7 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
 
     [Pure]
     public TVector Traverse(TNum distance)
-        => Start + Direction * distance;
+        => TVector.Lerp(Start,End,distance);
 
     [Pure]
     public TVector TraverseOnCurve(TNum distance)
@@ -124,9 +125,9 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
         var length = direction.Length;
         var ndir = direction / length;
         var dotProduct = v.Dot(ndir);
-        var closest=ndir*dotProduct+Start;
+        var closest = ndir * dotProduct + Start;
         dotProduct = TNum.Clamp(dotProduct, TNum.Zero, length);
-        var onSeg= Start + dotProduct * ndir;
+        var onSeg = Start + dotProduct * ndir;
         return (closest, onSeg);
     }
 
@@ -136,15 +137,16 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
         var direction = Direction;
         var length = direction.Length;
         var ndir = direction / length;
-        var closest = v.Dot(ndir)/length;
+        var closest = v.Dot(ndir) / length;
         var onSeg = TNum.Clamp(closest, TNum.Zero, TNum.One);
         return (closest, onSeg);
     }
 
     public Line<TVector, TNum> Section(TNum start, TNum end)
         => Traverse(start).LineTo(Traverse(end));
-    public Polyline<TVector,TNum> ToPolyline()=>new(Start, End);
-    public Polyline<TVector,TNum> ToPolyline(PolylineTessellationParameter<TNum> _)=>new(Start, End);
+
+    public Polyline<TVector, TNum> ToPolyline() => new(Start, End);
+    public Polyline<TVector, TNum> ToPolyline(PolylineTessellationParameter<TNum> _) => new(Start, End);
 
     /// <inheritdoc />
     public TVector GetTangent(TNum _)
@@ -245,5 +247,6 @@ public static class Line
         return TNum.Clamp(t, TNum.Zero, TNum.One) == t
                && TNum.Clamp(t2, TNum.Zero, TNum.One) == t2;
     }
-    
+
+
 }

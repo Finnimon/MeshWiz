@@ -49,7 +49,7 @@ public class OrbitCamera(float fovRad, Vector3<float> orbitAround, float distanc
         var up=UnitUp;
         var dir= (LookAt - Position).Normalized;
         var reference = dir;
-        if (dir.IsParallelTo(up)) throw new NotImplementedException("Rot camera front by azimuth");
+        if (dir.IsParallelTo(up)) throw new InvalidOperationException("Rot camera front by azimuth");
         return up.Cross(reference).Normalized;
     }
 

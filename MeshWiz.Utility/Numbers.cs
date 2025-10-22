@@ -110,5 +110,9 @@ public static class Numbers<TNum>
         => nums is not { Length: > 0 }
             ? TNum.Zero
             : nums.Sum() / TNum.CreateTruncating(nums.Length);
-    
+
+    public static readonly TNum HalfPi = TNum.CreateTruncating(double.Pi * 0.5);
+    public static readonly TNum RadiansToDegree = TNum.CreateTruncating(180.0 / double.Pi);
+    public static readonly TNum DegreeToRadians = TNum.CreateTruncating(double.Pi / 180.0);
+
 }

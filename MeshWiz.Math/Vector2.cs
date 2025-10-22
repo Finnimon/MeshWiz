@@ -188,7 +188,7 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
     public TNum SquaredDistanceTo(Vector2<TNum> other) => (this - other).SquaredLength;
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public TNum Cross(Vector2<TNum> other) => this ^ other;
+    public TNum Cross(Vector2<TNum> other) => X * other.Y - Y * other.X;
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int CrossSign(Vector2<TNum> other) => Cross(other).EpsilonTruncatingSign();
@@ -763,6 +763,32 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
 
 
     public TNum AngleTo(Vector2<TNum> other) => AngleBetween(this, other);
+
+    public static TNum SignedAngleBetween(Vector2<TNum> a, Vector2<TNum> b)
+    {
+        a = a.Normalized;
+        b = b.Normalized;
+        var dot = a.Dot(b);
+        var cross = a.Cross(b);
+        return TNum.Atan2(cross, dot);
+    }
+
+    public Vector2<TNum> CartesianToPolar()
+    {
+        var angle = TNum.Atan2(Y, X);
+        return new Vector2<TNum>(Length, angle);
+    }
+
+    public Vector2<TNum> PolarToCartesian()
+    {
+        var angle = Y;
+        var length = X;
+        var (sin, cos) = TNum.SinCos(angle);
+        return new Vector2<TNum>(cos * length, sin * length);
+    }
+
+    public TNum PolarAngle => Y;
+    public TNum PolarRadius => X;
 
     public static TNum AngleBetween(Vector2<TNum> a, Vector2<TNum> b)
     {

@@ -9,6 +9,50 @@ public static partial class Polyline
 {
     public static class Evaluate
     {
+        
+        public static bool DoIntersect<TNum>(Polyline<Vector2<TNum>, TNum> polyline, Polyline<Vector2<TNum>, TNum> other)
+            where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        {
+            if (!polyline.BBox.IntersectsWith(other.BBox)) return false;
+            return polyline.Any(line => other.Any(otherLine => Line.TryIntersectOnSegment(line, otherLine, out _)));
+        }
+
+        public static SortedDictionary<int, List<(int With, TNum at)>> FindSelfIntersections<TNum>(
+            Polyline<Vector2<TNum>, TNum> polygon)
+            where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        {
+            SortedDictionary<int, List<(int With, TNum at)>> intersections = [];
+            for (var a = 0; a < polygon.Count; a++)
+            {
+                var lineA = polygon[a];
+                //ignore end
+                for (var b = a + 2; b < polygon.Count; b++)
+                {
+                    var lineB = polygon[b];
+                    if (!Line.TryIntersectOnSegment(lineA, lineB, out var alongA, out var alongB)) continue;
+
+                    if (!intersections.TryGetValue(a, out var container))
+                    {
+                        container = [];
+                        intersections.Add(a, container);
+                    }
+
+                    container.Add((b, alongA));
+
+                    if (!intersections.TryGetValue(b, out container))
+                    {
+                        container = [];
+                        intersections.Add(b, container);
+                    }
+
+                    container.Add((a, alongB));
+                }
+            }
+
+            return intersections;
+        }
+
+
         public static TNum SignedArea<TNum>(Polyline<Vector2<TNum>, TNum> polyline)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
@@ -94,122 +138,7 @@ public static partial class Polyline
 
             return true;
         }
-    }
-
-    public static bool DoIntersect<TNum>(Polyline<Vector2<TNum>, TNum> polyline, Polyline<Vector2<TNum>, TNum> other)
-        where TNum : unmanaged, IFloatingPointIeee754<TNum>
-    {
-        if (!polyline.BBox.IntersectsWith(other.BBox)) return false;
-        return polyline.Any(line => other.Any(otherLine => Line.TryIntersectOnSegment(line, otherLine, out _)));
-    }
-
-    public static SortedDictionary<int, List<(int With, TNum at)>> FindSelfIntersections<TNum>(
-        Polyline<Vector2<TNum>, TNum> polygon)
-        where TNum : unmanaged, IFloatingPointIeee754<TNum>
-    {
-        SortedDictionary<int, List<(int With, TNum at)>> intersections = [];
-        for (var a = 0; a < polygon.Count; a++)
-        {
-            var lineA = polygon[a];
-            //ignore end
-            for (var b = a + 2; b < polygon.Count; b++)
-            {
-                var lineB = polygon[b];
-                if (!Line.TryIntersectOnSegment(lineA, lineB, out var alongA, out var alongB)) continue;
-
-                if (!intersections.TryGetValue(a, out var container))
-                {
-                    container = [];
-                    intersections.Add(a, container);
-                }
-
-                container.Add((b, alongA));
-
-                if (!intersections.TryGetValue(b, out container))
-                {
-                    container = [];
-                    intersections.Add(b, container);
-                }
-
-                container.Add((a, alongB));
-            }
-        }
-
-        return intersections;
-    }
-
-    public static Polyline<Vector2<TNum>, TNum>[] DegenerateIntersections<TNum>(
-        Polyline<Vector2<TNum>, TNum> polygon,
-        SortedDictionary<int, List<(int With, TNum at)>>? intersectionLookup = null)
-        where TNum : unmanaged, IFloatingPointIeee754<TNum>
-    {
-        intersectionLookup ??= FindSelfIntersections(polygon);
-        if (intersectionLookup.Count < 2)
-        {
-            polygon.Points[^1] = polygon.Points[0];
-            return [polygon];
-        }
-
-        if (intersectionLookup.Count == 2)
-        {
-            var first = intersectionLookup.First();
-            var last = intersectionLookup.Last();
-            if (first.Key == 0 && last.Key == polygon.Count - 1)
-            {
-                polygon.Points[^1] = polygon.Points[0];
-                return [polygon];
-            }
-
-            var start = polygon.CumulativeDistances[first.Key] + first.Value[0].at;
-            var end = polygon.CumulativeDistances[last.Key] + last.Value[0].at;
-            return [polygon.ExactSection(start, end)];
-        }
-
-        intersectionLookup.Values.ForEach(v
-            => v.Sort((ints, ints1) => ints.at.CompareTo(ints1.at)));
-
-        List<Polyline<Vector2<TNum>, TNum>> segs = [];
-        RollingList<Vector2<TNum>> active = [];
-        var keys = intersectionLookup.Keys.ToArray();
-        for (var i = 0; i < keys.Length; i++)
-        {
-            var curKey = keys[i];
-            var nextKey = i + 1 < keys.Length ? keys[i + 1] : keys[0];
-            var cur = intersectionLookup[curKey];
-            TNum start;
-            TNum end;
-            for (var j = 0; j < cur.Count - 1; j++)
-            {
-                start = polygon.CumulativeDistances[curKey] + cur[j].at;
-                end = polygon.CumulativeDistances[curKey] + cur[j + 1].at;
-                polygon.ExactSection(start, end);
-            }
-
-            start = polygon.CumulativeDistances[curKey] + cur[^1].at;
-            end = polygon.CumulativeDistances[curKey] + intersectionLookup[nextKey][0].at;
-            segs.Add(polygon.ExactSection(start, end));
-        }
-
-        List<Polyline<Vector2<TNum>, TNum>> results = [];
-        var alive = new bool[segs.Count];
-        Array.Fill(alive, true);
-        for (var i = 0; i < segs.Count; i++)
-        {
-            if (!alive[i]) continue;
-            alive[i] = false;
-            var seg = segs[i];
-            for (var j = i + 2; i < segs.Count + 2; j++)
-            {
-                var jIndex = j < segs.Count ? j : j - segs.Count;
-                if (!alive[jIndex]) continue;
-                var otherSeg = segs[j];
-            }
-        }
-
-        throw new NotImplementedException();
-    }
-
-
+        
     public static RollingList<Polyline<Vector2<TNum>, TNum>> FindSegments<TNum>(
         Polyline<Vector2<TNum>, TNum> polygon,
         TNum minSegLength)
@@ -292,4 +221,8 @@ public static partial class Polyline
         }
         return segments;
     }
+    }
+    
+
+
 }

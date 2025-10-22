@@ -97,7 +97,7 @@ public static partial class Polyline
             Polyline<Vector2<TNum>, TNum> polygon, TNum epsilon)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
-            var segmentPositions = FindIdentifiableSegments(polygon, epsilon);
+            var segmentPositions = Evaluate.FindIdentifiableSegments(polygon, epsilon);
             RollingList<Vector2<TNum>>? connected = null;
             var nextSeg = TNum.NaN;
             var sinceLastAdd = 0;

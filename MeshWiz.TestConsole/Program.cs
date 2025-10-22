@@ -1,5 +1,5 @@
 ﻿using System.Numerics;
-using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics;using MeshWiz.Abstraction.OpenCL;
 using MeshWiz.Math;
 using OpenTK.Compute.OpenCL;
 
@@ -9,40 +9,15 @@ using OpenTK.Compute.OpenCL;
 // var arcSection= circle.ArcSection(0, 3.14f);
 // Console.WriteLine(arcSection.ToPolyline());
 
-
-BigInteger n1=1;
-BigInteger n2=1;
-var pos = -1;
-var nthFib = 2;
-var run = true;
-BigInteger prev = 1;
-Task.Run(async () =>
+foreach (var pl in OclPlatform.GetAll())
 {
-    await Task.Delay(1000);
-    run = false;
-    await Task.Delay(10);
-});
-while (run)
-{
-    pos = (pos + 1) % 2;
-    switch ( pos)
+    using var dispo = pl;
+    Console.WriteLine($"Platform: {dispo.Name}");
+    foreach (var device in pl.AllDevices)
     {
-        case 0:
-            n1 += n2;
-            break;
-        case 1:
-            n2 += n1;
-            break;
+        using var disp2 = device;
+        Console.WriteLine($"\tDevice: \n\t\t{device.Name} \n\t\t{device.MaxComputeUnits}" +
+                          $"\n\t\t{device.Version}" +
+                          $"\n\t\t{device.OclVersion}");
     }
-    
-    nthFib++;
 }
-
-var fib = pos switch
-{
-    0 => n1,
-    1 => n2,
-    _ => throw new ArgumentOutOfRangeException()
-};
-
-Console.WriteLine($"{nthFib}: {fib}");
