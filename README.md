@@ -1,42 +1,38 @@
 # Intro
 This entire repo is meant to provide various utilities around [Meshes](./MeshWiz.Math/IMesh.cs).
 
-# Features
-## Interface
-- [ ] Avalonia + OpenGL based 3d
-  - [ ] 3d geometry
-  - [ ] Slicing lines
-  - [ ] Realtime slicing visualization
-  - [ ] AudioViz mode (3d rendering audio visualizer)
-- [ ] CLI 
-  - [ ] querying meshes
-  - [ ] mesh gen (see practical utilities)
-  - [ ] starting other interfaces
-## File types
-- [X] Stl support
-- [ ] 3dxml
-- [ ] custom compressed filetype from indexed mesh
-## Practical utilities
-- [ ] Planar Slicing
-- [ ] Non Planar Slicing
-- [ ] Flat segmentation slicing
-- [ ] Mesh generation (ie "meshwiz gen sphere --radius 1 --centroid 0 0 0")
-- [ ] geometry streaming from other services
+# Requirements
+- .NET10
+- OpenGL Driver
+- [OpenCL Driver]
 
-# Roadmap
-- [X] STL IO
-- [X] Experimental 3d viewer 
-- [ ] Mesh computation
-  - [X] Indexing
-  - [X] BVH
-  - 
-- [ ] CLI interface
-- [ ] Basic CAM
-  - [ ] Planar Slicing (WIP)
-  - [ ] G-Code postprocessor
-  - [ ] Triangle flat packing (Assembling parts from flat cut triangles)
-- [ ] Other filetypes
-- [ ] GUI
+# How To Build
+cd $repo_dir  
+dotnet restore  
+dotnet build [-c Release]
+
+# Remarks
+- See the different Polyline partials for more complex usage examples.
+  - [Evaluate](./MeshWiz.Math/Polyline.Evaluate.cs)
+  - [Simplicity](./MeshWiz.Math/Polyline.Simplicity.cs)
+  - [Reduction](./MeshWiz.Math/Polyline.Reduction.cs)
+  - ...
+- Generally everything is generic
+  - TNum always refers to a number-type such as half, float, double
+  - TVec or TVector almost always refers to a vector-type that extends [IFloatingVector](./MeshWiz.Math/IFloatingVector.cs)
+  - Number generic examples:
+    - [Vector2](./MeshWiz.Math/Vector2.cs)
+    - [Vector3](./MeshWiz.Math/Vector3.cs)
+    - [Vector4](./MeshWiz.Math/Vector4.cs)
+    - [Matrix4x4](./MeshWiz.Math/Matrix4x4.cs)
+  - Most number-type generics offer a [To<TOtherNum>()](./MeshWiz.Math/Vector3.cs) Method to convert between the possible types
+  - Dimensionally generic examples:
+    - [Polyline](./MeshWiz.Math/Polyline.cs)
+    - [Line](./MeshWiz.Math/Line.cs)
+  - Some Dimensionally generic types offer strictly dimensional counterparts; when possible prefer those 
+    - [NonDimensional Triangle](./MeshWiz.Math/Triangle.cs)
+    - [2D Triangle](./MeshWiz.Math/Triangle2.cs)
+    - [3D Triangle](./MeshWiz.Math/Triangle3.cs)
 
 # Credits
 I was greatly inspired by the following: 
