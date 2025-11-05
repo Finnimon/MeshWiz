@@ -3,7 +3,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
-using System.Security.Cryptography;
 using System.Text.Json.Serialization;
 using System.Xml.Serialization;
 using MeshWiz.Utility.Extensions;
@@ -300,6 +299,21 @@ public readonly struct Plane3<TNum>
 
         return local;
     }
+    
+    public Vector2<TNum>[] ProjectIntoLocal(ReadOnlySpan<Vector3<TNum>> world)
+    {
+        var (u, v) = Basis;
+        var origin = Origin;
+        var pCount = world.Length;
+        var local = new Vector2<TNum>[pCount];
+        for (var i = 0; i < pCount; i++)
+        {
+            var relative = world[i] - origin;
+            local[i] = new(relative.Dot(u), relative.Dot(v));
+        }
+
+        return local;
+    }
 
     public Polyline<Vector2<TNum>, TNum> ProjectIntoLocal(Polyline<Vector3<TNum>, TNum> world) =>
         new(ProjectIntoLocal(world.Points));
@@ -344,6 +358,20 @@ public readonly struct Plane3<TNum>
         var (u, v) = Basis;
         var origin = Origin;
         var pCount = local.Count;
+        var world = new Vector3<TNum>[pCount];
+        for (var i = 0; i < pCount; i++)
+        {
+            var curLocal = local[i];
+            world[i] = origin + curLocal.X * u + curLocal.Y * v;
+        }
+
+        return world;
+    }
+    public Vector3<TNum>[] ProjectIntoWorld(ReadOnlySpan<Vector2<TNum>> local)
+    {
+        var (u, v) = Basis;
+        var origin = Origin;
+        var pCount = local.Length;
         var world = new Vector3<TNum>[pCount];
         for (var i = 0; i < pCount; i++)
         {
@@ -413,4 +441,5 @@ public readonly struct Plane3<TNum>
         var localEnd = new Vector2<TNum>(lineEnd.Dot(u), lineEnd.Dot(v));
         return new Line<Vector2<TNum>, TNum>(localStart, localEnd);
     }
+
 }

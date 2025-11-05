@@ -1,9 +1,10 @@
 using System.Numerics;
+using System.Runtime.InteropServices;
 using MeshWiz.Utility;
-using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
+[StructLayout(LayoutKind.Sequential)]
 public readonly struct Circle2<TNum> : ISurface<Vector2<TNum>, TNum>,IContiguousDiscreteCurve<Vector2<TNum>,TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {

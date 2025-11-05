@@ -1,11 +1,14 @@
+using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
-public readonly struct ConeSection<TNum> : IBody<TNum>, IRotationalSurface<TNum> // ,IGeodesicProvider<ConicalHelicoid<TNum>, TNum>
+public readonly struct
+    ConeSection<TNum> : IBody<TNum>, IRotationalSurface<TNum> // ,IGeodesicProvider<ConicalHelicoid<TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly Line<Vector3<TNum>, TNum> Axis;
@@ -14,7 +17,16 @@ public readonly struct ConeSection<TNum> : IBody<TNum>, IRotationalSurface<TNum>
     public Circle3<TNum> Base => new(Axis.Start, Axis.Direction, BaseRadius);
     public Circle3<TNum> Top => new(Axis.End, Axis.Direction, TopRadius);
 
-    public bool IsComplex => TNum.Sign(BaseRadius) != TNum.Sign(TopRadius);
+    public bool IsComplex
+    {
+        get
+        {
+            var baseSign = BaseRadius.EpsilonTruncatingSign();
+            var topSign = TopRadius.EpsilonTruncatingSign();
+            return baseSign != topSign && baseSign != 0 && topSign != 0;
+        }
+    }
+
     public bool IsSimple => TNum.Sign(BaseRadius) == TNum.Sign(TopRadius);
     public bool IsCylinder => BaseRadius == TopRadius;
 
@@ -188,10 +200,10 @@ public readonly struct ConeSection<TNum> : IBody<TNum>, IRotationalSurface<TNum>
     /// <inheritdoc />
     public Vector3<TNum> NormalAt(Vector3<TNum> p)
     {
-        p=ClampToSurface(p);
-        return this.TryGetComplete(out var cone) 
-            ? cone.NormalAt(p) 
-            : new Cylinder<TNum>(Axis,BaseRadius).NormalAt(p);
+        p = ClampToSurface(p);
+        return this.TryGetComplete(out var cone)
+            ? cone.NormalAt(p)
+            : new Cylinder<TNum>(Axis, BaseRadius).NormalAt(p);
     }
     //
     // /// <inheritdoc />
@@ -205,21 +217,64 @@ public readonly struct ConeSection<TNum> : IBody<TNum>, IRotationalSurface<TNum>
     // {
     //     return ConicalHelicoid<TNum>.FromEntry(in this, entryPoint, direction);
     // }
-
+    [Pure]
     public Vector3<TNum> ClampToSurface(Vector3<TNum> p)
     {
         var (closest, onseg) = Axis.ClosestPoints(p);
-        p += onseg - closest;
+        var vShift = onseg - closest;
+        p += vShift;
         var pos = onseg.DistanceTo(Axis.Start) / Axis.Length;
         var radius = TNum.Abs(RadiusAt(pos));
         return Vector3<TNum>.ExactLerp(onseg, p, radius);
     }
-
+    
+    
+    [Pure]
     public TNum RadiusAt(TNum pos) => TNum.Lerp(BaseRadius, TopRadius, pos);
-}
 
-public readonly struct ConicalHelicoid<TNum> 
-    where TNum : unmanaged, IFloatingPointIeee754<TNum>
-{
-   
+    /// <inheritdoc />
+    public IContiguousCurve<Vector3<TNum>, TNum> GetGeodesic(Vector3<TNum> p1, Vector3<TNum> p2)
+    {
+        ValidateForGeodesics();
+        if (IsCylinder) return new Cylinder<TNum>(Axis, TNum.Abs(BaseRadius)).GetGeodesic(p1, p2);
+        return ConeGeodesic<TNum>.BetweenPoints(
+            MakeUpright(in this).TryGetComplete(out var surface)
+                ? surface
+                : ThrowHelper.ThrowInvalidOperationException<Cone<TNum>>(),
+            ClampToSurface(p1), ClampToSurface(p2));
+    }
+
+    private void ValidateForGeodesics()
+    {
+        if (!CanGeodesic)
+            ThrowHelper.ThrowInvalidOperationException("Geodesics are only possible on non complex ConeSections");
+    }
+
+    private bool CanGeodesic => !IsComplex;
+
+    /// <inheritdoc />
+    public IContiguousCurve<Vector3<TNum>, TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint, Vector3<TNum> direction)
+    {
+        ValidateForGeodesics();
+        if (IsCylinder)
+            return new Cylinder<TNum>(Axis, TNum.Abs(BaseRadius)).GetGeodesicFromEntry(entryPoint, direction);
+        return ConeGeodesic<TNum>.FromDirection(surface: MakeUpright(this), entryPoint, direction);
+    }
+
+    public static ConeSection<TNum> MakeUpright(in ConeSection<TNum> surf)
+    {
+        if (surf.IsComplex)
+            ThrowHelper.ThrowInvalidOperationException();
+        var sign = surf.BaseRadius.EpsilonTruncatingSign();
+        if (sign == 0) sign = surf.TopRadius.EpsilonTruncatingSign();
+        var absBase = TNum.Abs(surf.BaseRadius);
+        var absTop = TNum.Abs(surf.TopRadius);
+        var reverse = sign == -1;
+        reverse ^= absBase < absTop;
+        if (!reverse && sign == 1) return surf;
+        if(!reverse)
+            return new(surf.Axis,absBase,absTop);
+        var axis =surf.Axis.Reversed();
+        return new ConeSection<TNum>(axis, absTop,absBase);
+    }
 }

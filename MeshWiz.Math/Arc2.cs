@@ -1,15 +1,20 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
+[StructLayout(LayoutKind.Sequential)]
 public readonly struct Arc2<TNum> : IContiguousDiscreteCurve<Vector2<TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly Vector2<TNum> CircumCenter;
     public readonly TNum Radius, StartAngle, EndAngle;
+    public bool IsCircle => AngleRangeSize.IsApprox(Numbers<TNum>.TwoPi);
+    public bool IsAtLeastFullCircle => AngleRangeSize.IsApproxGreaterOrEqual(Numbers<TNum>.TwoPi);
 
     public Arc2(Circle2<TNum> c, TNum startAngle, TNum endAngle)
     {
@@ -27,10 +32,18 @@ public readonly struct Arc2<TNum> : IContiguousDiscreteCurve<Vector2<TNum>, TNum
         EndAngle = endAngle;
     }
 
-    public Circle2<TNum> Underlying => new(CircumCenter, Radius);
+    public Circle2<TNum> Underlying
+    {
+        get
+        {
+            var copy = this;
+            return Unsafe.As<Arc2<TNum>, Circle2<TNum>>(ref copy);
+        }
+    }
+
     public TNum AngleRangeSize => TNum.Abs(EndAngle - StartAngle);
     public TNum SignedAngleRange => EndAngle - StartAngle;
-    public AABB<TNum> AngleRange => AABB.From(StartAngle, EndAngle);
+    public AABB<TNum> AngleBoundary => AABB.From(StartAngle, EndAngle);
 
     public TNum WindingDirection => (EndAngle - StartAngle).EpsilonTruncatingSign() switch
     {
@@ -78,10 +91,10 @@ public readonly struct Arc2<TNum> : IContiguousDiscreteCurve<Vector2<TNum>, TNum
     public Polyline<Vector2<TNum>, TNum> ToPolyline(PolylineTessellationParameter<TNum> tessellationParameter)
     {
         var (count, countNum, stepSize) = tessellationParameter.GetStepsForAngle(SignedAngleRange);
-        var verts=new Vector2<TNum>[count+1];
-        var step = TNum.One/countNum;
+        var verts = new Vector2<TNum>[count + 1];
+        var step = TNum.One / countNum;
         var pos = TNum.Zero;
-        
+
         for (var i = 0; i < verts.Length; i++)
         {
             verts[i] = Traverse(step);

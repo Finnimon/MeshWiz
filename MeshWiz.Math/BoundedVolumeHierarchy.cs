@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Numerics;
+using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
@@ -24,11 +25,11 @@ public sealed class BoundedVolumeHierarchy<TNum>
         Count = 0;
     }
 
-    
+
     public int Add(BoundedVolume<TNum> node)
     {
-        if (Count >= _nodes.Length) 
-            Array.Resize(ref _nodes, 2*_nodes.Length);
+        if (Count >= _nodes.Length)
+            Array.Resize(ref _nodes, 2 * _nodes.Length);
         var idx = Count++;
         _nodes[idx] = node;
         return idx;
@@ -40,26 +41,24 @@ public sealed class BoundedVolumeHierarchy<TNum>
     {
         get
         {
-            if (index.InsideInclusiveRange(0, Count - 1)) return ref _nodes[index];
-            throw new IndexOutOfRangeException();
+            if (Count <= (uint)index)
+                IndexThrowHelper.Throw();
+            return ref _nodes[index];
         }
     }
-    
-    public BoundedVolume<TNum>[] GetUnsafeAccess()=>_nodes;
-    
-    internal ref BoundedVolume<TNum> GetWritable(int index)=>ref _nodes[index];
-    
-    private ref BoundedVolume<TNum> ThrowIndexOutOfRange()
-    =>throw new IndexOutOfRangeException();
+
+    public BoundedVolume<TNum>[] GetUnsafeAccess() => _nodes;
+
+    internal ref BoundedVolume<TNum> GetWritable(int index) => ref _nodes[index];
 
     public IEnumerator<BoundedVolume<TNum>> GetEnumerator()
     {
-        for(var i=0;i<Count;i++) yield return _nodes[i]; 
+        for (var i = 0; i < Count; i++) yield return _nodes[i];
     }
 
-    IEnumerator IEnumerable.GetEnumerator() 
+    IEnumerator IEnumerable.GetEnumerator()
         => GetEnumerator();
-    
+
     public void Trim()
     {
         if (_nodes.Length == Count) return;

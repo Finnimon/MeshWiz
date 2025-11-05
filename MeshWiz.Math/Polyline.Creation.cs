@@ -209,12 +209,12 @@ public static partial class Polyline
                 var connectedEnd = connected[^1];
                 if (connectedStart.IsApprox(segment.End, epsilon))
                 {
-                    connected.PushFront(segment.Points.AsSpan(..^1));
+                    connected.PushFront(segment.Points[..^1]);
                     checkedSinceLastAdd = 0;
                 }
                 else if (connectedEnd.IsApprox(segment.Start, epsilon))
                 {
-                    connected.PushBack(segment.Points.AsSpan(1));
+                    connected.PushBack(segment.Points[1..]);
                     checkedSinceLastAdd = 0;
                 }
                 else
@@ -285,7 +285,7 @@ public static partial class Polyline
                     }
 
                     nextIndex = currentNextIndex;
-                    connected.PushBack(currentSeg.Points.AsSpan(1));
+                    connected.PushBack(currentSeg.Points[1]);
                     break;
                 }
 

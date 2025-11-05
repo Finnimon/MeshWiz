@@ -1,5 +1,6 @@
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using CommunityToolkit.Diagnostics;
 using MeshWiz.Contracts;
 
 namespace MeshWiz.Math;
@@ -21,36 +22,47 @@ public interface IFloatingVector<TSelf, TNum>
     public Line<TSelf, TNum> LineTo(TSelf end);
     /// <inheritdoc />
     int IFloatingPoint<TSelf>.GetExponentByteCount()
-        => throw new NotSupportedException();
+        => ThrowHelper.ThrowNotSupportedException<int>();
 
     /// <inheritdoc />
     int IFloatingPoint<TSelf>.GetExponentShortestBitLength()
-        => throw new NotSupportedException();
+        => ThrowHelper.ThrowNotSupportedException<int>();
 
     /// <inheritdoc />
     int IFloatingPoint<TSelf>.GetSignificandBitLength()
-        => throw new NotSupportedException();
+        => ThrowHelper.ThrowNotSupportedException<int>();
 
     /// <inheritdoc />
     int IFloatingPoint<TSelf>.GetSignificandByteCount()
-        => throw new NotSupportedException();
+        => ThrowHelper.ThrowNotSupportedException<int>();
 
     
     /// <inheritdoc />
     bool IFloatingPoint<TSelf>.TryWriteExponentBigEndian(Span<byte> destination, out int bytesWritten)
-        => throw new NotSupportedException();
+    {
+        bytesWritten = 0;
+        return ThrowHelper.ThrowNotSupportedException<bool>();
+    }
 
 
     /// <inheritdoc />
     bool IFloatingPoint<TSelf>.TryWriteExponentLittleEndian(Span<byte> destination, out int bytesWritten)
-        => throw new NotSupportedException();
+    {
+        bytesWritten = 0;
+        return ThrowHelper.ThrowNotSupportedException<bool>();
+    }
 
     /// <inheritdoc />
     bool IFloatingPoint<TSelf>.TryWriteSignificandBigEndian(Span<byte> destination, out int bytesWritten)
-        => throw new NotSupportedException();
+    {
+        bytesWritten = 0;
+        return ThrowHelper.ThrowNotSupportedException<bool>();
+    }
 
     /// <inheritdoc />
     bool IFloatingPoint<TSelf>.TryWriteSignificandLittleEndian(Span<byte> destination, out int bytesWritten)
-        => throw new NotSupportedException();
-
+    {
+        bytesWritten = 0;
+        return ThrowHelper.ThrowNotSupportedException<bool>();
+    }
 }

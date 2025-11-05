@@ -6,7 +6,6 @@ using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
@@ -50,6 +49,10 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
     public static Vector2<TNum> PositiveInfinity { get; } = new(TNum.PositiveInfinity);
 
     public Vector2<TNum> YX => new(Y, X);
+
+    public Vector2(TNum radius, Angle<TNum> angle) : this(radius, angle.Radians) { }
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector2<TNum> CreatePolar(TNum radius, Angle<TNum> angle) => new(radius, angle);
 
     /// <inheritdoc />
     public static Vector2<TNum> operator /(TNum l, Vector2<TNum> r)
@@ -103,7 +106,8 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
     public static Vector2<TNum> FromValue<TOtherNum>(TOtherNum other) where TOtherNum : INumberBase<TOtherNum>
         => new(TNum.CreateTruncating(other));
 
-    private Vector2(TNum s) : this(s, s) { }
+    public Vector2(TNum s) : this(s, s) { }
+
 
     [Pure] public static uint Dimensions => 2;
     [Pure] public TNum Length => TNum.Sqrt(SquaredLength);
@@ -195,14 +199,17 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsParallelTo(Vector2<TNum> other, TNum tolerance)
-        => TNum.Abs(Cross(other)) < tolerance;
+    {
+        var dot = Normalized.Dot(other.Normalized);
+        return TNum.Abs(TNum.Abs(dot) - TNum.One) < tolerance;
+    }
 
     public static Vector2<TNum> ExactLerp(Vector2<TNum> from, Vector2<TNum> toward, TNum exactDistance)
         => (toward - from).Normalized * exactDistance + from;
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsParallelTo(Vector2<TNum> other)
-        => IsParallelTo(other, TNum.Epsilon);
+        => IsParallelTo(other, Numbers<TNum>.ZeroEpsilon);
 
     #endregion
 
@@ -354,7 +361,7 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
 
     /// <inheritdoc />
     public static bool IsInteger(Vector2<TNum> value)
-        => TNum.IsInteger(value.Sum);
+        => TNum.IsInteger(value.X)&&TNum.IsInteger(value.Y);
 
     /// <inheritdoc />
     public static Vector2<TNum> AdditiveIdentity => Zero;
@@ -762,8 +769,10 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
         => ArrayParser.TryFormat(AsSpan(), destination, out charsWritten, format, provider);
 
 
+    [Pure]
     public TNum AngleTo(Vector2<TNum> other) => AngleBetween(this, other);
 
+    [Pure]
     public static TNum SignedAngleBetween(Vector2<TNum> a, Vector2<TNum> b)
     {
         a = a.Normalized;
@@ -779,10 +788,11 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
         return new Vector2<TNum>(Length, angle);
     }
 
+    [Pure]
     public Vector2<TNum> PolarToCartesian()
     {
-        var angle = Y;
-        var length = X;
+        var angle = PolarAngle;
+        var length = PolarRadius;
         var (sin, cos) = TNum.SinCos(angle);
         return new Vector2<TNum>(cos * length, sin * length);
     }
@@ -790,6 +800,7 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
     public TNum PolarAngle => Y;
     public TNum PolarRadius => X;
 
+    [Pure]
     public static TNum AngleBetween(Vector2<TNum> a, Vector2<TNum> b)
     {
         a = a.Normalized;
@@ -797,4 +808,44 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
         var dot = a.Dot(b);
         return TNum.Acos(dot);
     }
+
+    [Pure]
+    public Vector2<TNum> PolarReversed()
+        => new(PolarRadius, (PolarAngle + TNum.Pi).Wrap(-TNum.Pi, TNum.Pi));
+
+    [Pure]
+    public static TNum PolarDistance(Vector2<TNum> polarStart, Vector2<TNum> polarEnd) =>
+        polarStart.PolarToCartesian().DistanceTo(polarEnd.PolarToCartesian());
+
+    [Pure]
+    public static Vector2<TNum> PolarLerp(Vector2<TNum>a, Vector2<TNum>b, TNum t)
+    {
+        // Convert polar -> cartesian
+        var aCart = a.PolarToCartesian();
+        var bCart = b.PolarToCartesian();
+
+        // Cartesian lerp (straight line, supports t outside [0,1])
+        var l=Lerp(aCart,bCart,t);
+        var lPolar = l.CartesianToPolar();
+        var r = lPolar.PolarRadius;
+
+        var thetaAtan = lPolar.PolarAngle;
+
+        var delta = b.PolarAngle - a.PolarAngle;
+        while (delta <= -TNum.Pi) delta += Numbers<TNum>.TwoPi;
+        while (delta > TNum.Pi) delta -= Numbers<TNum>.TwoPi;
+
+        var thetaDesired = a.PolarAngle + delta * t;
+
+        // find integer k such that thetaAtan + k*2PI is closest to thetaDesired
+        var twoPi = Numbers<TNum>.TwoPi;
+        var kReal = (thetaDesired - thetaAtan) / twoPi;
+        var k = TNum.Round(kReal);
+
+        var thetaFinal = thetaAtan + k * twoPi;
+
+        return new(r, thetaFinal);
+    }
+
+
 }

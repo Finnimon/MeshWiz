@@ -12,6 +12,50 @@ public static partial class Surface
             where TRot : IRotationalSurface<TNum>
             => Tessellate(surface.SweepCurve.ToPolyline(), surface.SweepAxis, ribCount);
 
+        public static IndexedMesh<TNum> Tessellate<TNum>(Vector2<TNum>[] sweepCurve, Ray3<TNum> axis,
+            int ribCount, bool parallel = false)
+            where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(ribCount, 3);
+
+
+            var spines = new Vector3<TNum>[ribCount][];
+
+            var angleStep = Numbers<TNum>.TwoPi / TNum.CreateTruncating(ribCount);
+            
+            var plane = new Plane3<TNum>(axis.Direction, axis.Origin);
+            var u = plane.Basis.U;
+            if (!parallel)
+                for (var rib = 0; rib < ribCount; rib++)
+                    TessellateRib(sweepCurve, rib, axis, angleStep, spines, u);
+            else
+                Parallel.For(0, ribCount,rib=> TessellateRib(sweepCurve, rib, axis, angleStep, spines, u));
+            return Mesh.Create.LoftRibsClosed(spines);
+        }
+
+        private static void TessellateRib<TNum>(ReadOnlySpan<Vector2<TNum>> sourcePoints, int rib,
+            Ray3<TNum> axis, TNum angleStep,
+            Vector3<TNum>[][] spines,Vector3<TNum> basisU )
+            where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        {
+            
+            var ribFactor = TNum.CreateTruncating(rib);
+            var rot = Matrix4x4<TNum>.CreateRotation(axis.Direction, angleStep * ribFactor);
+            basisU = rot.MultiplyDirection(basisU);
+            var newPoints = new Vector3<TNum>[sourcePoints.Length];
+            spines[rib] = newPoints;
+            for (var i = 0; i < sourcePoints.Length; i++)
+            {
+                var p = sourcePoints[i];
+                var radius = p.Y;
+                var t = p.X;
+                var basePt = axis.Traverse(t);
+                var radialShift = basisU * radius;
+                newPoints[i] = basePt+radialShift;
+            }
+        }
+
+
         public static IndexedMesh<TNum> Tessellate<TNum>(
             Polyline<Vector3<TNum>, TNum> sweepCurve, Ray3<TNum> axis, int ribCount, bool parallel = false)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
@@ -26,7 +70,7 @@ public static partial class Surface
             var origin = axis.Origin;
             var direction = axis.Direction;
             
-            spines[0] = sweepCurve.Points[..];
+            spines[0] = sweepCurve.Points.ToArray();
             if (!parallel)
                 for (var rib = 1; rib < ribCount; rib++)
                     TessellateRib(sweepCurve, rib, direction, angleStep, spines, pointCount, origin);
@@ -41,7 +85,8 @@ public static partial class Surface
         {
             var ribFactor = TNum.CreateTruncating(rib);
             var rot = Matrix4x4<TNum>.CreateRotation(direction, angleStep * ribFactor);
-            var newPoints = sweepCurve.Points[..];
+            
+            var newPoints = sweepCurve.Points.ToArray();
             spines[rib] = newPoints;
             for (var i = 0; i < pointCount; i++)
                 newPoints[i] = rot.MultiplyDirection(newPoints[i] - origin) + origin;

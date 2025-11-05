@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -118,6 +119,7 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
         return Start + alongVector;
     }
 
+    [Pure]
     public (TVector closest, TVector onSeg) ClosestPoints(TVector p)
     {
         var v = p - Start;
@@ -131,6 +133,7 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
         return (closest, onSeg);
     }
 
+    [Pure]
     public (TNum closest, TNum onSeg) GetClosestPositions(TVector p)
     {
         var v = p - Start;
@@ -142,8 +145,9 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
         return (closest, onSeg);
     }
 
+    [Pure]
     public Line<TVector, TNum> Section(TNum start, TNum end)
-        => Traverse(start).LineTo(Traverse(end));
+        => new(Traverse(start),Traverse(end));
 
     public Polyline<TVector, TNum> ToPolyline() => new(Start, End);
     public Polyline<TVector, TNum> ToPolyline(PolylineTessellationParameter<TNum> _) => new(Start, End);
@@ -247,6 +251,5 @@ public static class Line
         return TNum.Clamp(t, TNum.Zero, TNum.One) == t
                && TNum.Clamp(t2, TNum.Zero, TNum.One) == t2;
     }
-
 
 }

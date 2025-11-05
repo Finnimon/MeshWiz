@@ -1,7 +1,6 @@
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using MeshWiz.Utility;
-using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 

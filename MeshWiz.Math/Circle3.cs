@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Numerics;
 using MeshWiz.Utility;
 
@@ -179,5 +178,17 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
         var len = cToP.Length;
         var adjust = Radius / len;
         return adjust * cToP + Centroid;
+    }
+
+    /// <inheritdoc />
+    public IContiguousCurve<Vector3<TNum>, TNum> GetGeodesic(Vector3<TNum> p1, Vector3<TNum> p2)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <inheritdoc />
+    public IContiguousCurve<Vector3<TNum>, TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint, Vector3<TNum> direction)
+    {
+        throw new NotImplementedException();
     }
 }

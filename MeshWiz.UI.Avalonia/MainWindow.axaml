@@ -48,7 +48,7 @@
                                 <gl:ColorChangingBackground/>
                         </ava-abst:GLWrapper>
                         <ava-abst:GLWrapper x:Name="MeshViewWrap" x:TypeArguments="gl:HarshMeshView">
-                                <gl:HarshMeshView RenderModeFlags="Solid"/>
+                                <gl:HarshMeshView RenderModeFlags="Solid" SolidShininessStrength="10" SolidSpecularStrength="0.25"/>
                         </ava-abst:GLWrapper>
                         <ava-abst:GLWrapper x:Name="BBoxWrap" x:TypeArguments="gl:BBoxView">
                                 <gl:BBoxView/>

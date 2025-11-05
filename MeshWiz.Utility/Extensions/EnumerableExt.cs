@@ -33,6 +33,6 @@ public static class EnumerableExt
     
     [Pure]
     public static TAdd Sum<TSource, TAdd>(this IEnumerable<TSource> enumerable, Func<TSource, TAdd> selector)
-        where TAdd : struct, IAdditionOperators<TAdd, TAdd, TAdd>
+        where TAdd : unmanaged, IAdditionOperators<TAdd, TAdd, TAdd>
         => enumerable.Aggregate(default(TAdd), (accum, item) => accum + selector(item));
 }

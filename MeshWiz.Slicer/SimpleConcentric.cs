@@ -164,14 +164,14 @@ public class SimpleConcentric
 
         var perimeterOptions = TcpOptions.Perimeter | TcpOptions.Additive;
         var perimeterTcp = perimeter.Select(plane.ProjectIntoWorld)
-            .Select(perimeterline => perimeterline.Points)
+            .Select(perimeterline => perimeterline.Points.ToArray())
             .Select(pts => 
                 pts.Select(pt => new ToolCenterPoint<TNum>(pt, plane.Normal, perimeterOptions))
                     .ToArray())
             .ToArray();
         var infillOptions = TcpOptions.Infill | TcpOptions.Additive;
         var infillTcp = perimeter.Select(plane.ProjectIntoWorld)
-            .Select(perimeterline => perimeterline.Points)
+            .Select(perimeterline => perimeterline.Points.ToArray())
             .Select(pts => 
                 pts.Select(pt => new ToolCenterPoint<TNum>(pt, plane.Normal, infillOptions))
                     .ToArray())

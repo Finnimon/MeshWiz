@@ -30,17 +30,44 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
     public IRotationalSurface<TNum> this[int index]
         => GetChildSurface(index);
 
+    // public IRotationalSurface<TNum> GetChildSurface(int index)
+    // {
+    //     if (Count <= (uint)index) IndexThrowHelper.Throw(index, Count);
+    //     var start = Positions[index];
+    //     var end = Positions[index + 1];
+    //     if (start.Y.IsApprox(end.Y))
+    //         return new Cylinder<TNum>(Axis.LineSection(start.X, end.X), start.Y);
+    //     var isNotCircle = start.X != end.X;
+    //     if (isNotCircle)
+    //     {
+    //         (start, end) = start.Y > end.Y && start.X < end.X ? (start, end) : (end, start);
+    //         return new ConeSection<TNum>(Axis.LineSection(start.X, end.X), start.Y, end.Y);
+    //     }
+    //     else return new Circle3Section<TNum>(Axis.Traverse(start.X), Axis.Direction, start.Y, end.Y);
+    // }
+
+
     public IRotationalSurface<TNum> GetChildSurface(int index)
     {
         if (Count <= (uint)index) IndexThrowHelper.Throw(index, Count);
         var start = Positions[index];
         var end = Positions[index + 1];
-        var isNotCircle = start.X != end.X;
-        return isNotCircle
-            ? new ConeSection<TNum>(Axis.LineSection(start.X, end.X), start.Y, end.Y)
-            : new Circle3Section<TNum>(Axis.Traverse(start.X), Axis.Direction, start.Y, end.Y);
-    }
+        var isCircle = start.X.IsApprox(end.X);
+        if (isCircle)
+            return new Circle3Section<TNum>(Axis.Traverse(start.X), Axis.Direction, start.Y, end.Y);
+        var isCylinder = start.Y.IsApprox(end.Y);
+        var axisSection = Axis.LineSection(start.X, end.X);
+        if (isCylinder)
+            return new Cylinder<TNum>(axisSection, TNum.Abs(start.Y));
+        var isFullCone = start.Y.IsApproxZero() || end.Y.IsApproxZero();
+        if (isFullCone)
+        {
+            var radius = start.Y.IsApproxZero() ? end.Y : start.Y;
+            return new Cone<TNum>(axisSection, radius);
+        }
 
+        return new ConeSection<TNum>(axisSection, start.Y, end.Y);
+    }
 
     /// <inheritdoc />
     public IEnumerator<IRotationalSurface<TNum>> GetEnumerator()
@@ -64,7 +91,7 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
         => Tessellate(32);
 
     public IndexedMesh<TNum> Tessellate(int tessellationCount)
-        => Surface.Rotational.Tessellate<JaggedRotationalSurface<TNum>, TNum>(this, tessellationCount, true);
+        => Surface.Rotational.Tessellate(Positions, Axis ,tessellationCount);
 
     /// <inheritdoc />
     [field: AllowNull, MaybeNull]
@@ -161,7 +188,7 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
         var (closestPos, onSegPos) = AxisLine.GetClosestPositions(p);
         var height = Height;
         closestPos *= height;
-        onSegPos *= height;
+        // onSegPos *= height;
         var minDist = TNum.PositiveInfinity;
         for (var i = 0; i < Positions.Length - 1; i++)
         {
@@ -183,4 +210,79 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
 
     private Line<Vector3<TNum>, TNum>? _axisLine;
     public Line<Vector3<TNum>, TNum> AxisLine => _axisLine ??= this.SweepAxis.Origin.LineTo(SweepAxis.Traverse(Height));
+
+    public Polyline<Vector3<TNum>, TNum> TraceGeodesics(Vector3<TNum> p, Vector3<TNum> dir, int cycleCount = 100)
+    {
+        var found = TryClosestFindSurface(p, out var surfaceIndex);
+        if (!found) return Polyline<Vector3<TNum>, TNum>.Empty;
+        var previousDir = dir;
+        var previousEnd = p;
+        List<Task<Polyline<Vector3<TNum>, TNum>>> polylines = [];
+        var cycle = -1;
+        var cylinder = surfaceIndex;
+        var cyl = this[surfaceIndex];
+        while (++cycle < cycleCount)
+        {
+            Console.WriteLine(cycle);
+            var surface = this[surfaceIndex];
+            IContiguousCurve<Vector3<TNum>, TNum>? activeGeodesic;
+            if (cycle == 65)
+            {
+                Console.WriteLine("about to fail");
+            }
+
+            activeGeodesic = Function.TryInvoke(surface.GetGeodesicFromEntry, previousEnd, previousDir);
+            if (activeGeodesic is not IContiguousDiscreteCurve<Vector3<TNum>, TNum> current)
+            {
+                Console.WriteLine($"Failure at {surfaceIndex}");
+                break;
+            }
+
+            polylines.Add(Task.Run(() => current.ToPolyline()));
+
+            previousDir = current.ExitDirection;
+            previousEnd = current.End;
+
+            var minusOneDistance = TNum.PositiveInfinity;
+
+            if (surfaceIndex != 0)
+                minusOneDistance = this[surfaceIndex - 1].ClampToSurface(previousEnd).DistanceTo(previousEnd);
+
+            var plusOneDistance = TNum.PositiveInfinity;
+            if (surfaceIndex != this.Count - 1)
+                plusOneDistance = this[surfaceIndex + 1].ClampToSurface(previousEnd).DistanceTo(previousEnd);
+
+            var (bestDist, bestIndex) = minusOneDistance < plusOneDistance
+                ? (minusOneDistance, surfaceIndex - 1)
+                : (plusOneDistance, surfaceIndex + 1);
+            var nextSurfNotFound = !Numbers<TNum>.Eps3.IsApproxGreaterOrEqual(bestDist);
+            if (nextSurfNotFound)
+            {
+                Console.WriteLine($"Failure to find next at {surfaceIndex}");
+                break;
+            }
+
+            surfaceIndex = bestIndex;
+        } //todo makeupright fails
+
+        List<Vector3<TNum>> vertices = [];
+        foreach (var polyline in polylines)
+        {
+            var current = polyline.GetAwaiter().GetResult();
+            var curPolyLine = current.ToPolyline();
+
+            var add = vertices.Count == 0 ? curPolyLine.Points : curPolyLine.Points[1..];
+            vertices.AddRange(add);
+        }
+
+        return new Polyline<Vector3<TNum>, TNum>(vertices.ToArray()).CullDeadSegments();
+    }
+
+    /// <inheritdoc />
+    IContiguousCurve<Vector3<TNum>, TNum> IGeodesicProvider<TNum>.GetGeodesic(Vector3<TNum> p1, Vector3<TNum> p2)
+        => ThrowHelper.ThrowNotSupportedException<IContiguousCurve<Vector3<TNum>, TNum>>();
+
+    /// <inheritdoc />
+    public IContiguousCurve<Vector3<TNum>, TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint, Vector3<TNum> direction)
+        => TraceGeodesics(entryPoint, direction, 10000);
 }

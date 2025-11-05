@@ -1,13 +1,15 @@
+using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using MeshWiz.Utility;
+using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct Angle<TNum>
-where TNum:INumberBase<TNum>
+where TNum: unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly TNum Radians;
     public TNum Degrees => Radians * Numbers<TNum>.RadiansToDegree;
@@ -23,4 +25,36 @@ where TNum:INumberBase<TNum>
         const string formattable = "{0}°";
         return string.Format(formattable, Degrees);
     }
+
+    /// <summary>
+    /// Checks if this angle is in <paramref name="boundary"/> considering the equivalence of a+Pi*2==a
+    /// </summary>
+    /// <param name="boundary">boundary to check</param>
+    /// <returns>whether this is contained in the angular <paramref name="boundary"/></returns>
+    [Pure]
+    public bool IsIn(AABB<TNum> boundary)
+    {
+        if (boundary.IsNegativeSpace) return false;
+        var twoPi = Numbers<TNum>.TwoPi;
+        if (boundary.Size.IsApproxGreaterOrEqual(twoPi)) return true;
+        var directCheck= boundary.Contains(this);
+        if (directCheck) return true;
+        TNum angle = this;
+        var diff = boundary.Min - angle;
+        var totalRotationsDiff = diff % twoPi;
+        totalRotationsDiff += diff >= TNum.Zero ? TNum.One : TNum.NegativeOne;
+        angle += totalRotationsDiff * twoPi;
+        return boundary.Contains(angle);
+    }
+}
+
+public readonly record struct Range<TNum>(TNum Start, TNum End)
+where TNum:unmanaged,IFloatingPointIeee754<TNum>
+{
+    public TNum Size=>End - Start;
+    public int Direction => TNum.Sign(Size);
+    public TNum SizeAbs => TNum.Abs(Size);
+    public static implicit operator AABB<TNum>(Range<TNum> r)=>AABB.From(r.Start, r.End);
+    public static implicit operator Range<TNum>(AABB<TNum> box)=>new(box.Min, box.Max);
+    
 }

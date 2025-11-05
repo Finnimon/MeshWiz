@@ -129,7 +129,7 @@ public static partial class Mesh
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             if (along.Count == 0) return IndexedMesh<TNum>.Empty;
-            var sourcePoints = baseFace.IsClosed ? baseFace.Points[1..] : baseFace.Points[..];
+            var sourcePoints = (baseFace.IsClosed ? baseFace.Points[1..] : baseFace.Points[..]).ToArray();
 
             var points = Enumerable.Range(0, sourcePoints.Length).Select(_ => new Vector3<TNum>[along.Points.Length])
                 .ToArray();

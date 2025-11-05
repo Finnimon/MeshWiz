@@ -1,97 +1,40 @@
-using System.Collections;
-
 namespace MeshWiz.Utility.Extensions;
 
 public static class ListExt
 {
-    public static IReadOnlyList<T> SliceChecked<T>(this IReadOnlyList<T> source, int start, int length)
+    public static int BinarySearch<TList, T>(this TList list, Func<T, int> comparer)
+    where TList : IReadOnlyList<T>
     {
-        ValidateSlice(start, length, source.Count);
-        return new ReadOnlyListSliceView<T>(source,start,length);
-    }
-    // public static IReadOnlyList<T> SliceChecked<T>(this IList<T> source, int start, int length)
-    // {
-    //     ValidateSlice(start, length, source.Count);
-    //     return new ListSliceView<T>(source,start,length);
-    // }
-    
-    // public static IReadOnlyList<T> SliceTruncating<T>(this IList<T> source, int start, int length)
-    // {
-    //     if (source.Count==0) return Array.Empty<T>();
-    //     
-    //     start= int.Clamp(start, 0, source.Count-1);
-    //     length=int.Clamp(length,0,source.Count-start);
-    //     return new ListSliceView<T>(source,start,length);
-    // }
-    
-    public static IReadOnlyList<T> SliceTruncating<T>(this IReadOnlyList<T> source, int start, int length)
-    {
-        if (source.Count==0) return Array.Empty<T>();
+        if(list.Count == 0) return -1;
         
-        start= int.Clamp(start, 0, source.Count-1);
-        length=int.Clamp(length,0,source.Count-start);
-        return new ReadOnlyListSliceView<T>(source,start,length);
+        var low = 0;
+        var high = list.Count - 1;
+        while (low<=high)
+        {
+            var mid = (low + high) / 2;
+            var item = list[mid];
+            var score = comparer(item);
+            if (score == 0) return mid;
+            if (score > 0) low = mid;
+            else high = mid-1;
+        }
+        return -1;
     }
     
-
-    private static void ValidateSlice(int start, int sliceLength, int sourceCount)
+    public static int BinarySearch<T>(this ReadOnlySpan<T> list, Func<T, int> comparer)
     {
-        if (sliceLength < 0) 
-            throw new ArgumentOutOfRangeException(
-                nameof(sliceLength), 
-                sliceLength, 
-                $"Slicelength must be >=0");
-        if(start<0||start>=sourceCount) 
-            throw new ArgumentOutOfRangeException(
-                nameof(start),
-                start,
-                $"Slice start must be >=0 and <sourceCount={sourceCount}");
-        var lastValidIndex = start + sliceLength-1;
-        if (lastValidIndex >= sourceCount)
-            throw new ArgumentOutOfRangeException(
-                nameof(sourceCount),
-                sourceCount,
-                $"Source count must be at least {lastValidIndex+1} to support start={start} and slice length={sliceLength}");
-    }
-    private sealed record ListSliceView<T>(IList<T> Source, int Start, int Count) : IReadOnlyList<T>
-    {
-        private int LastIndex => Count - 1;
-        private int LastSourceIndex => Start + Count - 1;
-
-        public IEnumerator<T> GetEnumerator()
+        if(list.Length == 0) return -1;
+        var low = 0;
+        var high = list.Length - 1;
+        while (low<=high)
         {
-            var lastIndex = LastSourceIndex;
-            for (int i = Start; i < LastSourceIndex; i++)
-                yield return Source[i];
+            var mid = (low + high) / 2;
+            var item = list[mid];
+            var score = comparer(item);
+            if (score == 0) return mid;
+            if (score > 0) low = mid;
+            else high = mid-1;
         }
-
-
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-        public T this[int index]
-            => index.InsideInclusiveRange(0, LastIndex)
-                ? Source[index + Start]
-                : throw new IndexOutOfRangeException();
-    }
-    
-    private sealed record ReadOnlyListSliceView<T>(IReadOnlyList<T> Source, int Start, int Count) : IReadOnlyList<T>
-    {
-        private int LastIndex => Count - 1;
-        private int LastSourceIndex => Start + Count - 1;
-
-        public IEnumerator<T> GetEnumerator()
-        {
-            var lastIndex = LastSourceIndex;
-            for (int i = Start; i < LastSourceIndex; i++)
-                yield return Source[i];
-        }
-
-
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-        public T this[int index]
-            => index.InsideInclusiveRange(0, LastIndex)
-                ? Source[index + Start]
-                : throw new IndexOutOfRangeException();
+        return -1;
     }
 }

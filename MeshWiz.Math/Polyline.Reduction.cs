@@ -14,10 +14,9 @@ public static partial class Polyline
             epsilon = TNum.Abs(epsilon);
             if (epsilon < TNum.Epsilon) return polyline;
 
-            var pts = polyline.Points;
-            var ptSpan = pts.AsSpan();
-            if (pts.Length < 3) return polyline;
-            var keep = new bool[pts.Length];
+            var ptSpan = polyline.Points;
+            if (ptSpan.Length < 3) return polyline;
+            var keep = new bool[ptSpan.Length];
             keep[0] = true;
             keep[^1] = true;
             var keepCount = 2;
@@ -25,7 +24,7 @@ public static partial class Polyline
             epsilon*=epsilon; //squared for faster comparisons
             while (jobs.TryPopFront(out var range))
             {
-                var (start, length) = range.GetOffsetAndLength(pts.Length);
+                var (start, length) = range.GetOffsetAndLength(ptSpan.Length);
                 var end = start + length - 1;
                 var l = ptSpan[start].LineTo(ptSpan[end]);
                 var max = TNum.NegativeInfinity;

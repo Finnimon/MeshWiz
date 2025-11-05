@@ -12,24 +12,28 @@ using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
-public sealed record Polyline<TVector, TNum>(params TVector[] Points)
-    : IDiscreteCurve<TVector, TNum>, IReadOnlyList<Line<TVector, TNum>>
+public sealed class Polyline<TVector, TNum>(params TVector[] points)
+    : IContiguousDiscreteCurve<TVector, TNum>, IReadOnlyList<Line<TVector, TNum>>
     where TVector : unmanaged, IFloatingVector<TVector, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember]
     private TVector? _vertexCentroid;
+    
+    private TVector[] _points=points;
+    public ReadOnlySpan<TVector> Points => _points;
+    
 
-    private Polyline() : this(Points: []) { }
-
-    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public TVector Start => Points[0];
-
-    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public TVector End => Points[^1];
+    private Polyline() : this(points: []) { }
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public int Count => int.Max(Points.Length - 1, 0);
+    public TVector Start => _points[0];
+
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
+    public TVector End => _points[^1];
+
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
+    public int Count => int.Max(_points.Length - 1, 0);
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public static Polyline<TVector, TNum> Empty { get; } = [];
@@ -40,17 +44,16 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
     private TNum? _length;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public AABB<TVector> BBox => _bbox ??= AABB<TVector>.From(Points);
+    public AABB<TVector> BBox => _bbox ??= AABB<TVector>.From(_points);
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public unsafe Line<TVector, TNum> this[int index]
     {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
             if (Count <= (uint)index) IndexThrowHelper.Throw(index, Count);
-            fixed (void* ptr = &Points[index])
-                return *(Line<TVector, TNum>*)ptr;
+            return Unsafe.As<TVector,Line<TVector, TNum>>(ref _points[index]);
         }
     }
 
@@ -67,19 +70,19 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
         var count = TNum.CreateTruncating(Count);
         if (IsClosed)
         {
-            for (var i = 0; i < Points.Length - 1; i++) centroid += Points[i];
+            for (var i = 0; i < _points.Length - 1; i++) centroid += _points[i];
             return centroid / count;
         }
 
-        for (var i = 1; i < Points.Length - 1; i++) centroid += Points[i];
+        for (var i = 1; i < _points.Length - 1; i++) centroid += _points[i];
         centroid *= Numbers<TNum>.Two;
-        centroid += Points[0] + Points[^1];
+        centroid += _points[0] + _points[^1];
         return centroid / Numbers<TNum>.Two / count;
     }
 
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public bool IsClosed => Count > 2 && Points[0].IsApprox(Points[^1]);
+    public bool IsClosed => Count > 2 && _points[0].IsApprox(_points[^1]);
 
     /// <inheritdoc />
     public Polyline<TVector, TNum> ToPolyline()
@@ -96,17 +99,17 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
 
     private TNum[] CalculateCumulativeDistances()
     {
-        if (Points.Length == 0)
+        if (_points.Length == 0)
             return [];
-        if (Points.Length == 1)
+        if (_points.Length == 1)
             return [TNum.Zero];
         var previousPos = TNum.Zero;
-        var previous = Points[0];
-        var positions = new TNum[Points.Length];
+        var previous = _points[0];
+        var positions = new TNum[_points.Length];
 
-        for (var i = 1; i < Points.Length - 1; i++)
+        for (var i = 1; i < _points.Length - 1; i++)
         {
-            var current = Points[i];
+            var current = _points[i];
             previousPos = current.DistanceTo(previous) + previousPos;
             previous = current;
             positions[i] = previousPos;
@@ -119,12 +122,12 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
 
     private TNum CalculateLength()
     {
-        if (Points.Length < 2) return TNum.Zero;
+        if (_points.Length < 2) return TNum.Zero;
         var length = TNum.Zero;
-        var previous = Points[0];
-        for (var i = 1; i < Points.Length; i++)
+        var previous = _points[0];
+        for (var i = 1; i < _points.Length; i++)
         {
-            var current = Points[i];
+            var current = _points[i];
             length += previous.DistanceTo(current);
             previous = current;
         }
@@ -152,13 +155,13 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
         if (fromEnd)
         {
             distance = Length - distance;
-            p1 = Points[^1];
-            p2 = Points[^2];
+            p1 = _points[^1];
+            p2 = _points[^2];
         }
         else
         {
-            p1 = Points[0];
-            p2 = Points[^1];
+            p1 = _points[0];
+            p2 = _points[^1];
         }
 
         return TVector.ExactLerp(p1, p2, distance);
@@ -172,15 +175,15 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
 
         // Edge cases
         if (by <= TNum.Zero)
-            return Points[0];
+            return _points[0];
         if (by >= TNum.One)
-            return Points[^1];
+            return _points[^1];
 
         var distance = by * Length;
 
         TryFindContainingSegmentExactly(distance, out var segment, out var remainder);
-        var pStart = Points[segment];
-        var pEnd = Points[segment + 1];
+        var pStart = _points[segment];
+        var pEnd = _points[segment + 1];
         return TVector.ExactLerp(pStart, pEnd, remainder);
     }
 
@@ -214,11 +217,11 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
             }
 
             var exlusivePIndex = endSeg + 2;
-            section = Points[startSeg..exlusivePIndex];
+            section = _points[startSeg..exlusivePIndex];
         }
         else
         {
-            var pSpan = Points.AsSpan();
+            var pSpan = _points.AsSpan();
             var firstChunk = pSpan[startSeg..];
             var secondChunk = pSpan[1..(endSeg + 2)];
             if (startRem.IsApprox(this[startSeg].Length))
@@ -247,8 +250,8 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
 
     private static void TrimEnds(Polyline<TVector, TNum> polyline, TNum atStartExactly, TNum atEndExactly)
     {
-        polyline.Points[0] = TVector.ExactLerp(polyline.Points[0], polyline.Points[1], atStartExactly);
-        polyline.Points[^1] = TVector.ExactLerp(polyline.Points[^2], polyline.Points[^1], atEndExactly);
+        polyline._points[0] = TVector.ExactLerp(polyline._points[0], polyline._points[1], atStartExactly);
+        polyline._points[^1] = TVector.ExactLerp(polyline._points[^2], polyline._points[^1], atEndExactly);
     }
 
 
@@ -280,7 +283,7 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
 
 
         var posBefore = 0;
-        var posAfter = Points.Length - 1;
+        var posAfter = _points.Length - 1;
 
         // binary search for last index where CumulativeDistances[i] <= distance
         while (posAfter - posBefore > 1)
@@ -418,12 +421,12 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
     public Polyline<TVector, TNum> CullDeadSegments(TNum? epsilon = null)
     {
         epsilon ??= TNum.Epsilon;
-        var p = Points[0];
+        var p = _points[0];
         bool[]? toBeCulled = null;
         int cullCount = 0;
-        for (var i = 1; i < Points.Length; i++)
+        for (var i = 1; i < _points.Length; i++)
         {
-            var p2 = Points[i];
+            var p2 = _points[i];
             if (!p.IsApprox(p2, epsilon.Value))
             {
                 p = p2;
@@ -431,17 +434,17 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
             }
 
             cullCount++;
-            toBeCulled ??= new bool[Points.Length];
+            toBeCulled ??= new bool[_points.Length];
             toBeCulled[i] = true;
         }
 
         if (cullCount == 0) return this;
-        var culled = new TVector[Points.Length - cullCount];
+        var culled = new TVector[_points.Length - cullCount];
         var culledPos = -1;
-        for (var i = 0; i < Points.Length; i++)
+        for (var i = 0; i < _points.Length; i++)
         {
             if (toBeCulled![i]) continue;
-            culled[++culledPos] = Points[i];
+            culled[++culledPos] = _points[i];
         }
 
         return new(culled);
@@ -450,7 +453,7 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
     [Pure]
     public Polyline<TVector, TNum> Shift(TVector shift)
     {
-        Polyline<TVector, TNum> pl = new(Points.Select(p => p + shift).ToArray())
+        Polyline<TVector, TNum> pl = new(_points.Select(p => p + shift).ToArray())
         {
             _vertexCentroid = _vertexCentroid is null ? null : VertexCentroid + shift,
             _length = TVector.IsFinite(shift) ? _length : null,
@@ -463,5 +466,19 @@ public sealed record Polyline<TVector, TNum>(params TVector[] Points)
     public Polyline<TOtherVec, TOtherNum> To<TOtherVec, TOtherNum>()
         where TOtherVec : unmanaged, IFloatingVector<TOtherVec, TOtherNum>
         where TOtherNum : unmanaged, IFloatingPointIeee754<TOtherNum> =>
-        new(Points.Select(TOtherVec.FromComponentsConstrained<TVector, TNum>).ToArray());
+        new(_points.Select(TOtherVec.FromComponentsConstrained<TVector, TNum>).ToArray());
+
+    /// <inheritdoc />
+    public TVector GetTangent(TNum at)
+    {
+        var pos = at * Length;
+        var found=TryFindContainingSegmentExactly(pos, out var seg, out _);
+        return !found ? TVector.NaN : this[seg].NormalDirection;
+    }
+
+    /// <inheritdoc />
+    public TVector EntryDirection => this[0].NormalDirection;
+
+    /// <inheritdoc />
+    public TVector ExitDirection =>this[^1].NormalDirection;
 }

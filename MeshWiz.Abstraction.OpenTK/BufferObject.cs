@@ -27,4 +27,11 @@ public sealed record BufferObject(int Handle, BufferTarget Target)
         GL.BufferData(Target, OpenGLHelper.UnsafeByteSize(data), data, usage);
         return this;
     }
+
+    public unsafe BufferObject BufferData<T>(ReadOnlySpan<T> data, BufferUsageHint usage) where T : unmanaged
+    {
+        fixed (void* ptr = data)
+            GL.BufferData(Target, OpenGLHelper.UnsafeByteSize(data),new IntPtr(ptr), usage);
+        return this;
+    }
 }

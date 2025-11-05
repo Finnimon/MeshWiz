@@ -268,7 +268,7 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            if (Dimensions <= (uint)index) IndexThrowHelper.Throw(index,Count);
+            if (Dimensions <= (uint)index) IndexThrowHelper.Throw(index, Count);
             fixed (TNum* ptr = &X)
                 return ptr[index];
         }
@@ -303,12 +303,30 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector3<TNum> Lerp(Vector3<TNum> a, Vector3<TNum> b, TNum t)
-        => b * t + a * (TNum.One - t);
+    {
+        var negT = TNum.One - t;
+        return new(
+            x: b.X * t + a.X * negT,
+            y: b.Y * t + a.Y * negT,
+            z: b.Z * t + a.Z * negT
+        );
+    }
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector3<TNum> Lerp(Vector3<TNum> a, Vector3<TNum> b, Vector3<TNum> t)
+        => new(x: b.X * t.X + a.X * (TNum.One - t.X),
+            y: b.Y * t.Y + a.Y * (TNum.One - t.Y),
+            z: b.Z * t.Z + a.Z * (TNum.One - t.Z)
+        );
 
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector3<TNum> ExactLerp(Vector3<TNum> from, Vector3<TNum> toward, TNum exactDistance)
-        => Lerp(from, toward, exactDistance * from.DistanceTo(toward));
+    {
+        var len = toward.DistanceTo(from);
+        var lerpFactor = exactDistance / len;
+        return Lerp(from, toward, lerpFactor);
+    }
 
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -366,7 +384,7 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
     public bool IsApprox(Vector3<TNum> other, TNum squareTolerance) => SquaredDistanceTo(other) < squareTolerance;
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool IsApprox(Vector3<TNum> other) => SquaredDistanceTo(other) <= TNum.Epsilon;
+    public bool IsApprox(Vector3<TNum> other) => (this - other).IsApproxZero();
 
 
     /// <inheritdoc />
@@ -627,6 +645,7 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
         => value.SquaredLength <= TNum.One;
 
     public bool IsNormalized => this.SquaredLength.IsApprox(TNum.One, Numbers<TNum>.ZeroEpsilon);
+
     /// <inheritdoc />
     public static bool IsOddInteger(Vector3<TNum> value)
         => TNum.IsOddInteger(value.Sum);
@@ -811,34 +830,22 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
         var dot = a.Dot(b);
         return TNum.Acos(dot);
     }
+
     [Pure]
     public static TNum SignedAngleBetween(Vector3<TNum> a, Vector3<TNum> b, Vector3<TNum> about)
     {
-        about = about.Normalized;
-        if (a.IsParallelTo(about)) ThrowHelper.ThrowArgumentException("a parallel to about");
+        var plane = new Plane3<TNum>(about, TNum.Zero);
+        var a2D = plane.ProjectIntoLocal(a).Normalized;
+        var b2D = plane.ProjectIntoLocal(b).Normalized;
 
-        if (b.IsParallelTo(about)) ThrowHelper.ThrowArgumentException("b parallel to about");
-
-        var rp = new Plane3<TNum>(about, TNum.Zero);
-        var a2D = rp.ProjectIntoLocal(a);
-        var b2D = rp.ProjectIntoLocal(b);
         var dp = a2D.Dot(b2D);
-        if (dp.IsApprox(TNum.Zero))
-        {
-            return TNum.Zero;
-        }
-
-        if (dp.IsApprox(TNum.One))
-        {
-            return TNum.Pi;
-        }
-
+        dp = TNum.Clamp(dp, TNum.NegativeOne, TNum.One);
         var angle = TNum.Acos(dp);
-        var cpv = rp.ProjectIntoWorld(a2D).Cross(rp.ProjectIntoWorld(b2D));
-        var sign = cpv.Dot(rp.Normal);
-        var signedAngle = sign * angle;
-        return signedAngle;
+
+        var z = a2D.Cross(b2D);
+        return TNum.CopySign(angle, z);
     }
+
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector3<TNum> FusedMultiplyAdd(Vector3<TNum> a, TNum b, Vector3<TNum> addend)

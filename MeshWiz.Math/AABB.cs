@@ -34,6 +34,11 @@ public readonly struct AABB<TNum>
     public TNum Size => Max - Min;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
+    public bool IsEmpty => Size <= TNum.Zero;
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
+    public bool IsNegativeSpace => Size < TNum.NegativeZero;
+
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public TNum Center => Min + Size / Numbers<TNum>.Two;
 
     private AABB(TNum p) : this(p, p) { }
@@ -274,6 +279,14 @@ public readonly struct AABB<TNum>
         if (!l.Contains(rcl)) return Empty;
         return new AABB<TNum>(l.Clamp(r.Min), rcl);
     }
+
+    public void Deconstruct(out TNum min, out TNum max)
+    {
+        min = Min;
+        max = Max;
+    }
+
+    public static readonly AABB<TNum> Saturate = new(TNum.Zero, TNum.One);
 }
 
 public static class AABB

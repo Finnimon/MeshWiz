@@ -54,6 +54,14 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
         _postTailIndex = Count;
     }
 
+    public RollingList(ReadOnlySpan<T> collection)
+    {
+        _items = collection.ToArray();
+        Count = _items.Length;
+        _headIndex = 0;
+        _postTailIndex = Count;
+    }
+
     public RollingList(T[] source, int startIndex = 0, int count = -1)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(startIndex, 0, nameof(startIndex));

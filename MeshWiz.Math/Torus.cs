@@ -175,4 +175,16 @@ public readonly struct Torus<TNum> : IBody<TNum>, IRotationalSurface<TNum>
 
     public TNum CrossSectionDiameter => MajorRadius - MinorRadius;
     public TNum CrossSectionRadius => (MajorRadius - MinorRadius) * Numbers<TNum>.Half;
+
+    /// <inheritdoc />
+    public IContiguousCurve<Vector3<TNum>, TNum> GetGeodesic(Vector3<TNum> p1, Vector3<TNum> p2)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <inheritdoc />
+    public IContiguousCurve<Vector3<TNum>, TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint, Vector3<TNum> direction)
+    {
+        throw new NotImplementedException();
+    }
 }

@@ -129,7 +129,7 @@ public static partial class Polyline
                 }
 
                 sinceLastAdd = 0;
-                connected.PushBack(polygon.ExactSection(range.start, range.end).Points.AsSpan(1));
+                connected.PushBack(polygon.ExactSection(range.start, range.end).Points[1..]);
             }
             
             if (connected is { Count: > 1 }) simplified.Add(new Polyline<Vector2<TNum>, TNum>(connected.ToArray()));

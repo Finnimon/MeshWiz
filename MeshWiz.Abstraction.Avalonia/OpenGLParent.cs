@@ -41,10 +41,10 @@ public sealed class OpenGLParent : OpenGlControlBase, IDisposable
     {
         _context = new AvaloniaGLContext(gl);
         GL.LoadBindings(_context);
-        Console.WriteLine("GL Version: " + GL.GetString(StringName.Version));
-        Console.WriteLine("GLSL Version: " + GL.GetString(StringName.ShadingLanguageVersion));
-        Console.WriteLine("GL Renderer: " + GL.GetString(StringName.Renderer));
-        Console.WriteLine("GL Vendor: " + GL.GetString(StringName.Vendor));
+        // Console.WriteLine("GL Version: " + GL.GetString(StringName.Version));
+        // Console.WriteLine("GLSL Version: " + GL.GetString(StringName.ShadingLanguageVersion));
+        // Console.WriteLine("GL Renderer: " + GL.GetString(StringName.Renderer));
+        // Console.WriteLine("GL Vendor: " + GL.GetString(StringName.Vendor));
     }
 
     private readonly Stopwatch _sw = Stopwatch.StartNew();

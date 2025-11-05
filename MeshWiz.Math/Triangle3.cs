@@ -10,7 +10,7 @@ public readonly struct Triangle3<TNum>:ISurface<Vector3<TNum>, TNum>, IFlat<TNum
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly Vector3<TNum> A,B,C;
-    public Vector3<TNum> Normal => ((B - A)^(C-A)).Normalized;
+    public Vector3<TNum> Normal => ((B - A).Cross(C-A)).Normalized;
     public Plane3<TNum> Plane => new(in this);
     public Triangle3(Vector3<TNum> a,Vector3<TNum> b,Vector3<TNum> c)
     {

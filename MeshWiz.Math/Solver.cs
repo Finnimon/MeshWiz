@@ -30,9 +30,8 @@ public static partial class Solver
                 return true;
             }
             if (a == b) return false;
-            var aDiffT = target-a;
-            var range = TNum.Abs(a - b);
-            result = aDiffT / range;
+            var negA = -a;
+            result = negA/(b+negA);
             return true;
         }
     }

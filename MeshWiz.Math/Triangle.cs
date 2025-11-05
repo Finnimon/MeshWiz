@@ -17,7 +17,7 @@ public readonly struct Triangle<TVector, TNum> : ISurface<TVector, TNum>
         C = c;
     }
 
-    public ICurve<TVector, TNum> Bounds => new Polyline<TVector, TNum>([A, B, C]);
+    public ICurve<TVector, TNum> Bounds => new Polyline<TVector, TNum>([A, B, C,A]);
 
 
     public TVector Centroid => (A + B + C) / TNum.CreateTruncating(3);
@@ -29,7 +29,7 @@ public readonly struct Triangle<TVector, TNum> : ISurface<TVector, TNum>
             var ab = B - A;
             var ac = C - A;
             var abAcDot = ab.Dot(ac);
-            return TNum.Sqrt((ab .Dot(ab)) * (ac.Dot(ac)) - abAcDot * abAcDot) / TNum.CreateTruncating(2);
+            return TNum.Sqrt((ab.Dot(ab)) * (ac.Dot(ac)) - abAcDot * abAcDot) / TNum.CreateTruncating(2);
         }
     }
 }
