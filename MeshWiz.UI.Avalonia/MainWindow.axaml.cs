@@ -38,63 +38,20 @@ public partial class MainWindow : Window
         var arcPoly = arc.ToPolyline(new() { MaxAngularDeviation  = float.Pi*0.01f });
         var arcPolyPoints = arcPoly.Points.ToArray();
         var ray=arc.Start.RayThrough(arc.End);
-        for (var i = arcPoly.Points.Length/2+1; i < arcPoly.Points.Length; i++)
-        {
-            arcPolyPoints[i] += ray.Direction * 2;
-        }
+        for (var i = arcPoly.Points.Length/2+1; i < arcPoly.Points.Length; i++) arcPolyPoints[i] += ray.Direction * 2;
 
         arcPoly = new(arcPolyPoints);
         var surface = JaggedRotationalSurface<float>.FromSweepCurve(arcPoly, ray);
-        // var cylinders=surface.ToArray().OfType<ConeSection<float>>().OrderByDescending(c=>c.Height).ToArray();
-        // var mid = cylinders[0];
-        // var intendedStart = arcPoly.Traverse(0.5f);
-        // Console.WriteLine($"Surf {mid.IsCylinder} {mid.Height}\nDistance:{mid.ClampToSurface(intendedStart).DistanceTo(intendedStart)}");
-        // meshi = surface.Tessellate().Indexed();
-        // var cylinder = new Cylinder<double>((-Vector3<double>.UnitY).LineTo(Vector3<double>.UnitY), 1f);
-        // var helix = Helix<double>.FromOrigin(
-        //     cylinder,
-        //     new(1,-1,0),
-        //     new(0, 1, -6)
-        // );
-        // //
         var sw = Stopwatch.StartNew();
         var jaggedGeodesic = surface.TraceGeodesics(arcPoly.Traverse(0.5f),surface.Axis.Direction*3+Vector3<float>.UnitY);
         Console.WriteLine($"Geodesicjagged {sw.Elapsed}");
-        var cone = new Cone<float>((-Vector3<float>.UnitY).LineTo(Vector3<float>.UnitY), 0.1f);
-        var coneSection=cone.Section(0.0f,0.5f);
-        Vector3<float> p1 = new Vector3<float>(-10, -10, -10);
-        Vector3<float> p2 = new Vector3<float>(-1f, 0f, 0.5f);
-        var start = coneSection.ClampToSurface(p1);
-        var end = coneSection.ClampToSurface(p2);
-        
-        // var coneGeodesic =
-        //     ConeGeodesic<float>.BetweenPoints(in cone,start,end);
-        // var swGeod = Stopwatch.StartNew();
-        // var coneGeodesic = ConeGeodesic<float>.FromDirection(coneSection, start, new(0, 1, 1));
-        // var createTime=swGeod.Elapsed;
-        // swGeod.Restart();
-        // var geodesic = coneGeodesic.ToPolyline();
-        // var polyTime = swGeod.Elapsed;
-        // swGeod.Stop();
-        // Console.WriteLine($"Cone geodesic speed: Create {createTime} Poly {polyTime}");
-        // meshi = ConeSection<double>.TessellateCylindrical(cylinder.Base, cylinder.Top, 128).To<float>();
-        // var geodesic = helix.ToPolyline().To<Vector3<float>,float>();
-        meshi = coneSection.Tessellate().Indexed();
-        // meshi = coneSection.TryGetComplete(out var complete) ? complete.Tessellate(32) : throw new AbandonedMutexException();
-        // geodesic = coneSection.GetGeodesicFromEntry(coneSection.Base.TraverseByAngle(0), new(0, 1, 1)).ToPolyline();
-        LineViewWrapper.Unwrap.Polyline= ((Polyline<Vector3<float>, float>)jaggedGeodesic);
+        LineViewWrapper.Unwrap.Polyline= jaggedGeodesic;
         LineViewWrapper.Unwrap.LineWidth = 2.5f;
         LineViewWrapper.Unwrap.Show = true;
+        sw.Restart();
         meshi = surface.Tessellate(256);
-
-        // Polyline<Vector3<float>, float> baseFace = new Circle3<float>(Vector3<float>.Zero, Vector3<float>.UnitY,0.5f)
-        //     .ToPolyline(new(){MaxAngularDeviation = 0.05f});
-        // Polyline<Vector3<float>, float> along = new(new(0, 0, 0), new(0, 2, 0), new(1, 3, 0));
-        // meshi = Mesh.Create.PipeAlong(baseFace, along);
-        // var baseFace2d = Plane3<float>.ZX.ProjectIntoLocal(baseFace);
-        // meshi=Mesh.Create.PipeAlongAligned(baseFace2d, along);
+        Console.WriteLine($"Tessellate {sw.Elapsed.TotalMilliseconds}ms");
         var mesh = BvhMesh<float>.SurfaceAreaHeuristic(meshi);
-        // mesh=new  IndexedMesh3<float>(new Sphere<float>(Vector3<float>.Zero, 1).TessellatedSurface);
         var distance = mesh.BBox.Min.DistanceTo(mesh.BBox.Max) * 2;
         camera.Distance = 0.5f;
         camera.LookAt = mesh.VertexCentroid;
@@ -104,30 +61,6 @@ public partial class MainWindow : Window
         var minY = mesh.BBox.Min.Y + 0.0001f;
         var maxY = mesh.BBox.Max.Y;
         var range = maxY - minY;
-
-        var layerCount = 64;
-        var levelHeight = range / layerCount;
-        var pathWidth = levelHeight;
-        var epsilon = range / 10000;
-        //
-        // Stopwatch sw = Stopwatch.StartNew();
-        // var concentricPattern = ParallelEnumerable.Range(1, layerCount)
-        //     .Select(i => minY + levelHeight * i + 0.5f * levelHeight)
-        //     .Select(h => new Plane3<float>(Vector3<float>.UnitY, Vector3<float>.UnitY * h))
-        //     .Select(plane => (intersected: mesh.IntersectRolling(plane), plane))
-        //     .SelectMany(tuple => tuple.intersected.Select(polyline => (polyline, tuple.plane)))
-        //     // .Select(tuple => tuple with { polyline = Polyline.Reduction.DouglasPeucker(tuple.polyline, epsilon) })
-        //     .Select(tuple => (pattern: SimpleConcentric.GenPattern(tuple.polyline, pathWidth), tuple.plane))
-        //     .SelectMany(tuple => tuple.pattern.Select(tuple.plane.ProjectIntoWorld))
-        //     .ToArray();
-        // var concentricPatternTcp = ParallelEnumerable.Range(1, layerCount)
-        //     .Select(i => minY + levelHeight * i - levelHeight / 2)
-        //     .Select(h => new Plane3<float>(Vector3<float>.UnitY, Vector3<float>.UnitY * h))
-        //     .Select(plane => SimpleConcentric.GenLayer(plane, mesh, pathWidth)).ToArray();
-        // sw.Stop();
-        // //
-        // Console.WriteLine(
-        //     $"In {sw.Elapsed.TotalSeconds:F3} Total line count: {concentricPattern.Sum(layer => layer.Count)}");
         MeshViewWrap.Show = true;
         MeshViewWrap.Unwrap.RenderModeFlags = RenderMode.Solid;
         MeshViewWrap.Unwrap.SolidColor = Color4.DarkSlateGray;

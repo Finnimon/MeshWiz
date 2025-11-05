@@ -1,24 +1,23 @@
-using System.Collections;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Numerics;
+using System.Runtime.Intrinsics;
 using CommunityToolkit.Diagnostics;
+using MeshWiz.Utility.Extensions;
+using static MeshWiz.Utility.Enums;
 
-namespace MeshWiz.Results;
+namespace MeshWiz.Utility;
 
-public readonly struct Result<TValue, TInfo> : IEquatable<Result<TValue, TInfo>>,
-    IEqualityOperators<Result<TValue, TInfo>, Result<TValue, TInfo>, bool>
-    where TInfo : unmanaged
+public readonly struct Result<TValue, TInfo> : IValueResult<Result<TValue, TInfo>, TValue, TInfo>
+    where TInfo : unmanaged, Enum
 {
-    public static readonly TInfo SuccessConstant;
-    public static readonly TInfo DefaultFailureConstant;
-    public static readonly Result<TValue, TInfo> DefaultFailure;
+    public static readonly Result<TValue, TInfo> DefaultFailure = Failure(ResultHelper<TInfo>.DefaultFailureConstant);
 
     [field: AllowNull, MaybeNull]
-    public TValue Value => field ?? ThrowHelper.ThrowInvalidOperationException<TValue>("Illegal result access");
+    public TValue Value => HasValue 
+        ? field! 
+        : ThrowHelper.ThrowInvalidOperationException<TValue>("Illegal result access");
 
-    public readonly TInfo Info;
-    public bool HasValue => Info.Equals(SuccessConstant);
+    public TInfo Info { get; }
+    public bool HasValue => IsSuccess(Info);
     public bool IsSuccess => HasValue;
     public bool IsFailure => !HasValue;
 
@@ -29,42 +28,20 @@ public readonly struct Result<TValue, TInfo> : IEquatable<Result<TValue, TInfo>>
         Info = info;
     }
 
-    public Result() => Info = DefaultFailureConstant;
+    public Result() => Info = ResultHelper<TInfo>.DefaultFailureConstant;
 
     public static implicit operator TValue(Result<TValue, TInfo> result) => result.Value;
-    public static Result<TValue, TInfo> Success(TValue value) => new(value, SuccessConstant);
+    public static Result<TValue, TInfo> Success(TValue value) => new(value, ResultHelper<TInfo>.SuccessConstant);
 
     public static Result<TValue, TInfo> Failure(TInfo info)
     {
-        if (info.Equals(SuccessConstant))
+        if (info.Equals(ResultHelper<TInfo>.SuccessConstant))
             ThrowHelper.ThrowArgumentOutOfRangeException(nameof(info), info, "Failure info may not be success value");
         return new Result<TValue, TInfo>(default, info);
     }
 
-
-    static Result()
-    {
-        var invalidType = false;
-        var type = typeof(TInfo);
-        try
-        {
-            SuccessConstant = default;
-            DefaultFailureConstant = (TInfo)(object)1;
-            if (type.IsAssignableTo(typeof(Enum)))
-                invalidType |= !Enum.IsDefined(type, DefaultFailureConstant);
-            DefaultFailure = new Result<TValue, TInfo>();
-        }
-        catch
-        {
-            invalidType = true;
-        }
-
-        if (!invalidType)
-            return;
-        ThrowHelper.ThrowNotSupportedException(GetBadTypeMessage());
-    }
-
-    private static string GetBadTypeMessage() => $"The type {typeof(TInfo)} is not supported. Int32 must be explicitly convertible to {nameof(TInfo)} and 1 must be defined for enums.";
+    public static Result<TValue, TInfo> Failure()
+        => DefaultFailure;
 
     /// <inheritdoc />
     public override bool Equals([NotNullWhen(true)] object? obj)
@@ -80,11 +57,44 @@ public readonly struct Result<TValue, TInfo> : IEquatable<Result<TValue, TInfo>>
     /// <inheritdoc />
     public static bool operator ==(Result<TValue, TInfo> left, Result<TValue, TInfo> right)
     {
-        return left.IsSuccess && right.IsSuccess && left.Value!.Equals(right.Value!)
-            || left.Info.Equals(right.Info);
+        var sameInfo = AreEqual(left.Info, right.Info);
+        return left.HasValue && right.HasValue ? sameInfo && left.Value!.Equals(right.Value!) : sameInfo;
     }
 
     /// <inheritdoc />
     public static bool operator !=(Result<TValue, TInfo> left, Result<TValue, TInfo> right)
-    => !(left == right);
+        => !(left == right);
+}
+
+public readonly struct Result<TInfo> : IResult<Result<TInfo>, TInfo>
+    where TInfo : unmanaged, Enum
+{
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => obj is Result<TInfo> other && Equals(other);
+
+    /// <inheritdoc />
+    public override int GetHashCode() => Info.GetHashCode();
+
+    /// <inheritdoc />
+    public bool IsSuccess => ResultHelper<TInfo>.SuccessConstant.Equals(Info);
+
+    /// <inheritdoc />
+    public bool IsFailure => !ResultHelper<TInfo>.SuccessConstant.Equals(Info);
+
+    /// <inheritdoc />
+    public TInfo Info { get; }
+
+    private Result(TInfo info) => Info = info;
+
+    /// <inheritdoc />
+    public bool Equals(Result<TInfo> other)
+        => this == other;
+
+    /// <inheritdoc />
+    public static bool operator ==(Result<TInfo> left, Result<TInfo> right)
+        => AreEqual(left.Info, right.Info);
+
+    /// <inheritdoc />
+    public static bool operator !=(Result<TInfo> left, Result<TInfo> right)
+        => !AreEqual(left.Info, right.Info);
 }

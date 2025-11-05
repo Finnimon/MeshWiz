@@ -10,8 +10,9 @@ using MeshWiz.Utility.Extensions;
 namespace MeshWiz.Math;
 
 public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum>[] Positions)
-    : IReadOnlyList<IRotationalSurface<TNum>>, IRotationalSurface<TNum>
-    where TNum : unmanaged, IFloatingPointIeee754<TNum>
+    : IReadOnlyList<IRotationalSurface<TNum>>, 
+        IRotationalSurface<TNum>, 
+        IGeodesicProvider<Polyline<Vector3<TNum>, TNum>, TNum> where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     private TNum? _height;
     public TNum Height => _height ??= AABB.From(Positions).Size.Y;
@@ -88,7 +89,7 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
 
     /// <inheritdoc />
     public IMesh<TNum> Tessellate()
-        => Tessellate(32);
+        => Tessellate(256);
 
     public IndexedMesh<TNum> Tessellate(int tessellationCount)
         => Surface.Rotational.Tessellate(Positions, Axis ,tessellationCount);
@@ -161,7 +162,7 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
     /// <inheritdoc />
     public Vector3<TNum> NormalAt(Vector3<TNum> p)
     {
-        var foundAny = TryClosestFindSurface(p, out var surfIndex);
+        var foundAny = TryFindClosestSurface(p, out var surfIndex);
         return foundAny
             ? this[surfIndex].NormalAt(p)
             : ThrowHelper.ThrowInvalidOperationException<Vector3<TNum>>("No surface found");
@@ -169,13 +170,13 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
 
     public Vector3<TNum> ClampToSurface(Vector3<TNum> p)
     {
-        var foundAny = TryClosestFindSurface(p, out var surfIndex);
+        var foundAny = TryFindClosestSurface(p, out var surfIndex);
         return foundAny
             ? this[surfIndex].ClampToSurface(p)
             : ThrowHelper.ThrowInvalidOperationException<Vector3<TNum>>("No surface found");
     }
 
-    public bool TryClosestFindSurface(Vector3<TNum> p, out int surfaceIndex)
+    public bool TryFindClosestSurface(Vector3<TNum> p, out int surfaceIndex)
     {
         surfaceIndex = -1;
         if (Count == 0) return false;
@@ -213,7 +214,7 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
 
     public Polyline<Vector3<TNum>, TNum> TraceGeodesics(Vector3<TNum> p, Vector3<TNum> dir, int cycleCount = 100)
     {
-        var found = TryClosestFindSurface(p, out var surfaceIndex);
+        var found = TryFindClosestSurface(p, out var surfaceIndex);
         if (!found) return Polyline<Vector3<TNum>, TNum>.Empty;
         var previousDir = dir;
         var previousEnd = p;
@@ -223,15 +224,9 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
         var cyl = this[surfaceIndex];
         while (++cycle < cycleCount)
         {
-            Console.WriteLine(cycle);
             var surface = this[surfaceIndex];
             IContiguousCurve<Vector3<TNum>, TNum>? activeGeodesic;
-            if (cycle == 65)
-            {
-                Console.WriteLine("about to fail");
-            }
-
-            activeGeodesic = Function.TryInvoke(surface.GetGeodesicFromEntry, previousEnd, previousDir);
+            activeGeodesic = Function.Try(surface.GetGeodesicFromEntry, previousEnd, previousDir);
             if (activeGeodesic is not IContiguousDiscreteCurve<Vector3<TNum>, TNum> current)
             {
                 Console.WriteLine($"Failure at {surfaceIndex}");
@@ -256,6 +251,8 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
                 ? (minusOneDistance, surfaceIndex - 1)
                 : (plusOneDistance, surfaceIndex + 1);
             var nextSurfNotFound = !Numbers<TNum>.Eps3.IsApproxGreaterOrEqual(bestDist);
+            if(cycle==64)
+                Console.WriteLine($"Maybe fail");
             if (nextSurfNotFound)
             {
                 Console.WriteLine($"Failure to find next at {surfaceIndex}");
@@ -279,10 +276,10 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
     }
 
     /// <inheritdoc />
-    IContiguousCurve<Vector3<TNum>, TNum> IGeodesicProvider<TNum>.GetGeodesic(Vector3<TNum> p1, Vector3<TNum> p2)
-        => ThrowHelper.ThrowNotSupportedException<IContiguousCurve<Vector3<TNum>, TNum>>();
+    Polyline<Vector3<TNum>, TNum> IGeodesicProvider<Polyline<Vector3<TNum>, TNum>,TNum>.GetGeodesic(Vector3<TNum> p1, Vector3<TNum> p2)
+        => ThrowHelper.ThrowNotSupportedException<Polyline<Vector3<TNum>, TNum>>();
 
     /// <inheritdoc />
-    public IContiguousCurve<Vector3<TNum>, TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint, Vector3<TNum> direction)
+    public Polyline<Vector3<TNum>, TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint, Vector3<TNum> direction)
         => TraceGeodesics(entryPoint, direction, 10000);
 }

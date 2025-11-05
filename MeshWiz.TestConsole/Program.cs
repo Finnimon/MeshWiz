@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using MeshWiz.Math;
-using MeshWiz.Results;
 using MeshWiz.Utility;
 
 var cone = new Cone<float>((-Vector3<float>.UnitY).LineTo(Vector3<float>.UnitY), 0.5f);

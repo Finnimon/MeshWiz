@@ -2,7 +2,7 @@ namespace MeshWiz.Utility;
 
 public static class Function
 {
-    public static bool TryInvoke<TArg, TResult>(this Func<TArg, TResult> func, TArg arg, out TResult? result)
+    public static bool Try<TArg, TResult>(this Func<TArg, TResult> func, TArg arg, out TResult? result)
     {
         try
         {
@@ -15,7 +15,7 @@ public static class Function
             return false;
         }
     }
-    public static bool TryInvoke<TResult>(this Func<TResult> func, out TResult? result)
+    public static bool Try<TResult>(this Func<TResult> func, out TResult? result)
     {
         try
         {
@@ -29,11 +29,11 @@ public static class Function
         }
     }
 
-    public static TResult? TryInvoke<TResult>(this Func<TResult> func)
-    => func.TryInvoke(out var result) ? result : default;
-    public static TResult? TryInvoke<TArg, TResult>(this Func<TArg, TResult> func, TArg arg)
-        => func.TryInvoke(arg, out var result) ? result : default;
-    public static TResult? TryInvoke<TArg,TArg2, TResult>(this Func<TArg,TArg2, TResult> func, TArg arg,TArg2 arg2)
+    public static TResult? Try<TResult>(this Func<TResult> func)
+    => func.Try(out var result) ? result : default;
+    public static TResult? Try<TArg, TResult>(this Func<TArg, TResult> func, TArg arg)
+        => func.Try(arg, out var result) ? result : default;
+    public static TResult? Try<TArg,TArg2, TResult>(this Func<TArg,TArg2, TResult> func, TArg arg,TArg2 arg2)
     {
         try
         {
