@@ -2,7 +2,7 @@ using CommunityToolkit.Diagnostics;
 
 namespace MeshWiz.Utility;
 
-public static class ResultHelper<TInfo>
+public static class EnumResultHelper<TInfo>
     where TInfo : unmanaged, Enum
 {
     public static readonly TInfo SuccessConstant;
@@ -14,7 +14,7 @@ public static class ResultHelper<TInfo>
         ThrowHelper.ThrowInvalidOperationException("Invalid failure type");
     }
 
-    static ResultHelper()
+    static EnumResultHelper()
     {
         var invalidType = false;
         var type = typeof(TInfo);
@@ -36,5 +36,5 @@ public static class ResultHelper<TInfo>
     }
 
     private static string GetBadTypeMessage()
-        => $"The type {typeof(TInfo)} is not supported. Int32 must be explicitly convertible to {nameof(TInfo)} and 1 must be defined for enums.";
+        => $"The type {typeof(TInfo)} is not supported. byte must be explicitly convertible to {nameof(TInfo)} and 1 must be defined for enums.";
 }

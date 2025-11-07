@@ -16,6 +16,7 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
     private T[] _items;
     private int _headIndex;
     private int _postTailIndex;
+    private int _version;
 
     /// <inheritdoc />
     bool ICollection<T>.Remove(T item) => ThrowHelper.ThrowNotSupportedException<bool>();
@@ -81,10 +82,12 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
     public T this[int index]
     {
         get => _items[ValidatedIndex(index)];
-        set => _items[ValidatedIndex(index)] = value;
+        set
+        {
+            ++_version;
+            _items[ValidatedIndex(index)] = value;
+        }
     }
-
-    public ref readonly T GetRef(int index) => ref _items[ValidatedIndex(index)];
 
     [StackTraceHidden]
     private int ValidatedIndex(int index)
@@ -101,6 +104,7 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
     public void PushFront(T item)
     {
         if (Capacity < Count + 1) Capacity *= 2;
+        _version++;
         Count++;
         if (_headIndex <= 0) _headIndex = _items.Length;
         _headIndex--;
@@ -111,6 +115,7 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
 
     public void PushFront(ReadOnlySpan<T> newItems)
     {
+        _version++;
         var capacity = Capacity;
         var newCount = Count + newItems.Length;
         var mustGrow = capacity < newCount;
@@ -146,6 +151,7 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
 
     public void PushBack(T item)
     {
+        _version++;
         if (Capacity < Count + 1) Capacity *= 2;
         Count++;
         _postTailIndex++;
@@ -158,6 +164,7 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
 
     public void PushBack(ReadOnlySpan<T> newItems)
     {
+        _version++;
         if (newItems.Length == 0) return;
         var capacity = Capacity;
         var newCount = Count + newItems.Length;
@@ -206,6 +213,7 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
 
     private T PopFrontUnchecked()
     {
+        _version++;
         Count--;
         ref var head = ref _items[_headIndex];
         var front = head;
@@ -223,6 +231,7 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
 
     private T PopBackUnchecked()
     {
+        _version++;
         Count--;
         _postTailIndex--;
         ref var tail = ref _items[_postTailIndex];
@@ -265,14 +274,9 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
         return result;
     }
 
-    public IEnumerator<T> GetEnumerator()
-    {
-        if (Count == 0) yield break;
-        for (var i = 0; i < Count; i++) yield return this[i];
-    }
-
     public void Clear()
     {
+        _version++;
         Array.Fill(_items, default!);
         _headIndex = 0;
         _postTailIndex = 0;
@@ -347,5 +351,72 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
 
     public void Trim() => Capacity = Count;
 
+
+    public Enumerator GetEnumerator() => new(this);
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    IEnumerator<T> IEnumerable<T>.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    /// <seealso href="https://github.com/dotnet/runtime/blob/6e1e6b1f34ac821c47364f5b0baf91d18e1fcbe7/src/libraries/System.Private.CoreLib/src/System/Collections/Generic/List.cs#L1185"/>
+    public struct Enumerator : IEnumerator<T>, IEnumerator
+    {
+        private readonly RollingList<T> _list;
+        private int _index;
+        private readonly int _version;
+        private T? _current;
+
+        internal Enumerator(RollingList<T> list)
+        {
+            _list = list;
+            _index = 0;
+            _version = list._version;
+            _current = default;
+        }
+
+        public void Dispose() { }
+
+        public bool MoveNext()
+        {
+            if (_version == _list._version && ((uint)_index < (uint)_list.Count))
+            {
+                _current = _list._items[_index];
+                _index++;
+                return true;
+            }
+
+            return MoveNextRare();
+        }
+
+        private bool MoveNextRare()
+        {
+            if (_version != _list._version)
+                ThrowHelper.ThrowInvalidOperationException();
+
+            _index = _list.Count + 1;
+            _current = default;
+            return false;
+        }
+
+        public T Current => _current!;
+
+        object? IEnumerator.Current
+        {
+            get
+            {
+                if (_index == 0 || _index == _list.Count + 1) ThrowHelper.ThrowInvalidOperationException();
+                return Current;
+            }
+        }
+
+        void IEnumerator.Reset()
+        {
+            if (_version != _list._version) ThrowHelper.ThrowInvalidOperationException();
+
+            _index = 0;
+            _current = default;
+        }
+    }
 }

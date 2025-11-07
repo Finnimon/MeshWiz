@@ -19,7 +19,7 @@ public static class Enums
             2 => UnsafeEqual<T, ushort>(ref a, ref b),
             4 => UnsafeEqual<T, uint>(ref a, ref b),
             8 => UnsafeEqual<T, ulong>(ref a, ref b),
-            16 => UnsafeEqual<T, Int128>(ref a, ref b),
+            16 => UnsafeEqual<T, Int128>(ref a, ref b),//futureproofing
             // ReSharper disable once HeapView.PossibleBoxingAllocation
             _ => a.Equals(b)
         };
@@ -30,5 +30,5 @@ public static class Enums
         Unsafe.As<TSource, TTarget>(ref a) == Unsafe.As<TSource, TTarget>(ref b);
 
     internal static bool IsSuccess<T>(T value) where T : unmanaged, Enum
-        => AreEqual(value, ResultHelper<T>.SuccessConstant);
+        => AreEqual(value, EnumResultHelper<T>.SuccessConstant);
 }

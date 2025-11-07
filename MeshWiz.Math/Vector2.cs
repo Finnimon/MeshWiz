@@ -50,7 +50,7 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
 
     public Vector2<TNum> YX => new(Y, X);
 
-    public Vector2(TNum radius, Angle<TNum> angle) : this(radius, angle.Radians) { }
+    private Vector2(TNum radius, Angle<TNum> angle) : this(radius, angle.Radians) { }
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector2<TNum> CreatePolar(TNum radius, Angle<TNum> angle) => new(radius, angle);
 

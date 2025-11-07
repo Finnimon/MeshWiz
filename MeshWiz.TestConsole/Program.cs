@@ -1,36 +1,77 @@
-﻿using System.Diagnostics;
-using MeshWiz.Math;
-using MeshWiz.Utility;
+﻿var exT=typeof(System.Exception);
+string strStart= 
+    """
+    public enum Exceptions
+    {
+        None = 0,
+        Exception = 1,
+        inserHere
+    }
+    """;
+const string exName = nameof(Exception);
+const string replaceLabel="inserHere";
 
-var cone = new Cone<float>((-Vector3<float>.UnitY).LineTo(Vector3<float>.UnitY), 0.5f);
-_= Numbers<float>.TwoPi;
-_ = Numbers<Vector2<float>>.TwoPi; 
-_ = Numbers<Vector3<float>>.TwoPi; 
-Vector3<float> p1 = new(-10, -10, -10);
-var start = cone.ClampToSurface(p1);
-var coneGeodesic = ConeGeodesic<float>.FromDirection(in cone, start, new(0, 2, 1));
-var geodesic = coneGeodesic.ToPolyline();
+var exceptionsTypes = exT.Assembly.GetTypes().Where(t=>t.IsAssignableTo(exT)&&t!=exT).ToArray();
 
-// var coneGeodesic =
-//     ConeGeodesic<float>.BetweenPoints(in cone,start,end);
-var swGeod = Stopwatch.StartNew();
-coneGeodesic = ConeGeodesic<float>.FromDirection(in cone, start, new(0, 2, 1));
-var createTime = swGeod.Elapsed.TotalMilliseconds;
-swGeod.Restart();
-geodesic = coneGeodesic.ToPolyline();
-var polyTime = swGeod.Elapsed.TotalMilliseconds;
-swGeod.Stop();
-Console.WriteLine($"Create: {createTime:F2}ms Poly: {polyTime:F2}ms");
-var res=Result<string,StringInfo>.Failure(StringInfo.Failure);
- res=Result<string,StringInfo>.Success("Somestring");
-var r=res.Value;
+exceptionsTypes=SortInheritence(exceptionsTypes);
 
-public enum StringInfo
+
+var exNames=exceptionsTypes.Select(t=>t.Name).Distinct().Select(name =>
 {
-    Success=0,
-    Failure=1,
-    TypeFailure=2,
-    FileAccessViolation=3,
-    FileNotFound=4,
-    PathNotFound=5,
+    if (!name.Contains(exName))
+        return name;
+    if(name.StartsWith(exName))
+        return name[exName.Length..];
+    if(name.EndsWith(exName))
+        return name[..^exName.Length];
+    return name;
+}).ToArray();
+
+var insert=string.Join(",\n    ", exNames);
+var fullType=strStart.Replace(replaceLabel, insert);
+Console.WriteLine(fullType);
+
+const string excExt =
+    """
+    public static class ExceptionExt
+    {
+        [Pure]
+        public static Exceptions GetEnumType(this Exceptions? ex)
+        => ex switch
+        {
+            null => Exceptions.None,
+            inserHere
+        };
+    }
+    """;
+var lines=exceptionsTypes.Select(t =>
+{
+    return $"{t.FullName} => {GetEnumName(t)},";
+});
+var extInsert=string.Join("\n        ", lines);
+var extFullType = excExt.Replace(replaceLabel, extInsert);
+Console.WriteLine(extFullType);
+
+var combine= $"{fullType}\n\n{extFullType}";
+
+
+
+static string GetEnumName(Type t)
+{
+    var name = t.Name;
+    if (!name.Contains(exName))
+        name = name;
+    else if(name.StartsWith(exName))
+        name= name[exName.Length..];
+    else if(name.EndsWith(exName))
+        name= name[..^exName.Length];
+    return $"Exceptions.{name}";
+}
+
+
+static Type[] SortInheritence(Type[] types)
+{
+    var dict = types.ToDictionary(t => t, t => types.Count(other => other.IsAssignableTo(t)));
+    Array.Sort(types,(t1,t2)=>Comparer<int>.Default.Compare(dict[t1],dict[t2]));
+    return types;
 }

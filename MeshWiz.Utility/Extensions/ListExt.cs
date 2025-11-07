@@ -1,7 +1,18 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
+
 namespace MeshWiz.Utility.Extensions;
 
 public static class ListExt
 {
+    [Pure]
+    public static bool TryGet<T>(this IReadOnlyList<T> list, int index,
+        [AllowNull, MaybeNullWhen(returnValue: false)] out T value)
+    {
+        var possible = list.Count > (uint)index;
+        value=possible?list[index]:default;
+        return possible;
+    }
     public static int BinarySearch<TList, T>(this TList list, Func<T, int> comparer)
     where TList : IReadOnlyList<T>
     {

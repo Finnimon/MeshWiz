@@ -10,8 +10,8 @@ using MeshWiz.Utility.Extensions;
 namespace MeshWiz.Math;
 
 public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum>[] Positions)
-    : IReadOnlyList<IRotationalSurface<TNum>>, 
-        IRotationalSurface<TNum>, 
+    : IReadOnlyList<IRotationalSurface<TNum>>,
+        IRotationalSurface<TNum>,
         IGeodesicProvider<Polyline<Vector3<TNum>, TNum>, TNum> where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     private TNum? _height;
@@ -63,7 +63,7 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
         var isFullCone = start.Y.IsApproxZero() || end.Y.IsApproxZero();
         if (isFullCone)
         {
-            var radius = start.Y.IsApproxZero() ? end.Y : start.Y;
+            (var radius,axisSection) = start.Y.IsApproxZero() ? (end.Y,axisSection.Reversed()) : (start.Y,axisSection);
             return new Cone<TNum>(axisSection, radius);
         }
 
@@ -92,7 +92,7 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
         => Tessellate(256);
 
     public IndexedMesh<TNum> Tessellate(int tessellationCount)
-        => Surface.Rotational.Tessellate(Positions, Axis ,tessellationCount);
+        => Surface.Rotational.Tessellate(Positions, Axis, tessellationCount);
 
     /// <inheritdoc />
     [field: AllowNull, MaybeNull]
@@ -211,25 +211,33 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
 
     private Line<Vector3<TNum>, TNum>? _axisLine;
     public Line<Vector3<TNum>, TNum> AxisLine => _axisLine ??= this.SweepAxis.Origin.LineTo(SweepAxis.Traverse(Height));
-
+    public static Vector3<TNum> TransFormedDir;
     public Polyline<Vector3<TNum>, TNum> TraceGeodesics(Vector3<TNum> p, Vector3<TNum> dir, int cycleCount = 100)
     {
         var found = TryFindClosestSurface(p, out var surfaceIndex);
         if (!found) return Polyline<Vector3<TNum>, TNum>.Empty;
         var previousDir = dir;
         var previousEnd = p;
+        var previousNormal = this[surfaceIndex].NormalAt(p);
         List<Task<Polyline<Vector3<TNum>, TNum>>> polylines = [];
         var cycle = -1;
-        var cylinder = surfaceIndex;
-        var cyl = this[surfaceIndex];
         while (++cycle < cycleCount)
         {
             var surface = this[surfaceIndex];
-            IContiguousCurve<Vector3<TNum>, TNum>? activeGeodesic;
-            activeGeodesic = Function.Try(surface.GetGeodesicFromEntry, previousEnd, previousDir);
-            if (activeGeodesic is not IContiguousDiscreteCurve<Vector3<TNum>, TNum> current)
+            var newNormal=surface.NormalAt(p);
+            // if (!newNormal.IsApprox(previousNormal))
+            // {
+            //     Console.WriteLine("transformed dir");
+            //     var about=previousNormal.Cross(newNormal);
+            //     var transformAngle = Vector3<TNum>.SignedAngleBetween(previousNormal, newNormal, about);
+            //     var rotation = Matrix4x4<TNum>.CreateRotation(about, -transformAngle);
+            //     dir=rotation.MultiplyDirection(previousDir);
+            //     TransFormedDir = dir;
+            // }
+            var active = Func.Try(surface.GetGeodesicFromEntry, previousEnd, previousDir);
+            if (!active.HasValue || active.Value is not IContiguousDiscreteCurve<Vector3<TNum>, TNum> current)
             {
-                Console.WriteLine($"Failure at {surfaceIndex}");
+                Console.WriteLine($"Failure at {surfaceIndex} {active.Info}");
                 break;
             }
 
@@ -251,14 +259,12 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
                 ? (minusOneDistance, surfaceIndex - 1)
                 : (plusOneDistance, surfaceIndex + 1);
             var nextSurfNotFound = !Numbers<TNum>.Eps3.IsApproxGreaterOrEqual(bestDist);
-            if(cycle==64)
-                Console.WriteLine($"Maybe fail");
             if (nextSurfNotFound)
             {
-                Console.WriteLine($"Failure to find next at {surfaceIndex}");
+                Console.WriteLine($"Failure to find next at {surfaceIndex} {minusOneDistance} {plusOneDistance}");
                 break;
             }
-
+            previousNormal=surface.NormalAt(previousEnd);
             surfaceIndex = bestIndex;
         } //todo makeupright fails
 
@@ -276,7 +282,8 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
     }
 
     /// <inheritdoc />
-    Polyline<Vector3<TNum>, TNum> IGeodesicProvider<Polyline<Vector3<TNum>, TNum>,TNum>.GetGeodesic(Vector3<TNum> p1, Vector3<TNum> p2)
+    Polyline<Vector3<TNum>, TNum> IGeodesicProvider<Polyline<Vector3<TNum>, TNum>, TNum>.GetGeodesic(Vector3<TNum> p1,
+        Vector3<TNum> p2)
         => ThrowHelper.ThrowNotSupportedException<Polyline<Vector3<TNum>, TNum>>();
 
     /// <inheritdoc />

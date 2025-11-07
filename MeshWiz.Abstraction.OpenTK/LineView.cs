@@ -73,11 +73,14 @@ public class LineView : IOpenGLControl
         UpdateShader(aspect);
     }
 
+    public float DepthOffset { get; set; } = 0.0005f;
+
     private void UpdateShader(float aspect)
     {
         var (model, view, projection) = Camera.CreateRenderMatrices(aspect);
         var objectColor = Color;
-        const float depthOffset = 0.000001f;
+        var camDistance = Camera.Position.DistanceTo(Camera.LookAt);
+        var depthOffset =  DepthOffset/(camDistance*camDistance);
         _shader!.BindAnd()
             .SetUniform(nameof(model), ref model)
             .SetUniform(nameof(view), ref view)

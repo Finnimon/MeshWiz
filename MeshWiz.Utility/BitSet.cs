@@ -31,32 +31,26 @@ public sealed class BitSet : IReadOnlyList<bool>
     {
         get
         {
-            if (Count > (uint)index)
-            {
-                var (longIndex, shift) = IndexToAdress(index);
-                return ((_bits[longIndex] >> shift) & 1) != 0;
-            }
-
-            return ThrowIndexOutOfRangeException(index, Count);
+            if (Count <= (uint)index)
+                return IndexThrowHelper.Throw<bool>(index, Count);
+            var (longIndex, shift) = IndexToAdress(index);
+            return ((_bits[longIndex] >> shift) & 1) != 0;
         }
         set
         {
-            if (Count > (uint)index)
+            if (Count <= (uint)index)
             {
-                var (word, bit) = IndexToAdress(index);
-                var setter = 1UL << bit;
-                if (value)
-                    _bits[word] |= setter; // set bit
-                else
-                    _bits[word] &= ~setter; // clear bit
+                IndexThrowHelper.Throw(index, Count);
                 return;
             }
-            ThrowIndexOutOfRangeException(index, Count);
+            var (word, bit) = IndexToAdress(index);
+            var setter = 1UL << bit;
+            if (value)
+                _bits[word] |= setter; // set bit
+            else
+                _bits[word] &= ~setter; // clear bit
         }
     }
-
-    private static bool ThrowIndexOutOfRangeException(int index, int count) =>
-        throw new IndexOutOfRangeException($"Index {index} is out of range. Count: {count}");
 
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]

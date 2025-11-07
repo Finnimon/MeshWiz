@@ -66,13 +66,12 @@ public readonly struct Helix<TNum> : IContiguousDiscreteCurve<Vector3<TNum>, TNu
         var axisDir = cylinder.Axis.NormalDirection;
         var closest = cylinder.Axis.ClosestPoint(p);
         var axisToP = (p - closest).Normalized;
-
-        var tangentialDir = axisDir.Cross(axisToP).Normalized;
-
-        var dxCircumference = tangentialDir.Dot(direction) * cylinder.Radius; // linear distance along circumference
-        var dy = axisDir.Dot(direction); // along cylinder axis
-
-        return new Vector2<TNum>(dxCircumference, dy).Normalized;
+        
+        var angle=Vector3<TNum>.SignedAngleBetween(axisDir,direction,axisToP);
+        var polarUp= Vector2<TNum>.UnitY.CartesianToPolar();
+        var polarDir = Vector2<TNum>.CreatePolar(TNum.One,  polarUp.PolarAngle+angle);
+        
+        return polarDir.PolarToCartesian();
     }
 
     [Pure]
@@ -105,7 +104,7 @@ public readonly struct Helix<TNum> : IContiguousDiscreteCurve<Vector3<TNum>, TNu
     /// <inheritdoc />
     public Polyline<Vector3<TNum>, TNum> ToPolyline() =>
         ToPolyline(new PolylineTessellationParameter<TNum>
-            { MaxAngularDeviation = Numbers<TNum>.TwoPi * Numbers<TNum>.Eps2 });
+            { MaxAngularDeviation = Numbers<TNum>.TwoPi * Numbers<TNum>.Eps3 });
 
     /// <inheritdoc />
     public Polyline<Vector3<TNum>, TNum> ToPolyline(PolylineTessellationParameter<TNum> tessellationParameter)

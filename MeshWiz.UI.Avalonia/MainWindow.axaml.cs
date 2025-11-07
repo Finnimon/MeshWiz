@@ -1,17 +1,12 @@
 using System.Diagnostics;
-using System.Formats.Asn1;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
-using CommunityToolkit.Diagnostics;
-using MeshWiz.Abstraction.Avalonia;
 using MeshWiz.Abstraction.OpenTK;
 using MeshWiz.IO.Stl;
 using MeshWiz.Math;
-using MeshWiz.Slicer;
-using MeshWiz.Utility;
 using OpenTK.Mathematics;
 
 namespace MeshWiz.UI.Avalonia;
@@ -33,17 +28,19 @@ public partial class MainWindow : Window
             .From(new Vector3<float>(-10, -10, -10))
             .CombineWith(new Vector3<float>(10, 10, 10));
         IIndexedMesh<float> meshi = box.Tessellate().Indexed();
-        var circle = new Circle3<float>(Vector3<float>.Zero, Vector3<float>.UnitY, 1);
-        var arc = circle.ArcSection(-float.Pi * 0.8f, float.Pi * 0.8f);
-        var arcPoly = arc.ToPolyline(new() { MaxAngularDeviation  = float.Pi*0.01f });
-        var arcPolyPoints = arcPoly.Points.ToArray();
-        var ray=arc.Start.RayThrough(arc.End);
-        for (var i = arcPoly.Points.Length/2+1; i < arcPoly.Points.Length; i++) arcPolyPoints[i] += ray.Direction * 2;
-
-        arcPoly = new(arcPolyPoints);
-        var surface = JaggedRotationalSurface<float>.FromSweepCurve(arcPoly, ray);
+        Vector2<float>[] sweep = [new(0f,0f),new(1,1),new(2,1),new(3,0)];
+        var surface=new JaggedRotationalSurface<float>(Vector3<float>.Zero.RayThrough(Vector3<float>.UnitX),sweep);
+        // var surface = JaggedRotationalSurface<float>.FromSweepCurve(arcPoly, ray);
         var sw = Stopwatch.StartNew();
-        var jaggedGeodesic = surface.TraceGeodesics(arcPoly.Traverse(0.5f),surface.Axis.Direction*3+Vector3<float>.UnitY);
+        var jaggedGeodesic = surface.TraceGeodesics(surface.SweepCurve.Traverse(0.5f),
+            -Vector3<float>.UnitX + Vector3<float>.UnitY,
+            cycleCount:1000);
+        var newPoints = new Vector3<float>[jaggedGeodesic.Points.Length+1];
+        jaggedGeodesic.Points.CopyTo(newPoints);
+        newPoints[^1] = JaggedRotationalSurface<float>.TransFormedDir + newPoints[^2];
+        jaggedGeodesic = new(newPoints);
+        var cyl=surface.OfType<Cylinder<float>>().ToArray();
+        Console.WriteLine($"Num cyl {cyl.Length}");
         Console.WriteLine($"Geodesicjagged {sw.Elapsed}");
         LineViewWrapper.Unwrap.Polyline= jaggedGeodesic;
         LineViewWrapper.Unwrap.LineWidth = 2.5f;

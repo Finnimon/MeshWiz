@@ -1,0 +1,105 @@
+using System.Diagnostics.Contracts;
+
+namespace MeshWiz.Utility;
+
+public readonly struct ExceptionResult : IResult<ExceptionResult, Exception?>
+{
+
+    /// <inheritdoc />
+    public bool IsSuccess => Info is null;
+
+    /// <inheritdoc />
+    public bool IsFailure => Info is not null;
+
+    /// <inheritdoc />
+    public Exception? Info { get; private init; }
+
+    [Pure]
+    public static ExceptionResult Success() => new();
+
+    [Pure]
+    public static ExceptionResult Failure(Exception e) => new() { Info = e };
+
+    [Pure]
+    public static implicit operator bool(ExceptionResult result) => result.IsSuccess;
+    [Pure]
+    public static implicit operator ExceptionResult(Exception result) => new() { Info = result };
+
+    /// <inheritdoc />
+    public bool Equals(ExceptionResult other)
+        => this == other;
+
+    /// <inheritdoc />
+    public static bool operator ==(ExceptionResult left, ExceptionResult right)
+        => left.Info == right.Info;
+
+    /// <inheritdoc />
+    public static bool operator !=(ExceptionResult left, ExceptionResult right) => left.Info != right.Info;
+    
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => obj is ExceptionResult other && this == other;
+
+    /// <inheritdoc />
+    public override int GetHashCode()
+        => Info?.GetHashCode() ?? 0;
+}
+
+public readonly struct ExceptionResult<T> : IValueResult<ExceptionResult<T>, Exception?, T>
+{
+    private readonly object? _value;
+
+    /// <inheritdoc />
+    public bool IsSuccess { get; private init; }
+
+    /// <inheritdoc />
+    public bool IsFailure => !IsSuccess;
+
+    /// <inheritdoc />
+    public bool HasValue => IsSuccess;
+
+    /// <inheritdoc />
+    public Exception? Info
+    {
+        get => IsSuccess ? null : (Exception)_value!;
+        private init => _value = value;
+    }
+
+    public T Value
+    {
+        get => IsSuccess ? (T)_value! : Result.ThrowIllegalValueAccess<T>();
+        private init => _value = value;
+    }
+
+    [Pure]
+    public static ExceptionResult<T> Success(T value) => new() { IsSuccess = true, Value = value };
+
+    [Pure]
+    public static ExceptionResult<T> Failure(Exception e) => new() { IsSuccess = false, Info = e };
+
+    [Pure]
+    public static implicit operator bool(in ExceptionResult<T> result) => result.IsSuccess;
+
+    public static implicit operator T(in ExceptionResult<T> result) => result.Value;
+    public static implicit operator ExceptionResult<T>(T result) => Success(result);
+    public static implicit operator ExceptionResult<T>(Exception ex)=>Failure(ex);
+
+    /// <inheritdoc />
+    public bool Equals(ExceptionResult<T> other)
+        => this == other;
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => obj is ExceptionResult<T> other && this == other;
+
+    /// <inheritdoc />
+    public static bool operator ==(ExceptionResult<T> left, ExceptionResult<T> right) =>    
+        
+        left.IsSuccess == right.IsSuccess && (left._value?.Equals(right._value) ?? right._value is null);
+
+    /// <inheritdoc />
+    public static bool operator !=(ExceptionResult<T> left, ExceptionResult<T> right)
+        => left.IsSuccess != right.IsSuccess || !(left._value?.Equals(right._value) ?? right._value is null);
+
+    /// <inheritdoc />
+    public override int GetHashCode() => HashCode.Combine(_value, IsSuccess);
+}
+
