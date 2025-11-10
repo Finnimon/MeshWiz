@@ -58,7 +58,7 @@ public readonly struct Helix<TNum> : IContiguousDiscreteCurve<Vector3<TNum>, TNu
 
         return new Vector2<TNum>(x, y);
     }
-
+    
     [Pure]
     public static Vector2<TNum> ProjectDirection(in Cylinder<TNum> cylinder, Vector3<TNum> p, Vector3<TNum> direction)
     {
@@ -66,12 +66,12 @@ public readonly struct Helix<TNum> : IContiguousDiscreteCurve<Vector3<TNum>, TNu
         var axisDir = cylinder.Axis.NormalDirection;
         var closest = cylinder.Axis.ClosestPoint(p);
         var axisToP = (p - closest).Normalized;
+
+        var tangentialDir = axisDir.Cross(axisToP).Normalized;
         
-        var angle=Vector3<TNum>.SignedAngleBetween(axisDir,direction,axisToP);
-        var polarUp= Vector2<TNum>.UnitY.CartesianToPolar();
-        var polarDir = Vector2<TNum>.CreatePolar(TNum.One,  polarUp.PolarAngle+angle);
-        
-        return polarDir.PolarToCartesian();
+        var dxCircumference = tangentialDir.Dot(direction) * cylinder.Radius; // linear distance along circumference
+        var dy = axisDir.Dot(direction); // along cylinder axis
+        return new Vector2<TNum>(dxCircumference, dy).Normalized;
     }
 
     [Pure]
@@ -164,11 +164,10 @@ public readonly struct Helix<TNum> : IContiguousDiscreteCurve<Vector3<TNum>, TNu
             return new Helix<TNum>(surface, horizontalLine);
         }
 
-        var curEndPt = localDir + localOrigin;
         var solveFor = TNum.IsPositive(localDir.Y) ? surface.Height : TNum.Zero;
-        var success = Solver.Linear.TrySolve(localOrigin.Y, curEndPt.Y, solveFor, out var scalar);
-        if (!success) throw new ArithmeticException();
-        var end = Vector2<TNum>.Lerp(localOrigin, curEndPt, scalar);
+        var diff = solveFor - localOrigin.Y;
+        var scalar = diff/localDir.Y;
+        var end = localOrigin+localDir*scalar;
         var line = localOrigin.LineTo(end);
         return new Helix<TNum>(surface, line);
     }

@@ -251,7 +251,8 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public unsafe ReadOnlySpan<TNum> AsSpan()
     {
-        fixed (TNum* ptr = &X) return new ReadOnlySpan<TNum>(ptr, 3);
+        fixed (void* ptr = &X)
+            return new ReadOnlySpan<TNum>(ptr, (int)Dimensions);
     }
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -2,6 +2,7 @@ using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
@@ -63,7 +64,8 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
         var isFullCone = start.Y.IsApproxZero() || end.Y.IsApproxZero();
         if (isFullCone)
         {
-            (var radius,axisSection) = start.Y.IsApproxZero() ? (end.Y,axisSection.Reversed()) : (start.Y,axisSection);
+            (var radius, axisSection) =
+                start.Y.IsApproxZero() ? (end.Y, axisSection.Reversed()) : (start.Y, axisSection);
             return new Cone<TNum>(axisSection, radius);
         }
 
@@ -198,7 +200,7 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
             var vBox = AABB.From(start.X, end.X);
             var vDiff = vBox.DistanceTo(closestPos);
             if (vDiff > minDist) continue;
-            var childSurf = this.GetChildSurface(i);
+            var childSurf = GetChildSurface(i);
             var diff = childSurf.ClampToSurface(p).DistanceTo(p);
             if (diff >= minDist)
                 continue;
@@ -209,9 +211,8 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
         return surfaceIndex != -1;
     }
 
-    private Line<Vector3<TNum>, TNum>? _axisLine;
-    public Line<Vector3<TNum>, TNum> AxisLine => _axisLine ??= this.SweepAxis.Origin.LineTo(SweepAxis.Traverse(Height));
-    public static Vector3<TNum> TransFormedDir;
+    public Line<Vector3<TNum>, TNum> AxisLine => SweepAxis.LineSection(TNum.Zero, Height);
+
     public Polyline<Vector3<TNum>, TNum> TraceGeodesics(Vector3<TNum> p, Vector3<TNum> dir, int cycleCount = 100)
     {
         var found = TryFindClosestSurface(p, out var surfaceIndex);
@@ -221,22 +222,31 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
         var previousNormal = this[surfaceIndex].NormalAt(p);
         List<Task<Polyline<Vector3<TNum>, TNum>>> polylines = [];
         var cycle = -1;
+        var previousSurfaceIndex = surfaceIndex;
         while (++cycle < cycleCount)
         {
+            retry:
+            var retryPrevious = true;
             var surface = this[surfaceIndex];
-            var newNormal=surface.NormalAt(p);
-            // if (!newNormal.IsApprox(previousNormal))
-            // {
-            //     Console.WriteLine("transformed dir");
-            //     var about=previousNormal.Cross(newNormal);
-            //     var transformAngle = Vector3<TNum>.SignedAngleBetween(previousNormal, newNormal, about);
-            //     var rotation = Matrix4x4<TNum>.CreateRotation(about, -transformAngle);
-            //     dir=rotation.MultiplyDirection(previousDir);
-            //     TransFormedDir = dir;
-            // }
+            var newNormal = surface.NormalAt(previousEnd);
+            if (!newNormal.IsParallelTo(previousNormal))
+            {
+                var about = previousNormal.Cross(newNormal);
+                var transformAngle = Vector3<TNum>.SignedAngleBetween(previousNormal, newNormal, about);
+                var rotation = Matrix4x4<TNum>.CreateRotation(about, transformAngle);
+                dir = rotation.MultiplyDirection(previousDir);
+                previousDir = dir;
+            }
+
             var active = Func.Try(surface.GetGeodesicFromEntry, previousEnd, previousDir);
             if (!active.HasValue || active.Value is not IContiguousDiscreteCurve<Vector3<TNum>, TNum> current)
             {
+                if (retryPrevious)
+                {
+                    surfaceIndex = previousSurfaceIndex;
+                    retryPrevious = false;
+                    goto retry;
+                }
                 Console.WriteLine($"Failure at {surfaceIndex} {active.Info}");
                 break;
             }
@@ -264,8 +274,21 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
                 Console.WriteLine($"Failure to find next at {surfaceIndex} {minusOneDistance} {plusOneDistance}");
                 break;
             }
-            previousNormal=surface.NormalAt(previousEnd);
+
+            previousNormal = surface.NormalAt(previousEnd);
+            previousSurfaceIndex = surfaceIndex;
             surfaceIndex = bestIndex;
+            if (Vector3<TNum>.IsNaN(previousDir))
+            {
+                Console.WriteLine("Dir NAN");
+                break;
+            }
+
+            if (Vector3<TNum>.IsNaN(previousNormal))
+            {
+                Console.WriteLine("Norm NAN");
+                break;
+            }
         } //todo makeupright fails
 
         List<Vector3<TNum>> vertices = [];

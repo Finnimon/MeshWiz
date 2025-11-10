@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Formats.Asn1;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -21,43 +22,10 @@ public partial class MainWindow : Window
         lv2.Camera = camera;
         // camera.MoveUp(0.2f);
         MeshViewWrap.Unwrap.Camera = camera;
+        BBoxWrap.Unwrap.Camera = camera;
+        camera.UnitUp=Vector3<float>.UnitZ;
         MeshViewWrap.Unwrap.LightColor = Color4.White;
         MeshViewWrap.Unwrap.SolidColor = Color4.DarkGray;
-        camera.UnitUp = Vector3<float>.UnitY;
-        var box = AABB<Vector3<float>>
-            .From(new Vector3<float>(-10, -10, -10))
-            .CombineWith(new Vector3<float>(10, 10, 10));
-        IIndexedMesh<float> meshi = box.Tessellate().Indexed();
-        Vector2<float>[] sweep = [new(0f,0f),new(1,1),new(2,1),new(3,0)];
-        var surface=new JaggedRotationalSurface<float>(Vector3<float>.Zero.RayThrough(Vector3<float>.UnitX),sweep);
-        // var surface = JaggedRotationalSurface<float>.FromSweepCurve(arcPoly, ray);
-        var sw = Stopwatch.StartNew();
-        var jaggedGeodesic = surface.TraceGeodesics(surface.SweepCurve.Traverse(0.5f),
-            -Vector3<float>.UnitX + Vector3<float>.UnitY,
-            cycleCount:1000);
-        var newPoints = new Vector3<float>[jaggedGeodesic.Points.Length+1];
-        jaggedGeodesic.Points.CopyTo(newPoints);
-        newPoints[^1] = JaggedRotationalSurface<float>.TransFormedDir + newPoints[^2];
-        jaggedGeodesic = new(newPoints);
-        var cyl=surface.OfType<Cylinder<float>>().ToArray();
-        Console.WriteLine($"Num cyl {cyl.Length}");
-        Console.WriteLine($"Geodesicjagged {sw.Elapsed}");
-        LineViewWrapper.Unwrap.Polyline= jaggedGeodesic;
-        LineViewWrapper.Unwrap.LineWidth = 2.5f;
-        LineViewWrapper.Unwrap.Show = true;
-        sw.Restart();
-        meshi = surface.Tessellate(256);
-        Console.WriteLine($"Tessellate {sw.Elapsed.TotalMilliseconds}ms");
-        var mesh = BvhMesh<float>.SurfaceAreaHeuristic(meshi);
-        var distance = mesh.BBox.Min.DistanceTo(mesh.BBox.Max) * 2;
-        camera.Distance = 0.5f;
-        camera.LookAt = mesh.VertexCentroid;
-        MeshViewWrap.Unwrap.Mesh = meshi;
-        BBoxWrap.Unwrap.Camera = camera;
-        BBoxWrap.Unwrap.BBox = mesh.BBox;
-        var minY = mesh.BBox.Min.Y + 0.0001f;
-        var maxY = mesh.BBox.Max.Y;
-        var range = maxY - minY;
         MeshViewWrap.Show = true;
         MeshViewWrap.Unwrap.RenderModeFlags = RenderMode.Solid;
         MeshViewWrap.Unwrap.SolidColor = Color4.DarkSlateGray;
@@ -67,6 +35,52 @@ public partial class MainWindow : Window
         bg.From = Color4.DarkSlateBlue;
         bg.To = bg.From;
         bg.RotationMillis = 100000;
+        
+        LineViewWrapper.Unwrap.LineWidth = 2.5f;
+        LineViewWrapper.Unwrap.Show = true;
+        
+        IIndexedMesh<float> meshi = AABB.From(Vector3<float>.NegativeOne,Vector3<float>.One)
+            .Tessellate()
+            .Indexed();
+        //
+        var c= new Circle2<float>(Vector2<float>.Zero, 1f);
+        Arc2<float> arc = new(c,0f,float.Pi);
+        var seq = Enumerable.Sequence(0f, 0.5f, 0.01f);
+        var v1= seq.Select(arc.Traverse).ToArray();
+        var shift =arc.Traverse(1)-arc.Traverse(0);
+        var v2 = seq.Select(pos => pos + 0.5f).Select(arc.Traverse).Select(v => v + shift);
+        
+        Vector2<float>[] sweep = [new(0f,0f),new(0.5f,0.8f),new(1,1),new(2,1),new(3,0)];
+        sweep = [..v2.Reverse(),..v1.Reverse()];
+        var surface=new JaggedRotationalSurface<float>(Vector3<float>.Zero.RayThrough(Vector3<float>.UnitZ),sweep);
+        // var surface = JaggedRotationalSurface<float>.FromSweepCurve(arcPoly, ray);
+        
+        var jaggedGeodesic = surface.TraceGeodesics(new(1,0,surface.SweepCurve.Traverse(0.5f).Z),
+            Vector3<float>.UnitY + Vector3<float>.UnitZ,
+            cycleCount:10000);
+        jaggedGeodesic = surface.TraceGeodesics(new(1,0,surface.SweepCurve.Traverse(0.5f).Z),
+            Vector3<float>.UnitY + Vector3<float>.UnitZ,
+            cycleCount:10000);
+        var sw = Stopwatch.StartNew();
+        jaggedGeodesic = surface.TraceGeodesics(new(1,0,surface.SweepCurve.Traverse(0.5f).Z),
+            Vector3<float>.UnitY + Vector3<float>.UnitZ,
+            cycleCount:10000);
+        var elapsed = sw.Elapsed;
+        Console.WriteLine(elapsed);
+        var cyl=surface.OfType<Cylinder<float>>().ToArray();
+        meshi = surface.Tessellate(256);
+        LineViewWrapper.Unwrap.Polyline = jaggedGeodesic.ToPolyline();
+        var mesh = BvhMesh<float>.SurfaceAreaHeuristic(meshi);
+        this.MeshViewWrap.Unwrap.Mesh = mesh;
+        var distance = mesh.BBox.Min.DistanceTo(mesh.BBox.Max) * 2;
+        camera.Distance = 0.5f;
+
+        camera.LookAt = mesh.VertexCentroid;
+        BBoxWrap.Unwrap.BBox = mesh.BBox;
+        var minY = mesh.BBox.Min.Y + 0.0001f;
+        var maxY = mesh.BBox.Max.Y;
+        var range = maxY - minY;
+        
     }
 
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e) =>

@@ -30,7 +30,8 @@ public readonly struct Cylinder<TNum> : IBody<TNum>, IRotationalSurface<TNum>, I
         Axis = axis.Reversed();
     }
 
-    public IMesh<TNum> Tessellate() => ConeSection<TNum>.TessellateCylindrical(Base, Top, 32);
+    public IMesh<TNum> Tessellate() => Tessellate(32);
+    public IndexedMesh<TNum> Tessellate(int edgeCount)=>ConeSection<TNum>.TessellateCylindrical(Base, Top, edgeCount);
 
     /// <inheritdoc />
     public IDiscreteCurve<Vector3<TNum>, TNum> SweepCurve

@@ -1,19 +1,21 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using static MeshWiz.Utility.Enums;
 
 namespace MeshWiz.Utility;
 
-public readonly struct Result<TInfo,TValue> : IValueResult<Result<TInfo, TValue>, TInfo, TValue>
+public readonly struct Result<TInfo, TValue> : IValueResult<Result<TInfo, TValue>, TInfo, TValue>
     where TInfo : unmanaged, Enum
 {
-    public static readonly Result<TInfo, TValue> DefaultFailure = Failure(EnumResultHelper<TInfo>.DefaultFailureConstant);
+    public static readonly Result<TInfo, TValue> DefaultFailure =
+        Failure(EnumResultHelper<TInfo>.DefaultFailureConstant);
 
     [field: AllowNull, MaybeNull]
-    public TValue Value => HasValue 
-        ? field! 
+    public TValue Value => HasValue
+        ? field!
         : ThrowHelper.ThrowInvalidOperationException<TValue>("Illegal result access");
 
     public TInfo Info { get; }
@@ -98,17 +100,19 @@ public readonly struct Result<TInfo> : IResult<Result<TInfo>, TInfo>
     /// <inheritdoc />
     public static bool operator !=(Result<TInfo> left, Result<TInfo> right)
         => !AreEqual(left.Info, right.Info);
-
+    
+    public static implicit operator Result<TInfo>(TInfo info)=>Unsafe.As<TInfo,Result<TInfo>>(ref info);
+    // ReSharper disable once InconsistentNaming
     private static readonly Result<TInfo> _success = new(EnumResultHelper<TInfo>.SuccessConstant);
     public static Result<TInfo> Success() => _success;
-    public static Result<TInfo> Failure() => new (EnumResultHelper<TInfo>.DefaultFailureConstant);
+    public static Result<TInfo> Failure() => new(EnumResultHelper<TInfo>.DefaultFailureConstant);
+
     public static Result<TInfo> Failure(TInfo failInfo)
     {
         EnumResultHelper<TInfo>.ValidateFailureInfo(failInfo);
         return new Result<TInfo>(failInfo);
     }
 }
-
 
 public static class Result
 {
@@ -124,14 +128,27 @@ public static class Result
         result.IsSuccess ? result : func();
 
     public static TResult OrElse<TResult, TInfo, TValue>(this TResult result, Func<TValue> func)
-        where TResult :struct, IValueResult<TResult, TInfo, TValue> =>
+        where TResult : struct, IValueResult<TResult, TInfo, TValue> =>
         result.IsSuccess ? result : TResult.Success(func());
 
-    [Pure]
-    public static ExceptionResult OrElse(in this ExceptionResult result, Action func) 
-        => result.IsSuccess ? result : Func.Try(func);
+
+    //explicitly typed Overloads for performance gains
     
-    public static ExceptionResult<T> OrElse<T>(in this ExceptionResult<T> result, Func<T> func) 
-        => result.IsSuccess ? result : Func.Try(func);
+    public static Result<TInfo> OrElse<TInfo>(in this Result<TInfo> result, Func<Result<TInfo>> func)
+        where TInfo : unmanaged, Enum
+        => result.IsSuccess ? result : func();
+
+    public static Result<TInfo> OrElse<TInfo>(in this Result<TInfo> result, Func<TInfo> func)
+        where TInfo : unmanaged, Enum
+        => result.IsSuccess ? result : func();
     
+    public static Result<TInfo,TValue> OrElse<TInfo, TValue>(this Result<TInfo,TValue> result, Func<TValue> func)
+    where TInfo:unmanaged,Enum
+    =>result.IsSuccess ? result : func();
+
+    public static ExceptionResult OrElse(in this ExceptionResult result, Action func)
+        => result.IsSuccess ? result : Func.Try(func);
+
+    public static ExceptionResult<T> OrElse<T>(in this ExceptionResult<T> result, Func<T> func)
+        => result.IsSuccess ? result : Func.Try(func);
 }

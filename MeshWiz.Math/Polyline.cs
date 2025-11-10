@@ -420,6 +420,11 @@ public sealed class Polyline<TVector, TNum>(params TVector[] points)
 
     public Polyline<TVector, TNum> CullDeadSegments(TNum? epsilon = null)
     {
+        if (Count is 0)
+            return Empty;
+        if (Count is 1)
+            return this[0].Length.IsApprox(TNum.Zero) ? Empty : this;
+            
         epsilon ??= TNum.Epsilon;
         var p = _points[0];
         bool[]? toBeCulled = null;
