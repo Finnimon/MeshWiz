@@ -51,6 +51,8 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
 
     public IRotationalSurface<TNum> GetChildSurface(int index)
     {
+        if(index==0)
+            Console.WriteLine();
         if (Count <= (uint)index) IndexThrowHelper.Throw(index, Count);
         var start = Positions[index];
         var end = Positions[index + 1];
@@ -212,95 +214,116 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
     }
 
     public Line<Vector3<TNum>, TNum> AxisLine => SweepAxis.LineSection(TNum.Zero, Height);
-
-    public Polyline<Vector3<TNum>, TNum> TraceGeodesics(Vector3<TNum> p, Vector3<TNum> dir, int cycleCount = 100)
+    
+    public IEnumerable<IContiguousDiscreteCurve<Vector3<TNum>, TNum>> TraceGeodesics(Vector3<TNum> p, Vector3<TNum> dir, Func<int,bool> @while)
     {
+        if(Count == 0) yield break;
+        
         var found = TryFindClosestSurface(p, out var surfaceIndex);
-        if (!found) return Polyline<Vector3<TNum>, TNum>.Empty;
+        if (!found) yield break;
+        
         var previousDir = dir;
         var previousEnd = p;
         var previousNormal = this[surfaceIndex].NormalAt(p);
-        List<Task<Polyline<Vector3<TNum>, TNum>>> polylines = [];
-        var cycle = -1;
-        var previousSurfaceIndex = surfaceIndex;
-        while (++cycle < cycleCount)
+        RollingList<int> retryOrder = [surfaceIndex];
+        var i = -1;
+        while (@while(++i))
         {
-            retry:
-            var retryPrevious = true;
-            var surface = this[surfaceIndex];
-            var newNormal = surface.NormalAt(previousEnd);
-            if (!newNormal.IsParallelTo(previousNormal))
+            IContiguousDiscreteCurve<Vector3<TNum>, TNum>? current = null;
+            IRotationalSurface<TNum>? surface = null;
+            while (retryOrder.TryPopFront(out surfaceIndex))
             {
-                var about = previousNormal.Cross(newNormal);
-                var transformAngle = Vector3<TNum>.SignedAngleBetween(previousNormal, newNormal, about);
-                var rotation = Matrix4x4<TNum>.CreateRotation(about, transformAngle);
-                dir = rotation.MultiplyDirection(previousDir);
-                previousDir = dir;
-            }
-
-            var active = Func.Try(surface.GetGeodesicFromEntry, previousEnd, previousDir);
-            if (!active.HasValue || active.Value is not IContiguousDiscreteCurve<Vector3<TNum>, TNum> current)
-            {
-                if (retryPrevious)
+                surface = this[surfaceIndex];
+                var newNormal = surface.NormalAt(previousEnd);
+                var normalCalcPossible = Vector3<TNum>.IsRealNumber(newNormal)
+                                         && Vector3<TNum>.IsRealNumber(previousNormal);
+                if (normalCalcPossible && !newNormal.IsParallelTo(previousNormal))
                 {
-                    surfaceIndex = previousSurfaceIndex;
-                    retryPrevious = false;
-                    goto retry;
+                    var about = previousNormal.Cross(newNormal);
+                    var transformAngle = Vector3<TNum>.SignedAngleBetween(previousNormal, newNormal, about);
+                    var rotation = Matrix4x4<TNum>.CreateRotation(about, transformAngle);
+                    var rotatedDir = rotation.MultiplyDirection(previousDir);
+                    previousDir = rotatedDir;
                 }
-                Console.WriteLine($"Failure at {surfaceIndex} {active.Info}");
+
+                previousNormal = newNormal;
+
+                var active = Func.Try(surface.GetGeodesicFromEntry, previousEnd, previousDir);
+                var currentTryFailed = !active.HasValue
+                                       || active.Value is not IContiguousDiscreteCurve<Vector3<TNum>, TNum> contiguous
+                                       || contiguous.Length.IsApproxZero()
+                                       || !TNum.IsRealNumber(contiguous.Length);
+                if (currentTryFailed)
+                {
+                    Console.WriteLine(active.Info);
+                    continue;
+                }
+
+                current = (IContiguousDiscreteCurve<Vector3<TNum>, TNum>)active.Value;
+                retryOrder.Clear();
                 break;
             }
 
-            polylines.Add(Task.Run(() => current.ToPolyline()));
+            if (current is null || surface is null)
+                yield break;
+
+            yield return current;
 
             previousDir = current.ExitDirection;
             previousEnd = current.End;
+            previousNormal = surface.NormalAt(previousEnd);
 
-            var minusOneDistance = TNum.PositiveInfinity;
+            var minusOneIndex = surfaceIndex != 0 ? surfaceIndex - 1 : Count - 1;
+            var minusOneDistance = this[minusOneIndex].ClampToSurface(previousEnd).DistanceTo(previousEnd);
+            minusOneDistance = TNum.IsNaN(minusOneDistance) ? TNum.PositiveInfinity : minusOneDistance;
 
-            if (surfaceIndex != 0)
-                minusOneDistance = this[surfaceIndex - 1].ClampToSurface(previousEnd).DistanceTo(previousEnd);
-
-            var plusOneDistance = TNum.PositiveInfinity;
-            if (surfaceIndex != this.Count - 1)
-                plusOneDistance = this[surfaceIndex + 1].ClampToSurface(previousEnd).DistanceTo(previousEnd);
+            var plusOneIndex = surfaceIndex != Count - 1 ? surfaceIndex + 1 : 0;
+            var plusOneDistance = this[plusOneIndex].ClampToSurface(previousEnd).DistanceTo(previousEnd);
+            plusOneDistance = TNum.IsNaN(plusOneDistance) ? TNum.PositiveInfinity : plusOneDistance;
 
             var (bestDist, bestIndex) = minusOneDistance < plusOneDistance
-                ? (minusOneDistance, surfaceIndex - 1)
-                : (plusOneDistance, surfaceIndex + 1);
-            var nextSurfNotFound = !Numbers<TNum>.Eps3.IsApproxGreaterOrEqual(bestDist);
-            if (nextSurfNotFound)
-            {
-                Console.WriteLine($"Failure to find next at {surfaceIndex} {minusOneDistance} {plusOneDistance}");
-                break;
-            }
+                ? (minusOneDistance, minusOneIndex)
+                : (plusOneDistance, plusOneIndex);
+            var nextSurfFound = Numbers<TNum>.Eps3.IsApproxGreaterOrEqual(bestDist);
 
-            previousNormal = surface.NormalAt(previousEnd);
-            previousSurfaceIndex = surfaceIndex;
-            surfaceIndex = bestIndex;
+            retryOrder.Clear();
+            if (nextSurfFound)
+                retryOrder.Add(bestIndex);
+
+            var couldBeSameSurfaceAgain = surface is Cone<TNum> or ConeSection<TNum>;
+            if (couldBeSameSurfaceAgain)
+                retryOrder.Add(surfaceIndex);
+
             if (Vector3<TNum>.IsNaN(previousDir))
-            {
-                Console.WriteLine("Dir NAN");
-                break;
-            }
+                yield break;
+        }
+    }
 
-            if (Vector3<TNum>.IsNaN(previousNormal))
-            {
-                Console.WriteLine("Norm NAN");
-                break;
-            }
-        } //todo makeupright fails
-
-        List<Vector3<TNum>> vertices = [];
-        foreach (var polyline in polylines)
+    public Result<Arithmetics, Polyline<Vector3<TNum>, TNum>> TraceFullCycle(Vector3<TNum> p, Vector3<TNum> dir)
+    {
+        List<IContiguousDiscreteCurve<Vector3<TNum>, TNum>> cache = new(Count*2);
+        var geodesics = TraceGeodesics(p, dir, _ => true);
+        var first = Once.True;
+        foreach (var segment in geodesics)
         {
-            var current = polyline.GetAwaiter().GetResult();
-            var curPolyLine = current.ToPolyline();
-
-            var add = vertices.Count == 0 ? curPolyLine.Points : curPolyLine.Points[1..];
-            vertices.AddRange(add);
+            cache.Add(segment);
+            if (first) continue;
+            
+            
         }
 
+        throw new NotFiniteNumberException();
+    }
+    public Polyline<Vector3<TNum>, TNum> TraceGeodesicCycles(Vector3<TNum> p, Vector3<TNum> dir, int childSurfaceCount = 100)
+    {
+        var vertices = new List<Vector3<TNum>>();
+        var segments = TraceGeodesics(p, dir,i=>i<childSurfaceCount);
+        foreach (var segment in segments)
+        {
+            var current = segment.ToPolyline();
+            var add = vertices.Count == 0 ? current.Points : current.Points[1..];
+            vertices.AddRange(add);
+        }
         return new Polyline<Vector3<TNum>, TNum>(vertices.ToArray()).CullDeadSegments();
     }
 
@@ -311,5 +334,5 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
 
     /// <inheritdoc />
     public Polyline<Vector3<TNum>, TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint, Vector3<TNum> direction)
-        => TraceGeodesics(entryPoint, direction, 10000);
+        => TraceGeodesicCycles(entryPoint, direction, 10000);
 }

@@ -660,11 +660,13 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
 
     /// <inheritdoc />
     public static bool IsRealNumber(Vector3<TNum> value)
-        => TNum.IsRealNumber(value.Sum);
+        => TNum.IsRealNumber(value.X)
+           && TNum.IsRealNumber(value.Y)
+           && TNum.IsRealNumber(value.Z);
 
     /// <inheritdoc />
     public static bool IsSubnormal(Vector3<TNum> value)
-        => TNum.IsSubnormal(value.Sum);
+        => TNum.IsSubnormal(value.X) || TNum.IsSubnormal(value.Y) || TNum.IsSubnormal(value.Z);
 
     /// <inheritdoc />
     public static bool IsZero(Vector3<TNum> value)
