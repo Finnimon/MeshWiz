@@ -10,12 +10,10 @@ public struct Once(bool b)
     private byte _value = (byte)(b ? 0b01 : 0b00);
     private const byte ConsumedFlag = 0b10;
     private const byte ValueFlag = 0b01;
-    public static Once True { get; } = new Once(true);
-    public static Once False { get; } = new Once(false);
-
-
-
-    public bool CurrentValue => GetValue(_value);
+    public Once() : this(true) { }
+    public static Once True { get; } = new(true);
+    public static Once False { get; } = new(false);
+    
     [MethodImpl(MethodImplOptions.AggressiveInlining),Pure]
     private static bool IsUnconsumed(byte value) => (value & ConsumedFlag)!=ConsumedFlag;
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
