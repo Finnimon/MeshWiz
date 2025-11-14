@@ -303,25 +303,30 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
     {
         List<IContiguousDiscreteCurve<Vector3<TNum>, TNum>> cache = new(Count*2);
         var geodesics = TraceGeodesics(p, dir, _ => true);
-        var first = Once.True;
+        var first = Bool.Once();
         foreach (var segment in geodesics)
         {
             cache.Add(segment);
             if (first) continue;
             
-            
         }
 
         throw new NotFiniteNumberException();
     }
-    public Polyline<Vector3<TNum>, TNum> TraceGeodesicCycles(Vector3<TNum> p, Vector3<TNum> dir, int childSurfaceCount = 100)
+    public Polyline<Vector3<TNum>, TNum> TraceGeodesicCycles(Vector3<TNum> p, Vector3<TNum> dir, int childSurfaceCount)
     {
         var vertices = new List<Vector3<TNum>>();
-        var segments = TraceGeodesics(p, dir,i=>i<childSurfaceCount);
+        var segments = TraceGeodesics(p, dir,i=>i<childSurfaceCount)
+            .ToArray();//execute entirely to improve function caching
+        if(segments.Length == 0)
+            return Polyline<Vector3<TNum>, TNum>.Empty;
+        if(segments.Length == 1)
+            return segments[0].ToPolyline();
+        var first=Bool.Once();
         foreach (var segment in segments)
         {
             var current = segment.ToPolyline();
-            var add = vertices.Count == 0 ? current.Points : current.Points[1..];
+            var add = first ? current.Points : current.Points[1..];
             vertices.AddRange(add);
         }
         return new Polyline<Vector3<TNum>, TNum>(vertices.ToArray()).CullDeadSegments();

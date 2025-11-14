@@ -1,11 +1,8 @@
-﻿
-using MeshWiz.Utility;
+﻿using MeshWiz.Utility;
 
-var @true=Once.True;
-var @false=Once.False;
-for (var i = 0; i < 10; i++)
-{
-    
-    Console.WriteLine($"True {(bool)@true}");
-    Console.WriteLine($"False {(bool)@false}");
-}
+var once = Bool.Once();
+Console.WriteLine((bool)once);
+Console.WriteLine((bool)once);
+once = Bool.Once();
+Console.WriteLine((bool)once);
+Console.WriteLine((bool)once);

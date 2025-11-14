@@ -1,38 +1,71 @@
-using System.Diagnostics.Contracts;
+using System.Diagnostics.CodeAnalysis;
+using System.Drawing;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Serialization;
+using System.Security.Permissions;
+using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Utility;
 
-[StructLayout(LayoutKind.Sequential,Size=1)]
-public struct Once(bool b)
+/// <summary>
+/// Initial Impulse Provider
+/// </summary>
+[StructLayout(LayoutKind.Sequential, Size = 1)]
+public struct Once : IEquatable<Once>, 
+    IComparable, 
+    IComparable<Once>, 
+    IEqualityComparer<Once>,
+    IEqualityOperators<Once, Once, bool>
 {
-    private byte _value = (byte)(b ? 0b01 : 0b00);
-    private const byte ConsumedFlag = 0b10;
-    private const byte ValueFlag = 0b01;
-    public Once() : this(true) { }
-    public static Once True { get; } = new(true);
-    public static Once False { get; } = new(false);
-    
-    [MethodImpl(MethodImplOptions.AggressiveInlining),Pure]
-    private static bool IsUnconsumed(byte value) => (value & ConsumedFlag)!=ConsumedFlag;
+    private bool _value;
+
+    public Once() => _value = true;
+    public Once(bool value) => _value = value;
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator bool(in Once once)
     {
-        var value = GetValue(once._value);
-        if (IsUnconsumed(once._value)) 
-            ConsumeRare(ref Unsafe.AsRef(in once));
+        var value = once._value;
+        Unsafe.AsRef(in once)._value = false;
         return value;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining),Pure]
-    public static bool GetValue(byte value) 
-        => (value & ValueFlag) == ValueFlag;
+    /// <inheritdoc />
+    public bool Equals(Once other)
+        => _value == other._value;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ConsumeRare(ref Once ptr)
-    {
-        const int mask = 0b11;
-        ptr._value = (byte)(mask& ~ptr._value);
-    }
+    /// <inheritdoc />
+    public int CompareTo(Once other)
+        => _value.CompareTo(other._value);
+
+    /// <inheritdoc />
+    public override bool Equals([NotNullWhen(true)] object? obj)
+        => obj is Once other && _value == other._value;
+
+    /// <inheritdoc />
+    public override int GetHashCode() => _value.GetHashCode();
+
+    /// <inheritdoc />
+    public int CompareTo(object? obj)
+        => _value.CompareTo(obj);
+
+    /// <inheritdoc />
+    public bool Equals(Once x, Once y)
+        => x._value == y._value;
+
+    /// <inheritdoc />
+    public int GetHashCode(Once obj)
+        => _value.GetHashCode();
+
+    public override string ToString() => _value.ToString();
+
+    /// <inheritdoc />
+    public static bool operator ==(Once left, Once right)
+        => left._value == right._value;
+
+    /// <inheritdoc />
+    public static bool operator !=(Once left, Once right)
+        => left._value != right._value;
 }
