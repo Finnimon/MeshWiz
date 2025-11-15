@@ -11,7 +11,6 @@ public struct Alternator : IEquatable<Alternator>,
     IComparable<Alternator>,
     IEqualityComparer<Alternator>,
     IEqualityOperators<Alternator, Alternator, bool>
-
 {
     private bool _negatedValue;
 

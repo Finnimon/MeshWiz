@@ -853,4 +853,7 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
     public static Vector3<TNum> FusedMultiplyAdd(Vector3<TNum> a, TNum b, Vector3<TNum> addend)
         => new(TNum.FusedMultiplyAdd(a.X, b, addend.X), TNum.FusedMultiplyAdd(a.Y, b, addend.Y),
             TNum.FusedMultiplyAdd(a.Z, b, addend.Z));
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool IsPerpendicularTo(Vector3<TNum> other) => Dot(other).IsApproxZero();
 }

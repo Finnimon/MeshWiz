@@ -87,7 +87,7 @@ public static class NumExt
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsApproxZero<TNum>(this TNum num)
-        where TNum : IFloatingPointIeee754<TNum>
+        where TNum : INumber<TNum>
         => TNum.Abs(num) < Numbers<TNum>.ZeroEpsilon;
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
