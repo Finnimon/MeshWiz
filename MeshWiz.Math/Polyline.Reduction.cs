@@ -8,7 +8,7 @@ public static partial class Polyline
     public static class Reduction
     {
         public static Polyline<TVec, TNum> DouglasPeucker<TVec, TNum>(Polyline<TVec, TNum> polyline, TNum epsilon)
-            where TVec : unmanaged, IFloatingVector<TVec, TNum>
+            where TVec : unmanaged, IVector<TVec, TNum>
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             epsilon = TNum.Abs(epsilon);

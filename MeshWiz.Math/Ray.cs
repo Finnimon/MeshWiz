@@ -4,7 +4,7 @@ namespace MeshWiz.Math;
 
 public readonly struct Ray<TVector,TNum> 
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
-    where TVector: unmanaged, IFloatingVector<TVector,TNum>
+    where TVector: unmanaged, IVector<TVector,TNum>
 {
     public readonly TVector Origin;
     public readonly TVector Direction;

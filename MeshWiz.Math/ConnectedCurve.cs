@@ -5,13 +5,13 @@ namespace MeshWiz.Math;
 
 public sealed record ConnectedCurve<TVector,TNum>(IDiscreteCurve<TVector,TNum>[] Children) 
     : IDiscreteCurve<TVector,TNum>
-    where TVector :unmanaged, IFloatingVector<TVector, TNum>
+    where TVector :unmanaged, IVector<TVector, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     
     private TNum? _length;
     public TNum Length =>_length??=Children.Aggregate(TNum.Zero, (length,child) => length+child.Length);
-    public bool IsClosed => Start.Equals(End);
+    public bool IsClosed => Start.IsApprox(End);
 
     /// <inheritdoc />
     public Polyline<TVector, TNum> ToPolyline()

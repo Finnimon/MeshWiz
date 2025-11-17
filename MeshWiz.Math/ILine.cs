@@ -8,14 +8,14 @@ namespace MeshWiz.Math;
 
 public interface ILine<TVector, TNum>
     : IDiscreteCurve<TVector, TNum>
-    where TVector : unmanaged, IFloatingVector<TVector, TNum>
+    where TVector : unmanaged, IVector<TVector, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    TVector Direction => End.Subtract(Start);
+    TVector Direction => End-Start;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    TVector NormalDirection => Direction.Normalized;
+    TVector NormalDirection => Direction.Normalized();
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     TNum IDiscreteCurve<TVector, TNum>.Length => Direction.Length;

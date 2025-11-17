@@ -12,7 +12,7 @@ public static partial class Polyline
         public static Polyline<TVec, TNum>[] Unify<TVec, TNum>(Queue<Line<TVec, TNum>> segments,
             TNum? squareTolerance = null)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
-            where TVec : unmanaged, IFloatingVector<TVec, TNum>
+            where TVec : unmanaged, IVector<TVec, TNum>
         {
             var epsilon = squareTolerance ?? TNum.CreateTruncating(0.00001);
             if (segments is { Count: 0 }) return [];
@@ -70,7 +70,7 @@ public static partial class Polyline
             RollingList<Line<TVec, TNum>> segments,
             TNum? squareTolerance = null)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
-            where TVec : unmanaged, IFloatingVector<TVec, TNum>
+            where TVec : unmanaged, IVector<TVec, TNum>
         {
             var epsilon = squareTolerance ?? CalculateMinimumEpsilon(segments);
 
@@ -128,7 +128,7 @@ public static partial class Polyline
         }
 
         private static TNum CalculateMinimumEpsilon<TNum, TVec>(IReadOnlyList<Line<TVec, TNum>> segments)
-            where TNum : unmanaged, IFloatingPointIeee754<TNum> where TVec : unmanaged, IFloatingVector<TVec, TNum>
+            where TNum : unmanaged, IFloatingPointIeee754<TNum> where TVec : unmanaged, IVector<TVec, TNum>
         {
             var epsilon = TNum.CreateTruncating(float.MaxValue);
             foreach (var segment in segments)
@@ -145,7 +145,7 @@ public static partial class Polyline
 
         private static void AddIfValid<TVec, TNum>(List<Polyline<TVec, TNum>> polyLines,
             RollingList<TVec> connected, TNum minLength)
-            where TVec : unmanaged, IFloatingVector<TVec, TNum>
+            where TVec : unmanaged, IVector<TVec, TNum>
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
 
         {
@@ -161,7 +161,7 @@ public static partial class Polyline
             polyLines.Add(poly);
         }
 
-        private static void TryTrimTail<TVec, TNum>(RollingList<TVec> connected) where TVec : unmanaged, IFloatingVector<TVec, TNum>
+        private static void TryTrimTail<TVec, TNum>(RollingList<TVec> connected) where TVec : unmanaged, IVector<TVec, TNum>
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             if (connected.Count <= 3 || !connected[0].IsApprox(connected[^1])) return;
@@ -177,7 +177,7 @@ public static partial class Polyline
             RollingList<Polyline<TVec, TNum>> segments,
             TNum? tolerance = null)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
-            where TVec : unmanaged, IFloatingVector<TVec, TNum>
+            where TVec : unmanaged, IVector<TVec, TNum>
         {
             var epsilon = tolerance ?? TNum.Epsilon;
             if (segments is { Count: 0 }) return [];
@@ -231,7 +231,7 @@ public static partial class Polyline
 
         public static Polyline<TVec, TNum>[] BuildAllConnectedCurves<TVec, TNum>(
             IDictionary<int, RollingList<(int NextPolyline, Polyline<TVec, TNum> seg)>> segments,
-            TNum epsilon) where TVec : unmanaged, IFloatingVector<TVec, TNum>
+            TNum epsilon) where TVec : unmanaged, IVector<TVec, TNum>
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             List<Polyline<TVec, TNum>> results = [];
@@ -251,7 +251,7 @@ public static partial class Polyline
             TNum epsilon,
             [NotNullWhen(returnValue: true)] out Polyline<TVec, TNum>? result)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
-            where TVec : unmanaged, IFloatingVector<TVec, TNum>
+            where TVec : unmanaged, IVector<TVec, TNum>
         {
             var startingPointFound = segments.TryGetValue(startingPoint, out var startingSegments);
             if (!startingPointFound || startingSegments is not { Count: > 0 })

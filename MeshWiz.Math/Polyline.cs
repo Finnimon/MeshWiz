@@ -14,7 +14,7 @@ namespace MeshWiz.Math;
 
 public sealed class Polyline<TVector, TNum>(params TVector[] points)
     : IContiguousDiscreteCurve<TVector, TNum>, IReadOnlyList<Line<TVector, TNum>>
-    where TVector : unmanaged, IFloatingVector<TVector, TNum>
+    where TVector : unmanaged, IVector<TVector, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember]
@@ -346,9 +346,9 @@ public sealed class Polyline<TVector, TNum>(params TVector[] points)
         var endPt = points[pI];
         var isClosed = startPt.IsApprox(endPt);
         if (!isClosed) return new Polyline<TVector, TNum>(points[..pCount]);
-        var startDirection = (points[1] - startPt).Normalized;
-        var endDirection = (endPt - points[pI - 1]).Normalized;
-        if (!(startDirection.Dot(endDirection)).IsApprox(TNum.One))
+        var startDirection = (points[1] - startPt).Normalized();
+        var endDirection = (endPt - points[pI - 1]).Normalized();
+        if (!startDirection.Dot(endDirection).IsApprox(TNum.One))
             return new Polyline<TVector, TNum>(points[..pCount]);
         points[0] = points[pI - 1];
         return new Polyline<TVector, TNum>(points[..pI]);
@@ -385,8 +385,8 @@ public sealed class Polyline<TVector, TNum>(params TVector[] points)
         var endPt = points[^1];
         var areEqual = startPt.IsApprox(endPt);
         if (!areEqual) return new Polyline<TVector, TNum>(points.ToArray());
-        var startDirection = (points[1] - startPt).Normalized;
-        var endDirection = (endPt - points[^2]).Normalized;
+        var startDirection = (points[1] - startPt).Normalized();
+        var endDirection = (endPt - points[^2]).Normalized();
         if (!(startDirection.Dot(endDirection)).IsApprox(TNum.One))
             return new Polyline<TVector, TNum>(points.ToArray());
         points[0] = points[^2];
@@ -469,7 +469,7 @@ public sealed class Polyline<TVector, TNum>(params TVector[] points)
     }
 
     public Polyline<TOtherVec, TOtherNum> To<TOtherVec, TOtherNum>()
-        where TOtherVec : unmanaged, IFloatingVector<TOtherVec, TOtherNum>
+        where TOtherVec : unmanaged, IVector<TOtherVec, TOtherNum>
         where TOtherNum : unmanaged, IFloatingPointIeee754<TOtherNum> =>
         new(_points.Select(TOtherVec.FromComponentsConstrained<TVector, TNum>).ToArray());
 

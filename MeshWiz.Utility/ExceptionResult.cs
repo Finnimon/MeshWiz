@@ -2,23 +2,23 @@ using System.Diagnostics.Contracts;
 
 namespace MeshWiz.Utility;
 
-public readonly struct ExceptionResult : IResult<ExceptionResult, Exception?>
+public readonly struct ExceptionResult() : IResult<ExceptionResult, Exception>
 {
+    
+    /// <inheritdoc />
+    public bool IsSuccess => Info is NoException;
 
     /// <inheritdoc />
-    public bool IsSuccess => Info is null;
+    public bool IsFailure => Info is not NoException;
 
     /// <inheritdoc />
-    public bool IsFailure => Info is not null;
-
-    /// <inheritdoc />
-    public Exception? Info { get; private init; }
+    public Exception Info { get; private init; } = NoException.Instance;
 
     [Pure]
     public static ExceptionResult Success() => new();
 
     [Pure]
-    public static ExceptionResult Failure(Exception e) => new() { Info = e };
+    public static ExceptionResult Failure(Exception e) => e;
 
     [Pure]
     public static implicit operator bool(ExceptionResult result) => result.IsSuccess;
@@ -44,7 +44,8 @@ public readonly struct ExceptionResult : IResult<ExceptionResult, Exception?>
         => Info?.GetHashCode() ?? 0;
 }
 
-public readonly struct ExceptionResult<T> : IValueResult<ExceptionResult<T>, Exception?, T>
+
+public readonly struct ExceptionResult<T> : IValueResult<ExceptionResult<T>, Exception, T>
 {
     private readonly object? _value;
 
@@ -58,15 +59,15 @@ public readonly struct ExceptionResult<T> : IValueResult<ExceptionResult<T>, Exc
     public bool HasValue => IsSuccess;
 
     /// <inheritdoc />
-    public Exception? Info
+    public Exception Info
     {
-        get => IsSuccess ? null : (Exception)_value!;
+        get => IsSuccess ? NoException.Instance : (Exception)_value!;
         private init => _value = value;
     }
 
     public T Value
     {
-        get => IsSuccess ? (T)_value! : Result.ThrowIllegalValueAccess<T>();
+        get => IsSuccess ? (T)_value! : throw Info;
         private init => _value = value;
     }
 
@@ -103,3 +104,8 @@ public readonly struct ExceptionResult<T> : IValueResult<ExceptionResult<T>, Exc
     public override int GetHashCode() => HashCode.Combine(_value, IsSuccess);
 }
 
+internal sealed class NoException : Exception
+{
+    public static readonly NoException Instance = new();
+    private NoException() : base("No Exception") { }
+}

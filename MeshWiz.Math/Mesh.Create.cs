@@ -172,7 +172,7 @@ public static partial class Mesh
                     var l2 = along[row];
                     var n1 = l1.NormalDirection;
                     var n2 = l2.NormalDirection;
-                    normal = Vector3<TNum>.Lerp(n1, n2, Numbers<TNum>.Half).Normalized;
+                    normal = Vector3<TNum>.Lerp(n1, n2, Numbers<TNum>.Half).Normalized();
                     if (!normal.SquaredLength.IsApprox(TNum.One,Numbers<TNum>.Eps5)) normal = n2;
                 }
 
@@ -212,8 +212,8 @@ public static partial class Mesh
                 if (up.IsApprox(tangent, Numbers<TNum>.Eps5))
                     up = Vector3<TNum>.UnitY;
 
-                var normal = up.Cross(tangent).Normalized;
-                var binormal = tangent.Cross(normal).Normalized;
+                var normal = up.Cross(tangent).Normalized();
+                var binormal = tangent.Cross(normal).Normalized();
 
                 var origin = along.Points[row];
 

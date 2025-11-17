@@ -3,11 +3,11 @@ using System.Numerics;
 
 namespace MeshWiz.Math;
 
-public interface IVector2<TSelf, TNum> : IFloatingVector<TSelf, TNum>
+public interface IVector2<TSelf, TNum> : IVector<TSelf, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
     where TSelf : unmanaged, IVector2<TSelf, TNum>
 {
-    [Pure]static uint IVector<TSelf, TNum>.Dimensions => 2;
+    [Pure]static int IVectorBase<TSelf, TNum>.Dimensions => 2;
     [Pure]int IReadOnlyCollection<TNum>.Count => 2;
     [Pure]TNum Cross(TSelf other);
     [Pure]int CrossSign(TSelf other)=>TNum.Sign(Cross(other));

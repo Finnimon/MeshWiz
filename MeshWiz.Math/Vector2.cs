@@ -66,7 +66,7 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
     public readonly TNum X = x, Y = y;
     public static unsafe int ByteSize => sizeof(TNum) * 2;
     public int Count => 2;
-    public Vector2<TNum> Normalized => this / Length;
+    public Vector2<TNum> Normalized() => this / Length;
     public TNum AlignedSquareVolume => X * Y;
     public static Vector2<TNum> FromXY(TNum x, TNum y) => new(x, y);
 
@@ -191,6 +191,14 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TNum SquaredDistanceTo(Vector2<TNum> other) => (this - other).SquaredLength;
 
+    /// <inheritdoc />
+    public static TNum Distance(Vector2<TNum> a, Vector2<TNum> b)
+        => a.DistanceTo(b);
+
+    /// <inheritdoc />
+    public static TNum SquaredDistance(Vector2<TNum> a, Vector2<TNum> b)
+        => a.SquaredDistanceTo(b);
+
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TNum Cross(Vector2<TNum> other) => X * other.Y - Y * other.X;
 
@@ -200,12 +208,12 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsParallelTo(Vector2<TNum> other, TNum tolerance)
     {
-        var dot = Normalized.Dot(other.Normalized);
+        var dot = Normalized().Dot(other.Normalized());
         return TNum.Abs(TNum.Abs(dot) - TNum.One) < tolerance;
     }
 
     public static Vector2<TNum> ExactLerp(Vector2<TNum> from, Vector2<TNum> toward, TNum exactDistance)
-        => (toward - from).Normalized * exactDistance + from;
+        => (toward - from).Normalized() * exactDistance + from;
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsParallelTo(Vector2<TNum> other)
@@ -775,8 +783,8 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
     [Pure]
     public static TNum SignedAngleBetween(Vector2<TNum> a, Vector2<TNum> b)
     {
-        a = a.Normalized;
-        b = b.Normalized;
+        a = a.Normalized();
+        b = b.Normalized();
         var dot = a.Dot(b);
         var cross = a.Cross(b);
         return TNum.Atan2(cross, dot);
@@ -803,8 +811,8 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
     [Pure]
     public static TNum AngleBetween(Vector2<TNum> a, Vector2<TNum> b)
     {
-        a = a.Normalized;
-        b = b.Normalized;
+        a = a.Normalized();
+        b = b.Normalized();
         var dot = a.Dot(b);
         return TNum.Acos(dot);
     }

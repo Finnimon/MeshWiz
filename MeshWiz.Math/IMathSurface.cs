@@ -8,7 +8,7 @@ namespace MeshWiz.Math;
 /// </summary>
 public interface IMathSurface<TVector, TNum> : ISurface<TVector, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum> 
-    where TVector : unmanaged, IFloatingVector<TVector, TNum>
+    where TVector : unmanaged, IVector<TVector, TNum>
 {
     [Pure]
     public TVector NormalAt(TVector p);

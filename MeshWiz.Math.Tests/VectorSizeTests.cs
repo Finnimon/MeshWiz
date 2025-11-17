@@ -48,7 +48,7 @@ public class VectorSizeTests
         => VectorSizeAssert<Vector4<NFloat>,NFloat>();
 
     private unsafe void VectorSizeAssert<TVector,TNum>() 
-        where TVector : unmanaged, IFloatingVector<TVector,TNum>
+        where TVector : unmanaged, IVector<TVector,TNum>
         where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
     {
         var expected = (int)(sizeof(TNum) * TVector.Dimensions);

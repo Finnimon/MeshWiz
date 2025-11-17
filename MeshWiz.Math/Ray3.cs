@@ -16,7 +16,7 @@ public readonly struct Ray3<TNum>
     public Ray3(Vector3<TNum> origin, Vector3<TNum> direction)
     {
         Origin = origin;
-        Direction = direction.Normalized;
+        Direction = direction.Normalized();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

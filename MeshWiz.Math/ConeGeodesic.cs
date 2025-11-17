@@ -238,7 +238,7 @@ public readonly struct ConeGeodesic<TNum> : IContiguousDiscreteCurve<Vector3<TNu
         var specialCaseStraightLine = PolarStart.PolarRadius.IsApproxZero()
                                       || PolarEnd.PolarRadius.IsApproxZero()
                                       || PolarStart.PolarAngle.IsApprox(PolarEnd.PolarAngle);
-        if (specialCaseStraightLine) return (End - Start).Normalized;
+        if (specialCaseStraightLine) return (End - Start).Normalized();
         var polarP = Vector2<TNum>.PolarLerp(PolarStart, PolarEnd, at);
         var p = ProjectPolarPoint(in Surface, polarP);
         var pAngle = polarP.PolarAngle;
@@ -248,14 +248,14 @@ public readonly struct ConeGeodesic<TNum> : IContiguousDiscreteCurve<Vector3<TNu
         var dirAngle = polarAxis.PolarAngle - pAngle;
         var rot = Matrix4x4<TNum>.CreateRotation(normal, dirAngle);
         var dir = rot.MultiplyDirection(tipToP);
-        dir = dir.Normalized;
+        dir = dir.Normalized();
         return dir;
     }
 
     public Vector2<TNum> CartesianStart => PolarStart.PolarToCartesian();
     public Vector2<TNum> CartesianEnd => PolarEnd.PolarToCartesian();
     public Vector2<TNum> CartesianAxisVector => (CartesianEnd - CartesianStart);
-    public Vector2<TNum> CartesianDirection => (CartesianEnd - CartesianStart).Normalized;
+    public Vector2<TNum> CartesianDirection => (CartesianEnd - CartesianStart).Normalized();
 
     /// <inheritdoc />
     public Vector3<TNum> EntryDirection => GetTangent(TNum.Zero);

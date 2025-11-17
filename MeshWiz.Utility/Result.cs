@@ -151,4 +151,18 @@ public static class Result
 
     public static ExceptionResult<T> OrElse<T>(in this ExceptionResult<T> result, Func<T> func)
         => result.IsSuccess ? result : Func.Try(func);
+
+    public static bool TryGetValue<TResult, TInfo, TValue>(this TResult result,
+        [NotNullWhen(returnValue: true),AllowNull] out TValue value)
+    where TResult: struct, IValueResult<TResult,TInfo, TValue>
+    {
+        if (result.IsFailure)
+        {
+            value = default!;
+            return false;
+        }
+
+        value = result.Value!;
+        return true;
+    }
 }

@@ -59,8 +59,8 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vector4<TNum>,
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public TNum Trace => M00 + M11 + M22 + M33;
 
-    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public Matrix4x4<TNum> Normalized => this / Det;
+    [Pure]
+    public Matrix4x4<TNum> Normalized() => this / Det;
 
     public readonly Vector4<TNum> X, Y, Z, W;
 
@@ -231,7 +231,7 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vector4<TNum>,
     [Pure]
     public static Matrix4x4<TNum> CreateRotation(Vector3<TNum> axis, TNum angle)
     {
-        axis = axis.Normalized;
+        axis = axis.Normalized();
 
         var cos = TNum.Cos(angle);
         var sin = TNum.Sin(angle);
@@ -267,9 +267,9 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vector4<TNum>,
 
     public static Matrix4x4<TNum> CreateViewAt(Vector3<TNum> eye, Vector3<TNum> target, Vector3<TNum> up)
     {
-        var z = (eye - target).Normalized;
-        var x = (up ^ z).Normalized;
-        var y = (z ^ x).Normalized;
+        var z = (eye - target).Normalized();
+        var x = (up ^ z).Normalized();
+        var y = (z ^ x).Normalized();
         var w = Vector4<TNum>.FromXYZW(
             -(x.Dot(eye)),
             -(y.Dot(eye)),

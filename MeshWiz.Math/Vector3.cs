@@ -25,7 +25,8 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
 
     public int Count => 3;
 
-    [Pure] public Vector3<TNum> Normalized => this / Length;
+    [Pure]
+    public Vector3<TNum> Normalized() => this / Length;
 
     /// <inheritdoc />
     public static Vector3<TNum> FromValue<TOtherNum>(TOtherNum other) where TOtherNum : INumberBase<TOtherNum>
@@ -228,13 +229,20 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TNum SquaredDistanceTo(Vector3<TNum> other) => (this - other).SquaredLength;
 
+    /// <inheritdoc />
+    public static TNum Distance(Vector3<TNum> a, Vector3<TNum> b) => a.DistanceTo(b);
+
+    /// <inheritdoc />
+    public static TNum SquaredDistance(Vector3<TNum> a, Vector3<TNum> b)
+        => a.SquaredDistanceTo(b);
+
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector3<TNum> Cross(Vector3<TNum> other) => this ^ other;
 
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsParallelTo(Vector3<TNum> other, TNum tolerance)
-        => tolerance >= TNum.Abs(TNum.Abs(Normalized.Dot(other.Normalized)) - TNum.One);
+        => tolerance >= TNum.Abs(TNum.Abs(Normalized().Dot(other.Normalized())) - TNum.One);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsParallelTo(Vector3<TNum> other)
@@ -827,8 +835,8 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
     [Pure]
     public static TNum AngleBetween(Vector3<TNum> a, Vector3<TNum> b)
     {
-        a = a.Normalized;
-        b = b.Normalized;
+        a = a.Normalized();
+        b = b.Normalized();
         var dot = a.Dot(b);
         return TNum.Acos(dot);
     }
@@ -837,8 +845,8 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
     public static TNum SignedAngleBetween(Vector3<TNum> a, Vector3<TNum> b, Vector3<TNum> about)
     {
         var plane = new Plane3<TNum>(about, TNum.Zero);
-        var a2D = plane.ProjectIntoLocal(a).Normalized;
-        var b2D = plane.ProjectIntoLocal(b).Normalized;
+        var a2D = plane.ProjectIntoLocal(a).Normalized();
+        var b2D = plane.ProjectIntoLocal(b).Normalized();
 
         var dp = a2D.Dot(b2D);
         dp = TNum.Clamp(dp, TNum.NegativeOne, TNum.One);

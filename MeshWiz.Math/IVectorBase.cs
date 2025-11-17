@@ -13,32 +13,31 @@ public interface IVectorBase<TSelf, TNum>
         SysNum.IAdditionOperators<TSelf, TSelf, TSelf>,
         SysNum.ISubtractionOperators<TSelf, TSelf, TSelf>,
         SysNum.IMultiplicativeIdentity<TSelf, TSelf>,
-        SysNum.IMultiplyOperators<TSelf, TSelf, TSelf>, 
-        SysNum.IUnaryNegationOperators<TSelf,TSelf>,
-        SysNum.IUnaryPlusOperators<TSelf,TSelf> 
+        SysNum.IMultiplyOperators<TSelf, TSelf, TSelf>,
+        SysNum.IUnaryNegationOperators<TSelf, TSelf>,
+        SysNum.IUnaryPlusOperators<TSelf, TSelf>,
+        SysNum.IDecrementOperators<TSelf>,
+        SysNum.IDivisionOperators<TSelf, TSelf, TSelf>,
+        IEquatable<TSelf>,
+        SysNum.IIncrementOperators<TSelf>,
+        IComparable,
+        IComparable<TSelf>,
+        SysNum.IComparisonOperators<TSelf, TSelf, bool>,
+        IPosition<TSelf,TSelf, TNum>,
+        ILerp<TSelf,TNum> ,
+        IByteSize
     where TSelf : unmanaged, IVectorBase<TSelf, TNum>
     where TNum : unmanaged, SysNum.IFloatingPointIeee754<TNum>
 {
     /// <inheritdoc />
     int IReadOnlyCollection<TNum>.Count => TSelf.Dimensions;
 
-    static virtual int Dimensions =>Unsafe.SizeOf<TSelf>()/Unsafe.SizeOf<TNum>();
+    static virtual int Dimensions => Unsafe.SizeOf<TSelf>() / Unsafe.SizeOf<TNum>();
     TNum Length { get; }
-    TNum SquaredLength => TSelf.Dot((TSelf)this,(TSelf) this);
+    TNum SquaredLength => TSelf.Dot((TSelf)this, (TSelf)this);
 
     [Pure] public TNum Sum => this.Sum();
 
-    [Pure]
-    static virtual TSelf Lerp(TSelf a, TSelf b, TNum t) => a + (b - a) * t;
-
-    [Pure]
-    static virtual TSelf ExactLerp(TSelf a, TSelf b, TNum exactDistance)
-    {
-        var dir = b - a;
-        var len=dir.Length;
-        var trueLerp = exactDistance / len;
-        return a + dir * trueLerp;
-    }
 
     [Pure]
     static virtual TNum Dot(TSelf a, TSelf b)
@@ -48,6 +47,9 @@ public interface IVectorBase<TSelf, TNum>
             result += a[i] * b[i];
         return result;
     }
+
+    [Pure]
+    TNum Dot(TSelf other) => TSelf.Dot(other, (TSelf)this);
 
     [Pure]
     static virtual bool ArePerpendicular(TSelf a, TSelf b)
@@ -63,46 +65,42 @@ public interface IVectorBase<TSelf, TNum>
     }
 
     [Pure]
-    TNum AngleTo(TSelf other)=>TSelf.AngleBetween((TSelf)this,other);
-    
+    TNum AngleTo(TSelf other) => TSelf.AngleBetween((TSelf)this, other);
+
     [Pure]
     static virtual TSelf Normalize(TSelf v) => v / v.Length;
+
     [Pure]
-    TSelf Normalized()=>TSelf.Normalize((TSelf)this);
+    TSelf Normalized() => TSelf.Normalize((TSelf)this);
+
     [Pure]
     static abstract TSelf operator *(TSelf l, TNum r);
+
     [Pure]
-    static abstract TSelf operator *(TNum l,TSelf r);
+    static abstract TSelf operator *(TNum l, TSelf r);
+
     [Pure]
     static abstract TSelf operator /(TSelf l, TNum r);
+
     [Pure]
-    static abstract TSelf operator /(TNum l,TSelf r);
-    
-    [Pure]
-    TNum DistanceTo(TSelf other)=>(other-(TSelf)this).Length;
-    [Pure]
-    TNum SquaredDistanceTo(TSelf other)
-    {
-        var dir = (other - (TSelf)this);
-        return TSelf.Dot(dir, dir);
-    }
+    static abstract TSelf operator /(TNum l, TSelf r);
 
     [Pure]
     bool IsParallelTo(TSelf other)
     {
-        var v1=this.Normalized();
-        var v2=other.Normalized();
-        return TNum.Abs(TSelf.Dot(v1,v2)).IsApprox(TNum.One);
+        var v1 = this.Normalized();
+        var v2 = other.Normalized();
+        return TNum.Abs(TSelf.Dot(v1, v2)).IsApprox(TNum.One);
     }
-    
+
     [Pure]
     bool IsApprox(TSelf other, TNum squareTolerance)
         => SquaredDistanceTo(other) < squareTolerance;
 
     [Pure]
-    bool IsApprox(TSelf other)=>IsApprox(other, Numbers<TNum>.ZeroEpsilon);
-    
-    
+    bool IsApprox(TSelf other) => IsApprox(other, Numbers<TNum>.ZeroEpsilon);
+
+
     [Pure]
     static abstract TSelf FromComponents<TList>(TList components) where TList : IReadOnlyList<TNum>;
 
@@ -117,6 +115,7 @@ public interface IVectorBase<TSelf, TNum>
         where TList : IReadOnlyList<TOtherNum>
         where TOtherNum : SysNum.INumberBase<TOtherNum>
         => TSelf.FromComponentsConstrained(components.Select(TNum.CreateTruncating).ToArray());
+
     [Pure]
     static abstract TSelf FromComponentsConstrained<TList>(TList components) where TList : IReadOnlyList<TNum>;
 
@@ -128,4 +127,39 @@ public interface IVectorBase<TSelf, TNum>
         where TOtherNum : SysNum.INumberBase<TOtherNum>
         => TSelf.FromValue(TNum.CreateTruncating(other));
 
+    /// <inheritdoc />
+    TSelf IPosition<TSelf, TSelf, TNum>.Position => (TSelf)this;
+}
+
+public interface IDistance<TSelf, TNum>
+    where TSelf : IDistance<TSelf, TNum>
+{
+    [Pure]
+    TNum DistanceTo(TSelf other);
+
+    [Pure]
+    TNum SquaredDistanceTo(TSelf other);
+
+    [Pure]
+    static abstract TNum Distance(TSelf a, TSelf b);
+    
+    [Pure]
+    static abstract TNum SquaredDistance(TSelf a, TSelf b);
+}
+
+public interface IPosition<TSelf, out TPosition, TNum> : IDistance<TSelf, TNum>
+    where TSelf : IPosition<TSelf, TPosition, TNum>
+    where TPosition : IPosition<TPosition, TPosition, TNum>
+{
+    TPosition Position { get; }
+}
+
+public interface ILerp<TSelf, TNum> : IDistance<TSelf, TNum>
+    where TSelf : ILerp<TSelf, TNum>
+{
+    [Pure]
+    static abstract TSelf Lerp(TSelf a, TSelf b, TNum t);
+
+    [Pure]
+    static abstract TSelf ExactLerp(TSelf a, TSelf b, TNum exactDistance);
 }

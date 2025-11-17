@@ -5,7 +5,7 @@ namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct Triangle<TVector, TNum> : ISurface<TVector, TNum>
-    where TVector : unmanaged, IFloatingVector<TVector, TNum>
+    where TVector : unmanaged, IVector<TVector, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly TVector A, B, C;

@@ -11,7 +11,7 @@ namespace MeshWiz.Math;
 [StructLayout(LayoutKind.Sequential)]
 public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
     : ILine<TVector, TNum>, IContiguousDiscreteCurve<TVector, TNum>
-    where TVector : unmanaged, IFloatingVector<TVector, TNum>
+    where TVector : unmanaged, IVector<TVector, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public Line<TVector, TNum> Normalized() => FromDirection(Start, NormalDirection);
@@ -29,7 +29,7 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
     public TVector Direction => End - Start;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public TVector NormalDirection => Direction.Normalized;
+    public TVector NormalDirection => Direction.Normalized();
 
     [Pure]
     public Line<TVector, TNum> Reversed() => new(End, Start);
@@ -45,7 +45,7 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
 
     [Pure]
     public static Line<TVector, TNum> FromDirection(TVector start, TVector direction)
-        => new(start, start.Add(direction));
+        => new(start, start+direction);
 
     [Pure]
     public static Line<TVector, TNum> FromDirection(TVector direction)

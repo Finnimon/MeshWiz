@@ -9,7 +9,7 @@ public readonly struct LineIndexer(int start, int end) : IEquatable<LineIndexer>
     public readonly int Start=start,  End=end;
 
     public Line<TVector, TNum> Extract<TVector, TNum>(IReadOnlyList<TVector> vertices)
-        where TVector : unmanaged, IFloatingVector<TVector, TNum>
+        where TVector : unmanaged, IVector<TVector, TNum>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
         => vertices[Start].LineTo(vertices[End]);
     

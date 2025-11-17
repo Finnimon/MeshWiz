@@ -21,7 +21,7 @@ public readonly struct TriangleIndexer(int a, int b, int c) : IEquatable<Triangl
 
     public Triangle<TVector, TNum> Extract<TVector, TNum>(IReadOnlyList<TVector> vertices)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
-        where TVector : unmanaged, IFloatingVector<TVector, TNum>
+        where TVector : unmanaged, IVector<TVector, TNum>
         => new(vertices[A], vertices[B], vertices[C]);
 
     public void Deconstruct(out int a, out int b, out int c)

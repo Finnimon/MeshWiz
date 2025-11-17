@@ -15,7 +15,7 @@ public class OrbitCamera(float fovRad, Vector3<float> orbitAround, float distanc
     public Vector3<float> UnitUp
     {
         get;
-        set => field = value.Normalized;
+        set => field = value.Normalized();
     }
 
     public Vector3<float> Position =>GetPosition();
@@ -34,7 +34,7 @@ public class OrbitCamera(float fovRad, Vector3<float> orbitAround, float distanc
         var reference = float.Abs(up.Dot(Vector3<float>.UnitY)) < 0.99f
                 ? Vector3<float>.UnitY
                 : Vector3<float>.UnitX;;
-        var forward = up.Cross(reference).Normalized;
+        var forward = up.Cross(reference).Normalized();
 
         var local =
             reference   * (Distance * float.Cos(PitchRad) * float.Cos(AzimuthRad)) +
@@ -47,10 +47,10 @@ public class OrbitCamera(float fovRad, Vector3<float> orbitAround, float distanc
     public Vector3<float> UnitRight()
     {
         var up=UnitUp;
-        var dir= (LookAt - Position).Normalized;
+        var dir= (LookAt - Position).Normalized();
         var reference = dir;
         if (dir.IsParallelTo(up)) throw new InvalidOperationException("Rot camera front by azimuth");
-        return up.Cross(reference).Normalized;
+        return up.Cross(reference).Normalized();
     }
 
 

@@ -138,7 +138,7 @@ public readonly struct Torus<TNum> : IBody<TNum>, IRotationalSurface<TNum>
     {
         p = ClampToSurface(p);
         var dir = p - InnerCircle.ClampToEdge(p);
-        return dir.Normalized;
+        return dir.Normalized();
     }
 
     /// <inheritdoc />

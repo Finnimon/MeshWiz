@@ -11,7 +11,7 @@ using MeshWiz.Utility.Extensions;
 namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
+public readonly struct Vector4<TNum> : IVector<Vector4<TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly TNum X, Y, Z, W;
@@ -29,10 +29,9 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
     public static Vector4<TNum> FromValue<TOtherNum>(TOtherNum other) where TOtherNum : INumberBase<TOtherNum>
         => new(TNum.CreateTruncating(other));
 
-    static uint IVector<Vector4<TNum>, TNum>.Dimensions => 4;
-    public Vector4<TNum> Normalized => this / Length;
+    public Vector4<TNum> Normalized() => this / Length;
 
-    [Pure] public static uint Dimensions => 4;
+    [Pure] public static int Dimensions => 4;
     [Pure] public TNum Length => TNum.Sqrt(SquaredLength);
 
     [Pure]
@@ -248,9 +247,17 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TNum SquaredDistanceTo(Vector4<TNum> other) => (this - other).SquaredLength;
 
+    /// <inheritdoc />
+    public static TNum Distance(Vector4<TNum> a, Vector4<TNum> b)
+        => a.DistanceTo(b);
+
+    /// <inheritdoc />
+    public static TNum SquaredDistance(Vector4<TNum> a, Vector4<TNum> b)
+        => a.SquaredDistanceTo(b);
+
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsParallelTo(Vector4<TNum> other, TNum tolerance)
-        => tolerance >= TNum.Abs(Normalized.Dot(other.Normalized)) - TNum.One;
+        => tolerance >= TNum.Abs(Normalized().Dot(other.Normalized())) - TNum.One;
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsParallelTo(Vector4<TNum> other)
@@ -332,7 +339,7 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4<TNum> ExactLerp(Vector4<TNum> from, Vector4<TNum> toward, TNum exactDistance)
-        => (toward - from).Normalized * exactDistance + from;
+        => (toward - from).Normalized() * exactDistance + from;
 
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -821,8 +828,8 @@ public readonly struct Vector4<TNum> : IFloatingVector<Vector4<TNum>, TNum>
 
     public static TNum AngleBetween(Vector4<TNum> a, Vector4<TNum> b)
     {
-        a = a.Normalized;
-        b = b.Normalized;
+        a = a.Normalized();
+        b = b.Normalized();
         var dot = a.Dot(b);
         return TNum.Acos(dot);
     }

@@ -71,7 +71,7 @@ public readonly struct Cylinder<TNum> : IBody<TNum>, IRotationalSurface<TNum>, I
     public Vector3<TNum> NormalAt(Vector3<TNum> p)
     {
         var cp= Axis.ClosestPoint(p);
-        return (p - cp).Normalized;
+        return (p - cp).Normalized();
     }
 
 }

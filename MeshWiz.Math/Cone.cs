@@ -101,7 +101,7 @@ public readonly struct Cone<TNum> : IBody<TNum>, IRotationalSurface<TNum>, IEqua
         var anglePos = p2.CartesianToPolar().PolarAngle;
         var tangent = baseC.GetTangentAtAngle(anglePos);
         var pToTip = Tip - p;
-        return tangent.Cross(pToTip).Normalized;
+        return tangent.Cross(pToTip).Normalized();
         // var closest = Axis.ClosestPoint(p);
         // var axisToP = (p - closest).Normalized;
         // var axisN = Axis.Direction;

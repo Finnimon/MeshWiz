@@ -14,7 +14,7 @@ public readonly struct Ray2<TNum>
     public Ray2(Vector2<TNum> origin, Vector2<TNum> direction)
     {
         Origin = origin;
-        Direction = direction.Normalized;
+        Direction = direction.Normalized();
     }
 
     [Pure]

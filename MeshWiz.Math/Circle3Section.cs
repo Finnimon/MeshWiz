@@ -28,7 +28,7 @@ public readonly struct Circle3Section<TNum> : IFlat<TNum>, IRotationalSurface<TN
         Centroid = centroid;
         ArgumentOutOfRangeException.ThrowIfEqual(MajorRadius, MinorRadius, nameof(MajorRadius));
         var sign = TNum.Sign(minorRadius) != TNum.Sign(majorRadius) ^ majorRadius < minorRadius;
-        Normal = sign ? -normal.Normalized : normal.Normalized;
+        Normal = sign ? -normal.Normalized() : normal.Normalized();
     }
 
     public Plane3<TNum> Plane => new(Normal, Centroid);
@@ -132,7 +132,7 @@ public readonly struct Circle3Section<TNum> : IFlat<TNum>, IRotationalSurface<TN
         var surfaceClamped = Centroid + cToP * distance;
 
         var flatDir = direction - Normal * direction.Dot(Normal);
-        flatDir = flatDir.Normalized;
+        flatDir = flatDir.Normalized();
         if (!flatDir.SquaredLength.IsApprox(TNum.One)) return surfaceClamped.LineTo(surfaceClamped);
         var line = Plane.ProjectIntoLocal(surfaceClamped).LineTo(Plane.ProjectIntoLocal(surfaceClamped + direction));
         var tMin = GetClosestIntersection(in line, Minor.OnPlane);

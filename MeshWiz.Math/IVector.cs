@@ -2,103 +2,17 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Globalization;
 using System.Numerics;
-using System.Runtime.Serialization;
-using System.Text.Json.Serialization;
-using System.Xml.Serialization;
-using MeshWiz.Contracts;
+using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
 
 public interface IVector<TSelf, TNum>
-    : IReadOnlyList<TNum>,
-        IUnmanagedDataVector<TNum>,
-        INumber<TSelf>
-    where TNum : unmanaged, INumber<TNum>
+    : IVectorBase<TSelf,TNum>,  
+        IFloatingPointIeee754<TSelf>
+    where TNum : unmanaged, IFloatingPointIeee754<TNum>
     where TSelf : unmanaged, IVector<TSelf, TNum>
 {
-    [Pure]
-    static abstract TSelf FromComponents<TList>(TList components) where TList : IReadOnlyList<TNum>;
-
-    [Pure]
-    static abstract TSelf FromComponents<TList, TOtherNum>(TList components)
-        where TList : IReadOnlyList<TOtherNum>
-        where TOtherNum : INumberBase<TOtherNum>;
-
-    [Pure]
-    static abstract TSelf FromComponentsConstrained<TList, TOtherNum>(TList components)
-        where TList : IReadOnlyList<TOtherNum>
-        where TOtherNum : INumberBase<TOtherNum>;
-
-    [Pure]
-    static abstract TSelf FromComponentsConstrained<TList>(TList components) where TList : IReadOnlyList<TNum>;
-
-    [Pure]
-    static abstract TSelf FromValue(TNum value);
-
-    [Pure]
-    static abstract TSelf FromValue<TOtherNum>(TOtherNum other)
-        where TOtherNum : INumberBase<TOtherNum>;
-    
-    [JsonIgnore,XmlIgnore,SoapIgnore,IgnoreDataMember,Pure] static abstract uint Dimensions { get; }
-    [JsonIgnore,XmlIgnore,SoapIgnore,IgnoreDataMember,Pure] int IReadOnlyCollection<TNum>.Count => (int)TSelf.Dimensions;
-    [JsonIgnore,XmlIgnore,SoapIgnore,IgnoreDataMember,Pure] TNum Length { get; }
-    [JsonIgnore,XmlIgnore,SoapIgnore,IgnoreDataMember,Pure] TNum SquaredLength { get; }
-    [JsonIgnore,XmlIgnore,SoapIgnore,IgnoreDataMember,Pure] TSelf Normalized { get; }
-
-    [Pure]
-    TSelf Add(TSelf other);
-
-    [Pure]
-    TSelf Subtract(TSelf other);
-
-    [Pure]
-    TSelf Scale(TNum scalar);
-
-    [Pure]
-    TSelf Divide(TNum divisor);
-
-    [Pure]
-    TNum Dot(TSelf other);
-
-    [Pure]
-    TNum DistanceTo(TSelf other);
-
-    TNum SquaredDistanceTo(TSelf other);
-
-    [Pure]
-    static abstract TSelf Lerp(TSelf from, TSelf to, TNum t);
-
-    [Pure]
-    static abstract TSelf ExactLerp(TSelf from, TSelf toward, TNum exactDistance);
-
-    [Pure]
-    bool IsParallelTo(TSelf other);
-
-    bool IsParallelTo(TSelf other, TNum tolerance);
-
-    [Pure]
-    bool IsApprox(TSelf other, TNum squareTolerance)
-        => SquaredDistanceTo(other) < squareTolerance;
-
-    [Pure]
-    bool IsApprox(TSelf other);
-
-    [Pure]
-    public static abstract TSelf operator *(TSelf l, TNum r);
-
-    [Pure]
-    public static abstract TSelf operator *(TNum l, TSelf r);
-
-    [Pure]
-    public static abstract TSelf operator /(TSelf l, TNum r);
-
-    [Pure]
-    public static abstract TSelf operator /(TNum l, TSelf r);
-
-
-    [JsonIgnore,XmlIgnore,SoapIgnore,IgnoreDataMember,Pure] public TNum Sum { get; }
-    
     static bool INumberBase<TSelf>.TryConvertFromChecked<TOther>(TOther value, out TSelf result)
     {
         if (value is TNum)
@@ -347,9 +261,63 @@ public interface IVector<TSelf, TNum>
         result = default;
         return s is not null && TSelf.TryParse(s.AsSpan(), style, provider, out result!);
     }
-
+    
+    
+    
     [Pure]
-    public static abstract TNum AngleBetween(TSelf a, TSelf b);
+    static virtual bool IsNan(in TSelf vec)
+    {
+        for (var i = 0; i < TSelf.Dimensions; i++)
+            if (TNum.IsNaN(vec[i]))
+                return true;
+        return false;
+    }
+    [Pure]
+    public Line<TSelf, TNum> LineTo(TSelf end);
+    /// <inheritdoc />
+    int IFloatingPoint<TSelf>.GetExponentByteCount()
+        => ThrowHelper.ThrowNotSupportedException<int>();
 
-    [Pure] public TNum AngleTo(TSelf other);
+    /// <inheritdoc />
+    int IFloatingPoint<TSelf>.GetExponentShortestBitLength()
+        => ThrowHelper.ThrowNotSupportedException<int>();
+
+    /// <inheritdoc />
+    int IFloatingPoint<TSelf>.GetSignificandBitLength()
+        => ThrowHelper.ThrowNotSupportedException<int>();
+
+    /// <inheritdoc />
+    int IFloatingPoint<TSelf>.GetSignificandByteCount()
+        => ThrowHelper.ThrowNotSupportedException<int>();
+
+    
+    /// <inheritdoc />
+    bool IFloatingPoint<TSelf>.TryWriteExponentBigEndian(Span<byte> destination, out int bytesWritten)
+    {
+        bytesWritten = 0;
+        return ThrowHelper.ThrowNotSupportedException<bool>();
+    }
+
+
+    /// <inheritdoc />
+    bool IFloatingPoint<TSelf>.TryWriteExponentLittleEndian(Span<byte> destination, out int bytesWritten)
+    {
+        bytesWritten = 0;
+        return ThrowHelper.ThrowNotSupportedException<bool>();
+    }
+
+    /// <inheritdoc />
+    bool IFloatingPoint<TSelf>.TryWriteSignificandBigEndian(Span<byte> destination, out int bytesWritten)
+    {
+        bytesWritten = 0;
+        return ThrowHelper.ThrowNotSupportedException<bool>();
+    }
+
+    /// <inheritdoc />
+    bool IFloatingPoint<TSelf>.TryWriteSignificandLittleEndian(Span<byte> destination, out int bytesWritten)
+    {
+        bytesWritten = 0;
+        return ThrowHelper.ThrowNotSupportedException<bool>();
+    }
+
 }

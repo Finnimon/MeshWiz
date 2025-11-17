@@ -28,7 +28,7 @@ public static class Slicing
         for (var i = 0; i < normalCount.Length; i++)
         {
             var normal = normals[i];
-            normal = (normal / normalCount[i]).Normalized;
+            normal = (normal / normalCount[i]).Normalized();
             offsetVertices[i] = normal * growBy + vertices[i];
         }
 

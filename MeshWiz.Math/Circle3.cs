@@ -69,7 +69,7 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
         Centroid = centroid;
         var absRadius = TNum.Abs(radius);
         var sign = radius / absRadius;
-        Normal = normal.Normalized * sign;
+        Normal = normal.Normalized() * sign;
         Radius = absRadius;
     }
 
@@ -140,7 +140,7 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
 
         var tangent = (-u * sin + v * cos) * Radius;
 
-        return tangent.Normalized;
+        return tangent.Normalized();
     }
 
 
@@ -166,7 +166,7 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
         p = Plane.Clamp(p);
         var cToP = p - Centroid;
         var len = cToP.Length;
-        cToP=cToP.Normalized;
+        cToP=cToP.Normalized();
         var adjust = TNum.Clamp(len, TNum.Zero, TNum.One);
         return adjust * cToP + Centroid;
     }

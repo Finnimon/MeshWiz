@@ -62,35 +62,35 @@ public readonly struct Helix<TNum> : IContiguousDiscreteCurve<Vector3<TNum>, TNu
     [Pure]
     public static Vector2<TNum> ProjectDirection(in Cylinder<TNum> cylinder, Vector3<TNum> p, Vector3<TNum> direction)
     {
-        direction = direction.Normalized;
+        direction = direction.Normalized();
         var axisDir = cylinder.Axis.NormalDirection;
         var closest = cylinder.Axis.ClosestPoint(p);
-        var axisToP = (p - closest).Normalized;
+        var axisToP = (p - closest).Normalized();
 
-        var tangentialDir = axisDir.Cross(axisToP).Normalized;
+        var tangentialDir = axisDir.Cross(axisToP).Normalized();
         
         var dxCircumference = tangentialDir.Dot(direction) * cylinder.Radius; // linear distance along circumference
         var dy = axisDir.Dot(direction); // along cylinder axis
-        return new Vector2<TNum>(dxCircumference, dy).Normalized;
+        return new Vector2<TNum>(dxCircumference, dy).Normalized();
     }
 
     [Pure]
     public static Vector3<TNum> ProjectDirection(in Cylinder<TNum> cylinder, Vector2<TNum> p, Vector2<TNum> direction)
     {
-        direction = direction.Normalized;
+        direction = direction.Normalized();
 
         var p3 = Project(in cylinder, p);
         var axisDir = cylinder.Axis.NormalDirection;
         var closest = cylinder.Axis.ClosestPoint(p3);
-        var axisToP = (p3 - closest).Normalized;
+        var axisToP = (p3 - closest).Normalized();
 
-        var tangentialDir = axisDir.Cross(axisToP).Normalized;
+        var tangentialDir = axisDir.Cross(axisToP).Normalized();
 
         var dx = direction.X;
         var dy = direction.Y;
 
         var world = tangentialDir * dx + axisDir * dy;
-        return world.Normalized;
+        return world.Normalized();
     }
 
 
@@ -154,7 +154,7 @@ public readonly struct Helix<TNum> : IContiguousDiscreteCurve<Vector3<TNum>, TNu
     public static Helix<TNum> FromOrigin(in Cylinder<TNum> surface, Vector3<TNum> p, Vector3<TNum> direction)
     {
         p = surface.ClampToSurface(p);
-        direction = direction.Normalized;
+        direction = direction.Normalized();
         var localOrigin = Project(in surface, p);
         var localDir = ProjectDirection(in surface, p, direction);
         if (localDir.Y.IsApproxZero())
