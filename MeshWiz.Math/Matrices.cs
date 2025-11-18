@@ -1,4 +1,5 @@
 using System.Numerics;
+using CommunityToolkit.Diagnostics;
 
 namespace MeshWiz.Math;
 
@@ -13,7 +14,7 @@ public static class Matrices
     {
         var n = TMatrix.RowCount;
         if (n != TMatrix.ColCount)
-            throw new InvalidOperationException("Matrix must be square.");
+            ThrowHelper.ThrowInvalidOperationException("Matrix must be square.");
 
         var a = matrix.ToArrayFast();
         var det = TNum.One;

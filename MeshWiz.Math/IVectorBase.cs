@@ -129,37 +129,7 @@ public interface IVectorBase<TSelf, TNum>
 
     /// <inheritdoc />
     TSelf IPosition<TSelf, TSelf, TNum>.Position => (TSelf)this;
-}
-
-public interface IDistance<TSelf, TNum>
-    where TSelf : IDistance<TSelf, TNum>
-{
-    [Pure]
-    TNum DistanceTo(TSelf other);
 
     [Pure]
-    TNum SquaredDistanceTo(TSelf other);
-
-    [Pure]
-    static abstract TNum Distance(TSelf a, TSelf b);
-    
-    [Pure]
-    static abstract TNum SquaredDistance(TSelf a, TSelf b);
-}
-
-public interface IPosition<TSelf, out TPosition, TNum> : IDistance<TSelf, TNum>
-    where TSelf : IPosition<TSelf, TPosition, TNum>
-    where TPosition : IPosition<TPosition, TPosition, TNum>
-{
-    TPosition Position { get; }
-}
-
-public interface ILerp<TSelf, TNum> : IDistance<TSelf, TNum>
-    where TSelf : ILerp<TSelf, TNum>
-{
-    [Pure]
-    static abstract TSelf Lerp(TSelf a, TSelf b, TNum t);
-
-    [Pure]
-    static abstract TSelf ExactLerp(TSelf a, TSelf b, TNum exactDistance);
+    TSelf WithElement(int index, TNum element);
 }

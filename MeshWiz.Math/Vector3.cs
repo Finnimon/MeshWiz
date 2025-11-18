@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
@@ -32,7 +33,7 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
     public static Vector3<TNum> FromValue<TOtherNum>(TOtherNum other) where TOtherNum : INumberBase<TOtherNum>
         => new(TNum.CreateTruncating(other));
 
-    [Pure] public static uint Dimensions => 3;
+    [Pure] public static int Dimensions => 3;
     [Pure] public TNum Length => TNum.Sqrt(SquaredLength);
 
     [Pure]
@@ -257,11 +258,7 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
         => SquaredLength.CompareTo(other.SquaredLength);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public unsafe ReadOnlySpan<TNum> AsSpan()
-    {
-        fixed (void* ptr = &X)
-            return new ReadOnlySpan<TNum>(ptr, (int)Dimensions);
-    }
+    public unsafe ReadOnlySpan<TNum> AsSpan() => new(Unsafe.AsPointer(in X), Dimensions);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override bool Equals(object? other)
@@ -277,8 +274,7 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
         get
         {
             if (Dimensions <= (uint)index) IndexThrowHelper.Throw(index, Count);
-            fixed (TNum* ptr = &X)
-                return ptr[index];
+            return Unsafe.AddByteOffset(ref Unsafe.AsRef(in X),Unsafe.SizeOf<TNum>() * index);
         }
     }
 
@@ -774,7 +770,7 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
 
     /// <inheritdoc />
     public static Vector3<TNum> Parse(ReadOnlySpan<char> s, IFormatProvider? provider = null)
-        => TryParse(s, provider, out var result) ? result : throw new FormatException();
+        => TryParse(s, provider, out var result) ? result : ThrowHelper.ThrowFormatException<Vector3<TNum>>();
 
     /// <inheritdoc />
     public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out Vector3<TNum> result)
@@ -801,7 +797,7 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
 
     /// <inheritdoc />
     public static Vector3<TNum> Parse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider = null)
-        => TryParse(s, style, provider, out var result) ? result : throw new FormatException();
+        => TryParse(s, style, provider, out var result) ? result : ThrowHelper.ThrowFormatException<Vector3<TNum>>();
 
 
     /// <inheritdoc />
@@ -826,7 +822,7 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
         buffer = stackalloc char[128];
         if (TryFormat(buffer, out charsWritten, format, formatProvider))
             return new string(buffer[..charsWritten]);
-        throw new InvalidOperationException();
+        return ThrowHelper.ThrowInvalidOperationException<string>();
     }
 
     [Pure]
@@ -864,4 +860,14 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsPerpendicularTo(Vector3<TNum> other) => Dot(other).IsApproxZero();
+    [Pure]
+    public Vector3<TNum> WithElement(int index, TNum elem)
+    {
+        if(2u<(uint)index)
+            IndexThrowHelper.Throw();
+        var copy = this;
+        ref var xRef=ref Unsafe.AsRef(in copy.X);
+        Unsafe.AddByteOffset(ref xRef, Unsafe.SizeOf<TNum>() * index) = elem;
+        return copy;
+    }
 }

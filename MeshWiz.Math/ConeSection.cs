@@ -72,7 +72,7 @@ public readonly struct
     private Vector3<TNum> ComplexCentroid()
     {
         var failed = !TryGetInflection(out var tip);
-        if (failed) throw new InvalidOperationException();
+        if (failed) ThrowHelper.ThrowInvalidOperationException();
 
         var baseCone = new Cone<TNum>(Base.Centroid.LineTo(tip), Base.Radius);
         var topCone = new Cone<TNum>(Top.Centroid.LineTo(tip), Top.Radius);
@@ -145,7 +145,7 @@ public readonly struct
     private IndexedMesh<TNum> TessellateComplex(int edgeCount)
     {
         var failed = !TryGetInflection(out var tip);
-        if (failed) throw new InvalidOperationException();
+        if (failed) ThrowHelper.ThrowInvalidOperationException();
         var baseMesh = new Cone<TNum>(Base.Centroid.LineTo(tip), Base.Radius).Tessellate(edgeCount);
         var topMesh = new Cone<TNum>(Top.Centroid.LineTo(tip), Top.Radius).Tessellate(edgeCount);
         Vector3<TNum>[] vertices = [..baseMesh.Vertices, ..topMesh.Vertices]; //acceptable duplication of tip
@@ -169,7 +169,7 @@ public readonly struct
     private TNum ComplexVolume()
     {
         var failed = !TryGetInflection(out var tip);
-        if (failed) throw new InvalidOperationException();
+        if (failed) ThrowHelper.ThrowInvalidOperationException();
         return new Cone<TNum>(Base.Centroid.LineTo(tip), Base.Radius).Volume
                + new Cone<TNum>(Top.Centroid.LineTo(tip), Top.Radius).Volume;
     }
@@ -180,7 +180,7 @@ public readonly struct
     private Polyline<Vector3<TNum>, TNum> ComplexSweepCurve()
     {
         var failed = !TryGetInflection(out var tip);
-        if (failed) throw new InvalidOperationException();
+        if (failed) ThrowHelper.ThrowInvalidOperationException();
         //both forced same up for same 0 angle result
         var baseRad = TNum.Abs(BaseRadius);
         var topRad = TNum.Abs(TopRadius);

@@ -3,6 +3,8 @@ using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using CommunityToolkit.Diagnostics;
+using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
 
@@ -18,10 +20,8 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vector3<TNum>,
 
 
     /// <inheritdoc />
-    public unsafe Vector3<TNum> GetRow(int row)
-    {
-        fixed (void* ptr = &this) return ((Vector3<TNum>*)ptr)[row];
-    }
+    public Vector3<TNum> GetRow(int row)
+        => Unsafe.AddByteOffset(ref Unsafe.AsRef(in X), Vector3<TNum>.ByteSize * row);
 
     public static int RowCount => 3;
     public static int ColCount => 3;
@@ -81,21 +81,15 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vector3<TNum>,
         Z = Y;
     }
 
-    public static unsafe Matrix3x3<TNum> FromComponents(TNum[] components)
-    {
-        if (components.Length == 9)
-            fixed (TNum* ptr = &components[0])
-                return *(Matrix3x3<TNum>*)ptr;
-        throw new ArgumentException("Components must be of length 9");
-    }
+    public static Matrix3x3<TNum> FromComponents(TNum[] components) =>
+        components.Length == 9
+            ? Unsafe.As<TNum, Matrix3x3<TNum>>(ref components[0])
+            : ThrowHelper.ThrowArgumentException<Matrix3x3<TNum>>("Components must be of length 9");
 
-    public static unsafe Matrix3x3<TNum> FromComponents(TNum[,] components)
-    {
-        if (components is { Length: 9, Rank: 2 })
-            fixed (TNum* ptr = &components[0, 0])
-                return *(Matrix3x3<TNum>*)ptr;
-        throw new ArgumentException("Components must be of length 9");
-    }
+    public static unsafe Matrix3x3<TNum> FromComponents(TNum[,] components) =>
+        components is { Length: 9, Rank: 2 }
+            ? Unsafe.As<TNum, Matrix3x3<TNum>>(ref components[0, 0])
+            : ThrowHelper.ThrowArgumentException<Matrix3x3<TNum>>("Components must be of length 9");
 
     public static Matrix3x3<TNum> FromComponents(IReadOnlyList<TNum> components)
         => new(
@@ -111,14 +105,14 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vector3<TNum>,
             c0.Y, c1.Y, c2.Y,
             c0.Z, c1.Z, c2.Z);
 
-    public unsafe TNum this[int row, int column]
+    public  TNum this[int row, int column]
     {
         get
         {
-            if (RowCount > (uint)row && ColCount > (uint)column)
-                fixed (TNum* ptr = &X.X)
-                    return ptr[ColCount * row + column];
-            throw new IndexOutOfRangeException();
+            if (RowCount <= (uint)row || ColCount <= (uint)column)
+                IndexThrowHelper.Throw();
+            var numSize = Unsafe.SizeOf<TNum>();
+            return Unsafe.AddByteOffset(ref Unsafe.AsRef(in X.X), numSize * ColCount * row + column * numSize);
         }
     }
 
@@ -147,7 +141,7 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vector3<TNum>,
     {
         var det = Det;
         if (det == TNum.Zero)
-            throw new InvalidOperationException("Matrix is singular and cannot solve.");
+            ThrowHelper.ThrowInvalidOperationException("Matrix is singular and cannot solve.");
 
         // Cramer's rule
         TNum d0 = b.X * (M11 * M22 - M12 * M21)
@@ -177,7 +171,7 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vector3<TNum>,
     {
         var det = Determinant();
         if (TNum.Abs(det) < TNum.Epsilon)
-            throw new InvalidOperationException("Matrix is singular and cannot invert.");
+            ThrowHelper.ThrowInvalidOperationException("Matrix is singular and cannot invert.");
 
         // Cofactors
         var c00 = M11 * M22 - M12 * M21;
@@ -249,10 +243,7 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vector3<TNum>,
         => new(-mat.X, -mat.Y, -mat.Z);
 
     /// <inheritdoc />
-    public unsafe ReadOnlySpan<TNum> AsSpan()
-    {
-        fixed (TNum* ptr = &X.X) return new(ptr, ColCount * RowCount);
-    }
+    public unsafe ReadOnlySpan<TNum> AsSpan() => new(Unsafe.AsPointer(in this),ColCount*RowCount);
 
     public override bool Equals(object? obj)
         => obj is Matrix3x3<TNum> m && this == m;

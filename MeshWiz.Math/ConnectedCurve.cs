@@ -1,4 +1,5 @@
 using System.Numerics;
+using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
@@ -56,7 +57,7 @@ public sealed record ConnectedCurve<TVector,TNum>(IDiscreteCurve<TVector,TNum>[]
             if(newDistance>=TNum.Zero) return child.Traverse(newDistance);
             rollingDistance=newDistance;
         }
-        throw new ArgumentOutOfRangeException(nameof(distance),distance,null);
+        return ThrowHelper.ThrowArgumentOutOfRangeException<TVector>(nameof(distance),distance,null);
     }
 
     public TVector TraverseOnCurve(TNum distance)
@@ -76,6 +77,6 @@ public sealed record ConnectedCurve<TVector,TNum>(IDiscreteCurve<TVector,TNum>[]
             if(newDistance<=TNum.Zero) return child.Traverse(rollingDistance);
             rollingDistance=newDistance;
         }
-        throw new ArgumentOutOfRangeException(nameof(distance),distance,null);
+        return ThrowHelper.ThrowArgumentOutOfRangeException<TVector>(nameof(distance),distance,null);
     }
 }

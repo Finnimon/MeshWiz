@@ -1,4 +1,5 @@
 using System.Numerics;
+using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
@@ -87,7 +88,7 @@ public static partial class Mesh
         public static IndexedMesh<TNum> LoftRibsClosed<TNum>(IReadOnlyList<Vector3<TNum>[]> ribs)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
-            if (ribs.Count < 2) throw new ArgumentException("At least two ribs required.", nameof(ribs));
+            if (ribs.Count < 2) ThrowHelper.ThrowArgumentException("At least two ribs required.", nameof(ribs));
 
             var ribCount = ribs.Count;
             var rowCount = ribs[0].Length;
@@ -95,7 +96,7 @@ public static partial class Mesh
             // check uniform rowCount
             for (var i = 1; i < ribCount; i++)
                 if (ribs[i].Length != rowCount)
-                    throw new ArgumentException("All ribs must have same number of points.");
+                    ThrowHelper.ThrowArgumentException("All ribs must have same number of points.");
 
             var verts = ribs.SelectMany(v => v).ToArray();
 

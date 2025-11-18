@@ -1,5 +1,6 @@
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
@@ -111,7 +112,7 @@ public static partial class Polyline
                 -1 => WindingOrder.Clockwise,
                 0 => u.Y < TNum.Zero ? WindingOrder.CounterClockwise : WindingOrder.Clockwise,
                 1 => WindingOrder.CounterClockwise,
-                _ => throw new InvalidOperationException(nameof(Vector2<>.CrossSign))
+                _ => ThrowHelper.ThrowInvalidOperationException<WindingOrder>(nameof(Vector2<>.CrossSign))
             };
         }
 
@@ -121,7 +122,7 @@ public static partial class Polyline
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             if (!closedPolyline.IsClosed)
-                throw new ArgumentException("Polyline must be closed", nameof(closedPolyline));
+                ThrowHelper.ThrowArgumentException("Polyline must be closed", nameof(closedPolyline));
 
             var prevSign = 0;
             var prevDirection = closedPolyline[0].Direction;

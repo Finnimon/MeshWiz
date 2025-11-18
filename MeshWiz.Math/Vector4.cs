@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
@@ -38,13 +39,10 @@ public readonly struct Vector4<TNum> : IVector<Vector4<TNum>, TNum>
     public TNum SquaredLength
         => X * X + Y * Y + Z * Z + W * W;
 
-    public unsafe Vector3<TNum> XYZ
+    public Vector3<TNum> XYZ
     {
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            fixed (void* ptr = &this) return *(Vector3<TNum>*)ptr;
-        }
+        get => Unsafe.As<Vector4<TNum>, Vector3<TNum>>(ref Unsafe.AsRef(in this));
     }
 
 
@@ -126,20 +124,12 @@ public readonly struct Vector4<TNum> : IVector<Vector4<TNum>, TNum>
     } = new(TNum.Zero, TNum.Zero, TNum.Zero, TNum.Zero);
 
 
-    public static Vector4<TNum> One
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-    } = new(TNum.One, TNum.One, TNum.One, TNum.One);
+    public static Vector4<TNum> One { get; } = new(TNum.One);
 
     /// <inheritdoc />
     public static Vector4<TNum> Epsilon { get; } = new(TNum.Epsilon);
 
-    public static Vector4<TNum> NaN
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-    } = new(TNum.NaN, TNum.NaN, TNum.NaN, TNum.NaN);
+    public static Vector4<TNum> NaN { get; } = new(TNum.NaN);
 
     /// <inheritdoc />
     public static Vector4<TNum> NegativeInfinity { get; } = new(TNum.NegativeInfinity);
@@ -150,29 +140,13 @@ public readonly struct Vector4<TNum> : IVector<Vector4<TNum>, TNum>
     /// <inheritdoc />
     public static Vector4<TNum> PositiveInfinity { get; } = new(TNum.PositiveInfinity);
 
-    public static Vector4<TNum> UnitX
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-    } = new(TNum.One, TNum.Zero, TNum.Zero, TNum.Zero);
+    public static Vector4<TNum> UnitX { get; } = new(TNum.One, TNum.Zero, TNum.Zero, TNum.Zero);
 
-    public static Vector4<TNum> UnitY
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-    } = new(TNum.Zero, TNum.One, TNum.Zero, TNum.Zero);
+    public static Vector4<TNum> UnitY { get; } = new(TNum.Zero, TNum.One, TNum.Zero, TNum.Zero);
 
-    public static Vector4<TNum> UnitZ
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-    } = new(TNum.Zero, TNum.Zero, TNum.One, TNum.Zero);
+    public static Vector4<TNum> UnitZ { get; } = new(TNum.Zero, TNum.Zero, TNum.One, TNum.Zero);
 
-    public static Vector4<TNum> UnitW
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-    } = new(TNum.Zero, TNum.Zero, TNum.Zero, TNum.One);
+    public static Vector4<TNum> UnitW { get; } = new(TNum.Zero, TNum.Zero, TNum.Zero, TNum.One);
 
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -239,6 +213,10 @@ public readonly struct Vector4<TNum> : IVector<Vector4<TNum>, TNum>
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TNum Dot(Vector4<TNum> other)
         => X * other.X + Y * other.Y + Z * other.Z + other.W * other.W;
+    
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TNum Dot(Vector4<TNum> a,Vector4<TNum> b)
+        => a.X * b.X + a.Y * b.Y + a.Z * b.Z + b.W * b.W;
 
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -756,11 +734,11 @@ public readonly struct Vector4<TNum> : IVector<Vector4<TNum>, TNum>
 
     /// <inheritdoc />
     public static Vector4<TNum> Parse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider = null)
-        => TryParse(s, style, provider, out var result) ? result : throw new FormatException();
+        => TryParse(s, style, provider, out var result) ? result : ThrowHelper.ThrowFormatException<Vector4<TNum>>();
 
     /// <inheritdoc />
     public static Vector4<TNum> Parse(string s, NumberStyles style, IFormatProvider? provider = null)
-        => TryParse(s, style, provider, out var result) ? result : throw new FormatException();
+        => TryParse(s, style, provider, out var result) ? result : ThrowHelper.ThrowFormatException<Vector4<TNum>>();
 
     /// <inheritdoc />
     public static bool TryParse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider,
@@ -788,7 +766,7 @@ public readonly struct Vector4<TNum> : IVector<Vector4<TNum>, TNum>
 
     /// <inheritdoc />
     public static Vector4<TNum> Parse(string s, IFormatProvider? provider = null)
-        => TryParse(s, NumberStyles.Any, provider, out var result) ? result : throw new FormatException();
+        => TryParse(s, NumberStyles.Any, provider, out var result) ? result : ThrowHelper.ThrowFormatException<Vector4<TNum>>();
 
     /// <inheritdoc />
     public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, out Vector4<TNum> result)
@@ -796,7 +774,7 @@ public readonly struct Vector4<TNum> : IVector<Vector4<TNum>, TNum>
 
     /// <inheritdoc />
     public static Vector4<TNum> Parse(ReadOnlySpan<char> s, IFormatProvider? provider = null)
-        => TryParse(s, NumberStyles.Any, provider, out var result) ? result : throw new FormatException();
+        => TryParse(s, NumberStyles.Any, provider, out var result) ? result : ThrowHelper.ThrowFormatException<Vector4<TNum>>();
 
     /// <inheritdoc />
     public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out Vector4<TNum> result)
@@ -809,12 +787,12 @@ public readonly struct Vector4<TNum> : IVector<Vector4<TNum>, TNum>
     public string ToString(string? format, IFormatProvider? formatProvider = null)
     {
         Span<char> buffer = stackalloc char[64]; // plenty for two numbers
-        if (TryFormat(buffer, out int charsWritten, format, formatProvider))
+        if (TryFormat(buffer, out var charsWritten, format, formatProvider))
             return new string(buffer[..charsWritten]);
         buffer = stackalloc char[128];
         if (TryFormat(buffer, out charsWritten, format, formatProvider))
             return new string(buffer[..charsWritten]);
-        throw new InvalidOperationException();
+        return ThrowHelper.ThrowInvalidOperationException<string>();
     }
 
 
@@ -823,14 +801,28 @@ public readonly struct Vector4<TNum> : IVector<Vector4<TNum>, TNum>
         IFormatProvider? provider = null)
         => ArrayParser.TryFormat(AsSpan(), destination, out charsWritten, format, provider);
 
-
+    [Pure]
     public TNum AngleTo(Vector4<TNum> other) => AngleBetween(this, other);
-
+    [Pure]
     public static TNum AngleBetween(Vector4<TNum> a, Vector4<TNum> b)
     {
         a = a.Normalized();
         b = b.Normalized();
         var dot = a.Dot(b);
         return TNum.Acos(dot);
+    }
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4<TNum> Normalize(Vector4<TNum> vec) => vec/vec.Length;
+    
+    
+    [Pure]
+    public Vector4<TNum> WithElement(int index, TNum elem)
+    {
+        if(3u<(uint)index)
+            IndexThrowHelper.Throw();
+        var copy = this;
+        ref var xRef=ref Unsafe.AsRef(in copy.X);
+        Unsafe.AddByteOffset(ref xRef, Unsafe.SizeOf<TNum>() * index) = elem;
+        return copy;
     }
 }

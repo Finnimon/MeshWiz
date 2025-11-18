@@ -6,6 +6,8 @@ using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using System.Xml.Serialization;
+using CommunityToolkit.Diagnostics;
+using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
 
@@ -73,10 +75,7 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vector4<TNum>,
 
 
     /// <inheritdoc />
-    public unsafe ReadOnlySpan<TNum> AsSpan()
-    {
-        fixed (TNum* ptr = &X.X) return new(ptr, ColCount * RowCount);
-    }
+    public unsafe ReadOnlySpan<TNum> AsSpan() => new(Unsafe.AsPointer(in this), ColCount * RowCount);
 
     public Matrix4x4(
         TNum m00, TNum m01, TNum m02, TNum m03,
@@ -98,13 +97,6 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vector4<TNum>,
         W = Z;
     }
 
-    public unsafe Matrix4x4(TNum[] components)
-    {
-        if (components.Length != 16)
-            throw new ArgumentException("Components must be of length 16");
-        fixed (TNum* ptr = &components[0])
-            this = *(Matrix4x4<TNum>*)ptr;
-    }
 
     public Matrix4x4(Vector4<TNum> x, Vector4<TNum> y, Vector4<TNum> z, Vector4<TNum> w)
     {
@@ -114,15 +106,14 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vector4<TNum>,
         W = w;
     }
 
-
-    public unsafe TNum this[int row, int column]
+    private static readonly int NumSize = Unsafe.SizeOf<TNum>();
+    public  TNum this[int row, int column]
     {
         get
         {
-            if (RowCount > (uint)row && RowCount > (uint)column)
-                fixed (TNum* ptr = &X.X)
-                    return ptr[row * ColCount + column];
-            throw new ArgumentOutOfRangeException();
+            if (RowCount <= (uint)row || ColCount <= (uint)column)
+                IndexThrowHelper.Throw();
+            return Unsafe.AddByteOffset(ref Unsafe.AsRef(in X.X), NumSize * ColCount * row + column * NumSize);
         }
     }
 
@@ -139,10 +130,8 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vector4<TNum>,
         return result;
     }
 
-    public static unsafe ReadOnlySpan<TNum> AsSpan(in Matrix4x4<TNum> matrix)
-    {
-        fixed (void* sourcePtr = &matrix) return new(sourcePtr, RowCount * ColCount);
-    }
+    public static unsafe ReadOnlySpan<TNum> AsSpan(in Matrix4x4<TNum> matrix) 
+        => new(Unsafe.AsPointer(in matrix), 16);
 
     public Matrix4x4<TNum> Transpose() => FromColumns(X, Y, Z, W);
 
@@ -170,6 +159,7 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vector4<TNum>,
     [Pure]
     public Vector3<TNum> MultiplyDirection(Vector3<TNum> v)
         => new(X.XYZ.Dot(v), Y.XYZ.Dot(v), Z.XYZ.Dot(v));
+
     [Pure]
     public Vector4<TNum> Multiply(Vector4<TNum> v)
         => new(X.Dot(v), Y.Dot(v), Z.Dot(v), W.Dot(v));
@@ -193,13 +183,10 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vector4<TNum>,
 
 
     // Row/Column access via bitwise cast
-    public unsafe Vector4<TNum> GetRow(int row)
-    {
-        if (RowCount > (uint)row)
-            fixed (Vector4<TNum>* ptr = &X)
-                return ptr[row * ColCount];
-        throw new ArgumentOutOfRangeException(nameof(row));
-    }
+    public Vector4<TNum> GetRow(int row) 
+        => RowCount > (uint)row
+            ? Unsafe.AddByteOffset(ref Unsafe.AsRef(in X), Vector3<TNum>.ByteSize * row)
+            : ThrowHelper.ThrowArgumentOutOfRangeException<Vector4<TNum>>(nameof(row));
 
 
     public Vector4<TNum> GetCol(int col) => Transpose().GetRow(col);
@@ -228,6 +215,7 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vector4<TNum>,
             yx, TNum.One, yz, TNum.Zero,
             zx, zy, TNum.One, TNum.Zero,
             TNum.Zero, TNum.Zero, TNum.Zero, TNum.One);
+
     [Pure]
     public static Matrix4x4<TNum> CreateRotation(Vector3<TNum> axis, TNum angle)
     {
@@ -368,7 +356,6 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vector4<TNum>,
     }
 
     public override string ToString() => Nested().ToString();
-
 
 
     /// <inheritdoc />

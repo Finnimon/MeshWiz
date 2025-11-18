@@ -36,7 +36,7 @@ public static class Numbers<TNum>
     /// <summary>
     /// <c>=> 4</c>
     /// </summary>
-    public static readonly TNum Four = TNum.CreateTruncating(4f);
+    public static readonly TNum Four = TNum.CreateTruncating(4);
 
     /// <summary>
     /// <c>=> 1e-1</c>

@@ -1,4 +1,5 @@
 using System.Numerics;
+using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
@@ -16,8 +17,8 @@ public readonly record struct Sphere<TNum>(Vector3<TNum> Centroid, TNum Radius)
 
     public IndexedMesh<TNum> Tessellate(int stacks, int slices)
     {
-        if (stacks < 2) throw new ArgumentOutOfRangeException(nameof(stacks));
-        if (slices < 3) throw new ArgumentOutOfRangeException(nameof(slices));
+        if (stacks < 2) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(stacks));
+        if (slices < 3) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(slices));
 
         // Vertices
         var vertices = new Vector3<TNum>[(stacks + 1) * (slices + 1)];

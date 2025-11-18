@@ -1,4 +1,5 @@
 using System.Numerics;
+using CommunityToolkit.Diagnostics;
 
 namespace MeshWiz.Math;
 
@@ -19,7 +20,7 @@ public static partial class Polyline
             TNum amount)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
-            if (!polyline.IsClosed) throw new ArgumentException("Polyline must be closed", nameof(polyline));
+            if (!polyline.IsClosed) ThrowHelper.ThrowArgumentException("Polyline must be closed", nameof(polyline));
 
             var n = polyline.Count;
             if (n == 0) return Polyline<Vector2<TNum>, TNum>.Empty;
@@ -176,7 +177,7 @@ public static partial class Polyline
             TNum amount)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
-            if (!polyline.IsClosed) throw new ArgumentException("Polyline must be closed", nameof(polyline));
+            if (!polyline.IsClosed) ThrowHelper.ThrowArgumentException("Polyline must be closed", nameof(polyline));
 
             var n = polyline.Count;
             if (n == 0) return Polyline<Vector2<TNum>, TNum>.Empty;

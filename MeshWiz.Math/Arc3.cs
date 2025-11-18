@@ -1,5 +1,6 @@
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
@@ -19,7 +20,7 @@ public readonly struct Arc3<TNum>(Circle3<TNum> underlying, TNum startAngle, TNu
         -1 => TNum.NegativeOne,
         0 => TNum.Zero,
         1 => TNum.One,
-        _ => throw new ArgumentOutOfRangeException()
+        _ => ThrowHelper.ThrowArgumentOutOfRangeException<TNum>()
     };
 
     /// <inheritdoc />

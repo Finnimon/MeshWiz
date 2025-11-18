@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Formats.Asn1;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -8,7 +7,6 @@ using Avalonia.Platform.Storage;
 using MeshWiz.Abstraction.OpenTK;
 using MeshWiz.IO.Stl;
 using MeshWiz.Math;
-using MeshWiz.Utility;
 using OpenTK.Mathematics;
 
 namespace MeshWiz.UI.Avalonia;
@@ -58,16 +56,16 @@ public partial class MainWindow : Window
         // var surface = JaggedRotationalSurface<float>.FromSweepCurve(arcPoly, ray);
         Polyline<Vector3<double>, double> jaggedGeodesic;
         
-        // jaggedGeodesic = surface.TraceGeodesics(new(1,0,surface.SweepCurve.Traverse(0.5f).Z),
-        //     Vector3<double>.UnitY + Vector3<double>.UnitZ,
-        //     cycleCount:10000);
-        // jaggedGeodesic = surface.TraceGeodesics(new(1,0,surface.SweepCurve.Traverse(0.5f).Z),
-        //     Vector3<double>.UnitY + Vector3<double>.UnitZ,
-        //     cycleCount:10000);
+        jaggedGeodesic = surface.TraceGeodesicCycles(new(1,0,surface.SweepCurve.Traverse(0.5f).Z),
+            Vector3<double>.UnitY + Vector3<double>.UnitZ,
+            10000);
+        jaggedGeodesic = surface.TraceGeodesicCycles(new(1,0,surface.SweepCurve.Traverse(0.5f).Z),
+            Vector3<double>.UnitY + Vector3<double>.UnitZ,
+            10000);
         var sw = Stopwatch.StartNew();
         jaggedGeodesic = surface.TraceGeodesicCycles(new(1,0,surface.SweepCurve.Traverse(0.5f).Z),
             new(0,1,100),
-            childSurfaceCount:101);
+            childSurfaceCount:1000);
         var elapsed = sw.Elapsed;
         Console.WriteLine(elapsed);
         meshi = surface.Tessellate(256).To<float>();
@@ -151,12 +149,12 @@ public partial class MainWindow : Window
     }
 
     private void ExportBinary(object? sender, RoutedEventArgs e)
-        => ExportStlCommand(e, false);
+        => Task.Run(()=>ExportStlCommand(e, false));
 
     private void ExportAscii(object? sender, RoutedEventArgs e)
-        => ExportStlCommand(e, true);
+        => Task.Run(()=>ExportStlCommand(e, true));
 
-    private async void ExportStlCommand(RoutedEventArgs routedEventArgs, bool ascii)
+    private async Task ExportStlCommand(RoutedEventArgs routedEventArgs, bool ascii)
     {
         routedEventArgs.Handled = true;
 

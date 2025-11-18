@@ -51,7 +51,7 @@ public interface IVector<TSelf, TNum>
                 IEnumerable<double> e => TSelf.FromComponentsConstrained<double[], double>(e.ToArray()),
                 IEnumerable<BigInteger> e => TSelf.FromComponentsConstrained<BigInteger[], BigInteger>(e.ToArray()),
                 IEnumerable<decimal> e => TSelf.FromComponentsConstrained<decimal[], decimal>(e.ToArray()),
-                _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
+                _ => ThrowHelper.ThrowArgumentOutOfRangeException<TSelf>(nameof(value), value, null)
             };
             return true;
         }
@@ -103,7 +103,7 @@ public interface IVector<TSelf, TNum>
                 IEnumerable<double> e => TSelf.FromComponentsConstrained<double[], double>(e.ToArray()),
                 IEnumerable<BigInteger> e => TSelf.FromComponentsConstrained<BigInteger[], BigInteger>(e.ToArray()),
                 IEnumerable<decimal> e => TSelf.FromComponentsConstrained<decimal[], decimal>(e.ToArray()),
-                _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
+                _ => ThrowHelper.ThrowArgumentOutOfRangeException<TSelf>(nameof(value), value, null)
             };
             return true;
         }
@@ -155,7 +155,7 @@ public interface IVector<TSelf, TNum>
                 IEnumerable<double> e => TSelf.FromComponentsConstrained<double[], double>(e.ToArray()),
                 IEnumerable<BigInteger> e => TSelf.FromComponentsConstrained<BigInteger[], BigInteger>(e.ToArray()),
                 IEnumerable<decimal> e => TSelf.FromComponentsConstrained<decimal[], decimal>(e.ToArray()),
-                _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
+                _ => ThrowHelper.ThrowArgumentOutOfRangeException<TSelf>(nameof(value), value, null)
             };
             return true;
         }

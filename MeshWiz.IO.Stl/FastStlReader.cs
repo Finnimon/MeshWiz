@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using CommunityToolkit.Diagnostics;
 using MeshWiz.Math;
 using MeshWiz.Utility.Extensions;
 
@@ -39,17 +40,17 @@ public sealed class FastStlReader : IMeshReader<float>
     {
         var remainingLength= stream.Length-stream.Position;
         if (remainingLength < TotalHeaderLength) 
-            throw new InvalidDataException($"Stream does not provide minimum length of {TotalHeaderLength} bytes for the binary stl header but was {remainingLength}.");
+            ThrowHelper.ThrowInvalidDataException($"Stream does not provide minimum length of {TotalHeaderLength} bytes for the binary stl header but was {remainingLength}.");
         stream.Seek(HeaderLength, SeekOrigin.Current);
         var countBuffer=new byte[sizeof(uint)];
         var readCount = stream.Read(countBuffer);
         if(readCount!=sizeof(uint)) 
-            throw new InvalidDataException("Could not read facet count.");
+            ThrowHelper.ThrowInvalidDataException("Could not read facet count.");
         var triangleCount = StructExt.UnsafeAs<byte, uint>(in countBuffer[0]);
         var expectedRemainingLength = triangleCount * Stride;
         remainingLength -= TotalHeaderLength;
         if(remainingLength<expectedRemainingLength) 
-            throw new InvalidDataException($"Expected stream length {expectedRemainingLength} but was {remainingLength}");
+            ThrowHelper.ThrowInvalidDataException($"Expected stream length {expectedRemainingLength} but was {remainingLength}");
         var facets=new Triangle3<float>[triangleCount];
         var buffer=new byte[Stride];
         for (uint i = 0; i < triangleCount; i++)

@@ -105,18 +105,12 @@ public class HarshMeshView : IOpenGLControl
             return;
 
         _vao!.Bind();
-
-        if ((RenderModeFlags & RenderMode.Solid) == RenderMode.Solid)
+        var renderSolid = (RenderModeFlags & RenderMode.Solid) == RenderMode.Solid;
+        if(renderSolid)
         {
             GL.Enable(EnableCap.CullFace);
             GL.CullFace(TriangleFace.Back);
-            GL.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Fill);
-            _blinnPhongShader!.Bind();            
-            GL.DrawArrays(PrimitiveType.Triangles, 0, _uploadedCount);
-            _blinnPhongShader.Unbind();
-            GL.Disable(EnableCap.CullFace);
         }
-
         if ((RenderModeFlags & RenderMode.Wireframe) == RenderMode.Wireframe)
         {
             GL.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Line);
@@ -131,7 +125,14 @@ public class HarshMeshView : IOpenGLControl
             _solidColorShader.Unbind();
         }
 
-
+        if (renderSolid)
+        {
+            GL.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Fill);
+            _blinnPhongShader!.Bind();            
+            GL.DrawArrays(PrimitiveType.Triangles, 0, _uploadedCount);
+            _blinnPhongShader.Unbind();
+        }
+        if(renderSolid) GL.Disable(EnableCap.CullFace);
         _vao.Unbind();
         OpenGLHelper.LogGlError(nameof(HarshMeshView));
     }

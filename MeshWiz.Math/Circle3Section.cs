@@ -115,11 +115,6 @@ public readonly struct Circle3Section<TNum> : IFlat<TNum>, IRotationalSurface<TN
         return Centroid + dir * dist;
     }
 
-    // /// <inheritdoc />
-    // public Line<Vector3<TNum>, TNum> GetGeodesic(Vector3<TNum> p1, Vector3<TNum> p2)
-    // {
-    //     throw new NotImplementedException();
-    // }
 
     /// <inheritdoc />
     public Line<Vector3<TNum>, TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint, Vector3<TNum> direction)

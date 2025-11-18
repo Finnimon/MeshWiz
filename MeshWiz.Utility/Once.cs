@@ -1,11 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Serialization;
-using System.Security.Permissions;
-using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Utility;
 

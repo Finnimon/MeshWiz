@@ -1,4 +1,5 @@
 using System.Numerics;
+using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
@@ -8,7 +9,7 @@ public readonly struct InscribedPolygon3<TNum>(int edgeCount, Circle3<TNum> boun
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly int EdgeCount =
-        edgeCount > 2 ? edgeCount : throw new ArgumentOutOfRangeException(nameof(edgeCount));
+        edgeCount > 2 ? edgeCount : ThrowHelper.ThrowArgumentOutOfRangeException<int>(nameof(edgeCount));
 
     public readonly Circle3<TNum> Boundary = boundary;
     public TNum StepAngle => Numbers<TNum>.TwoPi / TNum.CreateTruncating(edgeCount);

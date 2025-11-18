@@ -1,3 +1,6 @@
+using System.Runtime.CompilerServices;
+using OpenTK.Mathematics;
+
 namespace MeshWiz.Abstraction.OpenTK;
 
 public sealed record BufferObject(int Handle, BufferTarget Target)

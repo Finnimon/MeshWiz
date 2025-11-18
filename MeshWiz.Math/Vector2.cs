@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
@@ -260,10 +261,9 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            if (2u <= (uint)index)
+            if (1 < (uint)index)
                 IndexThrowHelper.Throw(index, Count);
-            fixed (TNum* ptr = &X)
-                return ptr[index];
+            return Unsafe.AddByteOffset(ref Unsafe.AsRef(in X),Unsafe.SizeOf<TNum>() * index);
         }
     }
 
@@ -720,16 +720,16 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
 
     /// <inheritdoc />
     public static Vector2<TNum> Parse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider = null)
-        => TryParse(s, style, provider, out var result) ? result : throw new FormatException();
+        => TryParse(s, style, provider, out var result) ? result : ThrowHelper.ThrowFormatException<Vector2<TNum>>();
 
     /// <inheritdoc />
     public static Vector2<TNum> Parse(string s, NumberStyles style, IFormatProvider? provider = null)
-        => TryParse(s, style, provider, out var result) ? result : throw new FormatException();
+        => TryParse(s, style, provider, out var result) ? result : ThrowHelper.ThrowFormatException<Vector2<TNum>>();
 
 
     /// <inheritdoc />
     public static Vector2<TNum> Parse(string s, IFormatProvider? provider = null)
-        => TryParse(s, NumberStyles.Any, provider, out var result) ? result : throw new FormatException();
+        => TryParse(s, NumberStyles.Any, provider, out var result) ? result : ThrowHelper.ThrowFormatException<Vector2<TNum>>();
 
 
     /// <inheritdoc />
@@ -739,7 +739,7 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
 
     /// <inheritdoc />
     public static Vector2<TNum> Parse(ReadOnlySpan<char> s, IFormatProvider? provider = null)
-        => TryParse(s, NumberStyles.Any, provider, out var result) ? result : throw new FormatException();
+        => TryParse(s, NumberStyles.Any, provider, out var result) ? result : ThrowHelper.ThrowFormatException<Vector2<TNum>>();
 
 
     /// <inheritdoc />
@@ -760,7 +760,7 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
         try
         {
             if (!TryFormat(rented, out charsWritten, format, formatProvider))
-                throw new InvalidOperationException();
+                ThrowHelper.ThrowInvalidOperationException();
 
             return new string(rented, 0, charsWritten);
         }
@@ -855,5 +855,14 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
         return new(r, thetaFinal);
     }
 
-
+    [Pure]
+    public Vector2<TNum> WithElement(int index, TNum elem)
+    {
+        if(1u<(uint)index)
+            IndexThrowHelper.Throw();
+        var copy = this;
+        ref var xRef=ref Unsafe.AsRef(in copy.X);
+        Unsafe.AddByteOffset(ref xRef, Unsafe.SizeOf<TNum>() * index) = elem;
+        return copy;
+    }
 }

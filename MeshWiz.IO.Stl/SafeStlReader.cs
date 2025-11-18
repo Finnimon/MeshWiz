@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Numerics;
 using System.Text;
+using CommunityToolkit.Diagnostics;
 using MeshWiz.Math;
 
 namespace MeshWiz.IO.Stl;
@@ -42,7 +43,7 @@ public sealed class SafeStlReader<TNum> : IMeshReader<TNum>
     {
         var remainingLength = stream.Length - stream.Position;
         if (remainingLength < TotalHeaderLength)
-            throw new InvalidDataException(
+            ThrowHelper.ThrowInvalidDataException(
                 $"Stream does not provide minimum length of {TotalHeaderLength} bytes for the binary stl header but was {remainingLength}.");
         stream.Seek(HeaderLength, SeekOrigin.Current);
         using BinaryReader binary = new(stream, Encoding.ASCII, true);
@@ -51,7 +52,7 @@ public sealed class SafeStlReader<TNum> : IMeshReader<TNum>
         var expectedRemainingLength = triangleCount * Stride;
         remainingLength -= TotalHeaderLength;
         if (remainingLength < expectedRemainingLength)
-            throw new InvalidDataException(
+            ThrowHelper.ThrowInvalidDataException(
                 $"Expected stream length {expectedRemainingLength} but was {remainingLength}");
         var facets = new Triangle3<TNum>[triangleCount];
         var facetFloats = new TNum[3, 3];

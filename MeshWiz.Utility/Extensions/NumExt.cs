@@ -1,6 +1,7 @@
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using CommunityToolkit.Diagnostics;
 
 namespace MeshWiz.Utility.Extensions;
 
@@ -95,7 +96,7 @@ public static class NumExt
         where TNum : IFloatingPoint<TNum>
     {
 #if DEBUG
-        if (epsilon < TNum.Zero) throw new ArgumentOutOfRangeException();
+        if (epsilon < TNum.Zero) ThrowHelper.ThrowArgumentOutOfRangeException();
 #endif
         if (num > epsilon) return 1;
         if (num < -epsilon) return -1;
