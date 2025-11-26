@@ -1,3 +1,4 @@
+using System.Diagnostics.Contracts;
 using System.Numerics;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
@@ -137,7 +138,7 @@ public static partial class Mesh
             for (var rib = 0; rib < sourcePoints.Length; rib++) points[rib][0] = sourcePoints[rib];
             for (var row = 0; row < along.Count; row++)
             {
-                var shift = along[row].Direction;
+                var shift = along[row].AxisVector;
                 for (var i = 0; i < sourcePoints.Length; i++)
                     points[i][row + 1] = (sourcePoints[i] += shift);
             }
@@ -164,17 +165,17 @@ public static partial class Mesh
                 var origin = along.Points[row];
                 Vector3<TNum> normal;
                 if (row == 0)
-                    normal = along[0].NormalDirection;
+                    normal = along[0].Direction;
                 else if (row == along.Points.Length - 1)
-                    normal = along[^1].NormalDirection;
+                    normal = along[^1].Direction;
                 else
                 {
                     var l1 = along[row - 1];
                     var l2 = along[row];
-                    var n1 = l1.NormalDirection;
-                    var n2 = l2.NormalDirection;
+                    var n1 = l1.Direction;
+                    var n2 = l2.Direction;
                     normal = Vector3<TNum>.Lerp(n1, n2, Numbers<TNum>.Half).Normalized();
-                    if (!normal.SquaredLength.IsApprox(TNum.One,Numbers<TNum>.Eps5)) normal = n2;
+                    if (!normal.SquaredLength.IsApprox(TNum.One, Numbers<TNum>.Eps5)) normal = n2;
                 }
 
                 Plane3<TNum> projector = new(normal, origin);
@@ -189,7 +190,7 @@ public static partial class Mesh
 
             return baseFace.IsClosed ? LoftRibsClosed(points) : LoftRibs(points);
         }
-        
+
         public static IndexedMesh<TNum> PipeAlongAligned<TNum>(
             Polyline<Vector2<TNum>, TNum> baseFace,
             Polyline<Vector3<TNum>, TNum> along)
@@ -207,7 +208,7 @@ public static partial class Mesh
             for (int row = 0; row < along.Points.Length; row++)
             {
                 Vector3<TNum> tangent;
-                tangent = row > along.Count - 1 ? along[^1].NormalDirection : along[row].NormalDirection;
+                tangent = row > along.Count - 1 ? along[^1].Direction : along[row].Direction;
 
                 var up = Vector3<TNum>.UnitX;
                 if (up.IsApprox(tangent, Numbers<TNum>.Eps5))
@@ -234,5 +235,28 @@ public static partial class Mesh
             return baseFace.IsClosed ? LoftRibsClosed(points) : LoftRibs(points);
         }
 
+        [Pure]
+        public static IndexedMesh<TNum> Loft<TNum>(ReadOnlySpan<Pose3<TNum>> centerline,
+            TNum width)
+            where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        {
+            if (centerline.Length < 2) return IndexedMesh<TNum>.Empty;
+            if (TNum.Zero.IsApproxGreaterOrEqual(width) || !TNum.IsFinite(width))
+                ThrowHelper.ThrowArgumentOutOfRangeException(nameof(width), width, "width must be a finite number >0");
+            var leftSpine = new Vector3<TNum>[centerline.Length];
+            var rightSpine = new Vector3<TNum>[centerline.Length];
+            for (var i = 0; i < centerline.Length; i++)
+            {
+                ref readonly var center = ref centerline[i];
+                var pos = center.Origin;
+                var right = center.Right;
+                right *= width;
+                rightSpine[i] = pos + right;
+                leftSpine[i] = pos - right;
+            }
+
+            var result = LoftRibs([leftSpine, rightSpine]);
+            return result;
+        }
     }
 }

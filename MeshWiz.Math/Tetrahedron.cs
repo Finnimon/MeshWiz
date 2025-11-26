@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
+using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
 
@@ -46,7 +47,7 @@ public readonly struct Tetrahedron<TNum> : IBody<TNum>
         var ab = b - a;
         var ac = c - a;
         var ad = d - a;
-        return ab.Dot(ac^ad) / TNum.CreateTruncating(6);
+        return Vector3<TNum>.Cross(ac, ad).Dot(ab) * Numbers<TNum>.Sixth;
     }
 
     public Triangle3<TNum>[] TessellatedSurface => [

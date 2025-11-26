@@ -2,7 +2,7 @@ namespace MeshWiz.Math;
 
 public enum WindingOrder
 {
-    NotClosed,
-    Clockwise,
-    CounterClockwise,
+    NotClosed=0,
+    Clockwise=-1,
+    CounterClockwise=1,
 }

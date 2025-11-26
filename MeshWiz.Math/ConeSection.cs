@@ -7,14 +7,14 @@ using MeshWiz.Utility.Extensions;
 namespace MeshWiz.Math;
 
 public readonly struct
-    ConeSection<TNum> : IBody<TNum>, IRotationalSurface<TNum> // ,IGeodesicProvider<ConicalHelicoid<TNum>, TNum>
+    ConeSection<TNum> : IBody<TNum>, IRotationalSurface<TNum>,IGeodesicProvider<ConeGeodesic<TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly Line<Vector3<TNum>, TNum> Axis;
     public readonly TNum BaseRadius;
     public readonly TNum TopRadius;
-    public Circle3<TNum> Base => new(Axis.Start, Axis.Direction, BaseRadius);
-    public Circle3<TNum> Top => new(Axis.End, Axis.Direction, TopRadius);
+    public Circle3<TNum> Base => new(Axis.Start, Axis.AxisVector, BaseRadius);
+    public Circle3<TNum> Top => new(Axis.End, Axis.AxisVector, TopRadius);
 
     public bool IsComplex
     {
@@ -184,7 +184,7 @@ public readonly struct
         //both forced same up for same 0 angle result
         var baseRad = TNum.Abs(BaseRadius);
         var topRad = TNum.Abs(TopRadius);
-        var normal = Axis.Direction; //gets normalized in ctor
+        var normal = Axis.AxisVector; //gets normalized in ctor
         var start = new Circle3<TNum>(Axis.Start, normal, baseRad).TraverseByAngle(TNum.Zero);
         var end = new Circle3<TNum>(Axis.End, normal, topRad).TraverseByAngle(TNum.Zero);
         return new Polyline<Vector3<TNum>, TNum>(start, tip, end);
@@ -232,10 +232,9 @@ public readonly struct
     public TNum RadiusAt(TNum pos) => TNum.Lerp(BaseRadius, TopRadius, pos);
 
     /// <inheritdoc />
-    public IContiguousCurve<Vector3<TNum>, TNum> GetGeodesic(Vector3<TNum> p1, Vector3<TNum> p2)
+    public ConeGeodesic<TNum> GetGeodesic(Vector3<TNum> p1, Vector3<TNum> p2)
     {
         ValidateForGeodesics();
-        if (IsCylinder) return new Cylinder<TNum>(Axis, TNum.Abs(BaseRadius)).GetGeodesic(p1, p2);
         return ConeGeodesic<TNum>.BetweenPoints(
             MakeUpright(in this).TryGetComplete(out var surface)
                 ? surface
@@ -249,14 +248,12 @@ public readonly struct
             ThrowHelper.ThrowInvalidOperationException("Geodesics are only possible on non complex ConeSections");
     }
 
-    private bool CanGeodesic => !IsComplex;
+    private bool CanGeodesic => !IsComplex&&!IsCylinder;
 
     /// <inheritdoc />
-    public IContiguousCurve<Vector3<TNum>, TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint, Vector3<TNum> direction)
+    public ConeGeodesic<TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint, Vector3<TNum> direction)
     {
         ValidateForGeodesics();
-        if (IsCylinder)
-            return new Cylinder<TNum>(Axis, TNum.Abs(BaseRadius)).GetGeodesicFromEntry(entryPoint, direction);
         return ConeGeodesic<TNum>.FromDirection(surface: MakeUpright(this), entryPoint, direction);
     }
 

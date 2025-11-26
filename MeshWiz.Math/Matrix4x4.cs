@@ -256,9 +256,9 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vector4<TNum>,
     public static Matrix4x4<TNum> CreateViewAt(Vector3<TNum> eye, Vector3<TNum> target, Vector3<TNum> up)
     {
         var z = (eye - target).Normalized();
-        var x = (up ^ z).Normalized();
-        var y = (z ^ x).Normalized();
-        var w = Vector4<TNum>.FromXYZW(
+        var x = Vector3<TNum>.Cross(up , z).Normalized();
+        var y = Vector3<TNum>.Cross(z , x).Normalized();
+        var w = Vector4<TNum>.Create(
             -(x.Dot(eye)),
             -(y.Dot(eye)),
             -(z.Dot(eye)),

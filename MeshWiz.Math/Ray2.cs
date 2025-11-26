@@ -29,11 +29,11 @@ public readonly struct Ray2<TNum>
         var s = ray.Direction;
         var delta = ray.Origin - Origin;
 
-        var rxs = r ^ s;
+        var rxs = Vector2<TNum>.Cross(r, s);
         if (TNum.Abs(rxs) < TNum.Epsilon)
             return false; // Parallel or colinear
 
-        var tNumerator = delta ^ s;
+        var tNumerator = Vector2<TNum>.Cross(delta , s);
         t = tNumerator / rxs;
 
         return t >= TNum.Zero;
@@ -43,7 +43,7 @@ public readonly struct Ray2<TNum>
     public static Ray2<TNum> operator -(Ray2<TNum> ray) => new(ray.Origin, -ray.Direction);
 
     public static implicit operator Ray2<TNum>(in Line<Vector2<TNum>, TNum> line)
-        => new(line.Start, line.Direction);
+        => new(line.Start, line.AxisVector);
 
     public static implicit operator Line<Vector2<TNum>, TNum>(in Ray2<TNum> ray) =>
         new(ray.Origin, ray.Origin + ray.Direction);

@@ -92,7 +92,7 @@ public static partial class Polyline
                     AddIfValid(polyLines, connected, epsilon);
                     connected = [line.Start, line.End];
                     checkedSinceLastAdd = 0;
-                    backDirection = (frontDirection = line.NormalDirection);
+                    backDirection = (frontDirection = line.Direction);
                     continue;
                 }
 
@@ -100,7 +100,7 @@ public static partial class Polyline
                 var connectedEnd = connected[^1];
                 if (connectedStart.IsApprox(line.End, epsilon))
                 {
-                    var newFrontDirection = line.NormalDirection;
+                    var newFrontDirection = line.Direction;
                     var sameDirection = newFrontDirection.Dot(frontDirection).IsApprox(TNum.One);
                     if (sameDirection) connected[0] = line.Start;
                     else connected.PushFront(line.Start);
@@ -109,7 +109,7 @@ public static partial class Polyline
                 }
                 else if (connectedEnd.IsApprox(line.Start, epsilon))
                 {
-                    var newBackDirection = line.NormalDirection;
+                    var newBackDirection = line.Direction;
                     var sameDirection = newBackDirection.Dot(backDirection).IsApprox(TNum.One);
                     if (sameDirection) connected[^1] = line.End;
                     else connected.PushBack(line.End);

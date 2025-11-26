@@ -15,7 +15,7 @@ where TNum : unmanaged, IFloatingPointIeee754<TNum>
         var rand = new Random();
         _vectors = new Vector4<TNum>[10000];
         for (var i = 0; i < _vectors.Length; i++) 
-            _vectors[i] = Vector4<double>.FromXYZW(
+            _vectors[i] = Vector4<double>.Create(
                     rand.NextDouble(), 
                     rand.NextDouble(), 
                     rand.NextDouble(), 

@@ -29,7 +29,7 @@ public static partial class Polyline
             for (var i = 0; i < n; i++)
             {
                 var seg = polyline[i];
-                var segDirection = seg.NormalDirection;
+                var segDirection = seg.Direction;
                 Vector2<TNum> outsideDirection = new(segDirection.Y, -segDirection.X);
                 var offset = outsideDirection * amount;
                 lines[i] = new Line<Vector2<TNum>, TNum>(seg.Start + offset, seg.End + offset);
@@ -185,7 +185,7 @@ public static partial class Polyline
             for (var i = 0; i < n; i++)
             {
                 var seg = polyline[i];
-                var segDirection = seg.NormalDirection;
+                var segDirection = seg.Direction;
                 Vector2<TNum> outsideDirection = new(segDirection.Y, -segDirection.X);
                 var offset = outsideDirection * amount;
                 lines[i] = new Line<Vector2<TNum>, TNum>(seg.Start + offset, seg.End + offset);
@@ -335,9 +335,9 @@ public static partial class Polyline
             var isClosed = polyline.IsClosed;
 
             var prevLine = polyline[0];
-            prevLine += prevLine.NormalDirection.Right * amount;
+            prevLine += prevLine.Direction.Right * amount;
             var lastLine = polyline[^1];
-            lastLine += lastLine.NormalDirection.Right * amount;
+            lastLine += lastLine.Direction.Right * amount;
             var interSectionPoints = new Vector2<TNum>[polyline.Points.Length];
             if (!isClosed)
             {
@@ -355,7 +355,7 @@ public static partial class Polyline
             for (var i = 1; i < polyline.Count; i++)
             {
                 var line = polyline[i];
-                line += line.NormalDirection.Right * amount;
+                line += line.Direction.Right * amount;
                 Line.TryIntersect(prevLine, line, out var intersection);
                 var p = prevLine.Traverse(intersection);
                 interSectionPoints[i] = p;

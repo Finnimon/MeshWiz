@@ -33,10 +33,10 @@ public sealed record ConnectedCurve<TVector,TNum>(IDiscreteCurve<TVector,TNum>[]
     
     public TVector Start =>Children[0].Start;
     public TVector End=>Children[^1].End;
-    public TVector Traverse(TNum distance)
+    public TVector Traverse(TNum t)
     {
-        var onCurve = IsClosed||(TNum.Zero <= distance && distance <= Length);
-        return onCurve? TraverseOnCurve(distance):TraverseOffOfCurve(distance);
+        var onCurve = IsClosed||(TNum.Zero <= t && t <= Length);
+        return onCurve? TraverseOnCurve(t):TraverseOffOfCurve(t);
     }
 
     private TVector TraverseOffOfCurve(TNum distance)
@@ -60,11 +60,11 @@ public sealed record ConnectedCurve<TVector,TNum>(IDiscreteCurve<TVector,TNum>[]
         return ThrowHelper.ThrowArgumentOutOfRangeException<TVector>(nameof(distance),distance,null);
     }
 
-    public TVector TraverseOnCurve(TNum distance)
+    public TVector TraverseOnCurve(TNum t)
     {
-        if(IsClosed) distance=distance.Wrap(TNum.Zero,Length);
-        if(distance<TNum.Zero) return TraverseClosedReverse(distance);
-        return TraverseOnCurveForward(distance);
+        if(IsClosed) t=t.Wrap(TNum.Zero,Length);
+        if(t<TNum.Zero) return TraverseClosedReverse(t);
+        return TraverseOnCurveForward(t);
     }
 
     private TVector TraverseOnCurveForward(TNum distance)

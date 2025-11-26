@@ -30,7 +30,7 @@ public static partial class Polyline
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             var lineMid = line.MidPoint;
-            var directionRight = line.Direction.Right;
+            var directionRight = line.AxisVector.Right;
             var pToLine = lineMid - p;
             return TNum.Sign(pToLine.Dot(directionRight));
         }

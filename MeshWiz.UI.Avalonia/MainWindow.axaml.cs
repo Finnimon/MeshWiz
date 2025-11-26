@@ -30,7 +30,7 @@ public partial class MainWindow : Window
         MeshViewWrap.Unwrap.SolidColor = Color4.DarkSlateGray;
         MeshViewWrap.Unwrap.WireFrameColor = Color4.LightBlue;
         var bg = BgWrapper.Unwrap;
-        bg.From = new(0.1f,0.1f,0.1f,1f);
+        bg.From = new Color4(0.1f,0.1f,0.1f,1f);
         bg.From = Color4.DarkSlateBlue;
         bg.To = bg.From;
         bg.RotationMillis = 100000;
@@ -56,18 +56,37 @@ public partial class MainWindow : Window
         // var surface = JaggedRotationalSurface<float>.FromSweepCurve(arcPoly, ray);
         Polyline<Vector3<double>, double> jaggedGeodesic;
         
-        jaggedGeodesic = surface.TraceGeodesicCycles(new(1,0,surface.SweepCurve.Traverse(0.5f).Z),
-            Vector3<double>.UnitY + Vector3<double>.UnitZ,
-            10000);
-        jaggedGeodesic = surface.TraceGeodesicCycles(new(1,0,surface.SweepCurve.Traverse(0.5f).Z),
-            Vector3<double>.UnitY + Vector3<double>.UnitZ,
-            10000);
+        // jaggedGeodesic = surface.TraceGeodesicCycles(new(1,0,surface.SweepCurve.Traverse(0.5f).Z),
+        //     Vector3<double>.UnitY + Vector3<double>.UnitZ,
+        //     10000);
+        
+        // jaggedGeodesic = surface.TraceFullCycle(new(1, 0, surface.SweepCurve.Traverse(0.5f).Z),
+        //     new(0, 1, 1));
+        // jaggedGeodesic = surface.TraceFullCycle(new(1, 0, surface.SweepCurve.Traverse(0.5f).Z),
+        //     new(0, 1, 1));
         var sw = Stopwatch.StartNew();
-        jaggedGeodesic = surface.TraceGeodesicCycles(new(1,0,surface.SweepCurve.Traverse(0.5f).Z),
-            new(0,1,100),
-            childSurfaceCount:1000);
+        // jaggedGeodesic = surface.TraceGeodesicCycles(new(1,0,surface.SweepCurve.Traverse(0.5f).Z),
+        //     new(0,1,1),
+        //     childSurfaceCount:1200);
+        Enumerable.Range(1, 1000).Select(z => surface.TracePeriod(
+            new Vector3<double>(1, 0, surface.SweepCurve.Traverse(0.5f).Z),
+            new Vector3<double>(0, 1, 1+z*0.1))).Count();
         var elapsed = sw.Elapsed;
-        Console.WriteLine(elapsed);
+        Console.WriteLine(elapsed); 
+        sw.Restart();//0x139
+        var period = surface.TracePeriod(new Vector3<double>(1, 0, surface.SweepCurve.Traverse(0.5f).Z),
+            new Vector3<double>(0, 1, 0.5));
+        var trace = sw.Elapsed;
+        sw.Restart();//0x139
+        jaggedGeodesic = period.FinalizedPath;
+        Console.WriteLine($"Trace {trace} to polyline  {sw.Elapsed}");
+        sw.Restart();
+        jaggedGeodesic =new Polyline<Vector3<double>, double>(Enumerable.Sequence(0, 1, 0.0001d).Select(jaggedGeodesic.Traverse));
+        // var normals = jaggedGeodesic.Points
+        //     .ToArray()
+        //     .Select(p => Line<Vector3<double>, double>.FromAxisVector(p, surface.NormalAt(p)))
+        //     .Select(l => new Line<Vector3<float>, float>(l.Start.To<float>(), l.End.To<float>())).ToArray();
+        Console.WriteLine(sw.Elapsed);
         meshi = surface.Tessellate(256).To<float>();
         LineViewWrapper.Unwrap.Polyline = jaggedGeodesic.To<Vector3<float>,float>();
         var mesh = BvhMesh<float>.SurfaceAreaHeuristic(meshi);
@@ -80,7 +99,15 @@ public partial class MainWindow : Window
         var minY = mesh.BBox.Min.Y + 0.0001f;
         var maxY = mesh.BBox.Max.Y;
         var range = maxY - minY;
-        
+        this.GlParent.Children.Add(
+            new IndexedLineView()
+            {
+                Camera = camera,
+                Color = Color4.LightGreen,
+                Lines = [],
+                LineWidth =3f,
+                Show = false
+            });
     }
 
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e) =>

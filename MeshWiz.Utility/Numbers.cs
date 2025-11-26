@@ -93,6 +93,7 @@ public static class Numbers<TNum>
     public static readonly TNum Third = TNum.CreateTruncating(1.0 / 3.0);
 
     public static readonly TNum ZeroEpsilon = GetZeroEpislon();
+    public static readonly TNum Sixth = TNum.CreateTruncating(0.6);
 
     private static TNum GetZeroEpislon()
     {

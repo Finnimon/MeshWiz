@@ -45,7 +45,7 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
     public Vector3(TNum value) : this(value, value, value) { }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector3<TNum> FromXYZ(TNum x, TNum y, TNum z)
+    public static Vector3<TNum> Create(TNum x, TNum y, TNum z)
         => new(x, y, z);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -95,51 +95,27 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
     public Vector3<TNum> YYY => new(Y);
     public Vector3<TNum> ZZZ => new(Z);
 
-    public static Vector3<TNum> Zero
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-    } = new(TNum.Zero, TNum.Zero, TNum.Zero);
+    public static Vector3<TNum> Zero => new(TNum.Zero, TNum.Zero, TNum.Zero);
 
 
-    public static Vector3<TNum> One
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-    } = new(TNum.One, TNum.One, TNum.One);
+    public static Vector3<TNum> One => new(TNum.One, TNum.One, TNum.One);
 
-    public static Vector3<TNum> NaN
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-    } = new(TNum.NaN, TNum.NaN, TNum.NaN);
+    public static Vector3<TNum> NaN => new(TNum.NaN, TNum.NaN, TNum.NaN);
 
     /// <inheritdoc />
-    public static Vector3<TNum> NegativeInfinity { get; } = new(TNum.NegativeInfinity);
+    public static Vector3<TNum> NegativeInfinity => new(TNum.NegativeInfinity);
 
     /// <inheritdoc />
-    public static Vector3<TNum> NegativeZero { get; } = new(TNum.NegativeZero);
+    public static Vector3<TNum> NegativeZero => new(TNum.NegativeZero);
 
     /// <inheritdoc />
-    public static Vector3<TNum> PositiveInfinity { get; } = new(TNum.PositiveInfinity);
+    public static Vector3<TNum> PositiveInfinity => new(TNum.PositiveInfinity);
 
-    public static Vector3<TNum> UnitX
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-    } = new(TNum.One, TNum.Zero, TNum.Zero);
+    public static Vector3<TNum> UnitX => new(TNum.One, TNum.Zero, TNum.Zero);
 
-    public static Vector3<TNum> UnitY
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-    } = new(TNum.Zero, TNum.One, TNum.Zero);
+    public static Vector3<TNum> UnitY => new(TNum.Zero, TNum.One, TNum.Zero);
 
-    public static Vector3<TNum> UnitZ
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-    } = new(TNum.Zero, TNum.Zero, TNum.One);
+    public static Vector3<TNum> UnitZ => new(TNum.Zero, TNum.Zero, TNum.One);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector3<TOther> To<TOther>() where TOther : unmanaged, IFloatingPointIeee754<TOther>
@@ -182,14 +158,6 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
     public static Vector3<TNum> operator /(TNum num, Vector3<TNum> vec)
         => new(num / vec.X, num / vec.Y, num / vec.Z);
 
-    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector3<TNum> operator ^(Vector3<TNum> left, Vector3<TNum> right)
-        => new(
-            x: left.Y * right.Z - left.Z * right.Y,
-            y: left.Z * right.X - left.X * right.Z,
-            z: left.X * right.Y - left.Y * right.X
-        );
-
     [Pure, SuppressMessage("ReSharper", "CompareOfTNumsByEqualityOperator"),
      MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(Vector3<TNum> left, Vector3<TNum> right)
@@ -221,24 +189,39 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TNum Dot(Vector3<TNum> other)
-        => X * other.X + Y * other.Y + Z * other.Z;
-
-
-    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public TNum DistanceTo(Vector3<TNum> other) => (this - other).Length;
+        => Dot(this,other);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public TNum SquaredDistanceTo(Vector3<TNum> other) => (this - other).SquaredLength;
+    public static TNum Dot(Vector3<TNum> a, Vector3<TNum> b) => a.X * b.X + a.Y * b.Y + a.Z * b.Z;
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public TNum DistanceTo(Vector3<TNum> other) => Distance(this, other);
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public TNum SquaredDistanceTo(Vector3<TNum> other) => SquaredDistance(this, other);
 
     /// <inheritdoc />
-    public static TNum Distance(Vector3<TNum> a, Vector3<TNum> b) => a.DistanceTo(b);
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TNum Distance(Vector3<TNum> a, Vector3<TNum> b) => TNum.Sqrt(SquaredDistance(a, b));
 
     /// <inheritdoc />
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TNum SquaredDistance(Vector3<TNum> a, Vector3<TNum> b)
-        => a.SquaredDistanceTo(b);
+    {
+        var x = a.X - b.X;
+        var y = a.Y - b.Y;
+        var z = a.Z - b.Z;
+        return x * x + y * y + z * z;
+    }
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Vector3<TNum> Cross(Vector3<TNum> other) => this ^ other;
+    public static Vector3<TNum> Cross(Vector3<TNum> a, Vector3<TNum> b)
+        => new(x: a.Y * b.Z - a.Z * b.Y,
+            y: a.Z * b.X - a.X * b.Z,
+            z: a.X * b.Y - a.Y * b.X);
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Vector3<TNum> Cross(Vector3<TNum> other) => Cross(this, other);
 
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -274,7 +257,7 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
         get
         {
             if (Dimensions <= (uint)index) IndexThrowHelper.Throw(index, Count);
-            return Unsafe.AddByteOffset(ref Unsafe.AsRef(in X),Unsafe.SizeOf<TNum>() * index);
+            return Unsafe.AddByteOffset(ref Unsafe.AsRef(in X), Unsafe.SizeOf<TNum>() * index);
         }
     }
 
@@ -479,13 +462,13 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
     public static Vector3<TNum> MultiplicativeIdentity => One;
 
     /// <inheritdoc />
-    public static Vector3<TNum> E { get; } = new(TNum.E);
+    public static Vector3<TNum> E => new(TNum.E);
 
     /// <inheritdoc />
-    public static Vector3<TNum> Pi { get; } = new(TNum.Pi);
+    public static Vector3<TNum> Pi => new(TNum.Pi);
 
     /// <inheritdoc />
-    public static Vector3<TNum> Tau { get; } = new(TNum.Tau);
+    public static Vector3<TNum> Tau => new(TNum.Tau);
 
     /// <inheritdoc />
     public static Vector3<TNum> Exp(Vector3<TNum> v)
@@ -501,7 +484,7 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
 
 
     /// <inheritdoc />
-    public static Vector3<TNum> NegativeOne { get; } = new(TNum.NegativeOne);
+    public static Vector3<TNum> NegativeOne => new(TNum.NegativeOne);
 
 
     /// <inheritdoc />
@@ -757,7 +740,7 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
         => new(TNum.ScaleB(x.X, n), TNum.ScaleB(x.Y, n), TNum.ScaleB(x.Z, n));
 
     /// <inheritdoc />
-    public static Vector3<TNum> Epsilon { get; } = new(TNum.Epsilon);
+    public static Vector3<TNum> Epsilon => new(TNum.Epsilon);
 
 
     /// <inheritdoc />
@@ -860,13 +843,14 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsPerpendicularTo(Vector3<TNum> other) => Dot(other).IsApproxZero();
+
     [Pure]
     public Vector3<TNum> WithElement(int index, TNum elem)
     {
-        if(2u<(uint)index)
+        if (2u < (uint)index)
             IndexThrowHelper.Throw();
         var copy = this;
-        ref var xRef=ref Unsafe.AsRef(in copy.X);
+        ref var xRef = ref Unsafe.AsRef(in copy.X);
         Unsafe.AddByteOffset(ref xRef, Unsafe.SizeOf<TNum>() * index) = elem;
         return copy;
     }

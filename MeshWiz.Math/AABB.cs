@@ -168,7 +168,7 @@ public readonly struct AABB<TNum>
 
 
     [Pure]
-    public static AABB<TNum> From(params TNum[] pts)
+    public static AABB<TNum> From(params ReadOnlySpan<TNum> pts)
         => pts.Length switch
         {
             0 => Empty,
@@ -179,7 +179,9 @@ public readonly struct AABB<TNum>
             _ => FromNotEmptyArray(pts)
         };
 
-    private static AABB<TNum> FromNotEmptyArray(TNum[] pts)
+    
+    
+    private static AABB<TNum> FromNotEmptyArray(ReadOnlySpan<TNum> pts)
     {
         var min = pts[0];
         var max = pts[0];
@@ -312,9 +314,41 @@ public static class AABB
         => AABB<TNum>.From(p1, p2, p3, p4);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static AABB<TNum> From<TNum>(params TNum[] pts)
+    public static AABB<TNum> From<TNum>(params ReadOnlySpan<TNum> pts)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
         => AABB<TNum>.From(pts);
+    
+    
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static AABB<TVector> From<TPose,TVector,TIgnore>(params ReadOnlySpan<TPose> pts)
+        where TPose:IPosition<TPose,TVector,TIgnore>
+        where TVector : unmanaged,IVector<TVector, TIgnore> 
+        where TIgnore : unmanaged, IFloatingPointIeee754<TIgnore>
+        => pts.Length switch
+        {
+            0 => AABB<TVector>.Empty,
+            1 => From(pts[0].Position),
+            2 => From(pts[0].Position, pts[1].Position),
+            3 => From(pts[0].Position, pts[1].Position, pts[2].Position),
+            4 => From(pts[0].Position, pts[1].Position, pts[2].Position, pts[3].Position),
+            _ => FromNotEmptyArray<TVector, TPose, TIgnore>(pts)
+        };
+
+    private static AABB<TVector> FromNotEmptyArray<TVector, TPose,TNum>(ReadOnlySpan<TPose> pts) 
+        where TPose:IPosition<TPose,TVector,TNum>
+        where TVector : unmanaged,IVector<TVector, TNum> 
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+    {
+        var min = pts[0].Position;
+        var max = min;
+        for (var i = 1; i < pts.Length; i++)
+        {
+            var p = pts[i].Position;
+            min=TVector.Min(min, p);
+            max=TVector.Max(max, p);
+        }
+        return From(min,max);
+    }
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static AABB<TNum> Around<TNum>(TNum center, TNum size)

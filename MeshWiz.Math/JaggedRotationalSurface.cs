@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Numerics;
@@ -13,7 +14,8 @@ namespace MeshWiz.Math;
 public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum>[] Positions)
     : IReadOnlyList<IRotationalSurface<TNum>>,
         IRotationalSurface<TNum>,
-        IGeodesicProvider<Polyline<Vector3<TNum>, TNum>, TNum> where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        IGeodesicProvider<PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>, TNum>
+    where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     private TNum? _height;
     public TNum Height => _height ??= AABB.From(Positions).Size.Y;
@@ -51,8 +53,6 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
 
     public IRotationalSurface<TNum> GetChildSurface(int index)
     {
-        if(index==0)
-            Console.WriteLine();
         if (Count <= (uint)index) IndexThrowHelper.Throw(index, Count);
         var start = Positions[index];
         var end = Positions[index + 1];
@@ -136,7 +136,7 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
 
             var absAlong = closest.DistanceTo(axisLine.Start);
             var startToP = p - axisLine.Start;
-            var sign = startToP.Dot(axisLine.Direction);
+            var sign = startToP.Dot(axisLine.AxisVector);
             var along = TNum.CopySign(absAlong, sign);
             positions[i] = new Vector2<TNum>(along, radius);
         }
@@ -214,14 +214,16 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
     }
 
     public Line<Vector3<TNum>, TNum> AxisLine => SweepAxis.LineSection(TNum.Zero, Height);
-    
-    public IEnumerable<IContiguousDiscreteCurve<Vector3<TNum>, TNum>> TraceGeodesics(Vector3<TNum> p, Vector3<TNum> dir, Func<int,bool> @while)
+
+    public IEnumerable<IDiscretePoseCurve<Pose3<TNum>, Vector3<TNum>, TNum>> TraceGeodesics(Vector3<TNum> p,
+        Vector3<TNum> dir,
+        Func<int, bool> @while)
     {
-        if(Count == 0) yield break;
-        
+        if (Count == 0) yield break;
+
         var found = TryFindClosestSurface(p, out var surfaceIndex);
         if (!found) yield break;
-        
+
         var previousDir = dir;
         var previousEnd = p;
         var previousNormal = this[surfaceIndex].NormalAt(p);
@@ -229,7 +231,7 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
         var i = -1;
         while (@while(++i))
         {
-            IContiguousDiscreteCurve<Vector3<TNum>, TNum>? current = null;
+            IDiscretePoseCurve<Pose3<TNum>, Vector3<TNum>, TNum>? current = null;
             IRotationalSurface<TNum>? surface = null;
             while (retryOrder.TryPopFront(out surfaceIndex))
             {
@@ -249,17 +251,13 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
                 previousNormal = newNormal;
 
                 var active = Func.Try(surface.GetGeodesicFromEntry, previousEnd, previousDir);
-                var currentTryFailed = !active.HasValue
-                                       || active.Value is not IContiguousDiscreteCurve<Vector3<TNum>, TNum> contiguous
-                                       || contiguous.Length.IsApproxZero()
-                                       || !TNum.IsRealNumber(contiguous.Length);
-                if (currentTryFailed)
-                {
-                    Console.WriteLine(active.Info);
+                if (!active.HasValue
+                    || active.Value is not IDiscretePoseCurve<Pose3<TNum>, Vector3<TNum>, TNum> contiguous
+                    || contiguous.Length.IsApproxZero()
+                    || !TNum.IsRealNumber(contiguous.Length))
                     continue;
-                }
 
-                current = (IContiguousDiscreteCurve<Vector3<TNum>, TNum>)active.Value;
+                current = contiguous;
                 retryOrder.Clear();
                 break;
             }
@@ -299,45 +297,328 @@ public sealed record JaggedRotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum
         }
     }
 
-    public Result<Arithmetics, Polyline<Vector3<TNum>, TNum>> TraceFullCycle(Vector3<TNum> p, Vector3<TNum> dir)
+    public IEnumerable<(IDiscretePoseCurve<Pose3<TNum>, Vector3<TNum>, TNum> geodesic, int surface)>
+        TraceGeodesicsWithSurfaceIndex(Vector3<TNum> p, Vector3<TNum> dir, Func<int, bool> @while)
     {
-        List<IContiguousDiscreteCurve<Vector3<TNum>, TNum>> cache = new(Count*2);
-        var geodesics = TraceGeodesics(p, dir, _ => true);
+        if (Count == 0) yield break;
+
+        var found = TryFindClosestSurface(p, out var surfaceIndex);
+        if (!found) yield break;
+
+        var previousDir = dir;
+        var previousEnd = p;
+        var previousNormal = this[surfaceIndex].NormalAt(p);
+        RollingList<int> retryOrder = [surfaceIndex];
+        var i = -1;
+        while (@while(++i))
+        {
+            IDiscretePoseCurve<Pose3<TNum>, Vector3<TNum>, TNum>? current = null;
+            IRotationalSurface<TNum>? surface = null;
+            while (retryOrder.TryPopFront(out surfaceIndex))
+            {
+                surface = this[surfaceIndex];
+                var newNormal = surface.NormalAt(previousEnd);
+                var normalCalcPossible = Vector3<TNum>.IsRealNumber(newNormal)
+                                         && Vector3<TNum>.IsRealNumber(previousNormal);
+                if (normalCalcPossible && !newNormal.IsParallelTo(previousNormal))
+                {
+                    var about = previousNormal.Cross(newNormal);
+                    var transformAngle = Vector3<TNum>.SignedAngleBetween(previousNormal, newNormal, about);
+                    var rotation = Matrix4x4<TNum>.CreateRotation(about, transformAngle);
+                    var rotatedDir = rotation.MultiplyDirection(previousDir);
+                    previousDir = rotatedDir;
+                }
+
+                previousNormal = newNormal;
+
+                var active = Func.Try(surface.GetGeodesicFromEntry, previousEnd, previousDir);
+                var currentTryFailed = !active.HasValue
+                                       || active.Value is not IDiscretePoseCurve<Pose3<TNum>, Vector3<TNum>, TNum>
+                                           contiguous
+                                       || contiguous.Length.IsApproxZero()
+                                       || !TNum.IsRealNumber(contiguous.Length);
+                if (currentTryFailed)
+                {
+                    Console.WriteLine(active.Info);
+                    continue;
+                }
+
+                current = (IDiscretePoseCurve<Pose3<TNum>, Vector3<TNum>, TNum>)active.Value;
+                retryOrder.Clear();
+                break;
+            }
+
+            if (current is null || surface is null)
+                yield break;
+
+            yield return (current, surfaceIndex);
+
+            previousDir = current.ExitDirection;
+            previousEnd = current.End;
+            previousNormal = surface.NormalAt(previousEnd);
+
+            var minusOneIndex = surfaceIndex != 0 ? surfaceIndex - 1 : Count - 1;
+            var minusOneDistance = this[minusOneIndex].ClampToSurface(previousEnd).DistanceTo(previousEnd);
+            minusOneDistance = TNum.IsNaN(minusOneDistance) ? TNum.PositiveInfinity : minusOneDistance;
+
+            var plusOneIndex = surfaceIndex != Count - 1 ? surfaceIndex + 1 : 0;
+            var plusOneDistance = this[plusOneIndex].ClampToSurface(previousEnd).DistanceTo(previousEnd);
+            plusOneDistance = TNum.IsNaN(plusOneDistance) ? TNum.PositiveInfinity : plusOneDistance;
+
+            var (bestDist, bestIndex) = minusOneDistance < plusOneDistance
+                ? (minusOneDistance, minusOneIndex)
+                : (plusOneDistance, plusOneIndex);
+            var nextSurfFound = Numbers<TNum>.Eps3.IsApproxGreaterOrEqual(bestDist);
+
+            retryOrder.Clear();
+            if (nextSurfFound)
+                retryOrder.Add(bestIndex);
+
+            var couldBeSameSurfaceAgain = surface is Cone<TNum> or ConeSection<TNum>;
+            if (couldBeSameSurfaceAgain)
+                retryOrder.Add(surfaceIndex);
+
+            if (Vector3<TNum>.IsNaN(previousDir))
+                yield break;
+        }
+    }
+
+    /// <summary>
+    /// Geodesic movement on rotational surfaces is periodical unless it hits a boundary
+    /// </summary>
+    /// <param name="p"></param>
+    /// <param name="dir"></param>
+    /// <returns></returns>
+    public PeriodicalInfo<TNum> TracePeriod(Vector3<TNum> p, Vector3<TNum> dir)
+    {
+        var result = new PeriodicalInfo<TNum>(new Ray3<TNum>(p, dir), Axis,
+            Result<PeriodicalGeodesics, IReadOnlyList<IDiscretePoseCurve<Pose3<TNum>, Vector3<TNum>, TNum>>>
+                .DefaultFailure);
+        if (Count < 1)
+            return result;
+
+        List<IDiscretePoseCurve<Pose3<TNum>, Vector3<TNum>, TNum>> cache = new(Count * 2);
+        var geodesics = TraceGeodesicsWithSurfaceIndex(p, dir, _ => true);
         var first = Bool.Once();
+        var couldConclude = false;
+        var startingSurface = -1;
+        var dotSign = 0;
         foreach (var segment in geodesics)
         {
-            cache.Add(segment);
-            if (first) continue;
-            
+            cache.Add(segment.geodesic);
+            if (first)
+            {
+                startingSurface = segment.surface;
+                dotSign = segment.geodesic.ExitDirection.Dot(Axis.Direction).EpsilonTruncatingSign();
+                continue;
+            }
+
+            if (segment.surface != startingSurface) continue;
+            var newDotSign = segment.geodesic.ExitDirection.Dot(Axis.Direction).EpsilonTruncatingSign();
+            var sameDir = newDotSign == dotSign;
+            if (!sameDir) continue;
+            couldConclude = true;
+            break;
         }
 
-        throw new NotFiniteNumberException();
+        return !couldConclude
+            ? result
+            : result with { TraceResult = cache };
     }
-    public Polyline<Vector3<TNum>, TNum> TraceGeodesicCycles(Vector3<TNum> p, Vector3<TNum> dir, int childSurfaceCount)
+
+    [Pure]
+    private static List<int> GetIntersectingSegments(Plane3<TNum> plane, Polyline<Vector3<TNum>, TNum> polyline)
+    {
+        List<int> intersections = [];
+        for (var i = 0; i < polyline.Count; i++)
+        {
+            var doIntersect = plane.DoIntersect(polyline[i]);
+            if (!doIntersect) continue;
+            intersections.Add(i);
+        }
+
+        return intersections;
+    }
+
+    public PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum> TraceGeodesicCycles(Vector3<TNum> p, Vector3<TNum> dir,
+        int childSurfaceCount)
     {
         var vertices = new List<Vector3<TNum>>();
-        var segments = TraceGeodesics(p, dir,i=>i<childSurfaceCount)
-            .ToArray();//execute entirely to improve function caching
-        if(segments.Length == 0)
-            return Polyline<Vector3<TNum>, TNum>.Empty;
-        if(segments.Length == 1)
-            return segments[0].ToPolyline();
-        var first=Bool.Once();
-        foreach (var segment in segments)
-        {
-            var current = segment.ToPolyline();
-            var add = first ? current.Points : current.Points[1..];
-            vertices.AddRange(add);
-        }
-        return new Polyline<Vector3<TNum>, TNum>(vertices.ToArray()).CullDeadSegments();
+        var segments = TraceGeodesics(p, dir, i => i < childSurfaceCount)
+            .ToArray(); //execute entirely to improve function caching
+        if (segments.Length == 0)
+            return new();
+        if (segments.Length == 1)
+            return segments[0].ToPosePolyline();
+        var first = Bool.Once();
+        return PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>.CreateCulled(
+            Polyline.ForceConcat(segments.Select(s => s.ToPosePolyline())));
     }
 
     /// <inheritdoc />
-    Polyline<Vector3<TNum>, TNum> IGeodesicProvider<Polyline<Vector3<TNum>, TNum>, TNum>.GetGeodesic(Vector3<TNum> p1,
-        Vector3<TNum> p2)
-        => ThrowHelper.ThrowNotSupportedException<Polyline<Vector3<TNum>, TNum>>();
+    PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>
+        IGeodesicProvider<PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>, TNum>.GetGeodesic(Vector3<TNum> p1,
+            Vector3<TNum> p2)
+        => ThrowHelper.ThrowNotSupportedException<PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>>();
 
     /// <inheritdoc />
-    public Polyline<Vector3<TNum>, TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint, Vector3<TNum> direction)
-        => TraceGeodesicCycles(entryPoint, direction, 10000);
+    public PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint,
+        Vector3<TNum> direction)
+        => TraceGeodesicCycles(entryPoint, direction, 1000);
+}
+
+public enum PeriodicalGeodesics
+{
+    Success = 0,
+    Failure = 1,
+    BoundaryHit = 2,
+    SegmentFailure = 3
+}
+
+public sealed record PeriodicalInfo<TNum>(
+    Ray3<TNum> StartingConditions,
+    Ray3<TNum> Axis,
+    Result<PeriodicalGeodesics, IReadOnlyList<IDiscretePoseCurve<Pose3<TNum>, Vector3<TNum>, TNum>>> TraceResult
+)
+    where TNum : unmanaged, IFloatingPointIeee754<TNum>
+{
+    private Result<PeriodicalGeodesics, Ray3<TNum>>? _exit;
+    public Result<PeriodicalGeodesics, Ray3<TNum>> Exit => _exit ??= CalculateExit();
+
+    private Ray3<TNum>? _entry;
+
+    public Result<PeriodicalGeodesics, Ray3<TNum>> Entry
+    {
+        get
+        {
+            if (!TraceResult)
+                return Result<PeriodicalGeodesics, Ray3<TNum>>.Failure(TraceResult.Info);
+            var entryCurve = TraceResult.Value[0];
+            return _entry ??= new Ray3<TNum>(entryCurve.Start, entryCurve.EntryDirection);
+        }
+    }
+
+    private PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>? _exitCurve;
+
+    private Result<PeriodicalGeodesics, Ray3<TNum>> CalculateExit()
+    {
+        if (_exitCurve is not null)
+            return new Ray3<TNum>(_exitCurve.Poses[^1].Origin, _exitCurve.Poses[^1].Front);
+        var curves = TraceResult.Value;
+        var firstCurve = curves[0];
+        Plane3<TNum> startPlane = new(Axis.Direction, firstCurve.Start);
+        var lastCurve = curves[^1].ToPosePolyline();
+        var intersections = GetIntersectingSegments(startPlane, lastCurve);
+        if (intersections.Count < 1)
+            return Result<PeriodicalGeodesics, Ray3<TNum>>.DefaultFailure;
+        var initialEntry = firstCurve.EntryDirection;
+        var endingSegment = intersections.OrderBy(i =>
+        {
+            var dot = lastCurve[i].Direction.Dot(initialEntry);
+            var closeness = TNum.Abs(dot - TNum.One);
+            return closeness;
+        }).First();
+        var endingLine = lastCurve[endingSegment];
+        var success = startPlane.Intersect(endingLine, out var endingPoint);
+        if (!success)
+            return Result<PeriodicalGeodesics, Ray3<TNum>>.DefaultFailure;
+        var dist = Vector3<TNum>.Distance(endingLine.StartPose.Position, endingPoint);
+        var distances = lastCurve.CumulativeDistances;
+        var totalLength = distances[endingSegment] + dist;
+        _exitCurve = lastCurve.ExactSection(TNum.Zero, totalLength);
+        return new Ray3<TNum>(endingPoint, endingLine.AxisVector);
+    }
+
+    [Pure]
+    private static List<int> GetIntersectingSegments(Plane3<TNum> plane,
+        PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum> polyline)
+    {
+        List<int> intersections = [];
+        for (var i = 0; i < polyline.Count; i++)
+        {
+            var doIntersect = plane.DoIntersect(polyline[i]);
+            if (!doIntersect) continue;
+            intersections.Add(i);
+        }
+
+        return intersections;
+    }
+
+    private Result<PeriodicalGeodesics, Polyline<Vector3<TNum>, TNum>>? _finalizedPath;
+
+    public Result<PeriodicalGeodesics, Polyline<Vector3<TNum>, TNum>> FinalizedPath =>
+        _finalizedPath ??= FinalizedPolyline();
+
+    private Result<PeriodicalGeodesics, Polyline<Vector3<TNum>, TNum>> FinalizedPolyline()
+    {
+        var sw=Stopwatch.StartNew();
+        if (!TraceResult || !Exit)
+            return Result<PeriodicalGeodesics, Polyline<Vector3<TNum>, TNum>>.Failure(!TraceResult
+                ? TraceResult.Info
+                : Exit.Info);
+
+        Console.WriteLine($"Exti eval {sw.Elapsed}");
+        sw.Restart();
+        var segments = TraceResult.Value
+            .Take(..^2)
+            .Select(c => c.ToPolyline())
+            .Append(_exitCurve!.ToPolyline());
+        var concat = Polyline.ForceConcat(segments);
+
+        Console.WriteLine($"Concat To polyline eval {sw.Elapsed}");
+        sw.Restart();
+        Result<PeriodicalGeodesics,Polyline<Vector3<TNum>,TNum>> result;
+        result = concat
+            ? Polyline<Vector3<TNum>, TNum>.CreateCulled(concat)
+            : Result<PeriodicalGeodesics, Polyline<Vector3<TNum>, TNum>>.DefaultFailure;
+
+        Console.WriteLine($"Cull polyline eval {sw.Elapsed}");
+        sw.Restart();
+        return result;
+    }
+
+    private Result<PeriodicalGeodesics, PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>>? _finalizedPoses;
+
+    private Result<PeriodicalGeodesics, PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>>
+        FinalizedPoses => _finalizedPoses ??= FinalizePoses();
+
+    private Result<PeriodicalGeodesics, PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>> FinalizePoses()
+    {
+        if (!TraceResult || !Exit)
+            return Result<PeriodicalGeodesics, PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>>.Failure(!TraceResult
+                ? TraceResult.Info
+                : Exit.Info);
+        var segments = TraceResult.Value
+            .Take(..^2)
+            .Append(_exitCurve!)
+            .Select(c => c.ToPosePolyline());
+        var poses = Polyline.ForceConcat(segments);
+        if (!poses)
+            return Result<PeriodicalGeodesics, PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>>.DefaultFailure;
+        return PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>.CreateCulled(poses);
+    }
+
+    private Result<PeriodicalGeodesics, Angle<TNum>>? _phase;
+
+    public Result<PeriodicalGeodesics, Angle<TNum>> Phase => _phase ??= GetPhase();
+
+    private Result<PeriodicalGeodesics, Angle<TNum>> GetPhase()
+    {
+        var entry = Entry;
+        var exit = Exit;
+        if (!entry || !exit)
+            return Result<PeriodicalGeodesics, Angle<TNum>>.Failure(exit.Info);
+        return AngleAbout(entry.Value.Origin, exit.Value.Origin, Axis);
+    }
+
+    [Pure]
+    private static Angle<TNum> AngleAbout(Vector3<TNum> p1, Vector3<TNum> p2, in Ray3<TNum> axis)
+    {
+        var v1 = p1 - axis.Origin;
+        var v2 = p2 - axis.Origin;
+        return Vector3<TNum>.SignedAngleBetween(v1, v2, axis.Direction);
+    }
+
+    public Result<PeriodicalGeodesics, TNum> CalculateOverlap(TNum width) => throw new NotImplementedException();
+    public Result<PeriodicalGeodesics, TNum> CalculateCoverage(TNum width) => throw new NotImplementedException();
 }

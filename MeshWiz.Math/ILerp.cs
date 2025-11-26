@@ -2,7 +2,7 @@ using System.Diagnostics.Contracts;
 
 namespace MeshWiz.Math;
 
-public interface ILerp<TSelf, in TNum> 
+public interface ILerp<TSelf, TNum>  : IDistance<TSelf,TNum>
     where TSelf : ILerp<TSelf, TNum>
 {
     [Pure]

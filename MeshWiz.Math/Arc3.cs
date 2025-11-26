@@ -52,8 +52,8 @@ public readonly struct Arc3<TNum>(Circle3<TNum> underlying, TNum startAngle, TNu
 
 
     /// <inheritdoc />
-    public Vector3<TNum> TraverseOnCurve(TNum distance)
-        => Traverse(TNum.Clamp(distance, TNum.Zero, TNum.One));
+    public Vector3<TNum> TraverseOnCurve(TNum t)
+        => Traverse(TNum.Clamp(t, TNum.Zero, TNum.One));
 
 
     /// <inheritdoc />
@@ -89,9 +89,9 @@ public readonly struct Arc3<TNum>(Circle3<TNum> underlying, TNum startAngle, TNu
     }
 
     /// <inheritdoc />
-    public Vector3<TNum> Traverse(TNum distance)
+    public Vector3<TNum> Traverse(TNum t)
     {
-        var pos = GetAngleAtNormalPos(distance);
+        var pos = GetAngleAtNormalPos(t);
         return Underlying.TraverseByAngle(pos);
     }
 

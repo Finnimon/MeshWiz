@@ -6,7 +6,7 @@ using MeshWiz.Utility.Extensions;
 namespace MeshWiz.Math;
 
 public readonly struct Cone<TNum> : IBody<TNum>, IRotationalSurface<TNum>, IEquatable<Cone<TNum>>,
-    IGeodesicProvider<TNum>
+    IGeodesicProvider<ConeGeodesic<TNum>,TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly Line<Vector3<TNum>, TNum> Axis;
@@ -30,7 +30,7 @@ public readonly struct Cone<TNum> : IBody<TNum>, IRotationalSurface<TNum>, IEqua
     public Vector3<TNum> Centroid => Axis.Traverse(Numbers<TNum>.Fourth);
     public TNum Volume => Axis.Length * Base.SurfaceArea * Numbers<TNum>.Third;
     public Vector3<TNum> Tip => Axis.End;
-    public Circle3<TNum> Base => new(Axis.Start, Axis.Direction, Radius);
+    public Circle3<TNum> Base => new(Axis.Start, Axis.AxisVector, Radius);
 
     /// <inheritdoc />
     public TNum SurfaceArea => Base.SurfaceArea + OpenConeSurfaceArea(Radius, Axis.Length);
@@ -46,7 +46,7 @@ public readonly struct Cone<TNum> : IBody<TNum>, IRotationalSurface<TNum>, IEqua
     {
         var c = Axis.Traverse(normHeight);
         var radius = GetRadiusAt(normHeight);
-        return new Circle3<TNum>(c, Axis.Direction, radius);
+        return new Circle3<TNum>(c, Axis.AxisVector, radius);
     }
 
     public TNum GetRadiusAt(TNum normHeight) => TNum.Lerp(Radius, TNum.Zero, normHeight);
@@ -95,9 +95,9 @@ public readonly struct Cone<TNum> : IBody<TNum>, IRotationalSurface<TNum>, IEqua
         var baseC = Base;
         p = ClampToSurface(p);
         if (p.IsApprox(Tip))
-            return Axis.NormalDirection;
+            return Axis.Direction;
         var p2 = baseC.Plane.ProjectIntoLocal(p - baseC.Centroid);
-        if (p2.IsApproxZero()) return Axis.NormalDirection;
+        if (p2.IsApproxZero()) return Axis.Direction;
         var anglePos = p2.CartesianToPolar().PolarAngle;
         var tangent = baseC.GetTangentAtAngle(anglePos);
         var pToTip = Tip - p;
@@ -203,10 +203,10 @@ public readonly struct Cone<TNum> : IBody<TNum>, IRotationalSurface<TNum>, IEqua
     }
 
     /// <inheritdoc />
-    public IContiguousCurve<Vector3<TNum>, TNum> GetGeodesic(Vector3<TNum> p1, Vector3<TNum> p2)
+    public ConeGeodesic<TNum> GetGeodesic(Vector3<TNum> p1, Vector3<TNum> p2)
         => ConeGeodesic<TNum>.BetweenPoints(in this, p1, p2);
 
     /// <inheritdoc />
-    public IContiguousCurve<Vector3<TNum>, TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint, Vector3<TNum> direction)
+    public ConeGeodesic<TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint, Vector3<TNum> direction)
         => ConeGeodesic<TNum>.FromDirection(in this, entryPoint, direction);
 }

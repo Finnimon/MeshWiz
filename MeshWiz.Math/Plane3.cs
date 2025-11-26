@@ -38,7 +38,7 @@ public readonly struct Plane3<TNum>
 
     public Plane3(Vector3<TNum> a, Vector3<TNum> b, Vector3<TNum> c)
     {
-        Normal = (a - b) ^ (c - a);
+        Normal = Vector3<TNum>.Cross((a - b), (c - a));
         Normal = Normal.Normalized();
         D = -(Normal.Dot(a));
     }
@@ -58,9 +58,9 @@ public readonly struct Plane3<TNum>
 
     public bool Intersect(Line<Vector3<TNum>, TNum> test, out Vector3<TNum> result)
     {
-        var denominator = Normal.Dot(test.NormalDirection);
+        var denominator = Normal.Dot(test.Direction);
         // Check if ray is parallel to the plane
-        if (denominator.IsApprox(TNum.Zero))
+        if (TNum.Abs(denominator) < TNum.Epsilon)
         {
             result = Vector3<TNum>.NaN;
             return false;
@@ -68,13 +68,13 @@ public readonly struct Plane3<TNum>
 
         // Compute intersection distance along ray direction
         var t = -(Normal.Dot(test.Start) + D) / denominator;
-        result = test.TraverseOnCurve(t);
+        result = test.Traverse(t);
         return TNum.NegativeZero <= t && t <= TNum.One;
     }
 
-    private Vector3<TNum> ForceIntersect(Line<Vector3<TNum>, TNum> line)
+    public Vector3<TNum> ForceIntersect(Line<Vector3<TNum>, TNum> line)
     {
-        var denominator = Normal.Dot(line.Direction);
+        var denominator = Normal.Dot(line.AxisVector);
         var t = -(Normal.Dot(line.Start) + D) / denominator;
         return line.Traverse(t);
     }

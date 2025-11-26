@@ -10,11 +10,11 @@ namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
 public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
-    : ILine<TVector, TNum>, IContiguousDiscreteCurve<TVector, TNum>
+    : ILine<TVector, TNum>,IBounded<TVector>
     where TVector : unmanaged, IVector<TVector, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    public Line<TVector, TNum> Normalized() => FromDirection(Start, NormalDirection);
+    public Line<TVector, TNum> Normalized() => FromAxisVector(Start, Direction);
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public TVector MidPoint => (Start + End) * Numbers<TNum>.Half;
@@ -23,45 +23,45 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
     bool ICurve<TVector, TNum>.IsClosed => false;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public TNum Length => Direction.Length;
+    public TNum Length => AxisVector.Length;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public TVector Direction => End - Start;
+    public TVector AxisVector => End - Start;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public TVector NormalDirection => Direction.Normalized();
+    public TVector Direction => AxisVector.Normalized();
 
     [Pure]
     public Line<TVector, TNum> Reversed() => new(End, Start);
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    TNum IDiscreteCurve<TVector, TNum>.Length => Direction.Length;
+    TNum IDiscreteCurve<TVector, TNum>.Length => AxisVector.Length;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public TNum SquaredLength => Direction.SquaredLength;
+    public TNum SquaredLength => AxisVector.SquaredLength;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public AABB<TVector> Bounds => AABB<TVector>.From(Start, End);
 
     [Pure]
-    public static Line<TVector, TNum> FromDirection(TVector start, TVector direction)
+    public static Line<TVector, TNum> FromAxisVector(TVector start, TVector direction)
         => new(start, start+direction);
 
     [Pure]
-    public static Line<TVector, TNum> FromDirection(TVector direction)
+    public static Line<TVector, TNum> FromAxisVector(TVector direction)
         => new(TVector.Zero, direction);
 
     [Pure]
-    public TVector Traverse(TNum distance)
-        => TVector.Lerp(Start,End,distance);
+    public TVector Traverse(TNum t)
+        => TVector.Lerp(Start,End,t);
 
     [Pure]
-    public TVector TraverseOnCurve(TNum distance)
-        => Traverse(TNum.Clamp(distance, TNum.Zero, TNum.One));
+    public TVector TraverseOnCurve(TNum t)
+        => Traverse(TNum.Clamp(t, TNum.Zero, TNum.One));
 
     [Pure]
     public static Line<TVector, TNum> operator +(Line<TVector, TNum> l, Line<TVector, TNum> r)
-        => FromDirection(l.Start + r.Start, l.Direction + r.Direction);
+        => FromAxisVector(l.Start + r.Start, l.AxisVector + r.AxisVector);
 
     [Pure]
     public static Line<TVector, TNum> operator +(Line<TVector, TNum> l, TVector r)
@@ -73,11 +73,11 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
 
     [Pure]
     public static Line<TVector, TNum> operator -(Line<TVector, TNum> l, Line<TVector, TNum> r)
-        => FromDirection(l.Start - r.Start, l.Direction - r.Direction);
+        => FromAxisVector(l.Start - r.Start, l.AxisVector - r.AxisVector);
 
     [Pure]
     public static Line<TVector, TNum> operator *(Line<TVector, TNum> l, TNum r)
-        => FromDirection(l.Start * r, l.Direction * r);
+        => FromAxisVector(l.Start * r, l.AxisVector * r);
 
     [Pure]
     public TNum DistanceTo(TVector p)
@@ -99,7 +99,7 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
     public TVector ClosestPoint(TVector p)
     {
         var v = p - Start;
-        var ndir = NormalDirection;
+        var ndir = Direction;
         var dotProduct = v.Dot(ndir);
         var alongVector = dotProduct * ndir;
         return Start + alongVector;
@@ -109,7 +109,7 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
     public TVector ClosestPointOnSegment(TVector p)
     {
         var v = p - Start;
-        var direction = Direction;
+        var direction = AxisVector;
         var length = direction.Length;
         var ndir = direction / length;
         var dotProduct = v.Dot(ndir);
@@ -122,7 +122,7 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
     public (TVector closest, TVector onSeg) ClosestPoints(TVector p)
     {
         var v = p - Start;
-        var direction = Direction;
+        var direction = AxisVector;
         var length = direction.Length;
         var ndir = direction / length;
         var dotProduct = v.Dot(ndir);
@@ -136,7 +136,7 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
     public (TNum closest, TNum onSeg) GetClosestPositions(TVector p)
     {
         var v = p - Start;
-        var direction = Direction;
+        var direction = AxisVector;
         var length = direction.Length;
         var ndir = direction / length;
         var closest = v.Dot(ndir) / length;
@@ -153,13 +153,17 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
 
     /// <inheritdoc />
     public TVector GetTangent(TNum _)
-        => NormalDirection;
+        => Direction;
 
     /// <inheritdoc />
-    public TVector EntryDirection => NormalDirection;
+    public TVector EntryDirection => Direction;
 
     /// <inheritdoc />
-    public TVector ExitDirection => NormalDirection;
+    public TVector ExitDirection => Direction;
+
+    /// <inheritdoc />
+    public AABB<TVector> BBox => AABB.From(Start, End);
+
 }
 
 public static class Line
@@ -174,9 +178,9 @@ public static class Line
         alongA = default;
 
         var p = a.Start;
-        var r = a.Direction;
+        var r = a.AxisVector;
         var q = b.Start;
-        var s = b.Direction;
+        var s = b.AxisVector;
         var pq = q - p;
         var rxs = r.Cross(s);
 
@@ -198,9 +202,9 @@ public static class Line
         alongA = default;
 
         var p = a.Start;
-        var r = a.Direction;
+        var r = a.AxisVector;
         var q = b.Start;
-        var s = b.Direction;
+        var s = b.AxisVector;
         var pq = q - p;
         var rxs = r.Cross(s);
 
@@ -229,9 +233,9 @@ public static class Line
         alongA = default;
         alongB = default;
         var p = a.Start;
-        var r = a.Direction;
+        var r = a.AxisVector;
         var q = b.Start;
-        var s = b.Direction;
+        var s = b.AxisVector;
         var pq = q - p;
         var rxs = r.Cross(s);
 

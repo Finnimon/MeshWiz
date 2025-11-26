@@ -33,8 +33,8 @@ public readonly struct Circle2<TNum> : ISurface<Vector2<TNum>, TNum>,IContiguous
     public Vector2<TNum> V => new(TNum.Zero, Radius);
 
     /// <inheritdoc />
-    public Vector2<TNum> Traverse(TNum distance)
-        => TraverseByAngle(distance * Numbers<TNum>.TwoPi);
+    public Vector2<TNum> Traverse(TNum t)
+        => TraverseByAngle(t * Numbers<TNum>.TwoPi);
 
     /// <inheritdoc />
     public Vector2<TNum> GetTangent(TNum at)
@@ -51,8 +51,8 @@ public readonly struct Circle2<TNum> : ISurface<Vector2<TNum>, TNum>,IContiguous
     public Vector2<TNum> End => Start;
 
     /// <inheritdoc />
-    public Vector2<TNum> TraverseOnCurve(TNum distance)
-        => Traverse(distance);
+    public Vector2<TNum> TraverseOnCurve(TNum t)
+        => Traverse(t);
 
     /// <inheritdoc />
     public TNum Length => Circumference;

@@ -1,10 +1,13 @@
+using System.Diagnostics.Contracts;
 using System.Numerics;
+using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
+using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
 public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vector3<TNum>, TNum>,
-    IRotationalSurface<TNum>
+    IRotationalSurface<TNum>, IGeodesicProvider<PoseLine<Pose3<TNum>, Vector3<TNum>, TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     /// <inheritdoc />
@@ -14,8 +17,8 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
     public Vector3<TNum> End => Start;
 
     /// <inheritdoc />
-    public Vector3<TNum> TraverseOnCurve(TNum distance)
-        => Traverse(distance);
+    public Vector3<TNum> TraverseOnCurve(TNum t)
+        => Traverse(t);
 
     /// <inheritdoc />
     public TNum Length => Circumference;
@@ -97,8 +100,8 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
     public IIndexedMesh<TNum> Tessellate(int edgeCount)
         => new InscribedPolygon3<TNum>(edgeCount, this).Tessellate().Indexed();
 
-    public Vector3<TNum> Traverse(TNum distance)
-        => TraverseByAngle(distance * Numbers<TNum>.TwoPi);
+    public Vector3<TNum> Traverse(TNum t)
+        => TraverseByAngle(t * Numbers<TNum>.TwoPi);
 
     public Vector3<TNum> TraverseByAngle(TNum angle)
     {
@@ -166,11 +169,12 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
         p = Plane.Clamp(p);
         var cToP = p - Centroid;
         var len = cToP.Length;
-        cToP=cToP.Normalized();
+        cToP = cToP.Normalized();
         var adjust = TNum.Clamp(len, TNum.Zero, TNum.One);
         return adjust * cToP + Centroid;
     }
 
+    [Pure]
     public Vector3<TNum> ClampToEdge(Vector3<TNum> p)
     {
         p = Plane.Clamp(p);
@@ -181,14 +185,56 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
     }
 
     /// <inheritdoc />
-    public IContiguousCurve<Vector3<TNum>, TNum> GetGeodesic(Vector3<TNum> p1, Vector3<TNum> p2)
+    public PoseLine<Pose3<TNum>, Vector3<TNum>, TNum> GetGeodesic(Vector3<TNum> p1, Vector3<TNum> p2)
     {
-        throw new NotImplementedException();
+        p1 = ClampToSurface(p1);
+        p2 = ClampToSurface(p2);
+        return PoseLine<Pose3<TNum>, Vector3<TNum>, TNum>.FromLine(p1, p2, Normal);
     }
 
     /// <inheritdoc />
-    public IContiguousCurve<Vector3<TNum>, TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint, Vector3<TNum> direction)
+    public PoseLine<Pose3<TNum>, Vector3<TNum>, TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint,
+        Vector3<TNum> direction)
     {
-        throw new NotImplementedException();
+        entryPoint = ClampToSurface(entryPoint);
+        direction -= Normal * direction.Dot(Normal);
+        var dirLen = direction.Length;
+        if (!TNum.IsFinite(dirLen) || dirLen.IsApproxZero())
+            ThrowHelper.ThrowInvalidOperationException();
+        
+        var hit=RayCircleIntersect(entryPoint, direction,Centroid,Radius,out var t);
+        if(!hit)
+            ThrowHelper.ThrowInvalidOperationException();
+        var exitPoint = direction * t + entryPoint;
+        return PoseLine<Pose3<TNum>, Vector3<TNum>, TNum>.FromLine(entryPoint, exitPoint, Normal);
     }
+    
+    private static bool RayCircleIntersect(
+        Vector3<TNum> rayOrigin,
+        Vector3<TNum> rayDir,           // normalized not required
+        Vector3<TNum> circleCenter,
+        TNum circleRadius,
+        out TNum t)
+    {
+        t = TNum.NaN;
+        var oc = circleCenter - rayOrigin;
+        // Projection of center onto direction
+        var tca = oc.Dot(rayDir);
+
+        var ocLen2 = oc.SquaredLength;
+        var d2 = ocLen2 - tca * tca;
+
+        var r2 = circleRadius * circleRadius;
+
+        if (d2 > r2)
+        {
+            return false;
+        }
+        
+        var thc = TNum.Sqrt(r2 - d2);
+        t = tca + thc;
+
+        return t > TNum.Zero;
+    }
+
 }

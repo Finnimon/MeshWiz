@@ -17,11 +17,7 @@ public readonly struct Vector4<TNum> : IVector<Vector4<TNum>, TNum>
 {
     public readonly TNum X, Y, Z, W;
 
-    public static unsafe int ByteSize
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-    } = sizeof(TNum) * 4;
+    public static int ByteSize { get; } = Unsafe.SizeOf<TNum>() * 4;
 
     public int Count => 4;
     public TNum Sum => X + Y + Z + W;
@@ -39,11 +35,7 @@ public readonly struct Vector4<TNum> : IVector<Vector4<TNum>, TNum>
     public TNum SquaredLength
         => X * X + Y * Y + Z * Z + W * W;
 
-    public Vector3<TNum> XYZ
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Unsafe.As<Vector4<TNum>, Vector3<TNum>>(ref Unsafe.AsRef(in this));
-    }
+    public Vector3<TNum> XYZ => Unsafe.As<Vector4<TNum>, Vector3<TNum>>(ref Unsafe.AsRef(in this));
 
 
     public Vector4(TNum x, TNum y, TNum z, TNum w)
@@ -68,7 +60,7 @@ public readonly struct Vector4<TNum> : IVector<Vector4<TNum>, TNum>
     public Vector4(TNum value) : this(value, value, value, value) { }
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector4<TNum> FromXYZW(TNum x, TNum y, TNum z, TNum w)
+    public static Vector4<TNum> Create(TNum x, TNum y, TNum z, TNum w)
         => new(x, y, z, w);
 
     public Vector4<TOtherNum> To<TOtherNum>()
@@ -96,10 +88,10 @@ public readonly struct Vector4<TNum> : IVector<Vector4<TNum>, TNum>
         => components.Count switch
         {
             0 => Zero,
-            1 => new(components[0], TNum.Zero, TNum.Zero, TNum.Zero),
-            2 => new(components[0], components[1], TNum.Zero, TNum.Zero),
-            3 => new(components[0], components[1], components[2], TNum.Zero),
-            _ => new(components[0], components[1], components[2], components[3])
+            1 => new Vector4<TNum>(components[0], TNum.Zero, TNum.Zero, TNum.Zero),
+            2 => new Vector4<TNum>(components[0], components[1], TNum.Zero, TNum.Zero),
+            3 => new Vector4<TNum>(components[0], components[1], components[2], TNum.Zero),
+            _ => new Vector4<TNum>(components[0], components[1], components[2], components[3])
         };
 
     /// <inheritdoc />
@@ -117,36 +109,32 @@ public readonly struct Vector4<TNum> : IVector<Vector4<TNum>, TNum>
             TNum.CreateTruncating(components[3]));
 
 
-    public static Vector4<TNum> Zero
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-    } = new(TNum.Zero, TNum.Zero, TNum.Zero, TNum.Zero);
+    public static Vector4<TNum> Zero => new(TNum.Zero, TNum.Zero, TNum.Zero, TNum.Zero);
 
 
-    public static Vector4<TNum> One { get; } = new(TNum.One);
+    public static Vector4<TNum> One => new(TNum.One);
 
     /// <inheritdoc />
-    public static Vector4<TNum> Epsilon { get; } = new(TNum.Epsilon);
+    public static Vector4<TNum> Epsilon => new(TNum.Epsilon);
 
-    public static Vector4<TNum> NaN { get; } = new(TNum.NaN);
-
-    /// <inheritdoc />
-    public static Vector4<TNum> NegativeInfinity { get; } = new(TNum.NegativeInfinity);
+    public static Vector4<TNum> NaN => new(TNum.NaN);
 
     /// <inheritdoc />
-    public static Vector4<TNum> NegativeZero { get; } = new(TNum.NegativeZero);
+    public static Vector4<TNum> NegativeInfinity => new(TNum.NegativeInfinity);
 
     /// <inheritdoc />
-    public static Vector4<TNum> PositiveInfinity { get; } = new(TNum.PositiveInfinity);
+    public static Vector4<TNum> NegativeZero => new(TNum.NegativeZero);
 
-    public static Vector4<TNum> UnitX { get; } = new(TNum.One, TNum.Zero, TNum.Zero, TNum.Zero);
+    /// <inheritdoc />
+    public static Vector4<TNum> PositiveInfinity => new(TNum.PositiveInfinity);
 
-    public static Vector4<TNum> UnitY { get; } = new(TNum.Zero, TNum.One, TNum.Zero, TNum.Zero);
+    public static Vector4<TNum> UnitX => new(TNum.One, TNum.Zero, TNum.Zero, TNum.Zero);
 
-    public static Vector4<TNum> UnitZ { get; } = new(TNum.Zero, TNum.Zero, TNum.One, TNum.Zero);
+    public static Vector4<TNum> UnitY => new(TNum.Zero, TNum.One, TNum.Zero, TNum.Zero);
 
-    public static Vector4<TNum> UnitW { get; } = new(TNum.Zero, TNum.Zero, TNum.Zero, TNum.One);
+    public static Vector4<TNum> UnitZ => new(TNum.Zero, TNum.Zero, TNum.One, TNum.Zero);
+
+    public static Vector4<TNum> UnitW => new(TNum.Zero, TNum.Zero, TNum.Zero, TNum.One);
 
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -212,26 +200,32 @@ public readonly struct Vector4<TNum> : IVector<Vector4<TNum>, TNum>
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TNum Dot(Vector4<TNum> other)
-        => X * other.X + Y * other.Y + Z * other.Z + other.W * other.W;
-    
-    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TNum Dot(Vector4<TNum> a,Vector4<TNum> b)
-        => a.X * b.X + a.Y * b.Y + a.Z * b.Z + b.W * b.W;
-
+        => Dot(this,other);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public TNum DistanceTo(Vector4<TNum> other) => (this - other).Length;
+    public static TNum Dot(Vector4<TNum> a, Vector4<TNum> b) => a.X * b.X + a.Y * b.Y + a.Z * b.Z + a.W * b.W;
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public TNum SquaredDistanceTo(Vector4<TNum> other) => (this - other).SquaredLength;
+    public TNum DistanceTo(Vector4<TNum> other) => Distance(this, other);
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public TNum SquaredDistanceTo(Vector4<TNum> other) => SquaredDistance(this, other);
 
     /// <inheritdoc />
-    public static TNum Distance(Vector4<TNum> a, Vector4<TNum> b)
-        => a.DistanceTo(b);
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TNum Distance(Vector4<TNum> a, Vector4<TNum> b) => TNum.Sqrt(SquaredDistance(a, b));
 
     /// <inheritdoc />
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TNum SquaredDistance(Vector4<TNum> a, Vector4<TNum> b)
-        => a.SquaredDistanceTo(b);
+    {
+        var x = a.X - b.X;
+        var y = a.Y - b.Y;
+        var z = a.Z - b.Z;
+        var w = a.W - b.W;
+        return x * x + y * y + z * z + w * w;
+    }
+
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsParallelTo(Vector4<TNum> other, TNum tolerance)
@@ -435,13 +429,13 @@ public readonly struct Vector4<TNum> : IVector<Vector4<TNum>, TNum>
     public static Vector4<TNum> MultiplicativeIdentity => One;
 
     /// <inheritdoc />
-    public static Vector4<TNum> E { get; } = new(TNum.E);
+    public static Vector4<TNum> E => new(TNum.E);
 
     /// <inheritdoc />
-    public static Vector4<TNum> Pi { get; } = new(TNum.Pi);
+    public static Vector4<TNum> Pi => new(TNum.Pi);
 
     /// <inheritdoc />
-    public static Vector4<TNum> Tau { get; } = new(TNum.Tau);
+    public static Vector4<TNum> Tau => new(TNum.Tau);
 
     /// <inheritdoc />
     public static Vector4<TNum> Exp(Vector4<TNum> v)
@@ -457,7 +451,7 @@ public readonly struct Vector4<TNum> : IVector<Vector4<TNum>, TNum>
 
 
     /// <inheritdoc />
-    public static Vector4<TNum> NegativeOne { get; } = new(TNum.NegativeOne);
+    public static Vector4<TNum> NegativeOne => new(TNum.NegativeOne);
 
 
     /// <inheritdoc />

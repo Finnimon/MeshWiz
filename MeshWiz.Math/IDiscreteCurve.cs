@@ -8,7 +8,7 @@ public interface IDiscreteCurve<TVector, TNum> : ICurve<TVector, TNum>
 {
     TVector Start { get; }
     TVector End { get; }
-    TVector TraverseOnCurve(TNum distance);
+    TVector TraverseOnCurve(TNum t);
     TNum Length { get; }
     bool ICurve<TVector, TNum>.IsClosed=>Start.Equals(End);
     

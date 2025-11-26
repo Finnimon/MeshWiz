@@ -6,5 +6,6 @@ public enum Arithmetics
     Failure=1,
     SheeringDisallowed,
     NonFiniteArguments,
-    NormalizationImpossible
+    NormalizationImpossible,
+    Empty
 }

@@ -57,7 +57,7 @@ public readonly struct Ray3<TNum>
 
         var edge1 = triangle.B - triangle.A;
         var edge2 = triangle.C - triangle.A;
-        var h = Direction ^ edge2; // cross product
+        var h=  Vector3<TNum>.Cross(Direction , edge2); // cross product
         var a = edge1.Dot(h); // dot product
 
         if (TNum.Abs(a) < TNum.Epsilon)
@@ -70,7 +70,7 @@ public readonly struct Ray3<TNum>
         if (u < TNum.Zero || u > TNum.One)
             return false;
 
-        var q = s ^ edge1;
+        var q = Vector3<TNum>.Cross(s, edge1);
         var v = f * (Direction.Dot(q));
 
         if (v < TNum.Zero || u + v > TNum.One)
@@ -109,7 +109,10 @@ public readonly struct Ray3<TNum>
     }
 
     public static implicit operator Ray3<TNum>(Line<Vector3<TNum>, TNum> line)
-        => new(line.Start, line.Direction);
+        => new(line.Start, line.AxisVector);
+    
+    public static implicit operator Line<Vector3<TNum>, TNum>(Ray3<TNum> ray)
+        => new(ray.Origin, ray.Direction+ray.Origin);
 
     public bool DoIntersect(Triangle3<TNum> test)
         => Intersect(test, out _);

@@ -54,9 +54,9 @@ public readonly struct Arc2<TNum> : IContiguousDiscreteCurve<Vector2<TNum>, TNum
     };
 
     /// <inheritdoc />
-    public Vector2<TNum> Traverse(TNum distance)
+    public Vector2<TNum> Traverse(TNum t)
     {
-        var angle = TNum.Lerp(StartAngle, EndAngle, distance);
+        var angle = TNum.Lerp(StartAngle, EndAngle, t);
         return Underlying.TraverseByAngle(angle);
     }
 
@@ -77,8 +77,8 @@ public readonly struct Arc2<TNum> : IContiguousDiscreteCurve<Vector2<TNum>, TNum
     public Vector2<TNum> End => Traverse(TNum.One);
 
     /// <inheritdoc />
-    public Vector2<TNum> TraverseOnCurve(TNum distance)
-        => Traverse(TNum.Clamp(distance, TNum.Zero, TNum.One));
+    public Vector2<TNum> TraverseOnCurve(TNum t)
+        => Traverse(TNum.Clamp(t, TNum.Zero, TNum.One));
 
     /// <inheritdoc />
     public TNum Length => AngleRangeSize / Numbers<TNum>.TwoPi * Underlying.Circumference;

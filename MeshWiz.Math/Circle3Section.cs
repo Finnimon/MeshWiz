@@ -1,13 +1,14 @@
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
 public readonly struct Circle3Section<TNum> : IFlat<TNum>, IRotationalSurface<TNum>,
-    IGeodesicProvider<Line<Vector3<TNum>, TNum>, TNum>
+    IGeodesicProvider<PoseLine<Pose3<TNum>, Vector3<TNum>, TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public Vector3<TNum> Centroid { get; }
@@ -52,7 +53,7 @@ public readonly struct Circle3Section<TNum> : IFlat<TNum>, IRotationalSurface<TN
     /// <inheritdoc />
     public Ray3<TNum> SweepAxis => new(Centroid, Normal);
 
-    public Line<Vector3<TNum>, TNum> GetGeodesic(Vector3<TNum> p1, Vector3<TNum> p2)
+    public PoseLine<Pose3<TNum>,Vector3<TNum>,TNum> GetGeodesic(Vector3<TNum> p1, Vector3<TNum> p2)
     {
         var p1p = Plane.ProjectIntoWorld(Plane.ProjectIntoLocal(p1));
         var p2p = Plane.ProjectIntoWorld(Plane.ProjectIntoLocal(p2));
@@ -77,11 +78,8 @@ public readonly struct Circle3Section<TNum> : IFlat<TNum>, IRotationalSurface<TN
 
         if (inside)
         {
-            var dir = p2p - p1p;
-            var dirLen = dir.Length;
-            if (dirLen == TNum.Zero) dir = Plane.Basis.U; // degenerate -> use plane basis
-            else dir /= dirLen;
-            return new Line<Vector3<TNum>, TNum>(p1p, dir);
+            var line=p1p.LineTo(p2p);
+            return PoseLine<Pose3<TNum>, Vector3<TNum>, TNum>.FromLine(line,Normal);
         }
 
 
@@ -91,9 +89,9 @@ public readonly struct Circle3Section<TNum> : IFlat<TNum>, IRotationalSurface<TN
         var fallbackDir = cp2 - cp1;
         var fallbackLen = fallbackDir.Length;
         if (fallbackLen == TNum.Zero) fallbackDir = Plane.Basis.U;
-        else fallbackDir /= fallbackLen;
 
-        return new Line<Vector3<TNum>, TNum>(cp1, fallbackDir);
+        var l=new Line<Vector3<TNum>, TNum>(cp1, cp2);
+        return PoseLine<Pose3<TNum>, Vector3<TNum>, TNum>.FromLine(l,Normal);
     }
 
     private Vector3<TNum> ClampRadial(Vector3<TNum> pt)
@@ -117,7 +115,8 @@ public readonly struct Circle3Section<TNum> : IFlat<TNum>, IRotationalSurface<TN
 
 
     /// <inheritdoc />
-    public Line<Vector3<TNum>, TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint, Vector3<TNum> direction)
+    public PoseLine<Pose3<TNum>, Vector3<TNum>, TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint,
+        Vector3<TNum> direction)
     {
         var planeClamped = Plane.ProjectIntoWorld(Plane.ProjectIntoLocal(entryPoint));
         var cToP = planeClamped - Centroid;
@@ -128,20 +127,23 @@ public readonly struct Circle3Section<TNum> : IFlat<TNum>, IRotationalSurface<TN
 
         var flatDir = direction - Normal * direction.Dot(Normal);
         flatDir = flatDir.Normalized();
-        if (!flatDir.SquaredLength.IsApprox(TNum.One)) return surfaceClamped.LineTo(surfaceClamped);
+        if (!flatDir.SquaredLength.IsApprox(TNum.One)) 
+            ThrowHelper.ThrowInvalidOperationException();
+
         var line = Plane.ProjectIntoLocal(surfaceClamped).LineTo(Plane.ProjectIntoLocal(surfaceClamped + direction));
         var tMin = GetClosestIntersection(in line, Minor.OnPlane);
         var tMaj = GetClosestIntersection(in line, Major.OnPlane);
         var t = TNum.Min(tMin, tMaj);
         Debug.Assert(TNum.IsFinite(t));
         line = line.Section(TNum.Zero, t);
-        return Plane.ProjectIntoWorld(line);
+        var line3= Plane.ProjectIntoWorld(line);
+        return PoseLine<Pose3<TNum>, Vector3<TNum>, TNum>.FromLine(line3,Normal);
     }
 
     private static TNum GetClosestIntersection(in Line<Vector2<TNum>, TNum> l, Circle2<TNum> circle)
     {
         var t = TNum.PositiveInfinity;
-        var d = l.Direction;
+        var d = l.AxisVector;
         var f = l.Start - circle.Center;
 
         var a = d.Dot(d);

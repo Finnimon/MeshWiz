@@ -125,10 +125,10 @@ public static partial class Polyline
                 ThrowHelper.ThrowArgumentException("Polyline must be closed", nameof(closedPolyline));
 
             var prevSign = 0;
-            var prevDirection = closedPolyline[0].Direction;
+            var prevDirection = closedPolyline[0].AxisVector;
             for (var i = 1; i < closedPolyline.Count; i++)
             {
-                var curDirection = closedPolyline[i].Direction;
+                var curDirection = closedPolyline[i].AxisVector;
                 var crossSign = prevDirection.CrossSign(curDirection);
                 if (prevSign == 0) prevSign = crossSign;
 

@@ -6,7 +6,7 @@ using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
-public readonly struct ConeGeodesic<TNum> : IContiguousDiscreteCurve<Vector3<TNum>, TNum>
+public readonly struct ConeGeodesic<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vector3<TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly Cone<TNum> Surface;
@@ -129,7 +129,7 @@ public readonly struct ConeGeodesic<TNum> : IContiguousDiscreteCurve<Vector3<TNu
 
     private static ConeGeodesic<TNum> SpecialCaseFromTip(in Cone<TNum> surface, in Vector3<TNum> dir)
     {
-        if (dir.IsParallelTo(surface.Axis.Direction))
+        if (dir.IsParallelTo(surface.Axis.AxisVector))
             ThrowHelper.ThrowArgumentException(nameof(dir),
                 "Geodesic can not start at tip with dir parallel to surface.Axis");
         var baseC = surface.Base;
@@ -167,9 +167,50 @@ public readonly struct ConeGeodesic<TNum> : IContiguousDiscreteCurve<Vector3<TNu
     }
 
     [Pure]
-    public Vector3<TNum> Traverse(TNum by)
+    public Pose3<TNum> GetPose(TNum t)
     {
-        var polar = Vector2<TNum>.PolarLerp(PolarStart, PolarEnd, by);
+        var p = Traverse(t);
+        var front = GetTangent(t);
+        var normal = Surface.NormalAt(p);
+        return Pose3<TNum>.CreateFromOrientation(p,front,normal);
+        // var polar = Vector2<TNum>.PolarLerp(PolarStart, PolarEnd, t);
+        // var p = ProjectPolarPoint(in Surface, polar);
+        // var specialCaseStraightLine = PolarStart.PolarRadius.IsApproxZero()
+        //                               || PolarEnd.PolarRadius.IsApproxZero()
+        //                               || PolarStart.PolarAngle.IsApprox(PolarEnd.PolarAngle);
+        // var front = FastTangent(specialCaseStraightLine, polar, p);
+        // var up = FastNormal(p, polar);
+        // return Pose3<TNum>.CreateFromOrientation(p,front,up);
+    }
+
+    private Vector3<TNum> FastTangent(bool specialCaseStraightLine, Vector2<TNum> polar, Vector3<TNum> p)
+    {
+        if (specialCaseStraightLine) return (End - Start);
+        var pAngle = polar.PolarAngle;
+        var tipToP = p - Surface.Tip;
+        var normal = Surface.NormalAt(p);
+        var polarAxis = CartesianAxisVector.CartesianToPolar();
+        var dirAngle = polarAxis.PolarAngle - pAngle;
+        var rot = Matrix4x4<TNum>.CreateRotation(normal, dirAngle);
+        return rot.MultiplyDirection(tipToP);
+    }
+
+    private Vector3<TNum> FastNormal(Vector3<TNum> p, Vector2<TNum> polar)
+    {
+        var baseC = Surface.Base;
+        if (p.IsApprox(Surface.Tip) 
+            || polar.PolarRadius.IsApproxZero())
+            return Surface.Axis.Direction;
+        var anglePos = polar.PolarAngle;
+        var tangent = baseC.GetTangentAtAngle(anglePos);
+        var pToTip = Surface.Tip - p;
+        return tangent.Cross(pToTip);
+    }
+
+    [Pure]
+    public Vector3<TNum> Traverse(TNum t)
+    {
+        var polar = Vector2<TNum>.PolarLerp(PolarStart, PolarEnd, t);
         var p = ProjectPolarPoint(in Surface, polar);
         return p;
     }
@@ -187,12 +228,18 @@ public readonly struct ConeGeodesic<TNum> : IContiguousDiscreteCurve<Vector3<TNu
     public Vector3<TNum> Start => ProjectPolarPoint(in Surface, PolarStart);
 
     /// <inheritdoc />
+    Pose3<TNum> IDiscretePoseCurve<Pose3<TNum>, Vector3<TNum>, TNum>.EndPose => GetPose(TNum.One);
+
+    /// <inheritdoc />
+    Pose3<TNum> IDiscretePoseCurve<Pose3<TNum>, Vector3<TNum>, TNum>.StartPose => GetPose(TNum.Zero);
+
+    /// <inheritdoc />
     [Pure]
     public Vector3<TNum> End => ProjectPolarPoint(in Surface, PolarEnd);
 
     /// <inheritdoc />
     [Pure]
-    public Vector3<TNum> TraverseOnCurve(TNum distance) => Traverse(TNum.Clamp(distance, TNum.Zero, TNum.One));
+    public Vector3<TNum> TraverseOnCurve(TNum t) => Traverse(TNum.Clamp(t, TNum.Zero, TNum.One));
 
 
     /// <inheritdoc />
@@ -262,4 +309,24 @@ public readonly struct ConeGeodesic<TNum> : IContiguousDiscreteCurve<Vector3<TNu
 
     /// <inheritdoc />
     public Vector3<TNum> ExitDirection => GetTangent(TNum.One);
+
+    /// <inheritdoc />
+    public PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum> ToPosePolyline()
+    {
+        var verts = new Pose3<TNum>[11];
+        var pos = TNum.Zero;
+        var step = Numbers<TNum>.Eps1;
+        for (var i = 0; i < verts.Length; i++)
+        {
+            verts[i] = GetPose(pos);
+            pos += step;
+        }
+        return new PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>(verts);
+    }
+
+    /// <inheritdoc />
+    public PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum> ToPosePolyline(PolylineTessellationParameter<TNum> tessellationParameter)
+    {
+        throw new NotImplementedException();
+    }
 }

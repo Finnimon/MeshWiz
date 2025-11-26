@@ -33,6 +33,7 @@ public readonly struct Result<TInfo, TValue> : IValueResult<Result<TInfo, TValue
     public Result() => Info = EnumResultHelper<TInfo>.DefaultFailureConstant;
 
     public static implicit operator TValue(Result<TInfo, TValue> result) => result.Value;
+    public static implicit operator bool(Result<TInfo, TValue> result) => result.HasValue;
     public static implicit operator Result<TInfo, TValue>(TValue value) => Success(value);
     public static Result<TInfo, TValue> Success(TValue value) => new(value, EnumResultHelper<TInfo>.SuccessConstant);
 
