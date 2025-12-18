@@ -82,7 +82,7 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
     [Pure]
     public TNum DistanceTo(TVector p)
         => ClosestPoint(p).DistanceTo(p);
-
+    
     [Pure]
     public TNum DistanceToSegment(TVector p)
         => ClosestPointOnSegment(p).DistanceTo(p);
@@ -152,7 +152,7 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
     public Polyline<TVector, TNum> ToPolyline(PolylineTessellationParameter<TNum> _) => new(Start, End);
 
     /// <inheritdoc />
-    public TVector GetTangent(TNum _)
+    public TVector GetTangent(TNum t)
         => Direction;
 
     /// <inheritdoc />

@@ -1,11 +1,14 @@
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
-public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vector3<TNum>, TNum>
+[StructLayout(LayoutKind.Sequential)]
+public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vector3<TNum>, TNum>,
+    IEquatable<Helix<TNum>> 
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly Cylinder<TNum> Cylinder;
@@ -14,10 +17,10 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vector3<TNum
     public Vector3<TNum> Start => Project(in Cylinder, Line.Start);
 
     /// <inheritdoc />
-    Pose3<TNum> IDiscretePoseCurve<Pose3<TNum>, Vector3<TNum>, TNum>.EndPose => GetPose(TNum.Zero);
+    public Pose3<TNum> EndPose => GetPose(TNum.Zero);
 
     /// <inheritdoc />
-    Pose3<TNum> IDiscretePoseCurve<Pose3<TNum>, Vector3<TNum>, TNum>.StartPose => GetPose(TNum.Zero);
+    public Pose3<TNum> StartPose => GetPose(TNum.Zero);
 
     public Vector3<TNum> End => Project(in Cylinder, Line.End);
     public Vector3<TNum> EntryDirection => GetTangent(TNum.Zero);
@@ -102,7 +105,7 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vector3<TNum
     }
     
     [Pure]
-    public static Vector3<TNum> ProjectDirection(in Cylinder<TNum> cylinder, Vector3<TNum> p3, Vector2<TNum> direction)
+    private static Vector3<TNum> ProjectDirection(in Cylinder<TNum> cylinder, Vector3<TNum> p3, Vector2<TNum> direction)
     {
         direction = direction.Normalized();
         var axisDir = cylinder.Axis.Direction;
@@ -126,10 +129,6 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vector3<TNum
 
     public Pose3<TNum> GetPose(TNum t)
     {
-        // var p = Traverse(t);
-        // var normal = Cylinder.NormalAt(p);
-        // var front = GetTangent(t);
-        // return Pose3<TNum>.CreateFromOrientation(p,front,normal);
         var p2 = Line.Traverse(t);
         var pos = Project(in Cylinder, p2);
         var front = ProjectDirection(in Cylinder, pos, Line.AxisVector);
@@ -171,9 +170,10 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vector3<TNum
         var angleRange = GetTotalAngleRange();
         if (angleRange.IsApproxZero())
             return [TNum.Zero, TNum.One];
-        var stepCount = tessellationParameter.GetStepsForAngle(angleRange).countNum;
-        var stepSize = TNum.One / stepCount;
-        return Enumerable.Sequence(TNum.Zero, TNum.One, stepSize);
+        var (count, countNum, _) = tessellationParameter.GetStepsForAngle(angleRange);
+        var stepSize = TNum.One / (countNum);
+        return Enumerable.Range(0, count + 1).Select(i => TNum.CreateTruncating(i) * stepSize);
+
     }
 
     public TNum GetTotalAngleRange()
@@ -230,6 +230,34 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vector3<TNum
     }
 
     [Pure]
-    public Vector3<TNum> GetTangent(TNum at)
-        => ProjectDirection(in Cylinder, Line.Traverse(at), Line.AxisVector);
+    public Vector3<TNum> GetTangent(TNum t)
+        => ProjectDirection(in Cylinder, Line.Traverse(t), Line.AxisVector);
+
+    /// <inheritdoc />
+    public bool Equals(Helix<TNum> other)
+    {
+        return Cylinder.Equals(other.Cylinder) && Line.Equals(other.Line);
+    }
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj)
+    {
+        return obj is Helix<TNum> other && Equals(other);
+    }
+
+    /// <inheritdoc />
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Cylinder, Line);
+    }
+
+    public static bool operator ==(Helix<TNum> left, Helix<TNum> right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(Helix<TNum> left, Helix<TNum> right)
+    {
+        return !left.Equals(right);
+    }
 }

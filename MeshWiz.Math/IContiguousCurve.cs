@@ -6,5 +6,5 @@ public interface IContiguousCurve<TVector, TNum> : ICurve<TVector,TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum> 
     where TVector : unmanaged, IVector<TVector, TNum>
 {
-    public TVector GetTangent(TNum at);
+    public TVector GetTangent(TNum t);
 }

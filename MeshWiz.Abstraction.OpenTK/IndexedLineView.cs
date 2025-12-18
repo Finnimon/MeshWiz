@@ -78,13 +78,16 @@ public class IndexedLineView : IOpenGLControl
         var (model, view, projection) = Camera.CreateRenderMatrices(aspect);
         var objectColor = Color;
         const float depthOffset = 0.000001f;
-        _shader!.BindAnd()
+        _shader!.ConsumeOutOfDate();
+        _shader.BindAnd()
             .SetUniform(nameof(model), ref model)
             .SetUniform(nameof(view), ref view)
             .SetUniform(nameof(projection), ref projection)
             .SetUniform(nameof(objectColor),in objectColor)
             .SetUniform(nameof(depthOffset),depthOffset)
             .Unbind();
+        if(!_shader.ConsumeOutOfDate())
+            OutOfDate();
         OpenGLHelper.LogGlError(nameof(LineView));
     }
 
@@ -111,12 +114,14 @@ public class IndexedLineView : IOpenGLControl
         _vbo.Unbind();
         _vao!.Unbind();
         OpenGLHelper.LogGlError(nameof(LineView));
+        OutOfDate();
     }
 
    
     public void Render()
     {
         if (!Show) return;
+        ConsumeOutOfDate();
         _shader!.Bind();
         _vao!.Bind();
         _ibo!.Bind();
@@ -131,6 +136,7 @@ public class IndexedLineView : IOpenGLControl
 
     public void Dispose()
     {
+        OutOfDate();
         GC.SuppressFinalize(this);
         _vbo?.Unbind();
         _vbo?.Dispose();
@@ -140,5 +146,19 @@ public class IndexedLineView : IOpenGLControl
         _vao?.Dispose();
         _shader?.Unbind();
         _shader?.Dispose();
+    }
+
+    private bool _upToDate;
+
+    /// <inheritdoc />
+    public void OutOfDate()
+        => _upToDate = false;
+
+    /// <inheritdoc />
+    public bool ConsumeOutOfDate()
+    {
+        var copy = _upToDate;
+        _upToDate=true;
+        return copy;
     }
 }

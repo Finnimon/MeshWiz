@@ -209,7 +209,10 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
     }
 
     public static Vector2<TNum> ExactLerp(Vector2<TNum> from, Vector2<TNum> toward, TNum exactDistance)
-        => (toward - from).Normalized() * exactDistance + from;
+    {
+        var dist = Distance(from, toward);
+        return Lerp(from,toward,exactDistance/dist);
+    }
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsParallelTo(Vector2<TNum> other)
@@ -689,6 +692,12 @@ public readonly struct Vector2<TNum>(TNum x, TNum y) : IVector2<Vector2<TNum>, T
     public static Vector2<TNum> Clamp(Vector2<TNum> value, Vector2<TNum> min, Vector2<TNum> max)
         => Min(max, Max(min, value));
 
+    public static implicit operator Vector2<TNum>(Vector2<float> v) => v.To<TNum>();
+    public static implicit operator Vector2<TNum>(Vector2<double> v) => v.To<TNum>();
+    public static implicit operator Vector2<TNum>(Vector2<Half> v) => v.To<TNum>();
+    public static implicit operator Vector2<float>(Vector2<TNum> v) => v.To<float>();
+    public static implicit operator Vector2<double>(Vector2<TNum> v) => v.To<double>();
+    public static implicit operator Vector2<Half>(Vector2<TNum> v) => v.To<Half>();
     /// <inheritdoc />
     public static bool TryParse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider,
         out Vector2<TNum> result)

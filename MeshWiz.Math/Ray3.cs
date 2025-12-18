@@ -1,3 +1,4 @@
+using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -18,6 +19,10 @@ public readonly struct Ray3<TNum>
         Origin = origin;
         Direction = direction.Normalized();
     }
+
+    public static Ray3<TNum> UnitX => new(Vector3<TNum>.Zero, Vector3<TNum>.UnitX);
+    public static Ray3<TNum> UnitY => new(Vector3<TNum>.Zero, Vector3<TNum>.UnitY);
+    public static Ray3<TNum> UnitZ => new(Vector3<TNum>.Zero, Vector3<TNum>.UnitZ);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector3<TNum> Traverse(TNum distance)
@@ -108,11 +113,26 @@ public readonly struct Ray3<TNum>
         return true;
     }
 
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator Ray3<TNum>(Line<Vector3<TNum>, TNum> line)
         => new(line.Start, line.AxisVector);
     
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator Line<Vector3<TNum>, TNum>(Ray3<TNum> ray)
         => new(ray.Origin, ray.Direction+ray.Origin);
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Vector3<TNum> ClosestPoint(Vector3<TNum> p)
+    {
+        var v = p - Origin;
+        var ndir = Direction;
+        var dotProduct = v.Dot(ndir);
+        var alongVector = dotProduct * ndir;
+        return Origin + alongVector;
+    }
+
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public TNum DistanceTo(Vector3<TNum> p) => ClosestPoint(p).DistanceTo(p);
+
 
     public bool DoIntersect(Triangle3<TNum> test)
         => Intersect(test, out _);

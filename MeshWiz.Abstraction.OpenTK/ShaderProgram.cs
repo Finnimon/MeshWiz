@@ -1,8 +1,10 @@
+using System.Diagnostics.CodeAnalysis;
+using MeshWiz.UpToDate;
 using OpenTK.Mathematics;
 
 namespace MeshWiz.Abstraction.OpenTK;
 
-public sealed record ShaderProgram(int Handle)
+public sealed record ShaderProgram(int Handle) : IUpToDate
 {
     private bool _disposed = false;
     public void Bind() => GL.UseProgram(Handle);
@@ -34,6 +36,8 @@ public sealed record ShaderProgram(int Handle)
 
     public ShaderProgram SetUniform(string name, in Vector4 vec)
     {
+        if (IsUniformUnchanged(name, vec))
+            return this;
         var loc = GetUniformLocation(name);
         GL.Uniform4(loc, vec);
         return this;
@@ -41,6 +45,8 @@ public sealed record ShaderProgram(int Handle)
 
     public ShaderProgram SetUniform(string name, in Vector3 vec)
     {
+        if (IsUniformUnchanged(name, vec))
+            return this;
         var loc = GetUniformLocation(name);
         GL.Uniform3(loc, vec);
         return this;
@@ -48,6 +54,8 @@ public sealed record ShaderProgram(int Handle)
 
     public ShaderProgram SetUniform(string name, in Vector2 vec)
     {
+        if (IsUniformUnchanged(name, vec))
+            return this;
         var loc = GetUniformLocation(name);
         GL.Uniform2(loc, vec);
         return this;
@@ -55,6 +63,8 @@ public sealed record ShaderProgram(int Handle)
 
     public ShaderProgram SetUniform(string name, float value)
     {
+        if (IsUniformUnchanged(name, value))
+            return this;
         var loc = GetUniformLocation(name);
         GL.Uniform1(loc, value);
         return this;
@@ -62,6 +72,8 @@ public sealed record ShaderProgram(int Handle)
 
     public ShaderProgram SetUniform(string name, ref Matrix4 matrix)
     {
+        if (IsUniformUnchanged(name, matrix))
+            return this;
         var loc = GetUniformLocation(name);
         GL.UniformMatrix4(loc, false, ref matrix);
         return this;
@@ -69,6 +81,8 @@ public sealed record ShaderProgram(int Handle)
 
     public ShaderProgram SetUniform(string name, ref Matrix3 matrix)
     {
+        if (IsUniformUnchanged(name, matrix))
+            return this;
         var loc = GetUniformLocation(name);
         GL.UniformMatrix3(loc, false, ref matrix);
         return this;
@@ -76,6 +90,8 @@ public sealed record ShaderProgram(int Handle)
 
     public ShaderProgram SetUniform(string name, in Color4 color)
     {
+        if (IsUniformUnchanged(name, color))
+            return this;
         var loc = GetUniformLocation(name);
         GL.Uniform4(loc, color);
         return this;
@@ -138,4 +154,28 @@ public sealed record ShaderProgram(int Handle)
     }
 
     public int GetAttribLoc(string name) => GL.GetAttribLocation(Handle, name);
+
+    private bool _upToDate  = false;
+    /// <inheritdoc />
+    public void OutOfDate() => _upToDate = false;
+
+    /// <inheritdoc />
+    public bool ConsumeOutOfDate()
+    {
+        var copy = _upToDate;
+        _upToDate = true;
+        return copy;
+    }
+
+    private readonly Dictionary<string, object> _uniforms = new(StringComparer.Ordinal);
+
+    private bool IsUniformUnchanged<T>(string name, [DisallowNull] T value)
+    {
+        var defined = _uniforms.TryGetValue(name, out var current);
+        _uniforms[name] = value;
+        var upToDate= defined && value.Equals(current);
+        if (upToDate) return true;
+        OutOfDate();
+        return false;
+    }
 }

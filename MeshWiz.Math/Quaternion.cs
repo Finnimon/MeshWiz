@@ -1,6 +1,7 @@
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
@@ -8,6 +9,7 @@ using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
+[StructLayout(LayoutKind.Sequential)]
 public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
     IEqualityOperators<Quaternion<TNum>, Quaternion<TNum>, bool>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
@@ -54,7 +56,25 @@ public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
         var (sin, num) = TNum.SinCos(angle * Numbers<TNum>.Half);
         return new Vector4<TNum>(axis, TNum.One) * new Vector4<TNum>(Vector3<TNum>.FromValue(sin), num);
     }
-
+    public (Vector3<TNum> Y, Vector3<TNum> Z) Yz()
+    {
+        var num1 = X * X;
+        var num2 = Y * Y;
+        var num3 = Z * Z;
+        var num4 = X * Y;
+        var num5 = Z * W;
+        var num6 = Z * X;
+        var num7 = Y * W;
+        var num8 = Y * Z;
+        var num9 = X * W;
+        var two = Numbers<TNum>.Two;
+        var one = TNum.One;
+        var y = Vector3<TNum>.Create((two * (num4 - num5)), (one - two * (num3 + num1)),
+            (two * (num8 + num9)));
+        var z = Vector3<TNum>.Create((two * (num6 + num7)), (two * (num8 - num9)),
+            (one - two * (num2 + num1)));
+        return (y, z);
+    }
     public static Quaternion<TNum> Slerp(Quaternion<TNum> a, Quaternion<TNum> b, TNum t)
     {
         Vector4<TNum> v1 = a;
@@ -232,5 +252,11 @@ public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
         }
 
         return new Quaternion<TNum>(x, y, z, w);
+    }
+
+    public Quaternion<TOtherNum> To<TOtherNum>() where TOtherNum : unmanaged, IFloatingPointIeee754<TOtherNum>
+    {
+        Vector4<TNum> vec4 = this;
+        return vec4.To<TOtherNum>();
     }
 }

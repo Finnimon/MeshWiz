@@ -11,6 +11,7 @@
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="../MeshWiz.Math/MeshWiz.Math.csproj"/>
+        <ProjectReference Include="..\MeshWiz.UpToDate\MeshWiz.UpToDate.csproj" />
     </ItemGroup>
     <ItemGroup>
       <None Update="Shaders\blinn_phong\blinn_phong.frag">

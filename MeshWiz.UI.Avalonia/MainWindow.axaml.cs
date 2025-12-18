@@ -5,8 +5,11 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using MeshWiz.Abstraction.OpenTK;
+using MeshWiz.Collections;
 using MeshWiz.IO.Stl;
 using MeshWiz.Math;
+using MeshWiz.Utility;
+using MeshWiz.Utility.Extensions;
 using OpenTK.Mathematics;
 
 namespace MeshWiz.UI.Avalonia;
@@ -22,7 +25,7 @@ public partial class MainWindow : Window
         // camera.MoveUp(0.2f);
         MeshViewWrap.Unwrap.Camera = camera;
         BBoxWrap.Unwrap.Camera = camera;
-        camera.UnitUp=Vector3<float>.UnitZ;
+        camera.UnitUp = Vector3<float>.UnitZ;
         MeshViewWrap.Unwrap.LightColor = Color4.White;
         MeshViewWrap.Unwrap.SolidColor = Color4.DarkGray;
         MeshViewWrap.Show = true;
@@ -30,84 +33,156 @@ public partial class MainWindow : Window
         MeshViewWrap.Unwrap.SolidColor = Color4.DarkSlateGray;
         MeshViewWrap.Unwrap.WireFrameColor = Color4.LightBlue;
         var bg = BgWrapper.Unwrap;
-        bg.From = new Color4(0.1f,0.1f,0.1f,1f);
+        bg.From = new Color4(0.1f, 0.1f, 0.1f, 1f);
         bg.From = Color4.DarkSlateBlue;
         bg.To = bg.From;
         bg.RotationMillis = 100000;
-        
+
         LineViewWrapper.Unwrap.LineWidth = 2.5f;
         LineViewWrapper.Unwrap.Show = true;
-        
-        IIndexedMesh<float> meshi = AABB.From(Vector3<float>.NegativeOne,Vector3<float>.One)
+
+        IIndexedMesh<float> meshi = AABB.From(Vector3<float>.NegativeOne, Vector3<float>.One)
             .Tessellate()
             .Indexed();
         //
-        var c= new Circle2<double>(Vector2<double>.Zero, 1f);
-        Arc2<double> arc = new(c,0f,double.Pi);
-        var seq = Enumerable.Sequence(0.5,-0.001, -0.01);
-        var v1= seq.Select(arc.Traverse).ToArray();
-        var shift =arc.Traverse(1)-arc.Traverse(0);
-        
+        var c = new Circle2<double>(Vector2<double>.Zero, 1f);
+        Arc2<double> arc = new(c, 0f, double.Pi);
+        var seq = Enumerable.Sequence(0.5, -0.001, -0.001);
+        var v1 = seq.Select(arc.Traverse).ToArray();
+        var shift = arc.Traverse(1) - arc.Traverse(0);
+
         var v2 = seq.Select(pos => pos + 0.5f).Select(arc.Traverse).Select(v => v + shift);
+
+        Vector2<double>[] sweep = [..v2, ..v1];
+        var surface =
+            new RotationalSurface<double>(Vector3<double>.Zero.RayThrough(Vector3<double>.UnitZ), sweep);
+        // split = Mesh.Transforms.Scale(split, 10);
+        surface = GetSurface();
+        // surface = Create("/home/finnimon/Downloads/liner_thickened.stl");
+        // camera.UnitUp = surface.Axis.Direction.To<float>();
         
-        Vector2<double>[] sweep = [new(0f,0f),new(0.5f,0.8f),new(1,1),new(2,1),new(3,0)];
-        sweep = [..v2,..v1];
-        var surface=new JaggedRotationalSurface<double>(Vector3<double>.Zero.RayThrough(Vector3<double>.UnitZ),sweep);
         // var surface = JaggedRotationalSurface<float>.FromSweepCurve(arcPoly, ray);
         Polyline<Vector3<double>, double> jaggedGeodesic;
-        
+
         // jaggedGeodesic = surface.TraceGeodesicCycles(new(1,0,surface.SweepCurve.Traverse(0.5f).Z),
         //     Vector3<double>.UnitY + Vector3<double>.UnitZ,
         //     10000);
-        
+
         // jaggedGeodesic = surface.TraceFullCycle(new(1, 0, surface.SweepCurve.Traverse(0.5f).Z),
         //     new(0, 1, 1));
         // jaggedGeodesic = surface.TraceFullCycle(new(1, 0, surface.SweepCurve.Traverse(0.5f).Z),
         //     new(0, 1, 1));
-        var sw = Stopwatch.StartNew();
         // jaggedGeodesic = surface.TraceGeodesicCycles(new(1,0,surface.SweepCurve.Traverse(0.5f).Z),
         //     new(0,1,1),
         //     childSurfaceCount:1200);
-        Enumerable.Range(1, 1000).Select(z => surface.TracePeriod(
-            new Vector3<double>(1, 0, surface.SweepCurve.Traverse(0.5f).Z),
-            new Vector3<double>(0, 1, 1+z*0.1))).Count();
+        // var sum = ParallelEnumerable.Range(1, 1000).Select(z => surface.TracePeriod(
+        //     new Vector3<double>(1, 0, surface.SweepCurve.Traverse(0.5f).Z),
+        //     new Vector3<double>(0, 1, -1 - z * 0.1)).FinalizedPath).Where(p => p).Sum(p => p.Value.Count);
+        var sw = Stopwatch.StartNew();
+        // sum = ParallelEnumerable.Range(1, 1000).Select(z => surface.TracePeriod(
+        //     new Vector3<double>(1, 0, surface.SweepCurve.Traverse(0.5f).Z),
+        //     new Vector3<double>(0, 1, 1 + z * 0.1)).FinalizedPath).Where(p => p).Sum(p => p.Value.Count);
+        // var el = sw.Elapsed;
+        // sw.Restart();
+        // sum = Enumerable.Range(1, 1000).Select(z => surface.TracePeriod(
+        //     new Vector3<double>(1, 0, surface.SweepCurve.Traverse(0.5f).Z),
+        //     new Vector3<double>(0, 1, 1 + z * 0.1)).FinalizedPath).Where(p => p).Sum(p => p.Value.Count);
         var elapsed = sw.Elapsed;
-        Console.WriteLine(elapsed); 
-        sw.Restart();//0x139
-        var period = surface.TracePeriod(new Vector3<double>(1, 0, surface.SweepCurve.Traverse(0.5f).Z),
-            new Vector3<double>(0, 1, 0.5));
+        // Console.WriteLine($"Par: {el} Seq: {elapsed}");
+        sw.Restart(); //0x139
+        var start = surface.SweepCurve.Traverse(0.5);
+        var dir = new Vector3<double>(0.8, 0.5, 0);
+        
+        var period = surface.TracePeriod(start,
+            dir);
         var trace = sw.Elapsed;
-        sw.Restart();//0x139
         jaggedGeodesic = period.FinalizedPath;
-        Console.WriteLine($"Trace {trace} to polyline  {sw.Elapsed}");
+        sw.Restart(); //0x139
+        
+        var poses = period.CreatePattern(1,useParallel:true).Value;
+        var reduced =
+            Polyline.Reduction.DouglasPeucker<Pose3<double>, Vector3<double>, double>(poses.Poses,
+                surface.RadiusRange.Max * 0.001);
+        Console.WriteLine($"Phase {period.Phase.Value}");
+        Console.WriteLine($"Trace {trace} GetPoses  {sw.Elapsed}");
+        poses = new(reduced);
         sw.Restart();
-        jaggedGeodesic =new Polyline<Vector3<double>, double>(Enumerable.Sequence(0, 1, 0.0001d).Select(jaggedGeodesic.Traverse));
+        jaggedGeodesic = poses.ToPolyline();
         // var normals = jaggedGeodesic.Points
         //     .ToArray()
         //     .Select(p => Line<Vector3<double>, double>.FromAxisVector(p, surface.NormalAt(p)))
         //     .Select(l => new Line<Vector3<float>, float>(l.Start.To<float>(), l.End.To<float>())).ToArray();
         Console.WriteLine(sw.Elapsed);
         meshi = surface.Tessellate(256).To<float>();
-        LineViewWrapper.Unwrap.Polyline = jaggedGeodesic.To<Vector3<float>,float>();
-        var mesh = BvhMesh<float>.SurfaceAreaHeuristic(meshi);
+        
+        
+        LineViewWrapper.Unwrap.Polyline = jaggedGeodesic.To<Vector3<float>, float>();
+        LineViewWrapper.Unwrap.Show = true;
+        // var mesh = BvhMesh<float>.SurfaceAreaHeuristic(meshi);
+        var mesh = meshi;
         this.MeshViewWrap.Unwrap.Mesh = mesh;
         var distance = mesh.BBox.Min.DistanceTo(mesh.BBox.Max) * 2;
         camera.Distance = 0.5f;
-
+        var pC = poses[^1].EndPose.Position.To<float>();
+        var d = new Vector3<float>(0, 0, pC.Z);
+        Console.WriteLine($"{d} {pC} {d.DistanceTo(pC)} {surface.Axis.Direction}");
+        var circ = new Circle3<float>(d, surface.Axis.Direction.To<float>(), d.DistanceTo(pC));
         camera.LookAt = mesh.VertexCentroid;
         BBoxWrap.Unwrap.BBox = mesh.BBox;
         var minY = mesh.BBox.Min.Y + 0.0001f;
         var maxY = mesh.BBox.Max.Y;
         var range = maxY - minY;
-        this.GlParent.Children.Add(
-            new IndexedLineView()
-            {
-                Camera = camera,
-                Color = Color4.LightGreen,
-                Lines = [],
-                LineWidth =3f,
-                Show = false
-            });
+        var posePattern = period.CreatePattern(20, useParallel: true);
+        poses = new PosePolyline<Pose3<double>, Vector3<double>, double>(Polyline.Reduction.DouglasPeucker<Pose3<double>, Vector3<double>, double>(posePattern.Value.Poses,
+            surface.RadiusRange.Max * 0.001));
+        var floatPoses = poses.Poses.ToArray().Select(p => p.To<float>()).ToArray();
+        camera.UnitUp=Vector3<float>.UnitX;
+        var loft = Mesh.Create.Loft(floatPoses, 0.05f);
+        GlParent.Children.AddRange(
+            [
+                new SmoothMeshView()
+                {
+                    Mesh = loft,
+                    Camera = camera,
+                    RenderModeFlags = RenderMode.Solid,
+                    Show = true,
+                    SolidColor = Color4.Red,
+                    DepthOffset = 0.0005f
+                }
+            ]
+        );
+        LineViewWrapper.Unwrap.Show = true;
+        LineViewWrapper.Show = true;
+    }
+
+    public static RotationalSurface<double> GetSurface()
+    {
+        var file = "/home/finnimon/Downloads/liner_thickened.stl";
+        var mesh = SafeStlReader<double>.Read(File.OpenRead(file)).Indexed();
+        mesh = Mesh.Indexing.Split(mesh).OrderByDescending(m => m.BBox.GetVolume()).First();
+        var up=Vector3<double>.UnitX;
+        var vertices= mesh.Vertices.ToArray();//defensive copy
+        Ray3<double> ray = new(mesh.VertexCentroid, up);
+        up = ray.Direction;//normalized
+        Line<Vector3<double>,double> rayline = ray;
+        vertices= vertices.OrderBy(v =>
+            rayline.GetClosestPositions(v).closest
+        ).DistinctBy(v =>
+            double.Round(rayline.GetClosestPositions(v).closest,5))
+            .ToArray();
+        var sweep =new Vector2<double>[vertices.Length];
+        for (var i = 0; i < vertices.Length; i++)
+        {
+            var p = vertices[i];
+            var t = rayline.GetClosestPositions(p).closest;
+            var x = t;
+            var y = rayline.Traverse(t).DistanceTo(p);
+            sweep[i] = new Vector2<double>(x, y)*4;
+        }
+
+        sweep = Polyline.Reduction.DouglasPeucker<Vector2<double>, double>(new(sweep),Numbers<double>.ZeroEpsilon)
+            .Points.ToArray();
+        return new RotationalSurface<double>(ray, sweep);
     }
 
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e) =>
@@ -176,10 +251,10 @@ public partial class MainWindow : Window
     }
 
     private void ExportBinary(object? sender, RoutedEventArgs e)
-        => Task.Run(()=>ExportStlCommand(e, false));
+        => Task.Run(() => ExportStlCommand(e, false));
 
     private void ExportAscii(object? sender, RoutedEventArgs e)
-        => Task.Run(()=>ExportStlCommand(e, true));
+        => Task.Run(() => ExportStlCommand(e, true));
 
     private async Task ExportStlCommand(RoutedEventArgs routedEventArgs, bool ascii)
     {
@@ -212,6 +287,62 @@ public partial class MainWindow : Window
         }
     }
 
+    private RotationalSurface<double> Create(string file)
+    {
+        
+        var mesh = SafeStlReader<double>.Read(File.OpenRead("/home/finnimon/Downloads/liner_thickened.stl")).Indexed();
+        mesh = Mesh.Indexing.Split(mesh).OrderByDescending(m => m.BBox.GetVolume()).First().Inverted();
+        mesh = new Mesh<double>(mesh
+                .Where(tri => double.IsFinite(tri.SurfaceArea) && tri.SurfaceArea > Numbers<double>.ZeroEpsilon)
+                .ToArray())
+            .Indexed();
+        Ray3<double> axis = new(mesh.VolumeCentroid,Vector3<double>.UnitX);
+        var bvh = BvhMesh<double>.SurfaceAreaHeuristic(mesh);
+        Console.WriteLine(axis.Origin);
+        var u = new Vector3<double>(0, 1, 0).Normalized();
+        var v=new Vector3<double>(0, 0, 1).Normalized();
+        var up = axis.Direction + axis.Origin;
+        Plane3<double> intersectionPlane = new(axis.Origin, up, u + axis.Origin);
+        Plane3<double> trimPlane = new(axis.Origin,up,v+axis.Origin);
+        var intersectAll = bvh.IntersectAll(intersectionPlane);
+        Console.WriteLine(intersectAll.Count);
+        var culled= intersectAll.Where(l => l.Length > Numbers<double>.ZeroEpsilon)
+            .Where(l=>intersectionPlane.ProjectIntoWorld(l.Direction).Dot(axis.Direction)>0.01);
+        intersectAll = [..culled];
+        Console.WriteLine($"Seg count {intersectAll.Count}");
+        var concat = Polyline.Creation.UnifyNonReversing(intersectAll);
+        Console.WriteLine(concat.Length);
+        var intersection2d = concat.OrderByDescending(pl=>pl.Length).First();
+        intersection2d = Polyline.Reduction.DouglasPeucker(intersection2d);
+        var intersection3d=intersectionPlane.ProjectIntoWorld(intersection2d);
+        Console.WriteLine(intersection3d.Length);
+        return RotationalSurface<double>.FromSweepCurve(intersection3d,axis);
+    }
+
+    private static Polyline<Vector3<double>, double> Cut(Polyline<Vector3<double>, double> pl, Plane3<double> cutter)
+    {
+        RollingList<(int line,double at)> crossovers = [];
+        var pts = pl.Points;
+        var previousSign = cutter.DistanceSign(pts[0]);
+        for (var lineIndex = 0; lineIndex < pl.Count; lineIndex++)
+        {
+            var endPoint = pts[lineIndex + 1];
+            var curSign = cutter.DistanceSign(endPoint);
+            if (curSign == previousSign) continue;
+            Console.WriteLine("DSign");
+            previousSign = curSign;
+            if (crossovers.Count > 0 && crossovers[^1].line == lineIndex)
+                continue;
+            Console.WriteLine("Kept");
+            var startRem= cutter.DistanceTo(pts[lineIndex]);
+            crossovers.Add((lineIndex,startRem));
+        }
+        foreach (var valueTuple in crossovers)
+        {
+            Console.WriteLine(valueTuple);
+        }
+        return pl;
+    }
 
     private void ColorSettingsChanged(object? sender, ColorChangedEventArgs e)
     {

@@ -1,4 +1,5 @@
 using BenchmarkDotNet.Attributes;
+using MeshWiz.Collections;
 using MeshWiz.Math;
 
 namespace MeshWiz.Utility.Benchmark;

@@ -8,8 +8,8 @@ using MeshWiz.Utility.Extensions;
 namespace MeshWiz.Math;
 
 public readonly struct Circle3Section<TNum> : IFlat<TNum>, IRotationalSurface<TNum>,
-    IGeodesicProvider<PoseLine<Pose3<TNum>, Vector3<TNum>, TNum>, TNum>
-    where TNum : unmanaged, IFloatingPointIeee754<TNum>
+    IGeodesicProvider<PoseLine<Pose3<TNum>, Vector3<TNum>, TNum>, TNum>,
+    IEquatable<Circle3Section<TNum>> where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public Vector3<TNum> Centroid { get; }
     public Vector3<TNum> Normal { get; }
@@ -181,5 +181,33 @@ public readonly struct Circle3Section<TNum> : IFlat<TNum>, IRotationalSurface<TN
         var proper = AABB.From(MinorRadius, MajorRadius).Clamp(len);
         var adjust = proper / len;
         return adjust * cToP + Centroid;
+    }
+
+    /// <inheritdoc />
+    public bool Equals(Circle3Section<TNum> other)
+    {
+        return MinorRadius.Equals(other.MinorRadius) && MajorRadius.Equals(other.MajorRadius) && Centroid.Equals(other.Centroid) && Normal.Equals(other.Normal);
+    }
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj)
+    {
+        return obj is Circle3Section<TNum> other && Equals(other);
+    }
+
+    /// <inheritdoc />
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(MinorRadius, MajorRadius, Centroid, Normal);
+    }
+
+    public static bool operator ==(Circle3Section<TNum> left, Circle3Section<TNum> right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(Circle3Section<TNum> left, Circle3Section<TNum> right)
+    {
+        return !left.Equals(right);
     }
 }

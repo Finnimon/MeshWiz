@@ -28,6 +28,14 @@
     <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
     <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
   </Project>
+  <Project Path="MeshWiz.Collections\MeshWiz.Collections.csproj" Type="Classic C#">
+    <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x86 " Project="Debug|Any CPU" />
+    <Configuration Solution="Release|Any CPU " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
+  </Project>
   <Project Path="MeshWiz.Contracts/MeshWiz.Contracts.csproj" />
   <Project Path="MeshWiz.IO.Stl.Benchmark\MeshWiz.IO.Stl.Benchmark.csproj" Type="Classic C#">
     <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
@@ -78,6 +86,22 @@
     <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
   </Project>
   <Project Path="MeshWiz.Math/MeshWiz.Math.csproj" />
+  <Project Path="MeshWiz.RefLinq.Benchmark\MeshWiz.RefLinq.Benchmark.csproj" Type="Classic C#">
+    <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x86 " Project="Debug|Any CPU" />
+    <Configuration Solution="Release|Any CPU " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
+  </Project>
+  <Project Path="MeshWiz.RefLinq\MeshWiz.RefLinq.csproj" Type="Classic C#">
+    <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x86 " Project="Debug|Any CPU" />
+    <Configuration Solution="Release|Any CPU " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
+  </Project>
   <Project Path="MeshWiz.Slicer.OpenTK\MeshWiz.Slicer.OpenTK.csproj" Type="Classic C#">
     <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
     <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
@@ -103,6 +127,14 @@
     <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
   </Project>
   <Project Path="MeshWiz.UI.Avalonia\MeshWiz.UI.Avalonia.csproj" Type="Classic C#">
+    <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x86 " Project="Debug|Any CPU" />
+    <Configuration Solution="Release|Any CPU " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
+  </Project>
+  <Project Path="MeshWiz.UpToDate\MeshWiz.UpToDate.csproj" Type="Classic C#">
     <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
     <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
     <Configuration Solution="Debug|x86 " Project="Debug|Any CPU" />

@@ -1,14 +1,16 @@
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
 
-public readonly struct Cylinder<TNum> : IBody<TNum>, IRotationalSurface<TNum>, IGeodesicProvider<Helix<TNum>, TNum>
+[StructLayout(LayoutKind.Sequential)]
+public readonly struct Cylinder<TNum> : IBody<TNum>, IRotationalSurface<TNum>, IGeodesicProvider<Helix<TNum>, TNum>, IEquatable<Cylinder<TNum>>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    public readonly TNum Radius;
     public readonly Line<Vector3<TNum>, TNum> Axis;
+    public readonly TNum Radius;
     public TNum Height => Axis.Length;
     public Circle3<TNum> Top => new(Axis.End, Axis.AxisVector, Radius);
     public Circle3<TNum> Base => new(Axis.Start, Axis.AxisVector, Radius);
@@ -74,4 +76,31 @@ public readonly struct Cylinder<TNum> : IBody<TNum>, IRotationalSurface<TNum>, I
         return (p - cp).Normalized();
     }
 
+    /// <inheritdoc />
+    public bool Equals(Cylinder<TNum> other)
+    {
+        return Radius.Equals(other.Radius) && Axis.Equals(other.Axis);
+    }
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj)
+    {
+        return obj is Cylinder<TNum> other && Equals(other);
+    }
+
+    /// <inheritdoc />
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Radius, Axis);
+    }
+
+    public static bool operator ==(Cylinder<TNum> left, Cylinder<TNum> right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(Cylinder<TNum> left, Cylinder<TNum> right)
+    {
+        return !left.Equals(right);
+    }
 }

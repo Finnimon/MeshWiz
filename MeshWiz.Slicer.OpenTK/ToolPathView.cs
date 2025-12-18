@@ -5,7 +5,7 @@ using OpenTK.Mathematics;
 
 namespace MeshWiz.Slicer.OpenTK;
 
-public sealed class ToolPathView : IOpenGLControl
+public sealed class ToolPathView 
 {
     /// <inheritdoc />
     public bool Show { get; set; }

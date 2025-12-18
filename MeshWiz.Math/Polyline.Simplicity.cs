@@ -1,5 +1,6 @@
 using System.Numerics;
 using JetBrains.Annotations;
+using MeshWiz.Collections;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 

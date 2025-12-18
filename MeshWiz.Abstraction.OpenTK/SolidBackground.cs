@@ -17,4 +17,16 @@ public class SolidBackground : IOpenGLControl
         GL.ClearColor(Color);
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
     }
+
+    private bool _upToDate = false;
+    /// <inheritdoc />
+    public void OutOfDate() => _upToDate = false;
+
+    /// <inheritdoc />
+    public bool ConsumeOutOfDate()
+    {
+        var copy = _upToDate;
+        _upToDate = true;
+        return copy;
+    }
 }

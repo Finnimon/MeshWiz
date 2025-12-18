@@ -1,4 +1,5 @@
 using MeshWiz.Math;
+using MeshWiz.UpToDate;
 using OpenTK.Mathematics;
 
 namespace MeshWiz.Abstraction.OpenTK;
@@ -7,13 +8,15 @@ public sealed class BBoxView : IOpenGLControl
 {
     public bool Show { get; set; } = true;
     public required ICamera Camera { get; set; }
-    public Color4  Color { get; set; }=Color4.White;
-
+    private readonly EquatableScopedProperty<Color4> _color;
+    public Color4  Color { get=>_color; set=>_color.Value=value; }
+    
+    private readonly FloatingPointScopedProperty<float> _lineWidth;
     public float LineWidth
     {
-        get;
-        set => field = float.Max(value, 1f);
-    } = 1;
+        get=>_lineWidth;
+        set => _lineWidth.Value = float.Max(value, 1f);
+    }
     private VertexArrayObject? _vao;
     private BufferObject? _vbo;
     private BufferObject? _ibo;
@@ -31,6 +34,9 @@ public sealed class BBoxView : IOpenGLControl
         set
         {
             _newBbox = field != value;
+            if (!_newBbox)
+                return;
+            OutOfDate();
             field = value;
         }
     }
@@ -67,6 +73,7 @@ public sealed class BBoxView : IOpenGLControl
         var (model, view, projection) = Camera.CreateRenderMatrices(aspectRatio);
         var objectColor = Color;
         const float depthOffset = 0.000001f;
+        _shaderProgram!.ConsumeOutOfDate();
         _shaderProgram!.BindAnd()
             .SetUniform(nameof(model),ref model)
             .SetUniform(nameof(view),ref view)
@@ -74,15 +81,16 @@ public sealed class BBoxView : IOpenGLControl
             .SetUniform(nameof(objectColor),objectColor)
             .SetUniform(nameof(depthOffset),depthOffset)
             .Unbind();
-        OpenGLHelper.LogGlError(nameof(BBoxView));
+        if(!_shaderProgram.ConsumeOutOfDate())
+            this.OutOfDate();
+            OpenGLHelper.LogGlError(nameof(BBoxView));
     }
 
     private void UploadBox()
     {
         _vao!.Bind();
         _newBbox = false;
-        _vbo?.Dispose();
-        _vbo = new BufferObject(BufferTarget.ArrayBuffer);
+        _vbo ??= new BufferObject(BufferTarget.ArrayBuffer);
         var min = BBox.Min;
         var max=BBox.Max;
 
@@ -106,7 +114,7 @@ public sealed class BBoxView : IOpenGLControl
     public void Render()
     {
         if(!Show) return;
-
+        ConsumeOutOfDate();
         _vao!.Bind();
         _ibo!.Bind();
         _shaderProgram!.Bind();
@@ -128,6 +136,25 @@ public sealed class BBoxView : IOpenGLControl
         _ibo?.Unbind();
         _ibo?.Dispose();
         _vbo?.Dispose();
+        _vbo = null;
         _vao?.Dispose();
+    }
+
+    private bool _upToDate = false;
+    public BBoxView()
+    {
+        _color = this.Property(Color4.White);
+        _lineWidth = this.FloatingPointProperty(1f);
+    }
+
+    /// <inheritdoc />
+    public void OutOfDate() => _upToDate = false;
+
+    /// <inheritdoc />
+    public bool ConsumeOutOfDate()
+    {
+        var copy = _upToDate;
+        _upToDate = true;
+        return copy;
     }
 }

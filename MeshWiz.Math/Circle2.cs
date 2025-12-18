@@ -37,9 +37,9 @@ public readonly struct Circle2<TNum> : ISurface<Vector2<TNum>, TNum>,IContiguous
         => TraverseByAngle(t * Numbers<TNum>.TwoPi);
 
     /// <inheritdoc />
-    public Vector2<TNum> GetTangent(TNum at)
+    public Vector2<TNum> GetTangent(TNum t)
     {
-        var angle=at*Numbers<TNum>.TwoPi;
+        var angle=t*Numbers<TNum>.TwoPi;
         var dirAngle= Numbers<TNum>.HalfPi+angle;
         return new Vector2<TNum>(TNum.One, dirAngle).PolarToCartesian();
     }

@@ -1,20 +1,23 @@
 using MeshWiz.Math;
+using MeshWiz.UpToDate;
 using OpenTK.Mathematics;
 using SysColor=System.Drawing.Color;
 namespace MeshWiz.Abstraction.OpenTK;
 
 public class LineView : IOpenGLControl
 {
-    public bool Show { get; set; }
-    public ICamera Camera{get;set;}
-    
+    private readonly EquatableScopedProperty<bool> _show;
+    public bool Show { get=>_show; set=>_show.Value=value; }
+    public ICamera Camera{get; set;}
+
+    private readonly FloatingPointScopedProperty<float> _lineWidth;
     public float LineWidth
     {
-        get;
-        set => field = float.Max(value, 1f);
+        get=>_lineWidth;
+        set => _lineWidth.Value = float.Max(value, 1f);
     }
-
-    public Color4 Color{get;set;}
+    private readonly EquatableScopedProperty<Color4> _color;
+    public Color4 Color{get=>_color;set=>_color.Value=value;}
 
     public SysColor SysColor
     {
@@ -32,7 +35,7 @@ public class LineView : IOpenGLControl
     private BufferObject? _vbo;
     private ShaderProgram?  _shader; 
     public bool GLInitialized { get; private set; }
-    private bool _newLine;
+    private bool _newLine=true;
     private int _uploadedVertexCount;
     public Polyline<Vector3<float>, float> Polyline
     {
@@ -40,7 +43,8 @@ public class LineView : IOpenGLControl
         set
         {
             field=value;
-            _newLine=true;
+            _newLine = true;
+            OutOfDate();
         }
     }
 
@@ -50,7 +54,9 @@ public class LineView : IOpenGLControl
 
     public LineView(Polyline<Vector3<float>,float> polyline)
     {
-        Show = true;
+        _show = this.Property(true);
+        _lineWidth = this.FloatingPointProperty(1f);
+        _color = this.Property(Color4.White);
         Polyline = polyline;
         Camera=OrbitCamera.Default();
         Camera.MoveForwards(-10);
@@ -81,13 +87,16 @@ public class LineView : IOpenGLControl
         var objectColor = Color;
         var camDistance = Camera.Position.DistanceTo(Camera.LookAt);
         var depthOffset =  DepthOffset/(camDistance*camDistance);
+        _shader!.ConsumeOutOfDate();
         _shader!.BindAnd()
             .SetUniform(nameof(model), ref model)
             .SetUniform(nameof(view), ref view)
             .SetUniform(nameof(projection), ref projection)
             .SetUniform(nameof(objectColor),in objectColor)
-            .SetUniform(nameof(depthOffset),depthOffset)
+            .SetUniform(nameof(depthOffset), depthOffset)
             .Unbind();
+        if(!_shader.ConsumeOutOfDate())
+            this.OutOfDate();
         OpenGLHelper.LogGlError(nameof(LineView));
     }
 
@@ -118,7 +127,7 @@ public class LineView : IOpenGLControl
         if (!Show) return;
         _shader!.Bind();
         _vao!.Bind();
-        
+        ConsumeOutOfDate();   
          var customLineWidth = System.Math.Abs(LineWidth - 1) > 0.0001;
         if (customLineWidth) GL.LineWidth(LineWidth);
         GL.DrawArrays(PrimitiveType.LineStrip, 0, _uploadedVertexCount);
@@ -130,12 +139,31 @@ public class LineView : IOpenGLControl
 
     public void Dispose()
     {
+        GLInitialized = false;
+        OutOfDate();
         GC.SuppressFinalize(this);
         _vbo?.Unbind();
         _vbo?.Dispose();
+        _vbo = null;
         _vao?.Unbind();
         _vao?.Dispose();
+        _vao = null;
         _shader?.Unbind();
         _shader?.Dispose();
+        _shader = null;
+    }
+
+    private bool _upToDate = false;
+
+    /// <inheritdoc />
+    public void OutOfDate()
+        => _upToDate = false;
+
+    /// <inheritdoc />
+    public bool ConsumeOutOfDate()
+    {
+        var copy = _upToDate;
+        _upToDate=true;
+        return copy;
     }
 }

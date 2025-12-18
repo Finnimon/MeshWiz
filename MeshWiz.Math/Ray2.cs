@@ -1,5 +1,6 @@
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using MeshWiz.Utility.Extensions;
 
@@ -120,4 +121,18 @@ public readonly struct Ray2<TNum>
         t = TNum.Max(t, TNum.Zero);
         return true;
     }
+    
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Vector2<TNum> ClosestPoint(Vector2<TNum> p)
+    {
+        var v = p - Origin;
+        var ndir = Direction;
+        var dotProduct = v.Dot(ndir);
+        var alongVector = dotProduct * ndir;
+        return Origin + alongVector;
+    }
+
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public TNum DistanceTo(Vector2<TNum> p) => ClosestPoint(p).DistanceTo(p);
+
 }

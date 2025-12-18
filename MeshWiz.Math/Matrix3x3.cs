@@ -23,6 +23,24 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vector3<TNum>,
     public Vector3<TNum> GetRow(int row)
         => Unsafe.AddByteOffset(ref Unsafe.AsRef(in X), Vector3<TNum>.ByteSize * row);
 
+    [Pure]
+    public static Matrix3x3<TNum> CreateRotation(Vector3<TNum> axis, TNum angle)
+    {
+        axis = axis.Normalized();
+
+        var cos = TNum.Cos(angle);
+        var sin = TNum.Sin(angle);
+        var t = TNum.One - cos;
+        var tAxis = t * axis;
+        var x = axis.X * tAxis;
+        var y = axis.Y * tAxis;
+        var z = axis.Z * tAxis;
+        var (sinX, sinY, sinZ) = sin * axis;
+        x += new Vector3<TNum>(cos, -sinZ, sinY);
+        y += new Vector3<TNum>(sinZ, cos, -sinX);
+        z += new Vector3<TNum>(-sinY, sinX, cos);
+        return FromRows(x, y, z);
+    }
     public static int RowCount => 3;
     public static int ColCount => 3;
 

@@ -1,7 +1,10 @@
+using System.Runtime.CompilerServices;
+
 namespace MeshWiz.Utility;
 
 public static class Func
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ExceptionResult<TResult> Try<TResult>(Func<TResult> func)
     {
         try
@@ -13,7 +16,7 @@ public static class Func
             return ex;
         }
     }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ExceptionResult<TResult> Try<TArg, TResult>(this Func<TArg, TResult> func, TArg arg)
     {
         try
@@ -25,7 +28,7 @@ public static class Func
             return ex;
         }
     }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ExceptionResult<TResult> Try<TArg1, TArg2, TResult>(this Func<TArg1, TArg2, TResult> func, TArg1 arg1,
         TArg2 arg2)
     {
@@ -38,7 +41,7 @@ public static class Func
             return ex;
         }
     }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ExceptionResult<TResult> Try<TArg1, TArg2, TArg3, TResult>(
         this Func<TArg1, TArg2, TArg3, TResult> func, TArg1 arg1, TArg2 arg2, TArg3 arg3)
     {
@@ -51,7 +54,7 @@ public static class Func
             return ex;
         }
     }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ExceptionResult Try(Action func)
     {
         try
@@ -64,7 +67,7 @@ public static class Func
             return ex;
         }
     }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ExceptionResult Try<TArg>(this Action<TArg> func, TArg arg)
     {
         try
@@ -77,7 +80,7 @@ public static class Func
             return ex;
         }
     }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ExceptionResult Try<TArg1, TArg2>(this Action<TArg1, TArg2> func, TArg1 arg1, TArg2 arg2)
     {
         try
@@ -90,7 +93,7 @@ public static class Func
             return ExceptionResult.Failure(ex);
         }
     }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ExceptionResult Try<TArg1, TArg2, TArg3>(this Action<TArg1, TArg2, TArg3> func, TArg1 arg1,
         TArg2 arg2, TArg3 arg3)
     {

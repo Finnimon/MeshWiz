@@ -24,4 +24,10 @@ public class AvaloniaGLBackground : IOpenGLControl
         GL.ClearColor(GLColor);
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
     }
+
+    /// <inheritdoc />
+    public void OutOfDate() { }
+
+    /// <inheritdoc />
+    public bool ConsumeOutOfDate() => true;
 }

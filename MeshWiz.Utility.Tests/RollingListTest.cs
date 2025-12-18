@@ -1,3 +1,5 @@
+using MeshWiz.Collections;
+
 namespace MeshWiz.Utility.Tests;
 
 public class RollingListTest

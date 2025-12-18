@@ -1,12 +1,16 @@
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
-public readonly struct Cone<TNum> : IBody<TNum>, IRotationalSurface<TNum>, IEquatable<Cone<TNum>>,
-    IGeodesicProvider<ConeGeodesic<TNum>,TNum>
+[StructLayout(LayoutKind.Sequential)]
+public readonly struct Cone<TNum> : IBody<TNum>,
+    IRotationalSurface<TNum>,
+    IEquatable<Cone<TNum>>,
+    IGeodesicProvider<ConeGeodesic<TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly Line<Vector3<TNum>, TNum> Axis;
@@ -195,6 +199,9 @@ public readonly struct Cone<TNum> : IBody<TNum>, IRotationalSurface<TNum>, IEqua
     {
         return obj is Cone<TNum> other && Equals(other);
     }
+
+    public static bool operator ==(Cone<TNum> left, Cone<TNum> right) => left.Equals(right);
+    public static bool operator !=(Cone<TNum> left, Cone<TNum> right) => !left.Equals(right);
 
     /// <inheritdoc />
     public override int GetHashCode()

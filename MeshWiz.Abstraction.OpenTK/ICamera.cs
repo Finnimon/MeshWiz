@@ -19,5 +19,4 @@ public interface ICamera
 
     public (Matrix4 model, Matrix4 view, Matrix4 projection) CreateRenderMatrices(Vector2 bounds)
     => CreateRenderMatrices(bounds.X / bounds.Y);
-    static abstract ICamera Default();
 }

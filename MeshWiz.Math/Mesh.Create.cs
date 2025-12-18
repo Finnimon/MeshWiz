@@ -49,7 +49,7 @@ public static partial class Mesh
 
             for (var row = 0; row < rowCount - 1; row++)
             {
-                for (var rib = 0; rib < ribCount; rib++)
+                for (var rib = 0; rib < ribCount-1; rib++)
                 {
                     var a = rib * rowCount + row;
                     var b = a + rowCount;

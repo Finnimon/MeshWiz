@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using MeshWiz.Collections;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
@@ -78,7 +79,7 @@ public static partial class Polyline
             if (segments is { Count: 1 }) return [new Polyline<TVec, TNum>(segments[0].Start, segments[0].End)];
 
             List<Polyline<TVec, TNum>> polyLines = [];
-            RollingList<TVec> connected = new(0);
+            RollingList<TVec> connected = new((int)0);
             var checkedSinceLastAdd = int.MaxValue;
             var frontDirection = TVec.NaN;
             var backDirection = TVec.NaN;
@@ -87,7 +88,7 @@ public static partial class Polyline
                 if (line.SquaredLength < epsilon)
                     continue;
 
-                if (checkedSinceLastAdd > segments.Count + 1)
+                if (checkedSinceLastAdd > segments.Count + 2)
                 {
                     AddIfValid(polyLines, connected, epsilon);
                     connected = [line.Start, line.End];
@@ -184,7 +185,7 @@ public static partial class Polyline
             if (segments is { Count: 1 }) return segments.ToArray();
 
             List<Polyline<TVec, TNum>> polyLines = [];
-            RollingList<TVec> connected = new(0);
+            RollingList<TVec> connected = new((int)0);
             var checkedSinceLastAdd = int.MaxValue;
             while (segments.TryPopBack(out var segment))
             {
@@ -269,7 +270,7 @@ public static partial class Polyline
                 return true;
             }
 
-            RollingList<TVec> connected = new(startingSeg.seg.Points);
+            RollingList<TVec> connected = new((ReadOnlySpan<TVec>)startingSeg.seg.Points);
             var nextIndex = startingSeg.NextPolyline;
 
             while (segments.TryGetValue(nextIndex, out var nextSegs))

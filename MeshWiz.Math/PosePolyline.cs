@@ -82,7 +82,13 @@ public sealed class PosePolyline<TPose, TVector, TNum> : IDiscretePoseCurve<TPos
 
     /// <inheritdoc />
     public Polyline<TVector, TNum> ToPolyline()
-        => new(_poses.Select(p => p.Position));
+    {
+        var poses = Poses;
+        var pts = new TVector[poses.Length];
+        for (var i = 0; i < poses.Length; i++)
+            pts[i] = _poses[i].Position;
+        return new Polyline<TVector, TNum>(pts);
+    }
 
     /// <inheritdoc />
     Polyline<TVector, TNum> IDiscreteCurve<TVector, TNum>.ToPolyline(
@@ -99,8 +105,8 @@ public sealed class PosePolyline<TPose, TVector, TNum> : IDiscretePoseCurve<TPos
         => Count > 2 && _poses[0].Position.IsApprox(_poses[^1].Position);
 
     /// <inheritdoc />
-    public TVector GetTangent(TNum at)
-        => this.GetPose(at).Front;
+    public TVector GetTangent(TNum t)
+        => GetPose(t).Front;
 
     /// <inheritdoc />
     public TVector EntryDirection => Count < 0 ? TVector.NaN : _poses[0].Front;
@@ -137,4 +143,5 @@ public sealed class PosePolyline<TPose, TVector, TNum> : IDiscretePoseCurve<TPos
     private AABB<TVector>? _bbox;
     /// <inheritdoc />
     public AABB<TVector> BBox => _bbox ??= AABB.From<TPose,TVector,TNum>(Poses);
+
 }

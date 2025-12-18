@@ -1,22 +1,24 @@
 using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
+using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
-namespace MeshWiz.Utility;
+namespace MeshWiz.Collections;
 
 /// <summary>
 /// Alternative to the much more costly LinkedList's Prepend/Append Functionality
 /// </summary>
 /// <typeparam name="T">Typeof Items</typeparam>
-public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
+public sealed class RollingList<T> : IVersionedList<T>, IReadOnlyList<T>
 {
     private const int DefaultCapacity = 16;
     private T[] _items;
     private int _headIndex;
     private int _postTailIndex;
-    private int _version;
+    public int Version { get; private set; }
 
     /// <inheritdoc />
     bool ICollection<T>.Remove(T item) => ThrowHelper.ThrowNotSupportedException<bool>();
@@ -84,12 +86,12 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
         get => _items[ValidatedIndex(index)];
         set
         {
-            ++_version;
+            ++Version;
             _items[ValidatedIndex(index)] = value;
         }
     }
 
-    [StackTraceHidden]
+    [StackTraceHidden,MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int ValidatedIndex(int index)
     {
         if (Count <= (uint)index) IndexThrowHelper.Throw(index, Count);
@@ -104,7 +106,7 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
     public void PushFront(T item)
     {
         if (Capacity < Count + 1) Capacity *= 2;
-        _version++;
+        Version++;
         Count++;
         if (_headIndex <= 0) _headIndex = _items.Length;
         _headIndex--;
@@ -115,7 +117,7 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
 
     public void PushFront(ReadOnlySpan<T> newItems)
     {
-        _version++;
+        Version++;
         var capacity = Capacity;
         var newCount = Count + newItems.Length;
         var mustGrow = capacity < newCount;
@@ -151,7 +153,7 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
 
     public void PushBack(T item)
     {
-        _version++;
+        Version++;
         if (Capacity < Count + 1) Capacity *= 2;
         Count++;
         _postTailIndex++;
@@ -164,7 +166,7 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
 
     public void PushBack(ReadOnlySpan<T> newItems)
     {
-        _version++;
+        Version++;
         if (newItems.Length == 0) return;
         var capacity = Capacity;
         var newCount = Count + newItems.Length;
@@ -213,7 +215,7 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
 
     private T PopFrontUnchecked()
     {
-        _version++;
+        Version++;
         Count--;
         ref var head = ref _items[_headIndex];
         var front = head;
@@ -231,7 +233,7 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
 
     private T PopBackUnchecked()
     {
-        _version++;
+        Version++;
         Count--;
         _postTailIndex--;
         ref var tail = ref _items[_postTailIndex];
@@ -276,8 +278,9 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
 
     public void Clear()
     {
-        _version++;
-        Array.Fill(_items, default!);
+        Version++;
+        if(!TypeOf<T>.Unmanaged)
+            Array.Fill(_items, default!);
         _headIndex = 0;
         _postTailIndex = 0;
         Count = 0;
@@ -352,7 +355,7 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
     public void Trim() => Capacity = Count;
 
 
-    public Enumerator GetEnumerator() => new(this);
+    public Enumerator<RollingList<T>,T> GetEnumerator() => new(this);
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     IEnumerator<T> IEnumerable<T>.GetEnumerator()
@@ -360,63 +363,5 @@ public sealed class RollingList<T> : IList<T>, IReadOnlyList<T>
         return GetEnumerator();
     }
 
-    /// <seealso href="https://github.com/dotnet/runtime/blob/6e1e6b1f34ac821c47364f5b0baf91d18e1fcbe7/src/libraries/System.Private.CoreLib/src/System/Collections/Generic/List.cs#L1185"/>
-    public struct Enumerator : IEnumerator<T>, IEnumerator
-    {
-        private readonly RollingList<T> _list;
-        private int _index;
-        private readonly int _version;
-        private T? _current;
-
-        internal Enumerator(RollingList<T> list)
-        {
-            _list = list;
-            _index = 0;
-            _version = list._version;
-            _current = default;
-        }
-
-        public void Dispose() { }
-
-        public bool MoveNext()
-        {
-            if (_version == _list._version && ((uint)_index < (uint)_list.Count))
-            {
-                _current = _list._items[_index];
-                _index++;
-                return true;
-            }
-
-            return MoveNextRare();
-        }
-
-        private bool MoveNextRare()
-        {
-            if (_version != _list._version)
-                ThrowHelper.ThrowInvalidOperationException();
-
-            _index = _list.Count + 1;
-            _current = default;
-            return false;
-        }
-
-        public T Current => _current!;
-
-        object? IEnumerator.Current
-        {
-            get
-            {
-                if (_index == 0 || _index == _list.Count + 1) ThrowHelper.ThrowInvalidOperationException();
-                return Current;
-            }
-        }
-
-        void IEnumerator.Reset()
-        {
-            if (_version != _list._version) ThrowHelper.ThrowInvalidOperationException();
-
-            _index = 0;
-            _current = default;
-        }
-    }
+    
 }

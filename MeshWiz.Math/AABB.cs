@@ -179,6 +179,20 @@ public readonly struct AABB<TNum>
             _ => FromNotEmptyArray(pts)
         };
 
+    [Pure]
+    public static AABB<TNum> From(IEnumerable<TNum> pts)
+    {
+        var min = TNum.PositiveInfinity;
+        var max= TNum.NegativeInfinity;
+        foreach (var pt in pts)
+        {
+            min = TNum.Min(pt, min);
+            max = TNum.Max(pt, max);
+        }
+
+        return new AABB<TNum>(min, max);
+    }
+
     
     
     private static AABB<TNum> FromNotEmptyArray(ReadOnlySpan<TNum> pts)
@@ -282,6 +296,8 @@ public readonly struct AABB<TNum>
         return new AABB<TNum>(l.Clamp(r.Min), rcl);
     }
 
+    public AABB<TNum> IntersectionWith(AABB<TNum> other) => this & other;
+
     public void Deconstruct(out TNum min, out TNum max)
     {
         min = Min;
@@ -333,6 +349,7 @@ public static class AABB
             4 => From(pts[0].Position, pts[1].Position, pts[2].Position, pts[3].Position),
             _ => FromNotEmptyArray<TVector, TPose, TIgnore>(pts)
         };
+    
 
     private static AABB<TVector> FromNotEmptyArray<TVector, TPose,TNum>(ReadOnlySpan<TPose> pts) 
         where TPose:IPosition<TPose,TVector,TNum>

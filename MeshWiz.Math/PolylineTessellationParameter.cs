@@ -17,6 +17,7 @@ where TNum:IFloatingPointIeee754<TNum>
         
         var countNum = TNum.Round(angle / MaxAngularDeviation, MidpointRounding.AwayFromZero);
         countNum=TNum.Abs(countNum);
+        countNum = TNum.Max(countNum, TNum.One);
         var stepSize = angle / countNum;
         return (int.CreateSaturating(countNum), countNum, stepSize);
     }

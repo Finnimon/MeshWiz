@@ -7,52 +7,62 @@ namespace MeshWiz.Utility.Extensions;
 
 public static class NumExt
 {
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TNum Mod2Pi<TNum>(this TNum v)
+        where TNum : IFloatingPoint<TNum>
+    {
+        return v.Wrap(TNum.Zero, Numbers<TNum>.TwoPi);
+    }
+
+
+
+
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool InsideInclusiveRange<TNum>(this TNum value, TNum min, TNum max)
         where TNum : IBinaryInteger<TNum>, IUnsignedNumber<TNum>
         => value - min <= max - min;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool OutsideInclusiveRange<TNum>(this TNum value, TNum min, TNum max)
         where TNum : IBinaryInteger<TNum>, IUnsignedNumber<TNum>
         => value - min > max - min;
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool OutsideInclusiveRange(this sbyte value, sbyte min, sbyte max)
         => ((byte)value).OutsideInclusiveRange((byte)min, (byte)max);
 
     public static bool InsideInclusiveRange(this sbyte value, sbyte min, sbyte max)
         => ((byte)value).InsideInclusiveRange((byte)min, (byte)max);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool OutsideInclusiveRange(this short value, short min, short max)
         => ((ushort)value).OutsideInclusiveRange((ushort)min, (ushort)max);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool InsideInclusiveRange(this short value, short min, short max)
         => ((ushort)value).InsideInclusiveRange((ushort)min, (ushort)max);
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool InsideInclusiveRange(this int value, int min, int max)
         => ((uint)value).InsideInclusiveRange((uint)min, (uint)max);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool OutsideInclusiveRange(this int value, int min, int max)
         => ((uint)value).OutsideInclusiveRange((uint)min, (uint)max);
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool InsideInclusiveRange(this long value, long min, long max)
         => ((ulong)value).InsideInclusiveRange((ulong)min, (ulong)max);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool OutsideInclusiveRange(this long value, long min, long max)
         => ((ulong)value).OutsideInclusiveRange((ulong)min, (ulong)max);
 
-    [Pure]
-    public static TNum Wrap<TNum>(this TNum value, TNum min, TNum max)
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TNum Wrap<TNum>(this TNum value, TNum min, TNum max)
         where TNum : INumber<TNum>
     {
         var range = max - min;
@@ -108,10 +118,12 @@ public static class NumExt
         where TNum : IFloatingPointIeee754<TNum>
         => num.EpsilonTruncatingSign(Numbers<TNum>.ZeroEpsilon);
 
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool InsideRange<TNum>(this TNum value, TNum min, TNum max)
         where TNum : IFloatingPointIeee754<TNum> =>
         value >= min - TNum.Epsilon && value <= max + TNum.Epsilon;
 
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TNum NextPow2<TNum>(this TNum num)
         where TNum : IBinaryInteger<TNum>
     {

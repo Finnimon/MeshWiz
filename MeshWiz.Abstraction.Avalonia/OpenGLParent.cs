@@ -58,7 +58,7 @@ public sealed class OpenGLParent : OpenGlControlBase, IDisposable
         GL.LoadBindings(_context);
         var (visible, aspectRatio) = UpdateViewport();
         if (visible) RenderChildren(aspectRatio);
-        Dispatcher.UIThread.Post(RequestNextFrameRendering, DispatcherPriority.Background);
+        Dispatcher.UIThread.Post(RequestNextFrameRendering, DispatcherPriority.Default);
     }
 
     private void UpdateFps()
@@ -80,17 +80,30 @@ public sealed class OpenGLParent : OpenGlControlBase, IDisposable
         return (trueBound.Length >= 1, (float)(trueBound.X / trueBound.Y));
     }
 
+    /// <summary>
+    /// meant for ensuring framebuffer is filled
+    /// </summary>
+    private int _renderSinceUpToDate = 0;
     private void RenderChildren(float aspectRatio)
     {
         GL.LoadBindings(_context!);
-        GL.Enable(EnableCap.DepthTest);
+        var upToDate = true;
         foreach (var child in Children)
         {
             if (!child.GLInitialized) child.Init();
             child.Update(aspectRatio);
-            child.Render();
+            var isChild= child.ConsumeOutOfDate();
+            if(isChild)
+                continue;
+            upToDate = false;
         }
-
+        
+        if (upToDate&&_renderSinceUpToDate>1)
+            return;
+        _renderSinceUpToDate = upToDate ? _renderSinceUpToDate + 1 : 0;
+        
+        GL.Enable(EnableCap.DepthTest);
+        Children.ForEach(child => child.Render());
         GL.Disable(EnableCap.DepthTest);
     }
 

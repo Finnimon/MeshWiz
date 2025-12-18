@@ -53,4 +53,8 @@ public readonly struct Triangle3<TNum>:ISurface<Vector3<TNum>, TNum>, IFlat<TNum
         return (ab,bc,ca);
     }
     public AABB<Vector3<TNum>> BBox=>AABB<Vector3<TNum>>.From(A,B,C);
+
+    public Triangle3<TOtherNum> To<TOtherNum>() 
+        where TOtherNum : unmanaged, IFloatingPointIeee754<TOtherNum> =>
+        new(A.To<TOtherNum>(), B.To<TOtherNum>(), C.To<TOtherNum>());
 }

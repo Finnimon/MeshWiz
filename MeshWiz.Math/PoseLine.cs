@@ -7,7 +7,8 @@ namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
 [SuppressMessage("ReSharper", "ConvertToAutoPropertyWhenPossible",Justification = "Pose Copy Cost")]
-public readonly struct PoseLine<TPose, TVector, TNum>(TPose start, TPose end) : ILine<TVector, TNum>,IDiscretePoseCurve<TPose,TVector,TNum>
+public readonly struct PoseLine<TPose, TVector, TNum>(TPose start, TPose end) : ILine<TVector, TNum>,IDiscretePoseCurve<TPose,TVector,TNum>,
+    IEquatable<PoseLine<TPose,TVector,TNum>>
     where TVector : unmanaged, IVector<TVector, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
     where TPose : IPose<TPose, TVector, TNum>
@@ -30,26 +31,26 @@ public readonly struct PoseLine<TPose, TVector, TNum>(TPose start, TPose end) : 
     public bool IsClosed => false;
 
     /// <inheritdoc />
-    TVector ICurve<TVector, TNum>.Traverse(TNum t)
+    public TVector Traverse(TNum t)
         => TVector.Lerp(_start.Position, _end.Position, t);
 
     /// <inheritdoc />
-    TVector IDiscreteCurve<TVector, TNum>.Start => _start.Position;
+    public TVector Start => _start.Position;
 
 
     /// <inheritdoc />
-    TVector IDiscreteCurve<TVector, TNum>.End => _end.Position;
+    public TVector End => _end.Position;
 
     /// <inheritdoc />
-    TVector IDiscreteCurve<TVector, TNum>.TraverseOnCurve(TNum t)
+    public TVector TraverseOnCurve(TNum t)
         => TVector.Lerp(_start.Position, _end.Position, TNum.Clamp(t, TNum.Zero, TNum.One));
 
     /// <inheritdoc />
-    Polyline<TVector, TNum> IDiscreteCurve<TVector, TNum>.ToPolyline()
+    public Polyline<TVector, TNum> ToPolyline()
         => new([_start.Position, _end.Position]);
 
     /// <inheritdoc />
-    Polyline<TVector, TNum> IDiscreteCurve<TVector, TNum>.ToPolyline(
+    public Polyline<TVector, TNum> ToPolyline(
         PolylineTessellationParameter<TNum> tessellationParameter)
         => new([_start.Position, _end.Position]);
 
@@ -62,7 +63,7 @@ public readonly struct PoseLine<TPose, TVector, TNum>(TPose start, TPose end) : 
         => new(source._start.Position, source._end.Position);
 
     /// <inheritdoc />
-    public TVector GetTangent(TNum at) => this.GetPose(at).Front;
+    public TVector GetTangent(TNum t) => this.GetPose(t).Front;
 
     /// <inheritdoc />
     public TVector EntryDirection => _start.Front;
@@ -92,5 +93,30 @@ public readonly struct PoseLine<TPose, TVector, TNum>(TPose start, TPose end) : 
             .Value;
         var pose2 = new Pose3<TNum>(pose1.Rotation, b);
         return new PoseLine<Pose3<TNum>, Vector3<TNum>, TNum>(pose1, pose2);
+    }
+
+    /// <inheritdoc />
+    public bool Equals(PoseLine<TPose, TVector, TNum> other) => _start == other._start && _end == other._end;
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj)
+    {
+        return obj is PoseLine<TPose, TVector, TNum> other && Equals(other);
+    }
+
+    /// <inheritdoc />
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(_start, _end);
+    }
+
+    public static bool operator ==(PoseLine<TPose, TVector, TNum> left, PoseLine<TPose, TVector, TNum> right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(PoseLine<TPose, TVector, TNum> left, PoseLine<TPose, TVector, TNum> right)
+    {
+        return !left.Equals(right);
     }
 }

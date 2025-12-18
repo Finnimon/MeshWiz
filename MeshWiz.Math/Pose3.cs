@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -10,6 +11,7 @@ namespace MeshWiz.Math;
 public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vector3<TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
+
     public static Pose3<TNum> Identity => new();
     public readonly Quaternion<TNum> Rotation;
     public readonly Vector3<TNum> Origin;//quaternion first for better layout ie 32*4+32*3
@@ -31,6 +33,7 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vector3<TNum>, TNum>
         }
     }
 
+    
 
     public Pose3()
     {
@@ -56,8 +59,21 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vector3<TNum>, TNum>
         z -= diff;
         z = z.Normalized();
         var x = Vector3<TNum>.Cross(y, z);
-        if (!up.IsNormalized || !front.IsNormalized)
+        if (!z.IsNormalized || !y.IsNormalized)
             return Result<Arithmetics, Pose3<TNum>>.Failure(Arithmetics.NormalizationImpossible);
+        Matrix3x3<TNum> mat = new(x, y, z);
+        var rot = Quaternion<TNum>.CreateUnsafe(in mat);
+        return new Pose3<TNum>(rot, origin);
+    }
+
+    [Pure]
+    public static Pose3<TNum> CreateUnsafe(Vector3<TNum> origin, Vector3<TNum> front, Vector3<TNum> up)
+    {
+        var y = front.Normalized();
+        var z = up;
+        z -= y.Dot(z) * y;
+        z = z.Normalized();
+        var x = Vector3<TNum>.Cross(y, z);
         Matrix3x3<TNum> mat = new(x, y, z);
         var rot = Quaternion<TNum>.CreateUnsafe(in mat);
         return new Pose3<TNum>(rot, origin);
@@ -95,5 +111,32 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vector3<TNum>, TNum>
     {
         var translated = src - Origin;
         return Rotation.Rotate(translated);
+    }
+
+    public Pose3<TOtherNum> To<TOtherNum>() 
+        where TOtherNum : unmanaged, IFloatingPointIeee754<TOtherNum>
+    {
+        if (typeof(TOtherNum) == typeof(TNum))
+            return (Pose3<TOtherNum>)(object) this;
+        return new Pose3<TOtherNum>(Rotation.To<TOtherNum>(), Origin.To<TOtherNum>());
+    }
+
+    /// <inheritdoc />
+    public override bool Equals([NotNullWhen(true)] object? obj) => obj is Pose3<TNum> other && this == other;
+
+    /// <inheritdoc />
+    public bool Equals(Pose3<TNum> other) => this == other;
+
+    /// <inheritdoc />
+    public static bool operator ==(Pose3<TNum> left, Pose3<TNum> right) => left.Origin==right.Origin&&left.Rotation==right.Rotation;
+
+    /// <inheritdoc />
+    public static bool operator !=(Pose3<TNum> left, Pose3<TNum> right)
+        => !(left == right);
+    
+    /// <inheritdoc />
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Rotation, Origin);
     }
 }

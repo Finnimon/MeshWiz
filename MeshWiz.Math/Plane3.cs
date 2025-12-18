@@ -68,15 +68,17 @@ public readonly struct Plane3<TNum>
 
         // Compute intersection distance along ray direction
         var t = -(Normal.Dot(test.Start) + D) / denominator;
+        var testLen = test.Length;
+        t /= testLen;
         result = test.Traverse(t);
-        return TNum.NegativeZero <= t && t <= TNum.One;
+        return t.IsApproxGreaterOrEqual(TNum.NegativeZero) && TNum.One.IsApproxGreaterOrEqual(t);
     }
 
     public Vector3<TNum> ForceIntersect(Line<Vector3<TNum>, TNum> line)
     {
         var denominator = Normal.Dot(line.AxisVector);
         var t = -(Normal.Dot(line.Start) + D) / denominator;
-        return line.Traverse(t);
+        return line.Traverse(t/line.Length);
     }
 
     public bool DoIntersect(Ray3<TNum> test)
@@ -346,10 +348,9 @@ public readonly struct Plane3<TNum>
 
     public Vector3<TNum> Clamp(Vector3<TNum> p)
     {
-        var (u, v) = Basis;
-        var local = p - Origin;
-        var v2 = new Vector2<TNum>(local.Dot(u), local.Dot(v));
-        return Origin + v2.X * u + v2.Y * v;
+        var d= SignedDistance(p);
+        p -= Normal * d;
+        return p;
     }
 
 

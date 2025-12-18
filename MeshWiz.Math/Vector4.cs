@@ -311,7 +311,10 @@ public readonly struct Vector4<TNum> : IVector<Vector4<TNum>, TNum>
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4<TNum> ExactLerp(Vector4<TNum> from, Vector4<TNum> toward, TNum exactDistance)
-        => (toward - from).Normalized() * exactDistance + from;
+    {
+        var dist = Distance(from, toward);
+        return Lerp(from, toward, exactDistance / dist);
+    }
 
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -344,6 +347,12 @@ public readonly struct Vector4<TNum> : IVector<Vector4<TNum>, TNum>
     public static implicit operator Vector4<TNum>(Vector3<TNum> xyz)
         => new(xyz);
 
+    public static implicit operator Vector4<TNum>(Vector4<float> v) => v.To<TNum>();
+    public static implicit operator Vector4<TNum>(Vector4<double> v) => v.To<TNum>();
+    public static implicit operator Vector4<TNum>(Vector4<Half> v) => v.To<TNum>();
+    public static implicit operator Vector4<float>(Vector4<TNum> v) => v.To<float>();
+    public static implicit operator Vector4<double>(Vector4<TNum> v) => v.To<double>();
+    public static implicit operator Vector4<Half>(Vector4<TNum> v) => v.To<Half>();
 
     /// <inheritdoc />
     public static Vector4<TNum> operator %(Vector4<TNum> l, Vector4<TNum> r)

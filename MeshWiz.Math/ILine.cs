@@ -27,7 +27,7 @@ public interface ILine<TVector, TNum>
     TVector MidPoint { get; }
 
     /// <inheritdoc />
-    TVector IContiguousCurve<TVector, TNum>.GetTangent(TNum _)
+    TVector IContiguousCurve<TVector, TNum>.GetTangent(TNum t)
         => Direction;
 
     /// <inheritdoc />

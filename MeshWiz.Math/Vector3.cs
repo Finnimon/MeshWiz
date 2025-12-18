@@ -127,6 +127,14 @@ public readonly struct Vector3<TNum>(TNum x, TNum y, TNum z) : IVector3<Vector3<
     public static implicit operator Vector3<TNum>(Vector3 v)
         => new(TNum.CreateTruncating(v.X), TNum.CreateTruncating(v.Y), TNum.CreateTruncating(v.Z));
 
+    public static implicit operator Vector3<TNum>(Vector3<float> v) => v.To<TNum>();
+    public static implicit operator Vector3<TNum>(Vector3<double> v) => v.To<TNum>();
+    public static implicit operator Vector3<TNum>(Vector3<Half> v) => v.To<TNum>();
+    public static implicit operator Vector3<float>(Vector3<TNum> v) => v.To<float>();
+    public static implicit operator Vector3<double>(Vector3<TNum> v) => v.To<double>();
+    public static implicit operator Vector3<Half>(Vector3<TNum> v) => v.To<Half>();
+    
+    
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector3<TNum> operator +(Vector3<TNum> left, Vector3<TNum> right)
         => new(left.X + right.X, left.Y + right.Y, left.Z + right.Z);

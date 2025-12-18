@@ -62,9 +62,9 @@ public readonly struct Arc2<TNum> : IContiguousDiscreteCurve<Vector2<TNum>, TNum
 
 
     /// <inheritdoc />
-    public Vector2<TNum> GetTangent(TNum at)
+    public Vector2<TNum> GetTangent(TNum t)
     {
-        var angle = TNum.Lerp(StartAngle, EndAngle, at);
+        var angle = TNum.Lerp(StartAngle, EndAngle, t);
         var underlyingAt = angle / AngleRangeSize;
         return Underlying.GetTangent(underlyingAt);
     }

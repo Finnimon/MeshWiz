@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using MeshWiz.Collections;
 using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
@@ -222,6 +223,34 @@ public class BvhMesh<TNum> : IIndexedMesh<TNum>
         }
 
         return Polyline.Creation.UnifyNonReversing(intersections);
+    }
+    
+    public RollingList<Line<Vector2<TNum>, TNum>> IntersectAll(Plane3<TNum> plane)
+    {
+        RollingList<int> nodeToTest = new(capacity: GetDepthFirstStackSize()) { 0 };
+        RollingList<Line<Vector2<TNum>, TNum>> intersections = [];
+        while (nodeToTest.TryPopBack(out var nodeIndex))
+        {
+            ref readonly var node = ref _hierarchy[nodeIndex];
+            if (!plane.DoIntersect(node.Bounds)) continue;
+            if (node.IsParent)
+            {
+                nodeToTest.PushBack(node.FirstChild);
+                nodeToTest.PushBack(node.SecondChild);
+                continue;
+            }
+
+            for (var triangleIndex = node.Start; triangleIndex < node.End; triangleIndex++)
+            {
+                var tri = this[triangleIndex];
+
+                if (!plane.Intersect(tri, out var line)) continue;
+
+                intersections.PushBack(plane.ProjectIntoLocal(line));
+            }
+        }
+
+        return intersections;
     }
 
     private int GetDepthFirstStackSize() => (int)Depth * 2 + 1;

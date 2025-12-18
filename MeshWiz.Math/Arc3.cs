@@ -104,8 +104,8 @@ public readonly struct Arc3<TNum>(Circle3<TNum> underlying, TNum startAngle, TNu
     }
 
     /// <inheritdoc />
-    public Vector3<TNum> GetTangent(TNum at)
-        => GetTangentAtAngle(GetAngleAtNormalPos(at));
+    public Vector3<TNum> GetTangent(TNum t)
+        => GetTangentAtAngle(GetAngleAtNormalPos(t));
 
     public Vector3<TNum> GetTangentAtAngle(TNum angle)
         => Underlying.GetTangentAtAngle(angle) * WindingDirection;

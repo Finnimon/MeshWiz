@@ -1,13 +1,18 @@
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
-public readonly struct
-    ConeSection<TNum> : IBody<TNum>, IRotationalSurface<TNum>,IGeodesicProvider<ConeGeodesic<TNum>, TNum>
+[StructLayout(LayoutKind.Sequential)]
+public readonly struct ConeSection<TNum>
+    : IBody<TNum>,
+        IRotationalSurface<TNum>,
+        IGeodesicProvider<ConeGeodesic<TNum>, TNum>,
+        IEquatable<ConeSection<TNum>>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly Line<Vector3<TNum>, TNum> Axis;
@@ -272,5 +277,33 @@ public readonly struct
             return new(surf.Axis,absBase,absTop);
         var axis =surf.Axis.Reversed();
         return new ConeSection<TNum>(axis, absTop,absBase);
+    }
+
+    /// <inheritdoc />
+    public bool Equals(ConeSection<TNum> other)
+    {
+        return Axis.Equals(other.Axis) && BaseRadius.Equals(other.BaseRadius) && TopRadius.Equals(other.TopRadius);
+    }
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj)
+    {
+        return obj is ConeSection<TNum> other && Equals(other);
+    }
+
+    /// <inheritdoc />
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Axis, BaseRadius, TopRadius);
+    }
+
+    public static bool operator ==(ConeSection<TNum> left, ConeSection<TNum> right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(ConeSection<TNum> left, ConeSection<TNum> right)
+    {
+        return !left.Equals(right);
     }
 }

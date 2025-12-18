@@ -2,4 +2,4 @@
 using MeshWiz.Math.Benchmark;
 
 
-BenchmarkRunner.Run<Ray3Bench<float>>();
+BenchmarkRunner.Run<GeodesicBench<double>>();
