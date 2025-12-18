@@ -38,6 +38,7 @@ public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter
 
         _source = source;
         var sourceCount = _source.Count();
+        _source.Reset();
         _start= range.Start.GetOffset(sourceCount);
         _endExcl = range.End.GetOffset(sourceCount);
         var count = _endExcl - _start;
@@ -172,5 +173,22 @@ public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter
     /// <inheritdoc />
     public HashSet<TItem> ToHashSet(IEqualityComparer<TItem> comp)
         => _spanBased ? _source.ToHashSet() : Iterator.ToHashSet<RangeIterator<TIter, TItem>, TItem>(this,comp);
+    
+    public TItem First(Func<TItem,bool> predicate)=>this.Where(predicate).First();
+    public TItem? FirstOrDefault(Func<TItem,bool> predicate)=>this.Where(predicate).FirstOrDefault();
+
+    public TItem Last(Func<TItem,bool> predicate)=>this.Where(predicate).Last();
+    public TItem? LastOrDefault(Func<TItem,bool> predicate)=>this.Where(predicate).LastOrDefault();
+    
+    public bool Any()
+    {
+        var copy = this;
+        return copy.MoveNext();
+    }
+    public bool Any(Func<TItem,bool> predicate)=>Where(predicate).MoveNext();
+
+    /// <inheritdoc />
+    public int MaxPossibleCount() => Count();
+    public OfTypeIterator<RangeIterator<TIter,TItem>,TItem, TOther> OfType<TOther>() => new(this);
     
 }

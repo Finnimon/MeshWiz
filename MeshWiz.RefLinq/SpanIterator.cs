@@ -41,7 +41,6 @@ public ref struct SpanIterator<TItem>(ReadOnlySpan<TItem> source) : IRefIterator
     /// <inheritdoc />
     public readonly bool TryGetLast(out TItem? item) => _source.TryGet(^1, out item);
 
-    /// <inheritdoc />
     public readonly ReadOnlySpan<TItem> OriginalSource => _source;
 
     /// <inheritdoc />
@@ -106,4 +105,22 @@ public ref struct SpanIterator<TItem>(ReadOnlySpan<TItem> source) : IRefIterator
     public HashSet<TItem> ToHashSet() => [..ToArray()];
     /// <inheritdoc />
     public HashSet<TItem> ToHashSet(IEqualityComparer<TItem> comp) => new(ToArray(),comp);
+    
+    public TItem First(Func<TItem,bool> predicate)=>this.Where(predicate).First();
+    public TItem? FirstOrDefault(Func<TItem,bool> predicate)=>this.Where(predicate).FirstOrDefault();
+
+    public TItem Last(Func<TItem,bool> predicate)=>this.Where(predicate).Last();
+    public TItem? LastOrDefault(Func<TItem,bool> predicate)=>this.Where(predicate).LastOrDefault();
+    
+    public bool Any()
+    {
+        var copy = this;
+        return copy.MoveNext();
+    }
+    public bool Any(Func<TItem,bool> predicate)=>Where(predicate).MoveNext();
+
+    /// <inheritdoc />
+    public int MaxPossibleCount() => Count();
+    public OfTypeIterator<SpanIterator<TItem>,TItem, TOther> OfType<TOther>() => new(this);
+    
 }

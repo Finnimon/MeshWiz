@@ -43,6 +43,8 @@ public static class Iterator
     internal static int Count<TIter, TIgnore>(TIter iter)
         where TIter : IRefIterator<TIter, TIgnore>, allows ref struct
     {
+        if (iter.TryGetNonEnumeratedCount(out var count))
+            return count;
         var c = 0;
         while (iter.MoveNext())
             c++;
@@ -81,12 +83,13 @@ public static class Iterator
         {
             array = new TItem[count];
             iter.CopyTo(array);
+            return array;
         }
 
         var i = 0;
-        array = new TItem[32];
+        array = new TItem[iter.MaxPossibleCount()];
         while (iter.MoveNext())
-            UnsafeAdd(ref array, iter.Current, ref i);
+            array[i++]=iter.Current;
         Array.Resize(ref array, i);
         return array;
     }
@@ -98,19 +101,20 @@ public static class Iterator
         count++;
     }
 
-    internal static List<TItem> ToList<TIter,TItem>(TIter iter) 
+    internal static List<TItem> ToList<TIter, TItem>(TIter iter)
         where TIter : IRefIterator<TIter, TItem>, allows ref struct
     {
-        List<TItem> l = iter.TryGetNonEnumeratedCount(out var capa) ? new(capa):new();
+        List<TItem> l = iter.TryGetNonEnumeratedCount(out var capa) ? new(capa) : new();
         while (iter.MoveNext()) l.Add(iter.Current);
         return l;
     }
-    internal static HashSet<TItem> ToHashSet<TIter,TItem>(TIter iter,IEqualityComparer<TItem>? comp=null) 
+
+    internal static HashSet<TItem> ToHashSet<TIter, TItem>(TIter iter, IEqualityComparer<TItem>? comp = null)
         where TIter : IRefIterator<TIter, TItem>, allows ref struct
     {
-        var l = iter.TryGetNonEnumeratedCount(out var capa) 
-            ? new HashSet<TItem>(capa,comp)
-            :new HashSet<TItem>(comp);
+        var l = iter.TryGetNonEnumeratedCount(out var capa)
+            ? new HashSet<TItem>(capa, comp)
+            : new HashSet<TItem>(comp);
         while (iter.MoveNext()) l.Add(iter.Current);
         return l;
     }
@@ -118,11 +122,36 @@ public static class Iterator
     internal static RangeIterator<TSource, TItem> Take<TSource, TItem>(TSource source, int num)
         where TSource : IRefIterator<TSource, TItem>, allows ref struct =>
         new(source, ..num);
-    
+
     internal static RangeIterator<TSource, TItem> Take<TSource, TItem>(TSource source, Range range)
         where TSource : IRefIterator<TSource, TItem>, allows ref struct =>
         new(source, range);
+
     internal static RangeIterator<TSource, TItem> Skip<TSource, TItem>(TSource source, int skip)
         where TSource : IRefIterator<TSource, TItem>, allows ref struct =>
         new(source, skip..);
+
+    public static Dictionary<TKey, TValue> ToDictionary<TIter, TItem, TKey, TValue>(
+        TIter source,
+        IEqualityComparer<TKey> keyComparer,
+        Func<TItem, TKey> keySelector,
+        Func<TItem, TValue> valueSelector
+    )
+        where TIter : IRefIterator<TIter, TItem>, allows ref struct
+        where TKey : notnull
+    {
+        source.Reset();
+        var dict = source.TryGetNonEnumeratedCount(out var c)
+            ? new Dictionary<TKey, TValue>(c, keyComparer)
+            : new Dictionary<TKey, TValue>(keyComparer);
+        while (source.MoveNext()) dict[keySelector(source.Current)] = valueSelector(source.Current);
+        return dict;
+    }
+
+    public static Dictionary<TKey, TItem> ToDictionary<TIter, TItem, TKey>(
+        TIter source,
+        IEqualityComparer<TKey> keyComparer,
+        Func<TItem, TKey> keySelector) where TIter : IRefIterator<TIter, TItem> where TKey : notnull =>
+        ToDictionary(source, keyComparer, keySelector, x => x);
+
 }

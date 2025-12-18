@@ -116,4 +116,24 @@ public ref struct SelectIterator<TIter, TIn,TOut>(TIter source, Func<TIn, TOut> 
     /// <inheritdoc />
     public HashSet<TOut> ToHashSet(IEqualityComparer<TOut> comp)
         => Iterator.ToHashSet(this,comp);
+    
+    public TOut First(Func<TOut,bool> predicate)=>this.Where(predicate).First();
+    public TOut? FirstOrDefault(Func<TOut,bool> predicate)=>this.Where(predicate).FirstOrDefault();
+
+    public TOut Last(Func<TOut,bool> predicate)=>this.Where(predicate).Last();
+    public TOut? LastOrDefault(Func<TOut,bool> predicate)=>this.Where(predicate).LastOrDefault();
+    
+    public bool Any()
+    {
+        var copy = this;
+        return copy.MoveNext();
+    }
+    public bool Any(Func<TOut,bool> predicate)=>Where(predicate).MoveNext();
+
+    /// <inheritdoc />
+    public int MaxPossibleCount()
+        => _source.MaxPossibleCount();
+    
+    public OfTypeIterator<SelectIterator<TIter, TIn, TOut>, TOut, TOther> OfType<TOther>() => new(this);
+    
 }

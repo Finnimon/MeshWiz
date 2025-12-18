@@ -127,5 +127,24 @@ public ref struct FilterIterator<TIter, TItem>(TIter source, Func<TItem, bool> f
     public HashSet<TItem> ToHashSet(IEqualityComparer<TItem> comp)
         =>Iterator.ToHashSet(this,comp);
     
+    public TItem First(Func<TItem,bool> predicate)=>this.Where(predicate).First();
+    public TItem? FirstOrDefault(Func<TItem,bool> predicate)=>this.Where(predicate).FirstOrDefault();
+
+    public TItem Last(Func<TItem,bool> predicate)=>this.Where(predicate).Last();
+    public TItem? LastOrDefault(Func<TItem,bool> predicate)=>this.Where(predicate).LastOrDefault();
+    
+    
+    public bool Any()
+    {
+        var copy = this;
+        copy.Reset();
+        return copy.MoveNext();
+    }
+    public bool Any(Func<TItem,bool> predicate)=>Where(predicate).MoveNext();
+
+    /// <inheritdoc />
+    public int MaxPossibleCount()
+        => _source.MaxPossibleCount();
+    public OfTypeIterator<FilterIterator<TIter, TItem>,TItem, TOther> OfType<TOther>() => new(this);
     
 }
