@@ -57,12 +57,12 @@ public class RefIterBench
     public int[] RefLinq5()
     {
         SpanIterator<int> iter= Data;
-        return iter.Take(100..^20).ToArray();
+        return iter.Take(100..^20).Take(..^50).ToArray();
     }
 
     [Benchmark]
     public int[] Linq5()
     {
-        return Data.Take(100..^20).ToArray();
+        return Data.Take(100..^20).Take(..^50).ToArray();
     }
 }

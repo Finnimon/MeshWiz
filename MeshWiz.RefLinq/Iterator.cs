@@ -1,4 +1,6 @@
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using CommunityToolkit.Diagnostics;
 
 namespace MeshWiz.RefLinq;
@@ -89,7 +91,7 @@ public static class Iterator
         var i = 0;
         array = new TItem[iter.MaxPossibleCount()];
         while (iter.MoveNext())
-            array[i++]=iter.Current;
+            array[i++] = iter.Current;
         Array.Resize(ref array, i);
         return array;
     }
@@ -133,7 +135,7 @@ public static class Iterator
 
     public static Dictionary<TKey, TValue> ToDictionary<TIter, TItem, TKey, TValue>(
         TIter source,
-        IEqualityComparer<TKey> keyComparer,
+        IEqualityComparer<TKey>? keyComparer,
         Func<TItem, TKey> keySelector,
         Func<TItem, TValue> valueSelector
     )
@@ -148,10 +150,25 @@ public static class Iterator
         return dict;
     }
 
-    public static Dictionary<TKey, TItem> ToDictionary<TIter, TItem, TKey>(
-        TIter source,
-        IEqualityComparer<TKey> keyComparer,
-        Func<TItem, TKey> keySelector) where TIter : IRefIterator<TIter, TItem> where TKey : notnull =>
-        ToDictionary(source, keyComparer, keySelector, x => x);
+    public static TNum Sum<TIterator, TNum>(this TIterator iter,TNum seed)
+        where TIterator : IEnumerator<TNum>, allows ref struct
+        where TNum : struct, IAdditionOperators<TNum, TNum, TNum>
+    {
+        iter.Reset();
+        while (iter.MoveNext()) seed+=iter.Current;
+        return seed;
+    }
+
+    public static SpanIterator<TItem> Take<TItem>(this ReadOnlySpan<TItem> span,Range range) => span[range];
+    public static SpanIterator<TItem> Take<TItem>(this ReadOnlySpan<TItem> span,int num) => span[..num];
+    public static SpanIterator<TItem> Skip<TItem>(this ReadOnlySpan<TItem> span,int num) => span[num..];
+    
+    public static SpanIterator<TItem> TakeSpan<TItem>(this List<TItem> data,Range range) => CollectionsMarshal.AsSpan(data)[range];
+    public static SpanIterator<TItem> TakeSpan<TItem>(this List<TItem> data,int num) => CollectionsMarshal.AsSpan(data).Take(num);
+    public static SpanIterator<TItem> SkipSpan<TItem>(this List<TItem> data,int num) => CollectionsMarshal.AsSpan(data).Skip(num);
+    
+    public static SpanIterator<TItem> TakeSpan<TItem>(this TItem[] data,Range range) => (data).AsSpan(range);
+    public static SpanIterator<TItem> TakeSpan<TItem>(this TItem[] data,int num) => (data).AsSpan(0,num);
+    public static SpanIterator<TItem> SkipSpan<TItem>(this TItem[] data,int num) => (data).AsSpan(num);
 
 }

@@ -13,6 +13,28 @@ public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter
     private int _pos;
     private readonly bool _spanBased;
 
+    private RangeIterator(TIter source, Range r, int sourceCount)
+    {
+        _pos = -1;
+        if (source.TryConvertToSpanIter<TIter, TItem>(out var spanIterator))
+        {
+            spanIterator = spanIterator.OriginalSource[r];
+            _source = Unsafe.As<SpanIterator<TItem>, TIter>(ref spanIterator);
+            _spanBased = true;
+            _start = 0;
+            _endExcl = spanIterator.OriginalSource.Length;
+            return;
+        }
+
+        _source = source;
+        _source.Reset();
+        _start = r.Start.GetOffset(sourceCount);
+        _endExcl = r.End.GetOffset(sourceCount);
+        var count = _endExcl - _start;
+        if (count < 0||_start<0)
+            ThrowHelper.ThrowInvalidOperationException();
+    }
+    
     /// <inheritdoc />
     public void Reset()
     {
@@ -145,18 +167,17 @@ public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter
         => new(this, selector);
 
     /// <inheritdoc />
-    public RangeIterator<RangeIterator<TIter, TItem>, TItem> Take(Range r) 
-        => Iterator.Take<RangeIterator<TIter, TItem>, TItem>(this, r);
+    public RangeIterator<RangeIterator<TIter, TItem>, TItem> Take(Range r) => new(this, r, Count());
+
 
     /// <inheritdoc />
     public RangeIterator<RangeIterator<TIter, TItem>, TItem> Take(int num)
-        => Iterator.Take<RangeIterator<TIter, TItem>, TItem>(this, num);
-    
+        => Take(..num);
+
 
     /// <inheritdoc />
     public RangeIterator<RangeIterator<TIter, TItem>, TItem> Skip(int num)
-        => Iterator.Skip<RangeIterator<TIter, TItem>, TItem>(this, num);
-
+        => Take(num..);
     /// <inheritdoc />
     public TItem[] ToArray() 
         => _spanBased ? _source.ToArray() : Iterator.ToArray<RangeIterator<TIter, TItem>, TItem>(this);
@@ -190,5 +211,49 @@ public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter
     /// <inheritdoc />
     public int MaxPossibleCount() => Count();
     public OfTypeIterator<RangeIterator<TIter,TItem>,TItem, TOther> OfType<TOther>() => new(this);
+    
+    
+    public TItem Aggregate(Func<TItem, TItem, TItem> aggregator)
+    {
+        var iter = this;
+        iter.Reset();
+        if (!iter.MoveNext())
+            ThrowHelper.ThrowInvalidOperationException();
+        var seed = iter.Current;
+        while (iter.MoveNext()) seed = aggregator(seed, iter.Current);
+        return seed;
+    }
+
+    public TOther Aggregate<TOther>(Func<TOther, TItem, TOther> aggregator, TOther seed)
+    {
+        var iter = this;
+        iter.Reset();
+        while (iter.MoveNext()) seed = aggregator(seed, iter.Current);
+        return seed;
+    }
+    
+    
+    public Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(
+        Func<TItem, TKey> keyGen, 
+        Func<TItem, TValue> valGen) 
+        where TKey : notnull =>
+        ToDictionary(keyGen, valGen,null);
+
+    public Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(
+        Func<TItem, TKey> keyGen, 
+        Func<TItem, TValue> valGen,
+        IEqualityComparer<TKey>? comp) 
+        where TKey : notnull =>
+        Iterator.ToDictionary(this,comp,keyGen, valGen);
+
+    public Dictionary<TKey, TItem> ToDictionary<TKey>(
+        Func<TItem, TKey> keyGen,
+        IEqualityComparer<TKey>? comp)
+        where TKey : notnull
+        => ToDictionary(keyGen, x => x, comp);
+    public Dictionary<TKey, TItem> ToDictionary<TKey>(
+        Func<TItem, TKey> keyGen)
+        where TKey : notnull
+        => ToDictionary(keyGen, x => x, null);
     
 }

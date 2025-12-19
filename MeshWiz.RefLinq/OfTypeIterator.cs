@@ -1,4 +1,5 @@
 using System.Collections;
+using CommunityToolkit.Diagnostics;
 
 namespace MeshWiz.RefLinq;
 
@@ -169,4 +170,47 @@ public ref struct OfTypeIterator<TIter, TIn, TOut>(TIter source) : IRefIterator<
 
 
     public OfTypeIterator<OfTypeIterator<TIter, TIn, TOut>, TOut, TOther> OfType<TOther>() => new(this);
+    
+    public TOut Aggregate(Func<TOut, TOut, TOut> aggregator)
+    {
+        var iter = this;
+        iter.Reset();
+        if (!iter.MoveNext())
+            ThrowHelper.ThrowInvalidOperationException();
+        var seed = iter.Current;
+        while (iter.MoveNext()) seed = aggregator(seed, iter.Current);
+        return seed;
+    }
+
+    public TOther Aggregate<TOther>(Func<TOther, TOut, TOther> aggregator, TOther seed)
+    {
+        var iter = this;
+        iter.Reset();
+        while (iter.MoveNext()) seed = aggregator(seed, iter.Current);
+        return seed;
+    }
+    
+    
+    public Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(
+        Func<TOut, TKey> keyGen, 
+        Func<TOut, TValue> valGen) 
+        where TKey : notnull =>
+        ToDictionary(keyGen, valGen,null);
+
+    public Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(
+        Func<TOut, TKey> keyGen, 
+        Func<TOut, TValue> valGen,
+        IEqualityComparer<TKey>? comp) 
+        where TKey : notnull =>
+        Iterator.ToDictionary(this,comp,keyGen, valGen);
+
+    public Dictionary<TKey, TOut> ToDictionary<TKey>(
+        Func<TOut, TKey> keyGen,
+        IEqualityComparer<TKey>? comp)
+        where TKey : notnull
+        => ToDictionary(keyGen, x => x, comp);
+    public Dictionary<TKey, TOut> ToDictionary<TKey>(
+        Func<TOut, TKey> keyGen)
+        where TKey : notnull
+        => ToDictionary(keyGen, x => x, null);
 }
