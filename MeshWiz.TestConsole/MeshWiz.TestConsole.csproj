@@ -11,6 +11,7 @@
       <ProjectReference Include="..\MeshWiz.IO\MeshWiz.IO.csproj" />
       <ProjectReference Include="..\MeshWiz.Math.Benchmark\MeshWiz.Math.Benchmark.csproj" />
       <ProjectReference Include="..\MeshWiz.Math\MeshWiz.Math.csproj" />
+      <ProjectReference Include="..\MeshWiz.RefLinq.Benchmark\MeshWiz.RefLinq.Benchmark.csproj" />
       <ProjectReference Include="..\MeshWiz.RefLinq\MeshWiz.RefLinq.csproj" />
       <ProjectReference Include="..\MeshWiz.Slicer\MeshWiz.Slicer.csproj" />
     </ItemGroup>

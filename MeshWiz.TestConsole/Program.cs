@@ -1,6 +1,9 @@
 ﻿
 
 using MeshWiz.RefLinq;
+using MeshWiz.RefLinq.Benchmark;
 
-int[] data = [0, 0, 1, 1, 2, 2];
-Console.WriteLine(string.Join(" ",data.Iterate().Skip(1).ToArray()));
+var refIterBench = new RefIterBench();
+refIterBench.Setup();
+for(var i=0;i<1000;i++)
+    refIterBench.RefLinq6SelMany();

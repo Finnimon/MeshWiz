@@ -23,7 +23,7 @@ public static class Iterator
     }
 
     internal static bool TryGetLast<TIter, TItem>(TIter source, out TItem? last)
-        where TIter : IRefIterator<TIter, TItem>, allows ref struct
+        where TIter : IEnumerator<TItem>, allows ref struct
     {
         var found = false;
         last = default;
@@ -81,19 +81,16 @@ public static class Iterator
         where TIter : IRefIterator<TIter, TItem>, allows ref struct
     {
         TItem[] array;
-        if (iter.TryGetNonEnumeratedCount(out var count))
+        if (iter.TryGetNonEnumeratedCount(out var fastCount))
         {
-            array = new TItem[count];
+            array = new TItem[fastCount];
             iter.CopyTo(array);
             return array;
         }
 
-        var i = 0;
-        array = new TItem[iter.MaxPossibleCount()];
-        while (iter.MoveNext())
-            array[i++] = iter.Current;
-        Array.Resize(ref array, i);
-        return array;
+        SegmentedArrayBuilder<TItem> builder = new();
+        builder.AddNonICollectionRange(iter);
+        return builder.ToArray();
     }
 
     private static void UnsafeAdd<T>(ref T[] arr, T item, ref int count)
@@ -106,17 +103,22 @@ public static class Iterator
     internal static List<TItem> ToList<TIter, TItem>(TIter iter)
         where TIter : IRefIterator<TIter, TItem>, allows ref struct
     {
-        List<TItem> l = iter.TryGetNonEnumeratedCount(out var capa) ? new(capa) : new();
-        while (iter.MoveNext()) l.Add(iter.Current);
-        return l;
+        
+        SegmentedArrayBuilder<TItem> builder = new();
+        builder.AddNonICollectionRange(iter);
+        return builder.ToList();
+    }
+
+    internal static int PreSize<TIter, TItem>(TIter iter) where TIter : IRefIterator<TIter, TItem>, allows ref struct
+    {
+        var preSize = iter.TryGetNonEnumeratedCount(out var capa) ? capa : iter.EstimateCount();
+        return preSize;
     }
 
     internal static HashSet<TItem> ToHashSet<TIter, TItem>(TIter iter, IEqualityComparer<TItem>? comp = null)
         where TIter : IRefIterator<TIter, TItem>, allows ref struct
     {
-        var l = iter.TryGetNonEnumeratedCount(out var capa)
-            ? new HashSet<TItem>(capa, comp)
-            : new HashSet<TItem>(comp);
+        HashSet<TItem> l = new(PreSize<TIter, TItem>(iter), comp);
         while (iter.MoveNext()) l.Add(iter.Current);
         return l;
     }
@@ -143,32 +145,31 @@ public static class Iterator
         where TKey : notnull
     {
         source.Reset();
-        var dict = source.TryGetNonEnumeratedCount(out var c)
-            ? new Dictionary<TKey, TValue>(c, keyComparer)
-            : new Dictionary<TKey, TValue>(keyComparer);
+        var dict = new Dictionary<TKey, TValue>(PreSize<TIter, TItem>(source), keyComparer);
         while (source.MoveNext()) dict[keySelector(source.Current)] = valueSelector(source.Current);
         return dict;
     }
 
-    public static TNum Sum<TIterator, TNum>(this TIterator iter,TNum seed)
+    public static TNum Sum<TIterator, TNum>(this TIterator iter, TNum seed)
         where TIterator : IEnumerator<TNum>, allows ref struct
         where TNum : struct, IAdditionOperators<TNum, TNum, TNum>
     {
         iter.Reset();
-        while (iter.MoveNext()) seed+=iter.Current;
+        while (iter.MoveNext()) seed += iter.Current;
         return seed;
     }
 
-    public static SpanIterator<TItem> Take<TItem>(this ReadOnlySpan<TItem> span,Range range) => span[range];
-    public static SpanIterator<TItem> Take<TItem>(this ReadOnlySpan<TItem> span,int num) => span[..num];
-    public static SpanIterator<TItem> Skip<TItem>(this ReadOnlySpan<TItem> span,int num) => span[num..];
-    
-    public static SpanIterator<TItem> TakeSpan<TItem>(this List<TItem> data,Range range) => CollectionsMarshal.AsSpan(data)[range];
-    public static SpanIterator<TItem> TakeSpan<TItem>(this List<TItem> data,int num) => CollectionsMarshal.AsSpan(data).Take(num);
-    public static SpanIterator<TItem> SkipSpan<TItem>(this List<TItem> data,int num) => CollectionsMarshal.AsSpan(data).Skip(num);
-    
-    public static SpanIterator<TItem> TakeSpan<TItem>(this TItem[] data,Range range) => (data).AsSpan(range);
-    public static SpanIterator<TItem> TakeSpan<TItem>(this TItem[] data,int num) => (data).AsSpan(0,num);
-    public static SpanIterator<TItem> SkipSpan<TItem>(this TItem[] data,int num) => (data).AsSpan(num);
+    public static ReadOnlySpan<TItem> Take<TItem>(this ReadOnlySpan<TItem> span, Range range) => span[range];
+    public static ReadOnlySpan<TItem> Take<TItem>(this ReadOnlySpan<TItem> span, int num) => span[..num];
+    public static ReadOnlySpan<TItem> Skip<TItem>(this ReadOnlySpan<TItem> span, int num) => span[num..];
 
+    public static Span<TItem> TakeSpan<TItem>(this List<TItem> data, Range range) =>
+        CollectionsMarshal.AsSpan(data)[range];
+
+    public static Span<TItem> TakeSpan<TItem>(this List<TItem> data, int num) => CollectionsMarshal.AsSpan(data)[..num];
+    public static Span<TItem> SkipSpan<TItem>(this List<TItem> data, int num) => CollectionsMarshal.AsSpan(data)[num..];
+
+    public static Span<TItem> TakeSpan<TItem>(this TItem[] data, Range range) => (data).AsSpan(range);
+    public static Span<TItem> TakeSpan<TItem>(this TItem[] data, int num) => (data).AsSpan(0, num);
+    public static Span<TItem> SkipSpan<TItem>(this TItem[] data, int num) => (data).AsSpan(num);
 }

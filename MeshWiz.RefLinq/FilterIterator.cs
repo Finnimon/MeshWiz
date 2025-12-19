@@ -30,13 +30,13 @@ public ref struct FilterIterator<TIter, TItem>(TIter source, Func<TItem, bool> f
     public void Reset() => _source.Reset();
 
     /// <inheritdoc />
-    public TItem Current => _current!;
+    public readonly TItem Current => _current!;
 
     /// <inheritdoc />
-    object? IEnumerator.Current => _current;
+    readonly object? IEnumerator.Current => _current;
 
     /// <inheritdoc />
-    public void Dispose() { }
+    public void Dispose() => _source.Dispose();
 
 
     /// <inheritdoc />
@@ -45,7 +45,7 @@ public ref struct FilterIterator<TIter, TItem>(TIter source, Func<TItem, bool> f
     /// <inheritdoc />
     public TItem? FirstOrDefault()
     {
-        Iterator.TryGetFirst<FilterIterator<TIter, TItem>, TItem>(this, out var item);
+        TryGetFirst(out var item);
         return item;
     }
 
@@ -98,25 +98,27 @@ public ref struct FilterIterator<TIter, TItem>(TIter source, Func<TItem, bool> f
     }
 
     /// <inheritdoc />
-    public FilterIterator<FilterIterator<TIter, TItem>, TItem> Where(Func<TItem, bool> predicate) => new(this, predicate);
+    public FilterIterator<FilterIterator<TIter, TItem>, TItem> Where(Func<TItem, bool> predicate) =>
+        new(this, predicate);
 
     /// <inheritdoc />
-    public SelectIterator<FilterIterator<TIter, TItem>, TItem, TOut> Select<TOut>(Func<TItem, TOut> selector) => new(this,selector);
+    public SelectIterator<FilterIterator<TIter, TItem>, TItem, TOut> Select<TOut>(Func<TItem, TOut> selector) =>
+        new(this, selector);
 
     /// <inheritdoc />
-    public RangeIterator<FilterIterator<TIter,TItem>, TItem> Take(Range r) 
-        => Iterator.Take<FilterIterator<TIter,TItem>, TItem>(this, r);
+    public RangeIterator<FilterIterator<TIter, TItem>, TItem> Take(Range r)
+        => Iterator.Take<FilterIterator<TIter, TItem>, TItem>(this, r);
 
     /// <inheritdoc />
-    public RangeIterator<FilterIterator<TIter,TItem>, TItem> Take(int num)
-        => Iterator.Take<FilterIterator<TIter,TItem>, TItem>(this, num);
-    
+    public RangeIterator<FilterIterator<TIter, TItem>, TItem> Take(int num)
+        => Iterator.Take<FilterIterator<TIter, TItem>, TItem>(this, num);
+
 
     /// <inheritdoc />
-    public RangeIterator<FilterIterator<TIter,TItem>, TItem> Skip(int num)
-        => Iterator.Skip<FilterIterator<TIter,TItem>, TItem>(this, num);
-    
-    
+    public RangeIterator<FilterIterator<TIter, TItem>, TItem> Skip(int num)
+        => Iterator.Skip<FilterIterator<TIter, TItem>, TItem>(this, num);
+
+
     /// <inheritdoc />
     public TItem[] ToArray() => Iterator.ToArray<FilterIterator<TIter, TItem>, TItem>(this);
 
@@ -125,29 +127,32 @@ public ref struct FilterIterator<TIter, TItem>(TIter source, Func<TItem, bool> f
 
     /// <inheritdoc />
     public HashSet<TItem> ToHashSet() => Iterator.ToHashSet<FilterIterator<TIter, TItem>, TItem>(this);
-    public HashSet<TItem> ToHashSet(IEqualityComparer<TItem> comp)
-        =>Iterator.ToHashSet(this,comp);
-    
-    public TItem First(Func<TItem,bool> predicate)=>this.Where(predicate).First();
-    public TItem? FirstOrDefault(Func<TItem,bool> predicate)=>this.Where(predicate).FirstOrDefault();
 
-    public TItem Last(Func<TItem,bool> predicate)=>this.Where(predicate).Last();
-    public TItem? LastOrDefault(Func<TItem,bool> predicate)=>this.Where(predicate).LastOrDefault();
-    
-    
+    public HashSet<TItem> ToHashSet(IEqualityComparer<TItem> comp)
+        => Iterator.ToHashSet(this, comp);
+
+    public TItem First(Func<TItem, bool> predicate) => this.Where(predicate).First();
+    public TItem? FirstOrDefault(Func<TItem, bool> predicate) => this.Where(predicate).FirstOrDefault();
+
+    public TItem Last(Func<TItem, bool> predicate) => this.Where(predicate).Last();
+    public TItem? LastOrDefault(Func<TItem, bool> predicate) => this.Where(predicate).LastOrDefault();
+
+
     public bool Any()
     {
         var copy = this;
         copy.Reset();
         return copy.MoveNext();
     }
-    public bool Any(Func<TItem,bool> predicate)=>Where(predicate).MoveNext();
+
+    public bool Any(Func<TItem, bool> predicate) => Where(predicate).MoveNext();
 
     /// <inheritdoc />
-    public int MaxPossibleCount()
-        => _source.MaxPossibleCount();
-    public OfTypeIterator<FilterIterator<TIter, TItem>,TItem, TOther> OfType<TOther>() => new(this);
-    
+    public int EstimateCount()
+        => _source.EstimateCount();
+
+    public OfTypeIterator<FilterIterator<TIter, TItem>, TItem, TOther> OfType<TOther>() => new(this);
+
     public TItem Aggregate(Func<TItem, TItem, TItem> aggregator)
     {
         var iter = this;
@@ -166,28 +171,44 @@ public ref struct FilterIterator<TIter, TItem>(TIter source, Func<TItem, bool> f
         while (iter.MoveNext()) seed = aggregator(seed, iter.Current);
         return seed;
     }
-    
-    
-    public Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(
-        Func<TItem, TKey> keyGen, 
-        Func<TItem, TValue> valGen) 
-        where TKey : notnull =>
-        ToDictionary(keyGen, valGen,null);
+
 
     public Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(
-        Func<TItem, TKey> keyGen, 
-        Func<TItem, TValue> valGen,
-        IEqualityComparer<TKey>? comp) 
+        Func<TItem, TKey> keyGen,
+        Func<TItem, TValue> valGen)
         where TKey : notnull =>
-        Iterator.ToDictionary(this,comp,keyGen, valGen);
+        ToDictionary(keyGen, valGen, null);
+
+    public Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(
+        Func<TItem, TKey> keyGen,
+        Func<TItem, TValue> valGen,
+        IEqualityComparer<TKey>? comp)
+        where TKey : notnull =>
+        Iterator.ToDictionary(this, comp, keyGen, valGen);
 
     public Dictionary<TKey, TItem> ToDictionary<TKey>(
         Func<TItem, TKey> keyGen,
         IEqualityComparer<TKey>? comp)
         where TKey : notnull
         => ToDictionary(keyGen, x => x, comp);
+
     public Dictionary<TKey, TItem> ToDictionary<TKey>(
         Func<TItem, TKey> keyGen)
         where TKey : notnull
         => ToDictionary(keyGen, x => x, null);
+    
+    
+    public SelectManyIterator<FilterIterator<TIter,TItem>, TInner, TItem, TOut> SelectMany<TInner, TOut>(
+        Func<TItem, TInner> flattener) where TInner : IEnumerator<TOut>, allows ref struct =>
+        new(this, flattener);
+
+    public SelectManyIterator<FilterIterator<TIter,TItem>, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
+        Func<TItem, TOut[]> flattener) => new(this, inner => flattener(inner));
+
+    public SelectManyIterator<FilterIterator<TIter,TItem>, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
+        Func<TItem, List<TOut>> flattener) => new(this, inner => flattener(inner));
+
+    public SelectManyIterator<FilterIterator<TIter,TItem>, IEnumerator<TOut>, TItem, TOut> SelectMany<TOut>(
+        Func<TItem, IEnumerable<TOut>> flattener) => new(this, inner => flattener(inner).GetEnumerator());
+
 }

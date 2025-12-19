@@ -43,7 +43,7 @@ public interface IRefIterator<TSelf, TItem> : IEnumerator<TItem>
     }
 
     bool Any(Func<TItem, bool> predicate) => Where(predicate).MoveNext();
-    int MaxPossibleCount();
+    int EstimateCount();
 
     OfTypeIterator<TSelf, TItem, TOther> OfType<TOther>();
 
@@ -73,4 +73,20 @@ public interface IRefIterator<TSelf, TItem> : IEnumerator<TItem>
         Func<TItem, TKey> keyGen)
         where TKey : notnull
         => ToDictionary(keyGen, x => x, null);
+    
+    
+    
+    
+    SelectManyIterator<TSelf, TInner, TItem, TOut> SelectMany<TInner, TOut>(
+        Func<TItem, TInner> flattener) where TInner : IEnumerator<TOut>, allows ref struct ;
+
+    SelectManyIterator<TSelf, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
+        Func<TItem, TOut[]> flattener);
+
+    SelectManyIterator<TSelf, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
+        Func<TItem, List<TOut>> flattener);
+
+    SelectManyIterator<TSelf, IEnumerator<TOut>, TItem, TOut> SelectMany<TOut>(
+        Func<TItem, IEnumerable<TOut>> flattener);
+
 }

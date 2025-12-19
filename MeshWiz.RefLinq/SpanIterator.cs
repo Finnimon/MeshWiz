@@ -73,25 +73,44 @@ public ref struct SpanIterator<TItem>(ReadOnlySpan<TItem> source) : IRefIterator
     /// <inheritdoc />
     public FilterIterator<SpanIterator<TItem>, TItem> Where(Func<TItem, bool> predicate) => new(this, predicate);
 
+    public SelectManyIterator<SpanIterator<TItem>, TInner, TItem, TOut> SelectMany<TInner, TOut>(
+        Func<TItem, TInner> flattener) where TInner : IEnumerator<TOut>, allows ref struct =>
+        new(this, flattener);
+
+    
+
+    public SelectManyIterator<SpanIterator<TItem>, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
+        Func<TItem, TOut[]> flattener) => new(this, inner => flattener(inner));
+
+    public SelectManyIterator<SpanIterator<TItem>, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
+        Func<TItem, List<TOut>> flattener) => new(this, inner => flattener(inner));
+
+    public SelectManyIterator<SpanIterator<TItem>, IEnumerator<TOut>, TItem, TOut> SelectMany<TOut>(
+        Func<TItem, IEnumerable<TOut>> flattener) => new(this, inner => flattener(inner).GetEnumerator());
+    
+
     /// <inheritdoc />
-    public SelectIterator<SpanIterator<TItem>, TItem, TOut> Select<TOut>(Func<TItem, TOut> selector) => new(this, selector);
+    public SelectIterator<SpanIterator<TItem>, TItem, TOut> Select<TOut>(Func<TItem, TOut> selector) =>
+        new(this, selector);
+
     /// <inheritdoc />
-    public RangeIterator<SpanIterator<TItem>, TItem> Take(Range r) 
+    public RangeIterator<SpanIterator<TItem>, TItem> Take(Range r)
         => Iterator.Take<SpanIterator<TItem>, TItem>(this, r);
 
     /// <inheritdoc />
     public RangeIterator<SpanIterator<TItem>, TItem> Take(int num)
         => Iterator.Take<SpanIterator<TItem>, TItem>(this, num);
-    
+
 
     /// <inheritdoc />
     public RangeIterator<SpanIterator<TItem>, TItem> Skip(int num)
         => Iterator.Skip<SpanIterator<TItem>, TItem>(this, num);
-    
+
     public static implicit operator SpanIterator<TItem>(ReadOnlySpan<TItem> span)
         => new(span);
+
     public static implicit operator SpanIterator<TItem>(List<TItem> data) => new(CollectionsMarshal.AsSpan(data));
-    
+
     public TItem[] ToArray() => _source.ToArray();
 
     /// <inheritdoc />
@@ -104,27 +123,30 @@ public ref struct SpanIterator<TItem>(ReadOnlySpan<TItem> source) : IRefIterator
 
     /// <inheritdoc />
     public HashSet<TItem> ToHashSet() => [..ToArray()];
-    /// <inheritdoc />
-    public HashSet<TItem> ToHashSet(IEqualityComparer<TItem> comp) => new(ToArray(),comp);
-    
-    public TItem First(Func<TItem,bool> predicate)=>this.Where(predicate).First();
-    public TItem? FirstOrDefault(Func<TItem,bool> predicate)=>this.Where(predicate).FirstOrDefault();
 
-    public TItem Last(Func<TItem,bool> predicate)=>this.Where(predicate).Last();
-    public TItem? LastOrDefault(Func<TItem,bool> predicate)=>this.Where(predicate).LastOrDefault();
-    
+    /// <inheritdoc />
+    public HashSet<TItem> ToHashSet(IEqualityComparer<TItem> comp) => new(ToArray(), comp);
+
+    public TItem First(Func<TItem, bool> predicate) => this.Where(predicate).First();
+    public TItem? FirstOrDefault(Func<TItem, bool> predicate) => this.Where(predicate).FirstOrDefault();
+
+    public TItem Last(Func<TItem, bool> predicate) => this.Where(predicate).Last();
+    public TItem? LastOrDefault(Func<TItem, bool> predicate) => this.Where(predicate).LastOrDefault();
+
     public bool Any()
     {
         var copy = this;
         return copy.MoveNext();
     }
-    public bool Any(Func<TItem,bool> predicate)=>Where(predicate).MoveNext();
+
+    public bool Any(Func<TItem, bool> predicate) => Where(predicate).MoveNext();
 
     /// <inheritdoc />
-    public int MaxPossibleCount() => Count();
-    public OfTypeIterator<SpanIterator<TItem>,TItem, TOther> OfType<TOther>() => new(this);
-    
-    
+    public int EstimateCount() => Count();
+
+    public OfTypeIterator<SpanIterator<TItem>, TItem, TOther> OfType<TOther>() => new(this);
+
+
     public TItem Aggregate(Func<TItem, TItem, TItem> aggregator)
     {
         var iter = this;
@@ -143,25 +165,26 @@ public ref struct SpanIterator<TItem>(ReadOnlySpan<TItem> source) : IRefIterator
         while (iter.MoveNext()) seed = aggregator(seed, iter.Current);
         return seed;
     }
-    
-    public Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(
-        Func<TItem, TKey> keyGen, 
-        Func<TItem, TValue> valGen) 
-        where TKey : notnull =>
-        ToDictionary(keyGen, valGen,null);
 
     public Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(
-        Func<TItem, TKey> keyGen, 
-        Func<TItem, TValue> valGen,
-        IEqualityComparer<TKey>? comp) 
+        Func<TItem, TKey> keyGen,
+        Func<TItem, TValue> valGen)
         where TKey : notnull =>
-        Iterator.ToDictionary(this,comp,keyGen, valGen);
+        ToDictionary(keyGen, valGen, null);
+
+    public Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(
+        Func<TItem, TKey> keyGen,
+        Func<TItem, TValue> valGen,
+        IEqualityComparer<TKey>? comp)
+        where TKey : notnull =>
+        Iterator.ToDictionary(this, comp, keyGen, valGen);
 
     public Dictionary<TKey, TItem> ToDictionary<TKey>(
         Func<TItem, TKey> keyGen,
         IEqualityComparer<TKey>? comp)
         where TKey : notnull
         => ToDictionary(keyGen, x => x, comp);
+
     public Dictionary<TKey, TItem> ToDictionary<TKey>(
         Func<TItem, TKey> keyGen)
         where TKey : notnull

@@ -12,10 +12,12 @@ public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter
     private readonly int _start, _endExcl;
     private int _pos;
     private readonly bool _spanBased;
+    private readonly int _sourceCount;
 
     private RangeIterator(TIter source, Range r, int sourceCount)
     {
         _pos = -1;
+        _sourceCount = sourceCount;
         if (source.TryConvertToSpanIter<TIter, TItem>(out var spanIterator))
         {
             spanIterator = spanIterator.OriginalSource[r];
@@ -55,17 +57,37 @@ public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter
             spanIterator = spanIterator.OriginalSource[range];
             _source = Unsafe.As<SpanIterator<TItem>, TIter>(ref spanIterator);
             _spanBased = true;
+            _sourceCount = spanIterator.OriginalSource.Length;
             return;
         }
 
         _source = source;
         var sourceCount = _source.Count();
+        _sourceCount= sourceCount;
         _source.Reset();
         _start= range.Start.GetOffset(sourceCount);
         _endExcl = range.End.GetOffset(sourceCount);
         var count = _endExcl - _start;
         if (count < 0||_start<0)
             ThrowHelper.ThrowInvalidOperationException();
+    }
+
+    private RangeIterator(TIter source, int start, int end, int sourceCount)
+    {
+        _pos = -1;
+        if (source.TryConvertToSpanIter<TIter, TItem>(out var spanIterator))
+        {
+            spanIterator = spanIterator.OriginalSource[start..end];
+            _source = Unsafe.As<SpanIterator<TItem>, TIter>(ref spanIterator);
+            _spanBased = true;
+            _sourceCount = spanIterator.OriginalSource.Length;
+            return;
+        }
+        
+        _source = source;
+        _start = start;
+        _endExcl = end;
+        _sourceCount = sourceCount;
     }
 
     public bool MoveNext()
@@ -161,23 +183,52 @@ public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter
 
     /// <inheritdoc />
     public FilterIterator<RangeIterator<TIter,TItem>, TItem> Where(Func<TItem, bool> predicate) => new(this, predicate);
+    
+    
+    public SelectManyIterator<RangeIterator<TIter,TItem>, TInner, TItem, TOut> SelectMany<TInner, TOut>(
+        Func<TItem, TInner> flattener) where TInner : IEnumerator<TOut>, allows ref struct =>
+        new(this, flattener);
+
+    public SelectManyIterator<RangeIterator<TIter,TItem>, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
+        Func<TItem, TOut[]> flattener) => new(this, inner => flattener(inner));
+
+    public SelectManyIterator<RangeIterator<TIter,TItem>, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
+        Func<TItem, List<TOut>> flattener) => new(this, inner => flattener(inner));
+
+    public SelectManyIterator<RangeIterator<TIter,TItem>, IEnumerator<TOut>, TItem, TOut> SelectMany<TOut>(
+        Func<TItem, IEnumerable<TOut>> flattener) => new(this, inner => flattener(inner).GetEnumerator());
 
     /// <inheritdoc />
     public SelectIterator<RangeIterator<TIter,TItem>, TItem, TOut> Select<TOut>(Func<TItem, TOut> selector)
         => new(this, selector);
 
     /// <inheritdoc />
-    public RangeIterator<RangeIterator<TIter, TItem>, TItem> Take(Range r) => new(this, r, Count());
+    RangeIterator<RangeIterator<TIter, TItem>, TItem> IRefIterator<RangeIterator<TIter, TItem>, TItem>.Take(Range r) => new(this, r, Count());
 
 
     /// <inheritdoc />
-    public RangeIterator<RangeIterator<TIter, TItem>, TItem> Take(int num)
+    RangeIterator<RangeIterator<TIter, TItem>, TItem> IRefIterator<RangeIterator<TIter, TItem>, TItem>.Take(int num)
+        => new(this, ..num, Count());
+
+
+    /// <inheritdoc />
+    RangeIterator<RangeIterator<TIter, TItem>, TItem> IRefIterator<RangeIterator<TIter, TItem>, TItem>.Skip(int num)
+        => new(this, num.., Count());
+
+    public RangeIterator<TIter, TItem> Take(Range r)
+    {
+        var (start,length) = r.GetOffsetAndLength(Count());
+        var end = start + length;
+        return new RangeIterator<TIter, TItem>(_source, start, end, _sourceCount);
+    }
+
+    public RangeIterator<TIter, TItem> Take(int num)
         => Take(..num);
-
-
-    /// <inheritdoc />
-    public RangeIterator<RangeIterator<TIter, TItem>, TItem> Skip(int num)
+    public RangeIterator<TIter, TItem> Skip(int num)
         => Take(num..);
+
+    
+    
     /// <inheritdoc />
     public TItem[] ToArray() 
         => _spanBased ? _source.ToArray() : Iterator.ToArray<RangeIterator<TIter, TItem>, TItem>(this);
@@ -209,7 +260,7 @@ public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter
     public bool Any(Func<TItem,bool> predicate)=>Where(predicate).MoveNext();
 
     /// <inheritdoc />
-    public int MaxPossibleCount() => Count();
+    public int EstimateCount() => Count();
     public OfTypeIterator<RangeIterator<TIter,TItem>,TItem, TOther> OfType<TOther>() => new(this);
     
     

@@ -105,6 +105,19 @@ public ref struct OfTypeIterator<TIter, TIn, TOut>(TIter source) : IRefIterator<
     /// <inheritdoc />
     public FilterIterator<OfTypeIterator<TIter, TIn, TOut>, TOut> Where(Func<TOut, bool> predicate) => new(this, predicate);
 
+    public SelectManyIterator<OfTypeIterator<TIter,TIn,TOut>, TInner, TOut, TMany> SelectMany<TInner, TMany>(
+        Func<TOut, TInner> flattener) where TInner : IEnumerator<TMany>, allows ref struct =>
+        new(this, flattener);
+
+    public SelectManyIterator<OfTypeIterator<TIter,TIn,TOut>, SpanIterator<TMany>, TOut, TMany> SelectMany<TMany>(
+        Func<TOut, TMany[]> flattener) => new(this, inner => flattener(inner));
+
+    public SelectManyIterator<OfTypeIterator<TIter,TIn,TOut>, SpanIterator<TMany>, TOut, TMany> SelectMany<TMany>(
+        Func<TOut, List<TMany>> flattener) => new(this, inner => flattener(inner));
+
+    public SelectManyIterator<OfTypeIterator<TIter,TIn,TOut>, IEnumerator<TMany>, TOut, TMany> SelectMany<TMany>(
+        Func<TOut, IEnumerable<TMany>> flattener) => new(this, inner => flattener(inner).GetEnumerator());
+
     /// <inheritdoc />
     public SelectIterator<OfTypeIterator<TIter, TIn, TOut>, TOut, TOut1> Select<TOut1>(Func<TOut, TOut1> selector)
         => new(this, selector);
@@ -166,7 +179,7 @@ public ref struct OfTypeIterator<TIter, TIn, TOut>(TIter source) : IRefIterator<
         => this.Where(predicate).Any();
 
     /// <inheritdoc />
-    public int MaxPossibleCount() => _source.MaxPossibleCount();
+    public int EstimateCount() => _source.EstimateCount();
 
 
     public OfTypeIterator<OfTypeIterator<TIter, TIn, TOut>, TOut, TOther> OfType<TOther>() => new(this);

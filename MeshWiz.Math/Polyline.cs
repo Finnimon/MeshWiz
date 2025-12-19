@@ -115,6 +115,7 @@ public sealed class Polyline<TVector, TNum>
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public TNum Length => _points.Length > 1 ? CumulativeDistances[^1] : TNum.Zero;
 
+    [field:AllowNull,MaybeNull]
     // ReSharper disable once InconsistentNaming
     private TNum[] _cumulativeDistances =>
         field ??= Polyline.CalculateCumulativeDistances<TVector, TNum>(verts: _points);
