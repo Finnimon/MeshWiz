@@ -1,14 +1,12 @@
 ﻿
 
+using BenchmarkDotNet.Engines;
 using MeshWiz.Math;
 using MeshWiz.Math.Benchmark;
 using MeshWiz.RefLinq;
+using MeshWiz.Signals;
 
-Console.WriteLine("");
-int[] intArr=[0,1,2,3,4,5,6];
-var span=intArr.AsSpan();
-SpanIterator<int> spanIter=span;
-foreach (var i in spanIter.Where(num=>num>2).Select(i=>i+1).Skip(1))
-{
-    Console.WriteLine(i);
-}
+var signal=new FSignal<double,double>(double.Sin);
+var best= Signal.Analysis.BestFitBinary(signal,-1d,AABB.From(0d,6),-1);
+var best2= Signal.Analysis.BestFitNewton(signal,-1d,AABB.From(0d,6));
+Console.WriteLine(best);Console.WriteLine(best2);

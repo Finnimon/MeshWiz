@@ -283,7 +283,9 @@ public readonly struct AABB<TNum>
 
         return new AABB<TNum>(min, max);
     }
-    
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public TNum Lerp(TNum t) => TNum.Lerp(Min, Max, t);
     public static AABB<TNum> operator +(AABB<TNum> l, TNum r)=>new(l.Min+r,l.Max+r); 
     public static AABB<TNum> operator +(TNum l, AABB<TNum> r)=>r+l;
     public static AABB<TNum> operator |(AABB<TNum> l, AABB<TNum> r) => l.CombineWith(r);
