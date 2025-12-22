@@ -5,27 +5,23 @@ namespace MeshWiz.Signals;
 
 public static partial class Signal
 {
-    public static ClampedSignal<TSig, TIn, TOut> Clamped<TSig, TIn, TOut>(this TSig sig,
+    public static ClampedSignal<TIn, TOut> Clamped<TIn, TOut>(this ISignal<TIn,TOut> sig,
         AABB<TOut> clamp)
-        where TSig : ISignal<TIn, TOut>
         where TIn : unmanaged, IFloatingPointIeee754<TIn>
         where TOut : unmanaged, IFloatingPointIeee754<TOut>
         => new(sig, clamp);
-    public static CachingSignal<TSig, TIn, TOut> Cache<TSig, TIn, TOut>(this TSig sig)
-        where TSig : ISignal<TIn, TOut>
+    public static CachingSignal<TIn, TOut> Cache<TIn, TOut>(this ISignal<TIn,TOut> sig)
         where TIn : unmanaged, IFloatingPointIeee754<TIn>
         where TOut : unmanaged, IFloatingPointIeee754<TOut>
         => new(sig);
 
-    public static Gain<TSig, TIn, TOut> Gain<TSig, TIn, TOut>(this TSig sig,
+    public static Gain<TIn, TOut> Gain<TIn, TOut>(this ISignal<TIn,TOut> sig,
         TOut gain)
-        where TSig : ISignal<TIn, TOut>
         where TIn : unmanaged, IFloatingPointIeee754<TIn>
         where TOut : unmanaged, IFloatingPointIeee754<TOut>
         => new(sig, gain);
-    public static Shift<TSig, TIn, TOut> Shift<TSig, TIn, TOut>(this TSig sig,
+    public static Shift<TIn, TOut> Shift<TIn, TOut>(this ISignal<TIn,TOut> sig,
         TOut shift)
-        where TSig : ISignal<TIn, TOut>
         where TIn : unmanaged, IFloatingPointIeee754<TIn>
         where TOut : unmanaged, IFloatingPointIeee754<TOut>
         => new(sig, shift);

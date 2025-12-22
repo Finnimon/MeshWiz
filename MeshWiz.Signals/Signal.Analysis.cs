@@ -65,7 +65,7 @@ public static partial class Signal
             return steps;
         }
 
-        public static SignalResult<TIn, TOut> BestFitBinary<TSignal, TIn, TOut>(TSignal signal, TOut target, AABB<TIn> searchRange, TIn minRangeSize)
+        public static SignalResult<TIn, TOut> BestFitBinary<TSignal, TIn, TOut>(TSignal signal, TOut target, AABB<TIn> searchRange, TIn minRangeSize=default)
             where TSignal : ISignal<TIn, TOut>
             where TIn : unmanaged, IFloatingPointIeee754<TIn>
             where TOut : unmanaged, IFloatingPointIeee754<TOut>
@@ -74,10 +74,10 @@ public static partial class Signal
             var searchMid = SignalResult<TIn, TOut>.Create(signal, searchRange.Center);
             var searchMax = SignalResult<TIn, TOut>.Create(signal, searchRange.Max);
             var half = Numbers<TIn>.Half;
-            var i = 0;
+            if(minRangeSize==default)
+                minRangeSize = TIn.Epsilon;
             while (searchRange.Size > minRangeSize)
             {
-                Console.WriteLine("iteration " + ++i);
                 if ((searchMid.Result - target).IsApproxZero())
                     return searchMid;
                 var lowerRange = AABB.From(searchMin.Result, searchMid.Result);
@@ -112,11 +112,11 @@ public static partial class Signal
             where TIn : unmanaged, IFloatingPointIeee754<TIn>
             where TOut : unmanaged, IFloatingPointIeee754<TOut>
         {
-            var shifted = signal.Shift<TSignal, TIn, TOut>(-target);
+            var shifted = signal.Shift(-target);
 
             if (tolerance == default)
                 tolerance = Numbers<TOut>.ZeroEpsilon;
-            var epsilonIn = Numbers<TIn>.ZeroEpsilon * TIn.CreateTruncating(8);
+            var epsilonIn = Numbers<TIn>.ZeroEpsilon;
 
             var x = searchRange.Center;
 
