@@ -14,16 +14,12 @@ public static partial class Signal
 {
     public static class Analysis
     {
-        public static SignalResult<TIn, TOut>[] Sweep<TSignal, TIn, TOut>(TSignal signal, IEnumerable<TIn> sweep)
-            where TSignal : ISignal<TIn, TOut>
-            where TIn : unmanaged, IFloatingPointIeee754<TIn>
+        public static SignalResult<TIn, TOut>[] Sweep<TIn, TOut>(ISignal<TIn,TOut> signal, IEnumerable<TIn> sweep) where TIn : unmanaged, IFloatingPointIeee754<TIn>
             where TOut : unmanaged, IFloatingPointIeee754<TOut> =>
             sweep.Select(input => SignalResult<TIn, TOut>.Create(signal, input)).ToArray();
 
-        public static SignalResult<TIn, TOut>[] SweepParallel<TSignal, TIn, TOut>(TSignal signal,
-            IReadOnlyList<TIn> sweep)
-            where TSignal : ISignal<TIn, TOut>
-            where TIn : unmanaged, IFloatingPointIeee754<TIn>
+        public static SignalResult<TIn, TOut>[] SweepParallel<TIn, TOut>(ISignal<TIn,TOut> signal,
+            IReadOnlyList<TIn> sweep) where TIn : unmanaged, IFloatingPointIeee754<TIn>
             where TOut : unmanaged, IFloatingPointIeee754<TOut>
         {
             var result = new SignalResult<TIn, TOut>[sweep.Count];
@@ -31,11 +27,9 @@ public static partial class Signal
             return result;
         }
 
-        public static SignalResult<TIn, TOut>[] SweepParallel<TSignal, TIn, TOut>(TSignal signal,
+        public static SignalResult<TIn, TOut>[] SweepParallel<TIn, TOut>(ISignal<TIn,TOut> signal,
             AABB<TIn> sweepRange,
-            int stepCount)
-            where TSignal : ISignal<TIn, TOut>
-            where TIn : unmanaged, IFloatingPointIeee754<TIn>
+            int stepCount) where TIn : unmanaged, IFloatingPointIeee754<TIn>
             where TOut : unmanaged, IFloatingPointIeee754<TOut>
         {
             var totalMeasurements = stepCount + 1;
@@ -47,14 +41,12 @@ public static partial class Signal
             return result;
         }
 
-        public static SignalResult<TIn, TOut>[] Sweep<TSignal, TIn, TOut>(TSignal signal, AABB<TIn> sweepRange,
-            int stepCount)
-            where TSignal : ISignal<TIn, TOut>
-            where TIn : unmanaged, IFloatingPointIeee754<TIn>
+        public static SignalResult<TIn, TOut>[] Sweep<TIn, TOut>(ISignal<TIn,TOut> signal, AABB<TIn> sweepRange,
+            int stepCount) where TIn : unmanaged, IFloatingPointIeee754<TIn>
             where TOut : unmanaged, IFloatingPointIeee754<TOut>
         {
             var steps = GetSweepSteps(sweepRange, stepCount);
-            return Sweep<TSignal, TIn, TOut>(signal, steps);
+            return Sweep<TIn, TOut>(signal, steps);
         }
 
         private static IEnumerable<TIn> GetSweepSteps<TIn>(AABB<TIn> sweepRange, int stepCount)
@@ -67,10 +59,8 @@ public static partial class Signal
             return steps;
         }
 
-        public static SignalResult<TIn, TOut> BestFitBinary<TSignal, TIn, TOut>(TSignal signal, TOut target,
-            AABB<TIn> searchRange, TIn minRangeSize = default)
-            where TSignal : ISignal<TIn, TOut>
-            where TIn : unmanaged, IFloatingPointIeee754<TIn>
+        public static SignalResult<TIn, TOut> BestFitBinary<TIn, TOut>(ISignal<TIn,TOut> signal, TOut target,
+            AABB<TIn> searchRange, TIn minRangeSize = default) where TIn : unmanaged, IFloatingPointIeee754<TIn>
             where TOut : unmanaged, IFloatingPointIeee754<TOut>
         {
             var searchMin = SignalResult<TIn, TOut>.Create(signal, searchRange.Min);
