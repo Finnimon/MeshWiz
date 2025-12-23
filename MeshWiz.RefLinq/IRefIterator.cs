@@ -103,4 +103,5 @@ public interface IRefIterator<TSelf, TItem> : IEnumerator<TItem>
 
     ConcatIterator<TSelf, ItemIterator<TItem>, TItem> Append(TItem append);
     ConcatIterator<ItemIterator<TItem>, TSelf, TItem> Prepend(TItem prepend);
+    static abstract TSelf Empty();
 }

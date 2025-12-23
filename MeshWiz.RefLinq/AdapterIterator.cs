@@ -181,4 +181,5 @@ public record AdapterIterator<T>(IEnumerable<T> Source) : IRefIterator<AdapterIt
         => new(this, append);
     public ConcatIterator<ItemIterator<T>,AdapterIterator<T>, T> Prepend(T prepend) 
         => new(prepend,this);
+    public static AdapterIterator<T> Empty()=>new([]);
 }

@@ -225,4 +225,6 @@ public ref struct SelectIterator<TIter, TIn,TOut>(TIter source, Func<TIn, TOut> 
         => new(GetEnumerator(), append);
     public ConcatIterator<ItemIterator<TOut>,SelectIterator<TIter,TIn,TOut>, TOut> Prepend(TOut prepend) 
         => new(prepend,GetEnumerator());
+
+    public static SelectIterator<TIter, TIn, TOut> Empty() => new(TIter.Empty(), x => (TOut)(object)x!);//sel can never be called anyway
 }

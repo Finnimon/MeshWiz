@@ -330,4 +330,6 @@ public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter
         => new(this, append);
     public ConcatIterator<ItemIterator<TItem>,RangeIterator<TIter,TItem>, TItem> Prepend(TItem prepend) 
         => new(prepend,this);
+
+    public static RangeIterator<TIter, TItem> Empty() => new(TIter.Empty(), Range.All, 0);
 }

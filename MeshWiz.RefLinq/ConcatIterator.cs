@@ -77,8 +77,9 @@ public ref struct ConcatIterator<TLeft, TRight, TItem>(TLeft l, TRight r)
     /// <inheritdoc />
     public bool TryGetNonEnumeratedCount(out int count)
     {
+        var rCount = 0;
         var found = _left.TryGetNonEnumeratedCount(out var lCount)
-                    & _right.TryGetNonEnumeratedCount(out var rCount);
+                    && _right.TryGetNonEnumeratedCount(out rCount);
         count = lCount + rCount;
         return found;
     }
@@ -219,7 +220,8 @@ public ref struct ConcatIterator<TLeft, TRight, TItem>(TLeft l, TRight r)
 
     /// <inheritdoc />
     public SelectManyIterator<ConcatIterator<TLeft, TRight, TItem>, TInner, TItem, TOut>
-        SelectMany<TInner, TOut>(Func<TItem, TInner> flattener) where TInner : IRefIterator<TInner,TOut>, allows ref struct =>
+        SelectMany<TInner, TOut>(Func<TItem, TInner> flattener)
+        where TInner : IRefIterator<TInner, TOut>, allows ref struct =>
         new(this, flattener);
 
     /// <inheritdoc />
@@ -227,7 +229,7 @@ public ref struct ConcatIterator<TLeft, TRight, TItem>(TLeft l, TRight r)
         Func<TItem, TOut[]> flattener)
         => new(this, x => flattener(x));
 
-    
+
     /// <inheritdoc />
     public SelectManyIterator<ConcatIterator<TLeft, TRight, TItem>, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
         Func<TItem, SpanIterator<TOut>> flattener)
@@ -240,29 +242,61 @@ public ref struct ConcatIterator<TLeft, TRight, TItem>(TLeft l, TRight r)
 
 
     /// <inheritdoc />
-    public SelectManyIterator<ConcatIterator<TLeft, TRight, TItem>, AdapterIterator<TOut>, TItem, TOut> SelectMany<TOut>(
-        Func<TItem, IEnumerable<TOut>> flattener)
-        => new(this,Func.Combine(flattener,Iterator.Adapt));
+    public SelectManyIterator<ConcatIterator<TLeft, TRight, TItem>, AdapterIterator<TOut>, TItem, TOut>
+        SelectMany<TOut>(
+            Func<TItem, IEnumerable<TOut>> flattener)
+        => new(this, Func.Combine(flattener, Iterator.Adapt));
 
     /// <inheritdoc />
-    public bool TryTakeRange(Range r, out ConcatIterator<TLeft, TRight, TItem> result)
+    public bool TryTakeRange(Range range, out ConcatIterator<TLeft, TRight, TItem> result)
     {
         result = default;
-        return false;
-    }
-    
-    public DistinctIterator<ConcatIterator<TLeft,TRight,TItem>, TItem> Distinct()
-        => Distinct(null);
-    public DistinctIterator<ConcatIterator<TLeft,TRight,TItem>, TItem> Distinct(IEqualityComparer<TItem>? comp)
-        => new(this, comp);
-    public DistinctIterator<ConcatIterator<TLeft,TRight,TItem>,TItem> DistinctBy<T>(Func<TItem, T> keySelector) where T : notnull 
-        =>new(this,Equality.By(keySelector));
+        if (!(_left.TryGetNonEnumeratedCount(out var lCount) && _right.TryGetNonEnumeratedCount(out var rCount)))
+            return false;
+        var totalCount = lCount + rCount;
 
-    public ConcatIterator<ConcatIterator<TLeft,TRight,TItem>, TOther, TItem> Concat<TOther>(TOther other) 
-        where TOther : IRefIterator<TOther, TItem>,allows ref struct
+        var (offset, length) = range.GetOffsetAndLength(totalCount);
+        if (length == 0)
+        {
+            result = Empty();
+            return true;
+        }
+
+        var lLength = lCount - offset;
+        lLength = int.Min(lLength, length);
+        TLeft? l;
+        if (lLength == 0) l = TLeft.Empty();
+        else if(!_left.TryTakeRange(offset..(offset+lLength), out l))
+            return false;
+        TRight? r;
+        var rLength = int.Max(0, length - lLength);
+        var rOffSet=lLength>0?0:offset;        
+        if (rLength == 0) r = TRight.Empty();
+        else if(!_right.TryTakeRange(rOffSet..(rOffSet+rLength), out r))
+            return false;
+        result=new(l, r);
+        return true;
+    }
+
+    public DistinctIterator<ConcatIterator<TLeft, TRight, TItem>, TItem> Distinct()
+        => Distinct(null);
+
+    public DistinctIterator<ConcatIterator<TLeft, TRight, TItem>, TItem> Distinct(IEqualityComparer<TItem>? comp)
+        => new(this, comp);
+
+    public DistinctIterator<ConcatIterator<TLeft, TRight, TItem>, TItem> DistinctBy<T>(Func<TItem, T> keySelector)
+        where T : notnull
+        => new(this, Equality.By(keySelector));
+
+    public ConcatIterator<ConcatIterator<TLeft, TRight, TItem>, TOther, TItem> Concat<TOther>(TOther other)
+        where TOther : IRefIterator<TOther, TItem>, allows ref struct
         => new(this, other);
-    public ConcatIterator<ConcatIterator<TLeft,TRight,TItem>, ItemIterator<TItem>, TItem> Append(TItem append) 
+
+    public ConcatIterator<ConcatIterator<TLeft, TRight, TItem>, ItemIterator<TItem>, TItem> Append(TItem append)
         => new(this, append);
-    public ConcatIterator<ItemIterator<TItem>,ConcatIterator<TLeft,TRight,TItem>, TItem> Prepend(TItem prepend) 
-        => new(prepend,this);
+
+    public ConcatIterator<ItemIterator<TItem>, ConcatIterator<TLeft, TRight, TItem>, TItem> Prepend(TItem prepend)
+        => new(prepend, this);
+
+    public static ConcatIterator<TLeft, TRight, TItem> Empty() => new(TLeft.Empty(), TRight.Empty());
 }

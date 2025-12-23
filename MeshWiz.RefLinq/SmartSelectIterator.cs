@@ -243,4 +243,6 @@ public ref struct SmartSelectIterator<TIn, TOut>(ReadOnlySpan<TIn> source,Func<T
         => new(this, append);
     public ConcatIterator<ItemIterator<TOut>,SmartSelectIterator<TIn,TOut>, TOut> Prepend(TOut prepend) 
         => new(prepend,this);
+
+    public static SmartSelectIterator<TIn, TOut> Empty() => new(ReadOnlySpan<TIn>.Empty, x => (TOut)(object)x!);
 }

@@ -225,4 +225,5 @@ public ref struct SpanIterator<TItem>(ReadOnlySpan<TItem> source) : IRefIterator
     public ConcatIterator<ItemIterator<TItem>,SpanIterator<TItem>, TItem> Prepend(TItem prepend) 
         => new(prepend,this);
 
+    public static SpanIterator<TItem> Empty() => new(ReadOnlySpan<TItem>.Empty);
 }

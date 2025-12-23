@@ -238,5 +238,5 @@ public ref struct DistinctIterator<TIter, TItem> : IRefIterator<DistinctIterator
     public ConcatIterator<ItemIterator<TItem>,DistinctIterator<TIter, TItem>, TItem> Prepend(TItem prepend) 
         => new(prepend,this);
 
-
+    public static DistinctIterator<TIter, TItem> Empty() => new(TIter.Empty());
 }

@@ -258,4 +258,6 @@ public ref struct OfTypeIterator<TIter, TIn, TOut>(TIter source) : IRefIterator<
         => new(this, append);
     public ConcatIterator<ItemIterator<TOut>,OfTypeIterator<TIter,TIn,TOut>, TOut> Prepend(TOut prepend) 
         => new(prepend,this);
+
+    public static OfTypeIterator<TIter, TIn, TOut> Empty() => new(TIter.Empty());
 }

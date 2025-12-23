@@ -258,9 +258,9 @@ public ref struct SelectManyIterator<TIter, TInner, TIn, TOut>(TIter source, Fun
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private TRes WriteToSegBuilderAndThen<TRes>(Func<SegmentedArrayBuilder<TOut>, TRes> andThen,Func<TRes> @default)
+    private TRes WriteToSegBuilderAndThen<TRes>(Func<SegmentedArrayBuilder<TOut>, TRes> andThen, Func<TRes> @default)
     {
-        if(_source.TryGetNonEnumeratedCount(out var count)&&count==0)
+        if (_source.TryGetNonEnumeratedCount(out var count) && count == 0)
             return @default();
         var spanner = this;
         spanner.Reset();
@@ -282,7 +282,7 @@ public ref struct SelectManyIterator<TIter, TInner, TIn, TOut>(TIter source, Fun
 
     /// <inheritdoc />
     public List<TOut> ToList()
-        => WriteToSegBuilderAndThen(b => b.ToList(), ()=> []);
+        => WriteToSegBuilderAndThen(b => b.ToList(), () => []);
 
     /// <inheritdoc />
     public HashSet<TOut> ToHashSet() => [..ToArray()];
@@ -379,20 +379,28 @@ public ref struct SelectManyIterator<TIter, TInner, TIn, TOut>(TIter source, Fun
         result = default;
         return false;
     }
-    
-    
-    public DistinctIterator<SelectManyIterator<TIter,TInner,TIn,TOut>, TOut> Distinct()
-        => Distinct(null);
-    public DistinctIterator<SelectManyIterator<TIter,TInner,TIn,TOut>, TOut> Distinct(IEqualityComparer<TOut>? comp)
-        => new(this, comp);
-    public DistinctIterator<SelectManyIterator<TIter,TInner,TIn,TOut>,TOut> DistinctBy<T>(Func<TOut, T> keySelector) where T : notnull 
-        =>new(this,Equality.By(keySelector));
 
-    public ConcatIterator<SelectManyIterator<TIter,TInner,TIn,TOut>, TOther, TOut> Concat<TOther>(TOther other) 
-        where TOther : IRefIterator<TOther, TOut>,allows ref struct
+
+    public DistinctIterator<SelectManyIterator<TIter, TInner, TIn, TOut>, TOut> Distinct()
+        => Distinct(null);
+
+    public DistinctIterator<SelectManyIterator<TIter, TInner, TIn, TOut>, TOut> Distinct(IEqualityComparer<TOut>? comp)
+        => new(this, comp);
+
+    public DistinctIterator<SelectManyIterator<TIter, TInner, TIn, TOut>, TOut> DistinctBy<T>(Func<TOut, T> keySelector)
+        where T : notnull
+        => new(this, Equality.By(keySelector));
+
+    public ConcatIterator<SelectManyIterator<TIter, TInner, TIn, TOut>, TOther, TOut> Concat<TOther>(TOther other)
+        where TOther : IRefIterator<TOther, TOut>, allows ref struct
         => new(this, other);
-    public ConcatIterator<SelectManyIterator<TIter,TInner,TIn,TOut>, ItemIterator<TOut>, TOut> Append(TOut append) 
+
+    public ConcatIterator<SelectManyIterator<TIter, TInner, TIn, TOut>, ItemIterator<TOut>, TOut> Append(TOut append)
         => new(this, append);
-    public ConcatIterator<ItemIterator<TOut>,SelectManyIterator<TIter,TInner,TIn,TOut>, TOut> Prepend(TOut prepend) 
-        => new(prepend,this);
+
+    public ConcatIterator<ItemIterator<TOut>, SelectManyIterator<TIter, TInner, TIn, TOut>, TOut> Prepend(TOut prepend)
+        => new(prepend, this);
+
+    public static SelectManyIterator<TIter, TInner, TIn, TOut> Empty() =>
+        new(TIter.Empty(), _ => throw new InvalidOperationException()); //sel can never be called anyway
 }

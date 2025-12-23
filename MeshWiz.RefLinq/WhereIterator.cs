@@ -238,4 +238,6 @@ public ref struct WhereIterator<TIter, TItem>(TIter source, Func<TItem, bool> fi
         => new(this, append);
     public ConcatIterator<ItemIterator<TItem>,WhereIterator<TIter,TItem>, TItem> Prepend(TItem prepend) 
         => new(prepend,this);
+
+    public static WhereIterator<TIter, TItem> Empty() => new(TIter.Empty(), _ => false);
 }
