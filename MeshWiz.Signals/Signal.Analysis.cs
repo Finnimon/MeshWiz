@@ -42,7 +42,8 @@ public static partial class Signal
             var totalNum = TIn.CreateTruncating(totalMeasurements);
             var result = new SignalResult<TIn, TOut>[totalMeasurements];
             Parallel.For(0, totalMeasurements,
-                i => result[i] = SignalResult<TIn, TOut>.Create(signal, sweepRange.Lerp(TIn.CreateTruncating(i) / totalNum)));
+                i => result[i] =
+                    SignalResult<TIn, TOut>.Create(signal, sweepRange.Lerp(TIn.CreateTruncating(i) / totalNum)));
             return result;
         }
 
@@ -56,16 +57,18 @@ public static partial class Signal
             return Sweep<TSignal, TIn, TOut>(signal, steps);
         }
 
-        private static IEnumerable<TIn> GetSweepSteps<TIn>(AABB<TIn> sweepRange, int stepCount) where TIn : unmanaged, IFloatingPointIeee754<TIn>
+        private static IEnumerable<TIn> GetSweepSteps<TIn>(AABB<TIn> sweepRange, int stepCount)
+            where TIn : unmanaged, IFloatingPointIeee754<TIn>
         {
             var step = sweepRange.Size / TIn.CreateTruncating(stepCount);
-            var max = Numbers<TIn>.Half * step + sweepRange.Max;//half step to avoid floating point max being culled
+            var max = Numbers<TIn>.Half * step + sweepRange.Max; //half step to avoid floating point max being culled
             var min = sweepRange.Min;
             var steps = Enumerable.Sequence(min, max, step);
             return steps;
         }
 
-        public static SignalResult<TIn, TOut> BestFitBinary<TSignal, TIn, TOut>(TSignal signal, TOut target, AABB<TIn> searchRange, TIn minRangeSize=default)
+        public static SignalResult<TIn, TOut> BestFitBinary<TSignal, TIn, TOut>(TSignal signal, TOut target,
+            AABB<TIn> searchRange, TIn minRangeSize = default)
             where TSignal : ISignal<TIn, TOut>
             where TIn : unmanaged, IFloatingPointIeee754<TIn>
             where TOut : unmanaged, IFloatingPointIeee754<TOut>
@@ -74,7 +77,7 @@ public static partial class Signal
             var searchMid = SignalResult<TIn, TOut>.Create(signal, searchRange.Center);
             var searchMax = SignalResult<TIn, TOut>.Create(signal, searchRange.Max);
             var half = Numbers<TIn>.Half;
-            if(minRangeSize==default)
+            if (minRangeSize == default)
                 minRangeSize = TIn.Epsilon;
             while (searchRange.Size > minRangeSize)
             {
@@ -97,19 +100,18 @@ public static partial class Signal
                 searchMid = SignalResult<TIn, TOut>.Create(signal, TIn.Lerp(searchMin.Input, searchMax.Input, half));
                 searchRange = AABB.From(searchMid.Input, searchMax.Input);
             }
+
             SignalResult<TIn, TOut>[] res = [searchMid, searchMin, searchMax];
 
             return res.OrderBy(v => TOut.Abs(v.Result - target)).First();
         }
 
-        public static SignalResult<TIn, TOut> BestFitNewton<TSignal, TIn, TOut>(
-            TSignal signal,
+        public static SignalResult<TIn, TOut> BestFitNewton<TIn, TOut>(
+            ISignal<TIn, TOut> signal,
             TOut target,
             AABB<TIn> searchRange,
             int maxIterations = 32,
-            TOut tolerance = default)
-            where TSignal : ISignal<TIn, TOut>
-            where TIn : unmanaged, IFloatingPointIeee754<TIn>
+            TOut tolerance = default) where TIn : unmanaged, IFloatingPointIeee754<TIn>
             where TOut : unmanaged, IFloatingPointIeee754<TOut>
         {
             var shifted = signal.Shift(-target);
@@ -168,7 +170,44 @@ public static partial class Signal
             return res.OrderBy(v => TOut.Abs(v.Result - target)).First();
         }
 
-        public static int[] BestFitRanges<TIn, TOut>(SignalResult<TIn, TOut>[] sweep, TOut target, TOut epsilon = default)
+        public static SignalResult<TIn, TOut> BestFitNewtonRetrying<TIn, TOut>(
+            ISignal<TIn, TOut> signal,
+            TOut target,
+            AABB<TIn> initialSearchRange,
+            AABB<TIn> maxSearchRange,
+            int maxTries = 4,
+            int maxIterationsPerTry = 32,
+            TOut tolerance = default)
+            where TIn : unmanaged, IFloatingPointIeee754<TIn>
+            where TOut : unmanaged, IFloatingPointIeee754<TOut>
+        {
+            var activeSearch = initialSearchRange;
+            var best = signal.GetResult(initialSearchRange.Center);
+            while (maxTries-- > 0)
+            {
+                var curTry = BestFitNewton(signal, target, activeSearch, maxIterationsPerTry,tolerance);
+                var newBest = SignalResult<TIn, TOut>.Closest(target, best, curTry);
+                if (newBest == best)
+                    return newBest;
+                best = newBest;
+                var success = best.Result.IsApprox(target);
+                if (success)
+                    return best;
+                var directionUnknown = best.Input.IsApprox(activeSearch.Center);
+                if (directionUnknown)
+                    return best;
+                activeSearch = AABB.Around(curTry.Input, activeSearch.Size);
+                activeSearch = maxSearchRange.Clamp(activeSearch);
+            }
+
+            var finalized = BestFitNewton(signal, target,
+                AABB<TIn>.Around(best.Input, initialSearchRange.Size * Numbers<TIn>.Eps3), 
+                maxIterationsPerTry,tolerance);
+            return finalized;
+        }
+
+        public static int[] BestFitRanges<TIn, TOut>(SignalResult<TIn, TOut>[] sweep, TOut target,
+            TOut epsilon = default)
             where TIn : unmanaged, IFloatingPointIeee754<TIn>
             where TOut : unmanaged, IFloatingPointIeee754<TOut>
         {
@@ -188,7 +227,5 @@ public static partial class Signal
 
             return possible.ToArray();
         }
-
-
     }
 }

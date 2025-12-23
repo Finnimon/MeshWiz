@@ -27,6 +27,24 @@ public readonly record struct SignalResult<TIn, TOut>(
         return min;
     }
 
+    public static SignalResult<TIn, TOut> Closest(TOut target, params ReadOnlySpan<SignalResult<TIn, TOut>> opts)
+    {
+        if (opts.IsEmpty)
+            ThrowHelper.ThrowArgumentException(nameof(opts));
+        var min = opts[0];
+        for (var i = 1; i < opts.Length; i++)
+            min = TOut.Abs(min.Result - target) < TOut.Abs(opts[i].Result - target)
+                ? min
+                : opts[i];
+
+        return min;
+    }
+
+    public static SignalResult<TIn, TOut> Closest(TOut target, SignalResult<TIn, TOut> a, SignalResult<TIn, TOut> b) =>
+        TOut.Abs(a.Result - target) < TOut.Abs(b.Result - target)
+            ? a
+            : b;
+
     public static SignalResult<TIn, TOut> Max(params ReadOnlySpan<SignalResult<TIn, TOut>> opts)
     {
         if (opts.IsEmpty)

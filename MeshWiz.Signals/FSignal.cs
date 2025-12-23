@@ -2,7 +2,7 @@
 
 namespace MeshWiz.Signals;
 
-public readonly record struct FSignal<TIn, TOut>(Func<TIn, TOut> Func)
+public record FSignal<TIn, TOut>(Func<TIn, TOut> Func)
     : ISignal<TIn, TOut>
     where TIn : unmanaged, IFloatingPointIeee754<TIn>
     where TOut : unmanaged, IFloatingPointIeee754<TOut>

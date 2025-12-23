@@ -8,6 +8,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MeshWiz.Math\MeshWiz.Math.csproj" />
+    <ProjectReference Include="..\MeshWiz.Utility\MeshWiz.Utility.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="CommunityToolkit.Diagnostics">
+      <HintPath>..\..\..\..\.nuget\packages\communitytoolkit.diagnostics\8.4.0\lib\net8.0\CommunityToolkit.Diagnostics.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>
