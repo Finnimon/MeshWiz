@@ -256,9 +256,10 @@ public static partial class Signal
                     step *= Numbers<TIn>.Two; // accelerate escape
                 
                 improvedLast = false;
-
-                foreach (var dir in new[] { -TIn.One, TIn.One })
+                
+                for(var dirI=-1; dirI<=1; dirI+=2)
                 {
+                    var dir = dirI == -1 ? -TIn.One : TIn.One;
                     var nextX = searchRange.Clamp(best.Input + step * dir);
                     if (nextX == best.Input)
                         continue;
