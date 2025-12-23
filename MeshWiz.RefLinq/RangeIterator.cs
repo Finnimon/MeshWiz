@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
+using MeshWiz.Utility;
 
 namespace MeshWiz.RefLinq;
 
@@ -182,11 +183,11 @@ public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter
     }
 
     /// <inheritdoc />
-    public FilterIterator<RangeIterator<TIter,TItem>, TItem> Where(Func<TItem, bool> predicate) => new(this, predicate);
+    public WhereIterator<RangeIterator<TIter,TItem>, TItem> Where(Func<TItem, bool> predicate) => new(this, predicate);
     
     
     public SelectManyIterator<RangeIterator<TIter,TItem>, TInner, TItem, TOut> SelectMany<TInner, TOut>(
-        Func<TItem, TInner> flattener) where TInner : IEnumerator<TOut>, allows ref struct =>
+        Func<TItem, TInner> flattener) where TInner : IRefIterator<TInner,TOut>, allows ref struct =>
         new(this, flattener);
 
     public SelectManyIterator<RangeIterator<TIter,TItem>, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
@@ -195,8 +196,8 @@ public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter
     public SelectManyIterator<RangeIterator<TIter,TItem>, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
         Func<TItem, List<TOut>> flattener) => new(this, inner => flattener(inner));
 
-    public SelectManyIterator<RangeIterator<TIter,TItem>, IEnumerator<TOut>, TItem, TOut> SelectMany<TOut>(
-        Func<TItem, IEnumerable<TOut>> flattener) => new(this, inner => flattener(inner).GetEnumerator());
+    public SelectManyIterator<RangeIterator<TIter,TItem>, AdapterIterator<TOut>, TItem, TOut> SelectMany<TOut>(
+        Func<TItem, IEnumerable<TOut>> flattener) => new(this, Func.Combine(flattener,Iterator.Adapt));
 
     /// <inheritdoc />
     public SelectIterator<RangeIterator<TIter,TItem>, TItem, TOut> Select<TOut>(Func<TItem, TOut> selector)
@@ -243,14 +244,14 @@ public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter
 
 
     /// <inheritdoc />
-    public HashSet<TItem> ToHashSet(IEqualityComparer<TItem> comp)
+    public HashSet<TItem> ToHashSet(IEqualityComparer<TItem>? comp)
         => _spanBased ? _source.ToHashSet() : Iterator.ToHashSet<RangeIterator<TIter, TItem>, TItem>(this,comp);
     
-    public TItem First(Func<TItem,bool> predicate)=>this.Where(predicate).First();
-    public TItem? FirstOrDefault(Func<TItem,bool> predicate)=>this.Where(predicate).FirstOrDefault();
+    public TItem First(Func<TItem,bool> predicate)=>Where(predicate).First();
+    public TItem? FirstOrDefault(Func<TItem,bool> predicate)=>Where(predicate).FirstOrDefault();
 
-    public TItem Last(Func<TItem,bool> predicate)=>this.Where(predicate).Last();
-    public TItem? LastOrDefault(Func<TItem,bool> predicate)=>this.Where(predicate).LastOrDefault();
+    public TItem Last(Func<TItem,bool> predicate)=>Where(predicate).Last();
+    public TItem? LastOrDefault(Func<TItem,bool> predicate)=>Where(predicate).LastOrDefault();
     
     public bool Any()
     {
@@ -307,4 +308,26 @@ public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter
         where TKey : notnull
         => ToDictionary(keyGen, x => x, null);
     
+    public bool All(Func<TItem,bool> predicate)=>!Any(x=>!predicate(x));
+    public bool TryTakeRange(Range r, out RangeIterator<TIter, TItem> result)
+    {
+        result = Take(r);
+        return true;
+    }
+    
+    
+    public DistinctIterator<RangeIterator<TIter,TItem>, TItem> Distinct()
+        => Distinct(null);
+    public DistinctIterator<RangeIterator<TIter,TItem>, TItem> Distinct(IEqualityComparer<TItem>? comp)
+        => new(this, comp);
+    public DistinctIterator<RangeIterator<TIter,TItem>,TItem> DistinctBy<T>(Func<TItem, T> keySelector) where T : notnull 
+        =>new(this,Equality.By(keySelector));
+
+    public ConcatIterator<RangeIterator<TIter,TItem>, TOther, TItem> Concat<TOther>(TOther other) 
+        where TOther : IRefIterator<TOther, TItem>,allows ref struct
+        => new(this, other);
+    public ConcatIterator<RangeIterator<TIter,TItem>, ItemIterator<TItem>, TItem> Append(TItem append) 
+        => new(this, append);
+    public ConcatIterator<ItemIterator<TItem>,RangeIterator<TIter,TItem>, TItem> Prepend(TItem prepend) 
+        => new(prepend,this);
 }

@@ -2,8 +2,10 @@
 
 using MeshWiz.RefLinq;
 using MeshWiz.RefLinq.Benchmark;
+using MeshWiz.Utility.Extensions;
 
-var refIterBench = new RefIterBench();
-refIterBench.Setup();
-for(var i=0;i<1000;i++)
-    refIterBench.RefLinq6SelMany();
+Console.WriteLine(2.NextPow2());
+var bench = new RefIterBench() { N = 100_00 };
+bench.Setup();
+var correct = bench.Linq6SelMany().SequenceEqual(bench.RefLinq6WhereSelMany());
+Console.WriteLine(correct);

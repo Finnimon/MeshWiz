@@ -1,5 +1,6 @@
 using System.Collections;
 using CommunityToolkit.Diagnostics;
+using MeshWiz.Utility;
 
 namespace MeshWiz.RefLinq;
 
@@ -88,11 +89,11 @@ public ref struct SelectIterator<TIter, TIn,TOut>(TIter source, Func<TIn, TOut> 
     }
 
     /// <inheritdoc />
-    public FilterIterator<SelectIterator<TIter,TIn, TOut>, TOut> Where(Func<TOut, bool> predicate) => new(this, predicate);
+    public WhereIterator<SelectIterator<TIter,TIn, TOut>, TOut> Where(Func<TOut, bool> predicate) => new(this, predicate);
     
     
     public SelectManyIterator<SelectIterator<TIter,TIn,TOut>, TInner, TOut, TMany> SelectMany<TInner, TMany>(
-        Func<TOut, TInner> flattener) where TInner : IEnumerator<TMany>, allows ref struct =>
+        Func<TOut, TInner> flattener) where TInner : IRefIterator<TInner,TMany>, allows ref struct =>
         new(this, flattener);
 
     public SelectManyIterator<SelectIterator<TIter,TIn,TOut>, SpanIterator<TMany>, TOut, TMany> SelectMany<TMany>(
@@ -101,12 +102,16 @@ public ref struct SelectIterator<TIter, TIn,TOut>(TIter source, Func<TIn, TOut> 
     public SelectManyIterator<SelectIterator<TIter,TIn,TOut>, SpanIterator<TMany>, TOut, TMany> SelectMany<TMany>(
         Func<TOut, List<TMany>> flattener) => new(this, inner => flattener(inner));
 
-    public SelectManyIterator<SelectIterator<TIter,TIn,TOut>, IEnumerator<TMany>, TOut, TMany> SelectMany<TMany>(
-        Func<TOut, IEnumerable<TMany>> flattener) => new(this, inner => flattener(inner).GetEnumerator());
+    public SelectManyIterator<SelectIterator<TIter,TIn,TOut>, AdapterIterator<TMany>, TOut, TMany> SelectMany<TMany>(
+        Func<TOut, IEnumerable<TMany>> flattener) => new(this, Func.Combine(flattener,Iterator.Adapt));
 
     /// <inheritdoc />
     public SelectIterator<SelectIterator<TIter, TIn, TOut>, TOut, TOut1> Select<TOut1>(Func<TOut, TOut1> selector) 
         => new(this, selector);
+    
+    public SelectManyIterator<SelectIterator<TIter,TIn,TOut>, SpanIterator<TOut2>, TOut, TOut2> SelectMany<TOut2>(
+        Func<TOut, SpanIterator<TOut2>> flattener)
+        => new(this, flattener);
     /// <inheritdoc />
     public RangeIterator<SelectIterator<TIter,TIn,TOut>, TOut> Take(Range r) 
         => Iterator.Take<SelectIterator<TIter,TIn,TOut>, TOut>(this, r);
@@ -130,14 +135,14 @@ public ref struct SelectIterator<TIter, TIn,TOut>(TIter source, Func<TIn, TOut> 
         => Iterator.ToHashSet<SelectIterator<TIter, TIn, TOut>, TOut>(this);
 
     /// <inheritdoc />
-    public HashSet<TOut> ToHashSet(IEqualityComparer<TOut> comp)
+    public HashSet<TOut> ToHashSet(IEqualityComparer<TOut>? comp)
         => Iterator.ToHashSet(this,comp);
     
-    public TOut First(Func<TOut,bool> predicate)=>this.Where(predicate).First();
-    public TOut? FirstOrDefault(Func<TOut,bool> predicate)=>this.Where(predicate).FirstOrDefault();
+    public TOut First(Func<TOut,bool> predicate)=>Where(predicate).First();
+    public TOut? FirstOrDefault(Func<TOut,bool> predicate)=>Where(predicate).FirstOrDefault();
 
-    public TOut Last(Func<TOut,bool> predicate)=>this.Where(predicate).Last();
-    public TOut? LastOrDefault(Func<TOut,bool> predicate)=>this.Where(predicate).LastOrDefault();
+    public TOut Last(Func<TOut,bool> predicate)=>Where(predicate).Last();
+    public TOut? LastOrDefault(Func<TOut,bool> predicate)=>Where(predicate).LastOrDefault();
     
     public bool Any()
     {
@@ -195,4 +200,29 @@ public ref struct SelectIterator<TIter, TIn,TOut>(TIter source, Func<TIn, TOut> 
         Func<TOut, TKey> keyGen)
         where TKey : notnull
         => ToDictionary(keyGen, x => x, null);
+    public bool All(Func<TOut,bool> predicate)=>!Any(x=>!predicate(x));
+
+    /// <inheritdoc />
+    public bool TryTakeRange(Range r, out SelectIterator<TIter, TIn, TOut> result)
+    {
+        var success = _source.TryTakeRange(r, out var newSource);
+        result = success ? new SelectIterator<TIter, TIn, TOut>(newSource!, _sel) : default;
+        return success;
+    }
+    
+    
+    public DistinctIterator<SelectIterator<TIter,TIn,TOut>, TOut> Distinct()
+        => Distinct(null);
+    public DistinctIterator<SelectIterator<TIter,TIn,TOut>, TOut> Distinct(IEqualityComparer<TOut>? comp)
+        => new(GetEnumerator(), comp);
+    public DistinctIterator<SelectIterator<TIter,TIn,TOut>,TOut> DistinctBy<T>(Func<TOut, T> keySelector) where T : notnull 
+        =>new(GetEnumerator(),Equality.By(keySelector));
+
+    public ConcatIterator<SelectIterator<TIter,TIn,TOut>, TOther, TOut> Concat<TOther>(TOther other) 
+        where TOther : IRefIterator<TOther, TOut>,allows ref struct
+        => new(GetEnumerator(), other);
+    public ConcatIterator<SelectIterator<TIter,TIn,TOut>, ItemIterator<TOut>, TOut> Append(TOut append) 
+        => new(GetEnumerator(), append);
+    public ConcatIterator<ItemIterator<TOut>,SelectIterator<TIter,TIn,TOut>, TOut> Prepend(TOut prepend) 
+        => new(prepend,GetEnumerator());
 }

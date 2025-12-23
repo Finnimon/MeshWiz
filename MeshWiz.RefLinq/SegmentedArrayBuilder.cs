@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // Modifications: Replaced IEnumerable with IEnumerator and ReadOnlySpan
 using System.Buffers;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -152,7 +151,7 @@ internal ref struct SegmentedArrayBuilder<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void AddNonICollectionRange<TIter>(TIter source)
         where TIter : IEnumerator<T>, allows ref struct
-        => AddNonICollectionRangeInlined<TIter>(source);
+        => AddNonICollectionRangeInlined(source);
 
     /// <summary>Adds a collection of items into the builder.</summary>
     /// <remarks>
@@ -163,9 +162,14 @@ internal ref struct SegmentedArrayBuilder<T>
     internal void AddNonICollectionRangeInlined<TIter>(TIter source)
         where TIter : IEnumerator<T>, allows ref struct
     {
+        if (source.TryConvertToSpanIter<TIter, T>(out var spanIterator))
+        {
+            AddRange(spanIterator.OriginalSource);
+            return;
+        }
         var currentSegment = _currentSegment;
         var countInCurrentSegment = _countInCurrentSegment;
-
+        
         while (source.MoveNext())
         {
             var item = source.Current;

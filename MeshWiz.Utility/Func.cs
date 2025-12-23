@@ -107,6 +107,15 @@ public static class Func
             return ExceptionResult.Failure(ex);
         }
     }
+
+    public static Func<TArg, bool> Invert<TArg>(Func<TArg, bool> predicate)
+    =>x=>!predicate(x);
+
+    public static Func<TIn, TOut2> Combine<TIn, TOut,TOut2>(Func<TIn, TOut> sel, Func<TOut, TOut2> sel2) => x => sel2(sel(x));
+
+    public static T Identity<T>(T arg)
+        where T:allows ref struct
+        => arg;
 }
 
 

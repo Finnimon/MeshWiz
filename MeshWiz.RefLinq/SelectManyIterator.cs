@@ -1,27 +1,76 @@
+using System.Buffers;
 using System.Collections;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using CommunityToolkit.Diagnostics;
+using MeshWiz.Utility;
+using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.RefLinq;
 
 public ref struct SelectManyIterator<TIter, TInner, TIn, TOut>(TIter source, Func<TIn, TInner> flattener)
     : IRefIterator<SelectManyIterator<TIter, TInner, TIn, TOut>, TOut>
     where TIter : IRefIterator<TIter, TIn>, allows ref struct
-    where TInner : IEnumerator<TOut>, allows ref struct
+    where TInner : IRefIterator<TInner, TOut>, allows ref struct
 
 {
     private TIter _source = source;
     private TInner? _inner;
     private bool _hasInner;
     private readonly Func<TIn, TInner> _flattener = flattener;
-
+    private int _state = 1;
 
     /// <inheritdoc />
     object? IEnumerator.Current => Current;
 
-    public TOut Current => _inner!.Current;
-    public bool MoveNext() => _hasInner && _inner!.MoveNext() || MoveNextRare();
+
+    [field: AllowNull, MaybeNull]
+    public TOut Current
+    {
+        get => field!;
+        private set => field = value;
+    }
+
+    public bool MoveNext()
+    {
+        switch (_state)
+        {
+            case 1:
+                _source.Reset();
+                _state = 2;
+                goto case 2;
+            case 2:
+                // Take the next element from the source enumerator.
+                if (!_source.MoveNext())
+                {
+                    break;
+                }
+
+                var element = _source.Current;
+
+                // Project it into a sub-collection and get its enumerator.
+                _inner = _flattener(element);
+                _state = 3;
+                goto case 3;
+            case 3:
+                // Take the next element from the sub-collection and yield.
+                Debug.Assert(_inner is not null);
+                if (!_inner.MoveNext())
+                {
+                    _inner.Dispose();
+                    _inner = default;
+                    _state = 2;
+                    goto case 2;
+                }
+
+                Current = _inner.Current;
+                return true;
+        }
+
+        Dispose();
+        return false;
+    }
 
     private bool MoveNextRare()
     {
@@ -87,7 +136,7 @@ public ref struct SelectManyIterator<TIter, TInner, TIn, TOut>(TIter source, Fun
     /// <inheritdoc />
     public int Count()
     {
-        this.Reset();
+        Reset();
         return !IsSpanner ? IterativeCount() : SpannerCount();
     }
 
@@ -97,12 +146,13 @@ public ref struct SelectManyIterator<TIter, TInner, TIn, TOut>(TIter source, Fun
         while (_source.MoveNext())
         {
             var inner = _flattener(_source.Current);
-            while (inner.MoveNext()) count++;
+            count += inner.Count();
             inner.Dispose();
         }
 
         return count;
     }
+
 
     private int SpannerCount()
     {
@@ -157,7 +207,7 @@ public ref struct SelectManyIterator<TIter, TInner, TIn, TOut>(TIter source, Fun
     }
 
     /// <inheritdoc />
-    public FilterIterator<SelectManyIterator<TIter, TInner, TIn, TOut>, TOut> Where(Func<TOut, bool> predicate)
+    public WhereIterator<SelectManyIterator<TIter, TInner, TIn, TOut>, TOut> Where(Func<TOut, bool> predicate)
         => new(this, predicate);
 
     /// <inheritdoc />
@@ -168,7 +218,7 @@ public ref struct SelectManyIterator<TIter, TInner, TIn, TOut>(TIter source, Fun
 
     public SelectManyIterator<SelectManyIterator<TIter, TInner, TIn, TOut>, TInner2, TOut, TMany> SelectMany<TInner2,
         TMany>(
-        Func<TOut, TInner2> flattener2) where TInner2 : IEnumerator<TMany>, allows ref struct =>
+        Func<TOut, TInner2> flattener2) where TInner2 : IRefIterator<TInner2, TMany>, allows ref struct =>
         new(this, flattener2);
 
     public SelectManyIterator<SelectManyIterator<TIter, TInner, TIn, TOut>, SpanIterator<TMany>, TOut, TMany>
@@ -179,9 +229,9 @@ public ref struct SelectManyIterator<TIter, TInner, TIn, TOut>(TIter source, Fun
         SelectMany<TMany>(
             Func<TOut, List<TMany>> flattener2) => new(this, inner => flattener2(inner));
 
-    public SelectManyIterator<SelectManyIterator<TIter, TInner, TIn, TOut>, IEnumerator<TMany>, TOut, TMany>
+    public SelectManyIterator<SelectManyIterator<TIter, TInner, TIn, TOut>, AdapterIterator<TMany>, TOut, TMany>
         SelectMany<TMany>(
-            Func<TOut, IEnumerable<TMany>> flattener2) => new(this, inner => flattener2(inner).GetEnumerator());
+            Func<TOut, IEnumerable<TMany>> flattener2) => new(this, Func.Combine(flattener2, Iterator.Adapt));
 
 
     /// <inheritdoc />
@@ -197,23 +247,8 @@ public ref struct SelectManyIterator<TIter, TInner, TIn, TOut>(TIter source, Fun
         => new(this, num..);
 
     /// <inheritdoc />
-    public TOut[] ToArray() => IsSpanner
-        ? SpannerToArray()
-        : Iterator.ToArray<SelectManyIterator<TIter, TInner, TIn, TOut>, TOut>(this);
+    public TOut[] ToArray() => WriteToSegBuilderAndThen(b => b.ToArray(), Array.Empty<TOut>);
 
-    private TOut[] SpannerToArray()
-    {
-        var spanner = AsSpanner();
-        spanner.Reset();
-        
-        SegmentedArrayBuilder<TOut> builder = new();
-        while (spanner._source.MoveNext())
-        {
-            var curSpan = spanner._flattener(spanner._source.Current).OriginalSource;
-            builder.AddRange(curSpan);
-        }
-        return builder.ToArray();
-    }
 
     private SelectManyIterator<TIter, SpanIterator<TOut>, TIn, TOut> AsSpanner()
     {
@@ -221,29 +256,39 @@ public ref struct SelectManyIterator<TIter, TInner, TIn, TOut>(TIter source, Fun
             SelectManyIterator<TIter, SpanIterator<TOut>, TIn, TOut>>(ref this);
     }
 
-    private List<TOut> SpannerToList()
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private TRes WriteToSegBuilderAndThen<TRes>(Func<SegmentedArrayBuilder<TOut>, TRes> andThen,Func<TRes> @default)
     {
-        var spanner = AsSpanner();
+        if(_source.TryGetNonEnumeratedCount(out var count)&&count==0)
+            return @default();
+        var spanner = this;
         spanner.Reset();
-        
-        SegmentedArrayBuilder<TOut> builder = new(default);
+        // using var scratch = RentedArray<TOut>.Rent(spanner.EstimateCount());
+        InlineArray8<TOut> scratchMem = default;
+        var size = spanner.EstimateCount();
+        var rentScratch = size > 8;
+        using var rented = rentScratch ? RentedArray<TOut>.Rent(size) : RentedArray<TOut>.Empty();
+        Span<TOut> scratch = rentScratch ? rented : scratchMem;
+        using SegmentedArrayBuilder<TOut> builder = new(scratch);
         while (spanner._source.MoveNext())
         {
-            var curSpan = spanner._flattener(spanner._source.Current).OriginalSource;
-            builder.AddRange(curSpan);
+            var curChild = spanner._flattener(spanner._source.Current);
+            builder.AddNonICollectionRangeInlined(curChild);
         }
-        return builder.ToList();
+
+        return andThen(builder);
     }
 
     /// <inheritdoc />
     public List<TOut> ToList()
-        => IsSpanner ? SpannerToList() : Iterator.ToList<SelectManyIterator<TIter, TInner, TIn, TOut>, TOut>(this);
+        => WriteToSegBuilderAndThen(b => b.ToList(), ()=> []);
 
     /// <inheritdoc />
     public HashSet<TOut> ToHashSet() => [..ToArray()];
 
     /// <inheritdoc />
-    public HashSet<TOut> ToHashSet(IEqualityComparer<TOut> comp)
+    public HashSet<TOut> ToHashSet(IEqualityComparer<TOut>? comp)
         => new(ToArray(), comp);
 
     /// <inheritdoc />
@@ -265,7 +310,7 @@ public ref struct SelectManyIterator<TIter, TInner, TIn, TOut>(TIter source, Fun
     /// <inheritdoc />
     public bool Any()
     {
-        using var copy = this.GetEnumerator();
+        using var copy = GetEnumerator();
         return copy.MoveNext();
     }
 
@@ -274,7 +319,8 @@ public ref struct SelectManyIterator<TIter, TInner, TIn, TOut>(TIter source, Fun
         => Where(predicate).Any();
 
     /// <inheritdoc />
-    public int EstimateCount() => _source.EstimateCount() * 16;
+    public int EstimateCount() =>
+        (_source.EstimateCount() * 2).NextPow2(); //nextPow2 for faster allocation with up bias
 
     /// <inheritdoc />
     public OfTypeIterator<SelectManyIterator<TIter, TInner, TIn, TOut>, TOut, TOther> OfType<TOther>() => new(this);
@@ -324,4 +370,29 @@ public ref struct SelectManyIterator<TIter, TInner, TIn, TOut>(TIter source, Fun
         Func<TOut, TKey> keyGen)
         where TKey : notnull
         => ToDictionary(keyGen, x => x, null);
+
+    public bool All(Func<TOut, bool> predicate) => !Any(x => !predicate(x));
+
+    /// <inheritdoc />
+    public bool TryTakeRange(Range r, out SelectManyIterator<TIter, TInner, TIn, TOut> result)
+    {
+        result = default;
+        return false;
+    }
+    
+    
+    public DistinctIterator<SelectManyIterator<TIter,TInner,TIn,TOut>, TOut> Distinct()
+        => Distinct(null);
+    public DistinctIterator<SelectManyIterator<TIter,TInner,TIn,TOut>, TOut> Distinct(IEqualityComparer<TOut>? comp)
+        => new(this, comp);
+    public DistinctIterator<SelectManyIterator<TIter,TInner,TIn,TOut>,TOut> DistinctBy<T>(Func<TOut, T> keySelector) where T : notnull 
+        =>new(this,Equality.By(keySelector));
+
+    public ConcatIterator<SelectManyIterator<TIter,TInner,TIn,TOut>, TOther, TOut> Concat<TOther>(TOther other) 
+        where TOther : IRefIterator<TOther, TOut>,allows ref struct
+        => new(this, other);
+    public ConcatIterator<SelectManyIterator<TIter,TInner,TIn,TOut>, ItemIterator<TOut>, TOut> Append(TOut append) 
+        => new(this, append);
+    public ConcatIterator<ItemIterator<TOut>,SelectManyIterator<TIter,TInner,TIn,TOut>, TOut> Prepend(TOut prepend) 
+        => new(prepend,this);
 }

@@ -2,11 +2,13 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.Diagnostics;
+using MeshWiz.Utility;
 
 namespace MeshWiz.RefLinq;
 
 public static class Iterator
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static TItem First<TIter, TItem>(TIter source)
         where TIter : IRefIterator<TIter, TItem>, allows ref struct
     {
@@ -22,6 +24,7 @@ public static class Iterator
         return found;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static bool TryGetLast<TIter, TItem>(TIter source, out TItem? last)
         where TIter : IEnumerator<TItem>, allows ref struct
     {
@@ -36,12 +39,14 @@ public static class Iterator
         return found;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static TItem Last<TIter, TItem>(TIter source)
         where TIter : IRefIterator<TIter, TItem>, allows ref struct =>
         source.TryGetLast(out var last)
             ? last!
             : ThrowHelper.ThrowInvalidOperationException<TItem>();
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static int Count<TIter, TIgnore>(TIter iter)
         where TIter : IRefIterator<TIter, TIgnore>, allows ref struct
     {
@@ -54,6 +59,7 @@ public static class Iterator
     }
 
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void CopyTo<TIter, TItem>(TIter iter, Span<TItem> destination)
         where TIter : IRefIterator<TIter, TItem>, allows ref struct
     {
@@ -67,6 +73,7 @@ public static class Iterator
         while (iter.MoveNext()) destination[++i] = iter.Current;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryConvertToSpanIter<TIter, TItem>(this TIter iter, out SpanIterator<TItem> span)
         where TIter : allows ref struct
     {
@@ -77,22 +84,31 @@ public static class Iterator
         return correctType;
     }
 
-    internal static TItem[] ToArray<TIter, TItem>(TIter iter)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TItem[] ToArray<TIter, TItem>(TIter iter)
         where TIter : IRefIterator<TIter, TItem>, allows ref struct
     {
-        TItem[] array;
         if (iter.TryGetNonEnumeratedCount(out var fastCount))
         {
-            array = new TItem[fastCount];
+            if (fastCount == 0)
+                return [];
+            var array = new TItem[fastCount];
             iter.CopyTo(array);
             return array;
         }
-
-        SegmentedArrayBuilder<TItem> builder = new();
+        InlineArray8<TItem> scratchMem = default;
+        var scratch = scratchMem.AsSpan<InlineArray8<TItem>, TItem>(8);
+        var size = iter.EstimateCount();
+        var rentScratch = size > 8;
+        using var rented =rentScratch? RentedArray<TItem>.Rent(size) : RentedArray<TItem>.Empty();
+        if (rentScratch)
+            scratch = rented;
+        using SegmentedArrayBuilder<TItem> builder = new(scratch);
         builder.AddNonICollectionRange(iter);
         return builder.ToArray();
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void UnsafeAdd<T>(ref T[] arr, T item, ref int count)
     {
         if (arr.Length == count) Array.Resize(ref arr, count * 2);
@@ -100,21 +116,23 @@ public static class Iterator
         count++;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static List<TItem> ToList<TIter, TItem>(TIter iter)
         where TIter : IRefIterator<TIter, TItem>, allows ref struct
     {
-        
         SegmentedArrayBuilder<TItem> builder = new();
         builder.AddNonICollectionRange(iter);
         return builder.ToList();
     }
 
-    internal static int PreSize<TIter, TItem>(TIter iter) where TIter : IRefIterator<TIter, TItem>, allows ref struct
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int PreSize<TIter, TItem>(TIter iter) where TIter : IRefIterator<TIter, TItem>, allows ref struct
     {
         var preSize = iter.TryGetNonEnumeratedCount(out var capa) ? capa : iter.EstimateCount();
         return preSize;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static HashSet<TItem> ToHashSet<TIter, TItem>(TIter iter, IEqualityComparer<TItem>? comp = null)
         where TIter : IRefIterator<TIter, TItem>, allows ref struct
     {
@@ -172,4 +190,26 @@ public static class Iterator
     public static Span<TItem> TakeSpan<TItem>(this TItem[] data, Range range) => (data).AsSpan(range);
     public static Span<TItem> TakeSpan<TItem>(this TItem[] data, int num) => (data).AsSpan(0, num);
     public static Span<TItem> SkipSpan<TItem>(this TItem[] data, int num) => (data).AsSpan(num);
+
+    internal static TItem Aggregate<TIter,TItem>(TIter iter, Func<TItem, TItem, TItem> aggregator) 
+        where TIter : IRefIterator<TIter, TItem>, allows ref struct
+    {
+        if(!iter.MoveNext())
+            ThrowHelper.ThrowInvalidOperationException();
+        var seed = iter.Current;
+        while (iter.MoveNext())
+            seed=aggregator(seed, iter.Current);
+        return seed;
+    }
+    
+    
+    internal static TOut Aggregate<TIter,TItem,TOut>(TIter iter, Func<TOut, TItem, TOut> aggregator,TOut seed) 
+        where TIter : IRefIterator<TIter, TItem>, allows ref struct
+    {
+        while (iter.MoveNext())
+            seed=aggregator(seed, iter.Current);
+        return seed;
+    }
+
+    internal static AdapterIterator<T> Adapt<T>(this IEnumerable<T> source) => new(source);
 }

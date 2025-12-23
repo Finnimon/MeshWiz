@@ -1,6 +1,4 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
-using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 
 namespace MeshWiz.RefLinq;
@@ -18,7 +16,7 @@ public interface IRefIterator<TSelf, TItem> : IEnumerator<TItem>
     bool TryGetNonEnumeratedCount(out int count);
     void CopyTo(Span<TItem> destination);
     TSelf GetEnumerator();
-    FilterIterator<TSelf, TItem> Where(Func<TItem, bool> predicate);
+    WhereIterator<TSelf, TItem> Where(Func<TItem, bool> predicate);
     SelectIterator<TSelf, TItem, TOut> Select<TOut>(Func<TItem, TOut> selector);
     RangeIterator<TSelf, TItem> Take(Range r);
     RangeIterator<TSelf, TItem> Take(int num);
@@ -28,13 +26,13 @@ public interface IRefIterator<TSelf, TItem> : IEnumerator<TItem>
     TItem[] ToArray();
     List<TItem> ToList();
     HashSet<TItem> ToHashSet();
-    HashSet<TItem> ToHashSet(IEqualityComparer<TItem> comp);
+    HashSet<TItem> ToHashSet(IEqualityComparer<TItem>? comp);
 
-    TItem First(Func<TItem, bool> predicate) => this.Where(predicate).First();
-    TItem? FirstOrDefault(Func<TItem, bool> predicate) => this.Where(predicate).FirstOrDefault();
+    TItem First(Func<TItem, bool> predicate) => Where(predicate).First();
+    TItem? FirstOrDefault(Func<TItem, bool> predicate) => Where(predicate).FirstOrDefault();
 
-    TItem Last(Func<TItem, bool> predicate) => this.Where(predicate).Last();
-    TItem? LastOrDefault(Func<TItem, bool> predicate) => this.Where(predicate).LastOrDefault();
+    TItem Last(Func<TItem, bool> predicate) => Where(predicate).Last();
+    TItem? LastOrDefault(Func<TItem, bool> predicate) => Where(predicate).LastOrDefault();
 
     bool Any()
     {
@@ -43,6 +41,7 @@ public interface IRefIterator<TSelf, TItem> : IEnumerator<TItem>
     }
 
     bool Any(Func<TItem, bool> predicate) => Where(predicate).MoveNext();
+    bool All(Func<TItem,bool> predicate)=>!Any(x=>!predicate(x));
     int EstimateCount();
 
     OfTypeIterator<TSelf, TItem, TOther> OfType<TOther>();
@@ -78,7 +77,7 @@ public interface IRefIterator<TSelf, TItem> : IEnumerator<TItem>
     
     
     SelectManyIterator<TSelf, TInner, TItem, TOut> SelectMany<TInner, TOut>(
-        Func<TItem, TInner> flattener) where TInner : IEnumerator<TOut>, allows ref struct ;
+        Func<TItem, TInner> flattener) where TInner : IRefIterator<TInner,TOut>, allows ref struct ;
 
     SelectManyIterator<TSelf, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
         Func<TItem, TOut[]> flattener);
@@ -86,7 +85,22 @@ public interface IRefIterator<TSelf, TItem> : IEnumerator<TItem>
     SelectManyIterator<TSelf, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
         Func<TItem, List<TOut>> flattener);
 
-    SelectManyIterator<TSelf, IEnumerator<TOut>, TItem, TOut> SelectMany<TOut>(
+    SelectManyIterator<TSelf, AdapterIterator<TOut>, TItem, TOut> SelectMany<TOut>(
         Func<TItem, IEnumerable<TOut>> flattener);
 
+    /// <summary>
+    /// Try to take a range by constraining the source Span.
+    /// Do not actually iterate
+    /// </summary>
+    bool TryTakeRange(Range r,[NotNullWhen(returnValue:true),AllowNull,MaybeNullWhen(returnValue:false)] out TSelf? result);
+
+    DistinctIterator<TSelf, TItem> Distinct();
+    DistinctIterator<TSelf, TItem> Distinct(IEqualityComparer<TItem>? comp);
+    DistinctIterator<TSelf, TItem> DistinctBy<T>(Func<TItem, T> keySelector) where T : notnull;
+
+    ConcatIterator<TSelf, TOther, TItem> Concat<TOther>(TOther other)
+        where TOther : IRefIterator<TOther, TItem>, allows ref struct;
+
+    ConcatIterator<TSelf, ItemIterator<TItem>, TItem> Append(TItem append);
+    ConcatIterator<ItemIterator<TItem>, TSelf, TItem> Prepend(TItem prepend);
 }
