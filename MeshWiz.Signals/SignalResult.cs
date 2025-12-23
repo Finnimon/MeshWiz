@@ -1,5 +1,7 @@
 ﻿using System.Numerics;
 using CommunityToolkit.Diagnostics;
+using MeshWiz.Utility;
+using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Signals;
 
@@ -44,6 +46,9 @@ public readonly record struct SignalResult<TIn, TOut>(
         TOut.Abs(a.Result - target) < TOut.Abs(b.Result - target)
             ? a
             : b;
+
+    public bool IsAcceptable(TOut target, TOut eps = default) =>
+        Result.IsApprox(target, eps == default ? Numbers<TOut>.ZeroEpsilon : eps);
 
     public static SignalResult<TIn, TOut> Max(params ReadOnlySpan<SignalResult<TIn, TOut>> opts)
     {

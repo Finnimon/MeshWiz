@@ -185,7 +185,7 @@ public static partial class Signal
             var best = signal.GetResult(initialSearchRange.Center);
             while (maxTries-- > 0)
             {
-                var curTry = BestFitNewton(signal, target, activeSearch, maxIterationsPerTry,tolerance);
+                var curTry = BestFitNewton(signal, target, activeSearch, maxIterationsPerTry, tolerance);
                 var newBest = SignalResult<TIn, TOut>.Closest(target, best, curTry);
                 if (newBest == best)
                     return newBest;
@@ -201,8 +201,8 @@ public static partial class Signal
             }
 
             var finalized = BestFitNewton(signal, target,
-                AABB<TIn>.Around(best.Input, initialSearchRange.Size * Numbers<TIn>.Eps3), 
-                maxIterationsPerTry,tolerance);
+                AABB<TIn>.Around(best.Input, initialSearchRange.Size * Numbers<TIn>.Eps3),
+                maxIterationsPerTry, tolerance);
             return finalized;
         }
 
@@ -226,6 +226,89 @@ public static partial class Signal
             }
 
             return possible.ToArray();
+        }
+
+        public static SignalResult<TIn, TOut> BestFitSweepAdaptive<TIn, TOut>(
+            ISignal<TIn, TOut> signal,
+            TOut target,
+            TIn initialGuess,
+            AABB<TIn> searchRange,
+            TIn initialStep,
+            int maxSteps = 64,
+            TOut tolerance = default)
+            where TIn : unmanaged, IFloatingPointIeee754<TIn>
+            where TOut : unmanaged, IFloatingPointIeee754<TOut>
+        {
+            if (tolerance == default)
+                tolerance = Numbers<TOut>.ZeroEpsilon;
+
+            var best = SignalResult<TIn, TOut>.Create(signal, searchRange.Clamp(initialGuess));
+            var bestError = TOut.Abs(best.Result - target);
+
+            var step = initialStep;
+            var epsIn = Numbers<TIn>.ZeroEpsilon;
+
+            var improvedLast = true;
+
+            for (var i = 0; i < maxSteps; i++)
+            {
+                if (!improvedLast)
+                    step *= Numbers<TIn>.Two; // accelerate escape
+                
+                improvedLast = false;
+
+                foreach (var dir in new[] { -TIn.One, TIn.One })
+                {
+                    var nextX = searchRange.Clamp(best.Input + step * dir);
+                    if (nextX == best.Input)
+                        continue;
+
+                    var next = SignalResult<TIn, TOut>.Create(signal, nextX);
+                    var error = TOut.Abs(next.Result - target);
+
+                    if (error <= tolerance)
+                        return next;
+
+                    var x0 = searchRange.Clamp(nextX - epsIn);
+                    var x1 = searchRange.Clamp(nextX + epsIn);
+                    var f0 = signal.Sample(x0) - target;
+                    var f1 = signal.Sample(x1) - target;
+                    var dfdx = (f1 - f0) / TOut.CreateTruncating(x1 - x0);
+
+                    var prevSign = TOut.Sign(best.Result - target);
+                    var nextSign = TOut.Sign(next.Result - target);
+                    if (prevSign != nextSign)
+                    {
+                        var range = AABB.From(best.Input, nextX);
+                        var bin = BestFitBinary(signal, target, range);
+                        return SignalResult<TIn, TOut>.Closest(target, best, bin);
+                    }
+
+                    if (!dfdx.IsApproxZero() && TOut.Abs(dfdx) > tolerance)
+                    {
+                        var localRange = AABB.Around(nextX, step * Numbers<TIn>.Two);
+                        localRange = searchRange.Clamp(localRange);
+
+                        var newton = BestFitNewton(signal, target, localRange, 16, tolerance);
+                        
+                        if (newton.IsAcceptable(target,tolerance))
+                            return newton;
+                    }
+
+                    if (error >= bestError) continue;
+                    best = next;
+                    bestError = error;
+                    improvedLast = true;
+                }
+
+                if (!improvedLast)
+                    step *= Numbers<TIn>.Two;
+
+                if (step > searchRange.Size)
+                    break;
+            }
+
+            return best;
         }
     }
 }
