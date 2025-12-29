@@ -23,8 +23,7 @@ public readonly record struct OclPlatform(IntPtr Handle) : IAbstraction<OclPlatf
     {
         CL.GetPlatformInfo(platform, PlatformInfo.Name, out var info)
             .ThrowOnError();
-        _ = info ?? throw new NullReferenceException();
-        return Encoding.ASCII.GetString(info);
+        return Encoding.ASCII.GetString(info!);
     }
 
     public static OclPlatform[] GetAll()

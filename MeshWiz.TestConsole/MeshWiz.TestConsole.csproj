@@ -10,4 +10,8 @@
       <ProjectReference Include="..\MeshWiz.Math\MeshWiz.Math.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+    </ItemGroup>
+
 </Project>

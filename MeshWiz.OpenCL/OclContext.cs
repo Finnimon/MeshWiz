@@ -28,10 +28,28 @@ public readonly record struct OclContext(IntPtr Handle) : IAbstraction<OclContex
     public static OclContext FromDevices(params OclDevice[] devices)
     {
         ArgumentOutOfRangeException.ThrowIfEqual(devices.Length, 0, nameof(devices));
-        OclContext context = CL.CreateContext(IntPtr.Zero, devices.As<OclDevice, CLDevice>().ToArray(),
+        OclContext context = CL.CreateContext(IntPtr.Zero, devices.As
+                <OclDevice, CLDevice>().ToArray(),
             IntPtr.Zero, IntPtr.Zero, out var resultCode);
         resultCode.ThrowOnError();
         return context;
+    }
+
+    public static OclContext FromDevice(OclDevice obj)
+        => FromDevices(obj);
+
+    public static OclContext FromDeviceType(DeviceType type)
+    {
+        var context = CL.CreateContextFromType(IntPtr.Zero, type,IntPtr.Zero ,IntPtr.Zero, out var result);
+        result.ThrowOnError();
+        return context;
+    }
+
+    public static bool TryDeviceType(DeviceType type, out OclContext context, bool log = true)
+    {
+        context = CL.CreateContextFromType(IntPtr.Zero, type,IntPtr.Zero,IntPtr.Zero, out var result);
+        if (log) result.LogError();
+        return result is CLResultCode.Success;
     }
 
     public static OclDevice[] GetDevices(CLContext context)
@@ -64,9 +82,31 @@ public readonly record struct OclContext(IntPtr Handle) : IAbstraction<OclContex
         fixed (void* ptr = &value[0]) return new ReadOnlySpan<IntPtr>(ptr, count).ToArray();
     }
 
+    public OclBuffer CreateBuffer<T>(MemoryFlags flags, Span<T> data) where T : unmanaged
+    {
+        var buf= CL.CreateBuffer(this, flags, data, out var code);
+        code.ThrowOnError();
+        return buf;
+    }
+
+    public bool TryCreateBuffer<T>(MemoryFlags flags, Span<T> data, out OclBuffer buffer, bool log=true) 
+        where T : unmanaged
+    {
+        buffer= CL.CreateBuffer(this, flags, data, out var code);
+        if (log) code.LogError();
+        return code is CLResultCode.Success;
+    }
+
+    public bool TryCreateCommandQueue(OclDevice device,IntPtr properties, out OclCommandQueue commandQueue, bool log=true)
+    {
+        commandQueue= CL.CreateCommandQueueWithProperties(this, device.Handle, properties, out var code);
+        if (log) code.LogError();
+        return code is CLResultCode.Success;
+    }
+    
+    
 
     /// <inheritdoc />
     public void Dispose() => CL.ReleaseContext(this);
-
     public void Retain() => CL.RetainContext(this);
 }
