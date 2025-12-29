@@ -96,33 +96,29 @@ public static class Iterator
             iter.CopyTo(array);
             return array;
         }
-        InlineArray8<TItem> scratchMem = default;
-        var scratch = scratchMem.AsSpan<InlineArray8<TItem>, TItem>(8);
-        var size = iter.EstimateCount();
-        var rentScratch = size > 8;
-        using var rented =rentScratch? RentedArray<TItem>.Rent(size) : RentedArray<TItem>.Empty();
-        if (rentScratch)
-            scratch = rented;
-        using SegmentedArrayBuilder<TItem> builder = new(scratch);
-        builder.AddNonICollectionRange(iter);
-        return builder.ToArray();
-    }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void UnsafeAdd<T>(ref T[] arr, T item, ref int count)
-    {
-        if (arr.Length == count) Array.Resize(ref arr, count * 2);
-        arr[count] = item;
-        count++;
+        return AddToArrBuilderThen<TIter, TItem, TItem[]>(iter, x => x.ToArray());
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static List<TItem> ToList<TIter, TItem>(TIter iter)
-        where TIter : IRefIterator<TIter, TItem>, allows ref struct
+        where TIter : IRefIterator<TIter, TItem>, allows ref struct 
+        => AddToArrBuilderThen<TIter, TItem, List<TItem>>(iter, x => x.ToList());
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static T AddToArrBuilderThen<TIter, TItem, T>(TIter iter, Func<SegmentedArrayBuilder<TItem>, T> then)
+    where TIter:IRefIterator<TIter,TItem>,allows ref struct
     {
-        SegmentedArrayBuilder<TItem> builder = new();
+        Unsafe.SkipInit(out InlineArray8<TItem> scratchMem);
+        Span<TItem> scratch = scratchMem;
+        var size = iter.EstimateCount();
+        var rentScratch = size > 8;
+        using var rented = rentScratch ? RentedArray<TItem>.Rent(size) : RentedArray<TItem>.Empty();
+        if (rentScratch)
+            scratch = rented.GetCompleteArray();
+        using SegmentedArrayBuilder<TItem> builder = new(scratch);
         builder.AddNonICollectionRange(iter);
-        return builder.ToList();
+        return then(builder);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -191,25 +187,31 @@ public static class Iterator
     public static Span<TItem> TakeSpan<TItem>(this TItem[] data, int num) => (data).AsSpan(0, num);
     public static Span<TItem> SkipSpan<TItem>(this TItem[] data, int num) => (data).AsSpan(num);
 
-    internal static TItem Aggregate<TIter,TItem>(TIter iter, Func<TItem, TItem, TItem> aggregator) 
+    internal static TItem Aggregate<TIter, TItem>(TIter iter, Func<TItem, TItem, TItem> aggregator)
         where TIter : IRefIterator<TIter, TItem>, allows ref struct
     {
-        if(!iter.MoveNext())
+        if (!iter.MoveNext())
             ThrowHelper.ThrowInvalidOperationException();
         var seed = iter.Current;
         while (iter.MoveNext())
-            seed=aggregator(seed, iter.Current);
+            seed = aggregator(seed, iter.Current);
         return seed;
     }
-    
-    
-    internal static TOut Aggregate<TIter,TItem,TOut>(TIter iter, Func<TOut, TItem, TOut> aggregator,TOut seed) 
+
+
+    internal static TOut Aggregate<TIter, TItem, TOut>(TIter iter, Func<TOut, TItem, TOut> aggregator, TOut seed)
         where TIter : IRefIterator<TIter, TItem>, allows ref struct
     {
         while (iter.MoveNext())
-            seed=aggregator(seed, iter.Current);
+            seed = aggregator(seed, iter.Current);
         return seed;
     }
 
     internal static AdapterIterator<T> Adapt<T>(this IEnumerable<T> source) => new(source);
+
+    public static ItemIterator<T> Repeat<T>(T item, int count)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(count, 0);
+        return new ItemIterator<T>(item, count);
+    }
 }

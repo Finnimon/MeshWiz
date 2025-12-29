@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
@@ -9,23 +10,24 @@ namespace MeshWiz.RefLinq;
 [StructLayout(LayoutKind.Sequential)]
 public struct ItemIterator<T> : IRefIterator<ItemIterator<T>, T>
 {
-    private Once _once = Bool.Once();
-    private readonly bool _empty;
+    private readonly int _count;
+    private int _pos;
     private readonly T? _item;
-    public ItemIterator(T item) : this(item, false) { }
+    public ItemIterator(T item) : this(item, 1) { }
 
-    private ItemIterator(T? item, bool empty = false)
+    public ItemIterator(T? item, int count)
     {
         _item = item;
-        _empty = empty;
+        _count = count;
+        _pos = -1;
     }
 
     /// <inheritdoc />
     public bool MoveNext()
-        => _once && !_empty;
+        => ++_pos<_count;
 
     public void Reset()
-        => _once = Bool.Once();
+        => _pos=-1;
 
     /// <inheritdoc />
     public T Current => _item!;
@@ -43,10 +45,10 @@ public struct ItemIterator<T> : IRefIterator<ItemIterator<T>, T>
     public T? FirstOrDefault() => _item;
 
     /// <inheritdoc />
-    public bool TryGetFirst(out T? item1)
+    public bool TryGetFirst(out T? item)
     {
-        item1 = _item;
-        return true;
+        item = _item;
+        return _count>0;
     }
 
     /// <inheritdoc />
@@ -63,17 +65,21 @@ public struct ItemIterator<T> : IRefIterator<ItemIterator<T>, T>
     }
 
     /// <inheritdoc />
-    public int Count() => _empty ? 0 : 1;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int Count() => _count;
 
     /// <inheritdoc />
     public bool TryGetNonEnumeratedCount(out int count)
     {
-        count = Count();
+        count = _count;
         return true;
     }
 
     /// <inheritdoc />
-    public void CopyTo(Span<T> destination) => destination[0] = _item!;
+    public void CopyTo(Span<T> destination)
+    {
+        destination[.._count].Fill(_item!);
+    }
 
     /// <inheritdoc />
     public ItemIterator<T> GetEnumerator()
@@ -105,23 +111,23 @@ public struct ItemIterator<T> : IRefIterator<ItemIterator<T>, T>
 
     /// <inheritdoc />
     public T[] ToArray()
-        => _empty ? [] : [_item!];
+        => Iterator.ToArray<ItemIterator<T>, T>(this);
 
     /// <inheritdoc />
     public List<T> ToList()
-        => _empty ? [] : [_item!];
+        => new(Enumerable.Repeat(_item!,_count));
 
     /// <inheritdoc />
     public HashSet<T> ToHashSet()
-        => _empty ? [] : [_item!];
+        => ToHashSet(null);
 
     /// <inheritdoc />
     public HashSet<T> ToHashSet(IEqualityComparer<T>? comp)
-        => _empty ? new(comp) : new(comp) { _item! };
+        => new(Enumerate(), comp);
 
     /// <inheritdoc />
     public int EstimateCount()
-        => _empty ? 0 : 1;
+        => _count;
 
     /// <inheritdoc />
     public OfTypeIterator<ItemIterator<T>, T, TOther> OfType<TOther>()
@@ -129,17 +135,18 @@ public struct ItemIterator<T> : IRefIterator<ItemIterator<T>, T>
 
     /// <inheritdoc />
     public T Aggregate(Func<T, T, T> aggregator)
-        => _empty ? ThrowHelper.ThrowInvalidOperationException<T>() : _item!;
+        => Enumerate().Aggregate(aggregator);
+
+    private IEnumerable<T> Enumerate() => Enumerable.Repeat(_item!,_count);
 
     /// <inheritdoc />
     public TOther Aggregate<TOther>(Func<TOther, T, TOther> aggregator, TOther seed)
-        => _empty ? seed : aggregator(seed, _item!);
+        => Enumerate().Aggregate(seed,aggregator);
 
     /// <inheritdoc />
     public Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(Func<T, TKey> keyGen, Func<T, TValue> valGen,
         IEqualityComparer<TKey>? comp) where TKey : notnull
-        => _empty ? new(comp) : new(comp) { { keyGen(_item!), valGen(_item!) } };
-
+        => Enumerate().ToDictionary(keyGen, valGen, comp);
     /// <inheritdoc />
     public SelectManyIterator<ItemIterator<T>, TInner, T, TOut> SelectMany<TInner, TOut>(Func<T, TInner> flattener)
         where TInner : IRefIterator<TInner, TOut>, allows ref struct
@@ -159,16 +166,19 @@ public struct ItemIterator<T> : IRefIterator<ItemIterator<T>, T>
         Func<T, IEnumerable<TOut>> flattener)
         => new(this, Func.Combine(flattener, Iterator.Adapt));
 
-    public static implicit operator ItemIterator<T>(T item) => new(item);
+    public static implicit operator ItemIterator<T>(T item) => new(item,1);
 
-    public static implicit operator T(ItemIterator<T> iter) =>
-        iter._empty ? ThrowHelper.ThrowInvalidOperationException<T>() : iter._item!;
+    public static implicit operator T(ItemIterator<T> iter) => iter._item!;
 
     /// <inheritdoc />
     public bool TryTakeRange(Range r, out ItemIterator<T> result)
     {
-        result = this;
-        return r.IsAll();
+        result = default;
+        var res= Func.Try(r.GetOffsetAndLength, _count);
+        if(!res) return false;
+        var length = res.Value.Length;
+        result = new ItemIterator<T>(_item, length);
+        return true;
     }
 
 
@@ -192,5 +202,5 @@ public struct ItemIterator<T> : IRefIterator<ItemIterator<T>, T>
         => new(prepend, this);
 
     /// <inheritdoc />
-    public static ItemIterator<T> Empty() => new(default, true);
+    public static ItemIterator<T> Empty() => new(default, 0);
 }

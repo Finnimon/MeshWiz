@@ -265,11 +265,11 @@ public ref struct SelectManyIterator<TIter, TInner, TIn, TOut>(TIter source, Fun
         var spanner = this;
         spanner.Reset();
         // using var scratch = RentedArray<TOut>.Rent(spanner.EstimateCount());
-        InlineArray8<TOut> scratchMem = default;
+        Unsafe.SkipInit(out InlineArray8<TOut> scratchMem);
         var size = spanner.EstimateCount();
         var rentScratch = size > 8;
         using var rented = rentScratch ? RentedArray<TOut>.Rent(size) : RentedArray<TOut>.Empty();
-        Span<TOut> scratch = rentScratch ? rented : scratchMem;
+        Span<TOut> scratch = rentScratch ? rented.GetCompleteArray() : scratchMem;
         using SegmentedArrayBuilder<TOut> builder = new(scratch);
         while (spanner._source.MoveNext())
         {

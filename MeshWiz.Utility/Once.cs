@@ -29,33 +29,35 @@ public struct Once : IEquatable<Once>,
     }
 
     /// <inheritdoc />
-    public bool Equals(Once other)
+    public readonly bool Equals(Once other)
         => _value == other._value;
 
     /// <inheritdoc />
-    public int CompareTo(Once other)
+    public readonly int CompareTo(Once other)
         => _value.CompareTo(other._value);
 
+    public readonly bool ReadValue() => _value;
+
     /// <inheritdoc />
-    public override bool Equals([NotNullWhen(true)] object? obj)
+    public readonly override bool Equals([NotNullWhen(true)] object? obj)
         => obj is Once other && _value == other._value;
 
     /// <inheritdoc />
-    public override int GetHashCode() => _value.GetHashCode();
+    public readonly override int GetHashCode() => _value.GetHashCode();
 
     /// <inheritdoc />
     public int CompareTo(object? obj)
         => _value.CompareTo(obj);
 
     /// <inheritdoc />
-    public bool Equals(Once x, Once y)
+    public readonly bool Equals(Once x, Once y)
         => x._value == y._value;
 
     /// <inheritdoc />
-    public int GetHashCode(Once obj)
+    public readonly int GetHashCode(Once obj)
         => _value.GetHashCode();
 
-    public override string ToString() => _value.ToString();
+    public readonly override string ToString() => _value.ToString();
 
     /// <inheritdoc />
     public static bool operator ==(Once left, Once right)
