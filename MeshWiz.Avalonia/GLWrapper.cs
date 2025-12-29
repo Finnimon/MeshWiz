@@ -1,8 +1,8 @@
 using Avalonia.Controls;
 using Avalonia.Metadata;
-using MeshWiz.Abstraction.OpenTK;
+using MeshWiz.OpenTK;
 
-namespace MeshWiz.Abstraction.Avalonia;
+namespace MeshWiz.Avalonia;
 
 public sealed class GLWrapper<TWrapped> : Control, IOpenGLControl
 where TWrapped : class, IOpenGLControl

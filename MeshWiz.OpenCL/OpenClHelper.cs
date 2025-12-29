@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using OpenTK.Compute.OpenCL;
 
-namespace MeshWiz.Abstraction.OpenCL;
+namespace MeshWiz.OpenCL;
 
 public static class OpenClHelper
 {

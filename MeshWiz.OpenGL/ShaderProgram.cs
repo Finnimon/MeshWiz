@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using MeshWiz.UpToDate;
 using OpenTK.Mathematics;
 
-namespace MeshWiz.Abstraction.OpenTK;
+namespace MeshWiz.OpenTK;
 
 public sealed record ShaderProgram(int Handle) : IUpToDate
 {

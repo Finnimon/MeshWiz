@@ -1,5 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
-using MeshWiz.Abstraction.OpenTK;
+using MeshWiz.OpenTK;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 

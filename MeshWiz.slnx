@@ -4,23 +4,7 @@
     <Platform Name="x64 " />
     <Platform Name="x86 " />
   </Configurations>
-  <Project Path="MeshWiz.Abstraction.Avalonia\MeshWiz.Abstraction.Avalonia.csproj">
-    <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
-    <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
-    <Configuration Solution="Debug|x86 " Project="Debug|Any CPU" />
-    <Configuration Solution="Release|Any CPU " Project="Release|Any CPU" />
-    <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
-    <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
-  </Project>
-  <Project Path="MeshWiz.Abstraction.OpenCL\MeshWiz.Abstraction.OpenCL.csproj">
-    <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
-    <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
-    <Configuration Solution="Debug|x86 " Project="Debug|Any CPU" />
-    <Configuration Solution="Release|Any CPU " Project="Release|Any CPU" />
-    <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
-    <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
-  </Project>
-  <Project Path="MeshWiz.Abstraction.OpenTK\MeshWiz.Abstraction.OpenTK.csproj">
+  <Project Path="MeshWiz.Avalonia\MeshWiz.Avalonia.csproj">
     <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
     <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
     <Configuration Solution="Debug|x86 " Project="Debug|Any CPU" />
@@ -86,6 +70,22 @@
     <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
   </Project>
   <Project Path="MeshWiz.Math/MeshWiz.Math.csproj" />
+  <Project Path="MeshWiz.OpenCL\MeshWiz.OpenCL.csproj">
+    <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x86 " Project="Debug|Any CPU" />
+    <Configuration Solution="Release|Any CPU " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
+  </Project>
+  <Project Path="MeshWiz.OpenGL\MeshWiz.OpenGL.csproj">
+    <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x86 " Project="Debug|Any CPU" />
+    <Configuration Solution="Release|Any CPU " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
+  </Project>
   <Project Path="MeshWiz.RefLinq.Benchmark\MeshWiz.RefLinq.Benchmark.csproj">
     <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
     <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />

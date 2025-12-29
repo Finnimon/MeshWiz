@@ -3,7 +3,7 @@ using System.Text;
 using MeshWiz.Contracts;
 using OpenTK.Compute.OpenCL;
 
-namespace MeshWiz.Abstraction.OpenCL;
+namespace MeshWiz.OpenCL;
 
 public readonly record struct OclPlatform(IntPtr Handle) : IAbstraction<OclPlatform, CLPlatform>, IDisposable
 {

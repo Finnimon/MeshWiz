@@ -3,7 +3,7 @@ using System.Text;
 using MeshWiz.Contracts;
 using OpenTK.Compute.OpenCL;
 
-namespace MeshWiz.Abstraction.OpenCL;
+namespace MeshWiz.OpenCL;
 
 /// <summary>
 /// Abstraction Layer for <see cref="CLDevice"/>

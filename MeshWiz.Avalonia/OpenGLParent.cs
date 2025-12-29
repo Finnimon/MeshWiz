@@ -7,12 +7,12 @@ using Avalonia.Metadata;
 using Avalonia.OpenGL;
 using Avalonia.OpenGL.Controls;
 using Avalonia.Threading;
-using MeshWiz.Abstraction.OpenTK;
 using MeshWiz.Math;
+using MeshWiz.OpenTK;
 using MeshWiz.Utility.Extensions;
 using OpenTK.Graphics.OpenGL;
 
-namespace MeshWiz.Abstraction.Avalonia;
+namespace MeshWiz.Avalonia;
 
 public sealed class OpenGLParent : OpenGlControlBase, IDisposable
 {

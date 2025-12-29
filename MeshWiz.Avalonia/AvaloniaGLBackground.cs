@@ -1,9 +1,9 @@
 using Avalonia.Media;
-using MeshWiz.Abstraction.OpenTK;
+using MeshWiz.OpenTK;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 
-namespace MeshWiz.Abstraction.Avalonia;
+namespace MeshWiz.Avalonia;
 
 public class AvaloniaGLBackground : IOpenGLControl
 {

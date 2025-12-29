@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace MeshWiz.Abstraction.OpenTK;
+namespace MeshWiz.OpenTK;
 
 [TypeConverter(typeof(EnumConverter)), Flags]
 public enum RenderMode

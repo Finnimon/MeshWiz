@@ -20,8 +20,8 @@
         <PackageReference Include="OpenTK" Version="4.9.4" />
     </ItemGroup>
     <ItemGroup>
-      <ProjectReference Include="..\MeshWiz.Abstraction.Avalonia\MeshWiz.Abstraction.Avalonia.csproj" />
-      <ProjectReference Include="..\MeshWiz.Abstraction.OpenTK\MeshWiz.Abstraction.OpenTK.csproj" />
+      <ProjectReference Include="..\MeshWiz.Avalonia\MeshWiz.Avalonia.csproj" />
+      <ProjectReference Include="..\MeshWiz.OpenGL\MeshWiz.OpenGL.csproj" />
       <ProjectReference Include="..\MeshWiz.Collections\MeshWiz.Collections.csproj" />
       <ProjectReference Include="..\MeshWiz.IO.Stl\MeshWiz.IO.Stl.csproj" />
       <ProjectReference Include="..\MeshWiz.IO\MeshWiz.IO.csproj" />

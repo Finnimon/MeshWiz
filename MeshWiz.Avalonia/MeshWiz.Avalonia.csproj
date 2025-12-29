@@ -20,7 +20,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\MeshWiz.Abstraction.OpenTK\MeshWiz.Abstraction.OpenTK.csproj" />
+    <ProjectReference Include="..\MeshWiz.OpenGL\MeshWiz.OpenGL.csproj" />
     <ProjectReference Include="..\MeshWiz.Math\MeshWiz.Math.csproj" />
     <ProjectReference Include="..\MeshWiz.Utility\MeshWiz.Utility.csproj" />
   </ItemGroup>

@@ -1,7 +1,7 @@
 using MeshWiz.Math;
 using OpenTK.Mathematics;
 
-namespace MeshWiz.Abstraction.OpenTK;
+namespace MeshWiz.OpenTK;
 
 
 public interface ICamera

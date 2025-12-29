@@ -1,6 +1,6 @@
 using MeshWiz.UpToDate;
 
-namespace MeshWiz.Abstraction.OpenTK;
+namespace MeshWiz.OpenTK;
 
 public interface IOpenGLControl : IDisposable, IUpToDate
 {

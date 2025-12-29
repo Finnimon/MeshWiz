@@ -2,8 +2,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:gl="clr-namespace:MeshWiz.Abstraction.OpenTK;assembly=MeshWiz.Abstraction.OpenTK"
-        xmlns:ava-abst="clr-namespace:MeshWiz.Abstraction.Avalonia;assembly=MeshWiz.Abstraction.Avalonia"
+        xmlns:gl="clr-namespace:MeshWiz.OpenTK;assembly=MeshWiz.OpenGL"
+        xmlns:ava-abst="clr-namespace:MeshWiz.Avalonia;assembly=MeshWiz.Avalonia"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="MeshWiz.UI.Avalonia.MainWindow"
         Title="MeshWiz.UI.Avalonia" Focusable="true">

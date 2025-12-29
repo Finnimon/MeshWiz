@@ -4,7 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
-using MeshWiz.Abstraction.OpenTK;
+using MeshWiz.OpenTK;
 using MeshWiz.Collections;
 using MeshWiz.IO.Stl;
 using MeshWiz.Math;

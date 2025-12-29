@@ -2,33 +2,12 @@ using MeshWiz.Math;
 using MeshWiz.UpToDate;
 using OpenTK.Mathematics;
 
-namespace MeshWiz.Abstraction.OpenTK;
+namespace MeshWiz.OpenTK;
 
-public class SmoothMeshView : IOpenGLControl
+public class HarshMeshView : IOpenGLControl
 {
-    private readonly EquatableScopedProperty<bool> _show;
-
-    public bool Show
-    {
-        get => _show;
-        set => _show.Value = value;
-    }
-
+    public bool Show { get; set; } = true;
     public required ICamera Camera { get; set; }
-
-    // public RenderMode RenderModeFlags { get; set; } = RenderMode.Solid;
-    // public Color4 WireFrameColor { get; set; } = Color4.Black;
-    // public Color4 SolidColor { get; set; } = Color4.Gray;
-    // public Color4 LightColor { get; set; } = Color4.White;
-    //
-    private readonly FloatingPointScopedProperty<float> _lineWidth;
-
-    public float LineWidth
-    {
-        get => _lineWidth;
-        set => _lineWidth.Value = float.Max(value, 1f);
-    }
-
     private readonly EquatableScopedProperty<int> _renderModeFlags;
 
     public RenderMode RenderModeFlags
@@ -70,20 +49,13 @@ public class SmoothMeshView : IOpenGLControl
     }
 
     private Vector3<float> AboveHead => Camera.UnitUp * 2 + Camera.Position;
+
     private readonly FloatingPointScopedProperty<float> _solidAmbientStrength;
 
     public float SolidAmbientStrength
     {
         get => _solidAmbientStrength;
         set => _solidAmbientStrength.Value = float.Clamp(value, 0f, 1f);
-    }
-
-    private readonly FloatingPointScopedProperty<float> _depthOffset;
-
-    public float DepthOffset
-    {
-        get => _depthOffset;
-        set => _depthOffset.Value = value;
     }
 
     private readonly FloatingPointScopedProperty<float> _solidSpecularStrength;
@@ -106,19 +78,23 @@ public class SmoothMeshView : IOpenGLControl
     private bool _newMesh;
     private int _uploadedCount;
     private VertexArrayObject? _vao;
+
     private BufferObject? _vbo;
-    private BufferObject? _ibo;
+
+    // private BufferObject? _ibo;
+    // private BufferObject? _normalsSsbo;
+    // private BufferObject? _normIdxVbo;
     private ShaderProgram? _solidColorShader;
     private ShaderProgram? _blinnPhongShader;
 
 
-    public IIndexedMesh<float> Mesh
+    public IMesh<float> Mesh
     {
         get;
         set
         {
             if (field == value) return;
-            this.OutOfDate();
+            OutOfDate();
             _newMesh = true;
             field = value;
         }
@@ -127,6 +103,8 @@ public class SmoothMeshView : IOpenGLControl
 
     public void Init()
     {
+        OutOfDate();
+
         _vao = new VertexArrayObject();
         _blinnPhongShader = ShaderProgram.FromFiles("Shaders/blinn_phong/blinn_phong");
         _solidColorShader = ShaderProgram.FromFiles("Shaders/solid_color/solid_color");
@@ -143,19 +121,15 @@ public class SmoothMeshView : IOpenGLControl
     {
         var (model, view, projection) = Camera.CreateRenderMatrices(aspectRatio);
         const string colorUniformName = "objectColor";
-        var camDistance = Camera.Position.DistanceTo(Camera.LookAt);
-        var depthOffset = DepthOffset / (camDistance * camDistance);
         _solidColorShader!.ConsumeOutOfDate();
         _blinnPhongShader!.ConsumeOutOfDate();
         _solidColorShader!.BindAnd()
             .SetUniform(nameof(model), ref model)
             .SetUniform(nameof(view), ref view)
             .SetUniform(nameof(projection), ref projection)
-            .SetUniform(nameof(depthOffset), depthOffset)
             .SetUniform(colorUniformName, WireFrameColor)
             .Unbind();
-        OpenGLHelper.LogGlError(nameof(SmoothMeshView));
-        
+
         _blinnPhongShader!.BindAnd()
             .SetUniform(nameof(model), ref model)
             .SetUniform(nameof(view), ref view)
@@ -167,11 +141,10 @@ public class SmoothMeshView : IOpenGLControl
             .SetUniform("specularStrength", SolidSpecularStrength)
             .SetUniform("shininess", SolidShininessStrength)
             .SetUniform("lightPos", LightPosition.ToOpenTK())
-            .SetUniform(nameof(depthOffset), depthOffset)
             .Unbind();
-        OpenGLHelper.LogGlError(nameof(SmoothMeshView));
-        if (!_blinnPhongShader.ConsumeOutOfDate() || !_solidColorShader.ConsumeOutOfDate())
+        if (!_blinnPhongShader!.ConsumeOutOfDate() || !_solidColorShader!.ConsumeOutOfDate())
             this.OutOfDate();
+        OpenGLHelper.LogGlError(nameof(HarshMeshView));
     }
 
     public void Render()
@@ -180,149 +153,163 @@ public class SmoothMeshView : IOpenGLControl
             return;
         ConsumeOutOfDate();
         _vao!.Bind();
-
-        if ((RenderModeFlags & RenderMode.Solid) == RenderMode.Solid)
+        var renderSolid = (RenderModeFlags & RenderMode.Solid) == RenderMode.Solid;
+        if (renderSolid)
         {
             GL.Enable(EnableCap.CullFace);
             GL.CullFace(TriangleFace.Back);
-            GL.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Fill);
-            _blinnPhongShader!.Bind();
-            GL.DrawElements(PrimitiveType.Triangles, _uploadedCount, DrawElementsType.UnsignedInt, 0);
-            _blinnPhongShader.Unbind();
-            GL.Disable(EnableCap.CullFace);
         }
 
         if ((RenderModeFlags & RenderMode.Wireframe) == RenderMode.Wireframe)
         {
-            GL.Enable(EnableCap.PolygonOffsetLine);
             GL.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Line);
             _solidColorShader!.Bind();
-            GL.PolygonOffset(-1f, -1f);
+            GL.Enable(EnableCap.PolygonOffsetLine);
+            GL.PolygonOffset(-0.5f, -0.5f);
             GL.LineWidth(LineWidth);
-            GL.DrawElements(PrimitiveType.Triangles, _uploadedCount, DrawElementsType.UnsignedInt, 0);
+            GL.DrawArrays(PrimitiveType.Triangles, 0, _uploadedCount);
             GL.LineWidth(1f);
+            GL.PolygonOffset(0f, 0f);
             GL.Disable(EnableCap.PolygonOffsetLine);
             _solidColorShader.Unbind();
         }
 
+        if (renderSolid)
+        {
+            GL.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Fill);
+            _blinnPhongShader!.Bind();
+            GL.DrawArrays(PrimitiveType.Triangles, 0, _uploadedCount);
+            _blinnPhongShader.Unbind();
+        }
 
+        if (renderSolid) GL.Disable(EnableCap.CullFace);
         _vao.Unbind();
-        OpenGLHelper.LogGlError(nameof(SmoothMeshView));
+        OpenGLHelper.LogGlError(nameof(HarshMeshView));
+    }
+
+    private readonly FloatingPointScopedProperty<float> _lineWidth;
+
+    public float LineWidth
+    {
+        get => _lineWidth;
+        set => _lineWidth.Value = float.Max(value, 1f);
     }
 
 
     public void Dispose()
     {
-        OutOfDate();
         GLInitialized = false;
+        OutOfDate();
         _vao?.Unbind();
         _vbo?.Unbind();
         _vbo?.Dispose();
-        _ibo?.Unbind();
-        _ibo?.Dispose();
+        // _ibo?.Unbind();
+        // _ibo?.Dispose();
+        // _normalsSsbo?.Unbind();
+        // _normalsSsbo?.Dispose();
+        // _normIdxVbo?.Unbind();
+        // _normIdxVbo?.Dispose();
         _vao?.Dispose();
         _blinnPhongShader?.Unbind();
         _blinnPhongShader?.Dispose();
         _solidColorShader?.Unbind();
         _solidColorShader?.Dispose();
-        _vao = null;
-        _vbo = null;
-        _ibo = null;
-        _blinnPhongShader = null;
-        _solidColorShader = null;
     }
 
 
     private void UploadMesh()
     {
-        OutOfDate();
         _vao!.Bind();
         _vbo?.Unbind();
         _vbo?.Dispose();
-        _ibo?.Unbind();
-        _ibo?.Dispose();
+        // _ibo?.Unbind();
+        // _ibo?.Dispose();
+        // _normalsSsbo?.Unbind();
+        // _normalsSsbo?.Dispose();
+        // _normIdxVbo?.Unbind();
+        // _normIdxVbo?.Dispose();
 
-        var mesh = Mesh;
-        var normals = GetInterleavedMesh(mesh);
         _newMesh = false;
-        // Interleave positions and normals
-        var vertexData = new float[mesh.Vertices.Length * 6];
-        for (var i = 0; i < mesh.Vertices.Length; i++)
+        this.OutOfDate();
+        var mesh = Mesh;
+        var interleaved = new Vector3<float>[Mesh.Count * 6];
+        for (var i = 0; i < mesh.Count; i++)
         {
-            var v = mesh.Vertices[i];
-            var n = normals[i];
-            var baseIdx = i * 6;
-            vertexData[baseIdx + 0] = v.X;
-            vertexData[baseIdx + 1] = v.Y;
-            vertexData[baseIdx + 2] = v.Z;
-            vertexData[baseIdx + 3] = n.X;
-            vertexData[baseIdx + 4] = n.Y;
-            vertexData[baseIdx + 5] = n.Z;
+            var tri = mesh[i];
+            var n = tri.Normal;
+            interleaved[i * 6 + 0] = tri.A;
+            interleaved[i * 6 + 1] = n;
+            interleaved[i * 6 + 2] = tri.B;
+            interleaved[i * 6 + 3] = n;
+            interleaved[i * 6 + 4] = tri.C;
+            interleaved[i * 6 + 5] = n;
         }
-
-
-        _uploadedCount = mesh.Indices.Length * 3;
 
         _vbo = new BufferObject(BufferTarget.ArrayBuffer);
-        _vbo.BindAnd()
-            .BufferData(vertexData, BufferUsageHint.StaticDraw);
-
-        var stride = 2 * Vector3<float>.ByteSize;
+        _vbo.BindAnd().BufferData(interleaved, BufferUsageHint.StaticDraw);
         var positionLoc = _blinnPhongShader!.GetAttribLoc("position");
-        var normalLoc = _blinnPhongShader.GetAttribLoc("normal");
-
-        GL.VertexAttribPointer(positionLoc, 3, VertexAttribPointerType.Float, false, stride, 0);
+        GL.VertexAttribPointer(positionLoc, 3, VertexAttribPointerType.Float, false, Vector3<float>.ByteSize * 2, 0);
         GL.EnableVertexAttribArray(positionLoc);
+        var normLoc = _blinnPhongShader!.GetAttribLoc("normal");
+        GL.VertexAttribPointer(normLoc, 3, VertexAttribPointerType.Float, false, Vector3<float>.ByteSize * 2,
+            Vector3<float>.ByteSize);
+        GL.EnableVertexAttribArray(normLoc);
+        _uploadedCount = Mesh.Count * 3;
 
-        GL.VertexAttribPointer(normalLoc, 3, VertexAttribPointerType.Float, false, stride, sizeof(float) * 3);
-        GL.EnableVertexAttribArray(normalLoc);
-
-        _ibo = new BufferObject(BufferTarget.ElementArrayBuffer);
-        _ibo.BindAnd()
-            .BufferData(mesh.Indices, BufferUsageHint.StaticDraw);
 
         _vao.Unbind();
-        OpenGLHelper.LogGlError(nameof(SmoothMeshView));
-    }
 
-    Vector3<float>[] GetInterleavedMesh(IIndexedMesh<float> mesh)
-    {
-        var normals = new Vector3<float>[mesh.Vertices.Length];
-        var counts = new uint[mesh.Vertices.Length];
+        // var normals = new Vector3<float>[mesh.Count * 3];
+        // for (var i = 0; i < mesh.Count; i++) normals[i] = mesh[i].Normal;
+        // var normalIndices = new uint[mesh.Count * 3];
+        // for (uint i = 0; i < mesh.Count; i++)
+        //     for (uint j = 0; j < 3; j++)
+        //         normalIndices[i+j] = i;
+        // _normIdxVbo = new BufferObject(BufferTarget.ArrayBuffer);
+        // _normIdxVbo.Bind();
+        // _normIdxVbo.BufferData(normalIndices, BufferUsageHint.StaticDraw);
+        // int normIdxLoc = _blinnPhongShader!.GetAttribLoc("normalIndex"); // =1
+        // GL.VertexAttribIPointer(normIdxLoc, 1, VertexAttribIntegerType.UnsignedInt, sizeof(uint), 0);
+        // GL.VertexAttribDivisor(normIdxLoc, 0);
+        // GL.EnableVertexAttribArray(normIdxLoc);
+        //
+        // _uploadedCount = mesh.Count * 3;
+        //
+        // _vbo = new BufferObject(BufferTarget.ArrayBuffer);
+        // _vbo.BindAnd()
+        //     .BufferData(mesh.Vertices, BufferUsageHint.StaticDraw);
+        //
+        // int positionLoc = _blinnPhongShader!.GetAttribLoc("position");
+        //
+        // GL.VertexAttribPointer(positionLoc, 3, VertexAttribPointerType.Float, false, Vector3<float>.ByteSize, 0);
+        // GL.EnableVertexAttribArray(positionLoc);
 
-        for (var i = 0; i < mesh.Indices.Length; i++)
-        {
-            var indexer = mesh.Indices[i];
-            var normal = indexer.Extract(mesh.Vertices).Normal;
 
-            normals[indexer.A] += normal;
-            counts[indexer.A]++;
-            normals[indexer.B] += normal;
-            counts[indexer.B]++;
-            normals[indexer.C] += normal;
-            counts[indexer.C]++;
-        }
-
-        for (var i = 0; i < normals.Length; i++) normals[i] /= counts[i];
-
-        return normals;
+        // _ibo = new BufferObject(BufferTarget.ElementArrayBuffer);
+        // _ibo.BindAnd()
+        //     .BufferData(mesh.Indices, BufferUsageHint.StaticDraw);
+        // var errorCode = OpenGLHelper.LogGlError(nameof(HarshMeshView), nameof(UploadMesh));
+        //
+        // _normalsSsbo = new BufferObject(BufferTarget.ShaderStorageBuffer);
+        // _normalsSsbo.BindAnd().BufferData(normals, BufferUsageHint.StaticDraw);
+        // var ssboBindingIndex = _blinnPhongShader.BindAnd().GetResourceIndex("TriangleNormals");
+        // GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 0, _normalsSsbo.Handle);
+        // _vao.Unbind();
     }
 
     private bool _upToDate = false;
 
-    public SmoothMeshView()
+    public HarshMeshView()
     {
-        _show = this.Property(true);
-        _lineWidth = this.FloatingPointProperty(1f);
         _renderModeFlags = this.Property((int)RenderMode.Solid);
         _wireframeColor = this.Property(Color4.Black);
         _solidColor = this.Property(Color4.Gray);
         _lightColor = this.Property(Color4.White);
         _lightPosition = this.Property(Vector3<float>.NaN);
         _solidAmbientStrength = this.FloatingPointProperty(0.15f);
-        _depthOffset = this.FloatingPointProperty(0.0005f);
         _solidSpecularStrength = this.FloatingPointProperty(0.75f);
         _solidShininessStrength = this.FloatingPointProperty(32f);
+        _lineWidth = this.FloatingPointProperty(1f);
     }
 
     /// <inheritdoc />

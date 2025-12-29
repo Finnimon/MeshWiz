@@ -1,7 +1,7 @@
 using Avalonia.OpenGL;
 using OpenTK;
 
-namespace MeshWiz.Abstraction.Avalonia;
+namespace MeshWiz.Avalonia;
 
 public sealed record AvaloniaGLContext(GlInterface AvaloniaInterface) : IBindingsContext
 {

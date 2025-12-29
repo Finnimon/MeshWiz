@@ -1,4 +1,4 @@
-namespace MeshWiz.Abstraction.OpenTK;
+namespace MeshWiz.OpenTK;
 
 public sealed record VertexArrayObject(int Handle):IDisposable
 {
