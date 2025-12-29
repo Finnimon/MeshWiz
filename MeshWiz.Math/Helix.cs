@@ -265,4 +265,7 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vector3<TNum
     public static bool operator !=(Helix<TNum> left, Helix<TNum> right) => !left.Equals(right);
 
     public Ray3<TNum> GetRay(TNum t) => ProjectDirectionComplete(Cylinder, Line.Traverse(t), Line.Direction);
+
+    public Helix<TNum> Section(TNum start, TNum end)
+        => new(Cylinder, Line.Section(start, end));
 }

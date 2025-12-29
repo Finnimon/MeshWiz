@@ -26,7 +26,7 @@ public sealed class PosePolyline<TPose, TVector, TNum> : IDiscretePoseCurve<TPos
         return CreateCulledNonCopying(poses.ToArray());
     }
 
-    private static PosePolyline<TPose, TVector, TNum> CreateCulledNonCopying(TPose[] poses)
+    public static PosePolyline<TPose, TVector, TNum> CreateCulledNonCopying(TPose[] poses)
     {
         if (poses.Length is 0 or 1)
             return new PosePolyline<TPose, TVector, TNum>();

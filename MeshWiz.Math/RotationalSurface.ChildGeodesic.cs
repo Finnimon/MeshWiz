@@ -328,5 +328,16 @@ public sealed partial record RotationalSurface<TNum>
             ChildSurfaceType.CircleSection => (Line<Vector3<TNum>, TNum>)Line,
             _ => ThrowHelper.ThrowInvalidOperationException<Ray3<TNum>>()
         };
+
+        public ChildGeodesic Section(TNum start, TNum end)
+            => Type switch
+            {
+                ChildSurfaceType.Cylinder => CreateCylinder(Index,Helix.Section(start,end)),
+                ChildSurfaceType.Cone => CreateCone(Index,ConeGeodesic.Section(start,end)),
+                ChildSurfaceType.ConeSection => CreateCone(Index,ConeGeodesic.Section(start,end)),
+                ChildSurfaceType.Circle => CreateCircle(Index,Line.Section(start,end)),
+                ChildSurfaceType.CircleSection => CreateCircle(Index,Line.Section(start,end)),
+                _ => ThrowHelper.ThrowInvalidOperationException<ChildGeodesic>()
+            };
     }
 }

@@ -18,7 +18,8 @@ public sealed partial record RotationalSurface<TNum>
     )
     {
         private Result<PeriodicalGeodesics, Ray3<TNum>>? _exit;
-        public Result<PeriodicalGeodesics, Ray3<TNum>> Exit => _exit ??= CalculateExit();
+        public Result<PeriodicalGeodesics, Ray3<TNum>> Exit => _exit ??= CreateExit();
+        private TNum _exitParameter;
 
         private Result<PeriodicalGeodesics, Angle<TNum>>? _entryAngle;
         public Result<PeriodicalGeodesics, Angle<TNum>> EntryAngle => _entryAngle ??= CalculateEntryAngle();
@@ -36,39 +37,6 @@ public sealed partial record RotationalSurface<TNum>
             }
         }
 
-        private PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>? _exitCurve;
-
-        private Result<PeriodicalGeodesics, Ray3<TNum>> CalculateExit()
-        {
-            if (!TraceResult)
-                return Result<PeriodicalGeodesics, Ray3<TNum>>.Failure(TraceResult.Info);
-            if (_exitCurve is not null)
-                return new Ray3<TNum>(_exitCurve.Poses[^1].Origin, _exitCurve.Poses[^1].Front);
-            var curves = TraceResult.Value;
-            var firstCurve = curves[0];
-            Plane3<TNum> startPlane = new(Axis.Direction, firstCurve.Start);
-            var lastCurve = curves[^1].ToPosePolyline();
-            var intersections = GetIntersectingSegments(startPlane, lastCurve);
-            if (intersections.Count < 1)
-                return Result<PeriodicalGeodesics, Ray3<TNum>>.DefaultFailure;
-            var initialEntry = firstCurve.EntryDirection;
-            var endingSegment = intersections.OrderBy(i =>
-            {
-                var dot = lastCurve[i].Direction.Dot(initialEntry);
-                var closeness = TNum.Abs(dot - TNum.One);
-                return closeness;
-            }).First();
-            var endingLine = lastCurve[endingSegment];
-            var success = startPlane.Intersect(endingLine, out var endingPoint);
-            if (!success)
-                return Result<PeriodicalGeodesics, Ray3<TNum>>.DefaultFailure;
-            var dist = Vector3<TNum>.Distance(endingLine.StartPose.Position, endingPoint);
-            var distances = lastCurve.CumulativeDistances;
-            var totalLength = distances[endingSegment] + dist;
-            _exitCurve = lastCurve.ExactSection(TNum.Zero, totalLength);
-
-            return new Ray3<TNum>(endingPoint, endingLine.AxisVector);
-        }
 
         [Pure]
         private static List<int> GetIntersectingSegments(Plane3<TNum> plane,
@@ -92,31 +60,27 @@ public sealed partial record RotationalSurface<TNum>
 
         private Result<PeriodicalGeodesics, Polyline<Vector3<TNum>, TNum>> FinalizedPolyline()
         {
-            var sw = Stopwatch.StartNew();
             if (_finalizedPath is not null)
                 return _finalizedPath.Value;
-            if (_finalizedPoses is { IsSuccess: true })
-                return _finalizedPoses.Value.Value.ToPolyline();
-            if (!TraceResult || !Exit)
-                return Result<PeriodicalGeodesics, Polyline<Vector3<TNum>, TNum>>.Failure(!TraceResult
-                    ? TraceResult.Info
-                    : Exit.Info);
+            if (_finalizedPoses.TryGetValue(out var posesResult)
+                && posesResult.TryGetValue(out var poses))
+                return poses.ToPolyline();
+            if(!TraceResult.TryGetValue(out var trace))
+                return TraceResult.Info;
+            if (!Exit)
+                return Exit.Info;
 
-            sw.Restart();
-            var segments = TraceResult.Value
-                .Take(..^2)
-                .Select(c => c.ToPolyline())
-                .Append(_exitCurve!.ToPolyline());
+            var last = trace.Count - 1;
+            var segments = trace
+                .Select((c, i) => 
+                    i != last 
+                    ? c.ToPolyline() 
+                    : c.Section(TNum.Zero, _exitParameter).ToPolyline());
             var concat = Polyline.ForceConcat(segments);
 
-            sw.Restart();
-            Result<PeriodicalGeodesics, Polyline<Vector3<TNum>, TNum>> result;
-            result = concat
+            return concat
                 ? Polyline<Vector3<TNum>, TNum>.CreateCulled(concat)
                 : Result<PeriodicalGeodesics, Polyline<Vector3<TNum>, TNum>>.DefaultFailure;
-
-            sw.Restart();
-            return result;
         }
 
         private Result<PeriodicalGeodesics, PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>>? _finalizedPoses;
@@ -126,18 +90,22 @@ public sealed partial record RotationalSurface<TNum>
 
         private Result<PeriodicalGeodesics, PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>> FinalizePoses()
         {
-            if (!TraceResult || !Exit)
-                return Result<PeriodicalGeodesics, PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>>.Failure(!TraceResult
-                    ? TraceResult.Info
-                    : Exit.Info);
-            var segments = TraceResult.Value
-                .Take(..^2)
-                .Select(c => c.ToPosePolyline())
-                .Append(_exitCurve!);
+            
+            if(!TraceResult.TryGetValue(out var trace))
+                return TraceResult.Info;
+            if (!Exit)
+                return Exit.Info;
+
+            var last = trace.Count - 1;
+            var segments = trace
+                .Select((c, i) => 
+                    i != last 
+                        ? c.ToPosePolyline() 
+                        : c.Section(TNum.Zero, _exitParameter).ToPosePolyline());
             var poses = Polyline.ForceConcat(segments);
-            if (!poses)
-                return Result<PeriodicalGeodesics, PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>>.DefaultFailure;
-            return PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>.CreateCulled(poses);
+            return !poses
+                ? Result<PeriodicalGeodesics, PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>>.DefaultFailure
+                : PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>.CreateCulledNonCopying(poses);
         }
 
         private Result<PeriodicalGeodesics, Angle<TNum>>? _phase;
@@ -349,7 +317,7 @@ public sealed partial record RotationalSurface<TNum>
 
         public Result<PeriodicalGeodesics, TNum> CalculateCoverage(TNum width) => throw new NotImplementedException();
 
-        public Result<PeriodicalGeodesics, Ray3<TNum>> Exit2()
+        public Result<PeriodicalGeodesics, Ray3<TNum>> CreateExit()
         {
             if (!TraceResult)
                 return Result<PeriodicalGeodesics, Ray3<TNum>>.Failure(TraceResult.Info);
@@ -361,28 +329,12 @@ public sealed partial record RotationalSurface<TNum>
             Plane3<TNum> startPlane = new(Axis.Direction, firstCurve.Start);
 
             var param = lastCurve.SolveIntersection(startPlane);
-
+            
             if (!param)
                 return Result<PeriodicalGeodesics, Ray3<TNum>>.DefaultFailure;
+            _exitParameter = param;
             return lastCurve.GetRay(param);
         }
 
-        public Result<PeriodicalGeodesics, Ray3<TNum>> Exit3()
-        {
-            if (!TraceResult)
-                return Result<PeriodicalGeodesics, Ray3<TNum>>.Failure(TraceResult.Info);
-            var trace = TraceResult.Value;
-            if (trace.Count < 1)
-                return Result<PeriodicalGeodesics, Ray3<TNum>>.DefaultFailure;
-            var firstCurve = trace[0];
-            var lastCurve = trace[^1];
-            Plane3<TNum> startPlane = new(Axis.Direction, firstCurve.Start);
-
-            var solve = Curve.Solver.IntersectionBinary(lastCurve, startPlane)
-                .Select(lastCurve.GetPose)
-                .Select(Pose3<TNum>.FrontRay);
-
-            return solve ? solve.Value : Result<PeriodicalGeodesics, Ray3<TNum>>.DefaultFailure;
-        }
     }
 }

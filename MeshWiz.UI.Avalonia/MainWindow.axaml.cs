@@ -98,7 +98,7 @@ public partial class MainWindow : Window
         jaggedGeodesic = period.FinalizedPath;
         sw.Restart(); //0x139
         
-        var poses = period.CreatePattern(20,useParallel:true).Value;
+        var poses = period.CreatePattern(context.period.pattern/2+4,useParallel:true).Value;
         // var reduced =
         //     Polyline.Reduction.DouglasPeucker<Pose3<double>, Vector3<double>, double>(poses.Poses,
         //         surface.RadiusRange.Max * 0.001);

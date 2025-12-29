@@ -73,7 +73,7 @@ public readonly struct Result<TInfo, TValue> : IValueResult<Result<TInfo, TValue
     /// <inheritdoc />
     public override string ToString() => this ? $"{{Value {Value} Success {true}}}" : $"{{Info {Info} Success {false}}}";
 
-    public bool TryGetValue(out TValue? value)
+    public bool TryGetValue([NotNullWhen(returnValue:true)] out TValue? value)
     {
         var has = HasValue;
         value = has ? Value : default;
@@ -216,5 +216,17 @@ public static class Result
 
         value = result.Value!;
         return true;
+    }
+
+    public static bool TryGetValue<T>(this T? nullable, out T value)
+        where T : struct
+    {
+        if (nullable.HasValue)
+        {
+            value = nullable.Value!;
+            return true;
+        }
+        value = default;
+        return false;
     }
 }

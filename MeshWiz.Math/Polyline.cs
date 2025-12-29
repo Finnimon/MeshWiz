@@ -330,10 +330,13 @@ public sealed class Polyline<TVector, TNum>
 
     public static Polyline<TVector, TNum> CreateCulled(params ReadOnlySpan<TVector> poses)
     {
-        if (poses.Length is 0 or 1)
+        return poses.Length is 0 or 1 ? Empty : CreateCulledNonCopying(poses.ToArray());
+    }
+    public static Polyline<TVector, TNum> CreateCulledNonCopying(TVector[] verts)
+    {
+        if (verts.Length is 0 or 1)
             return Empty;
         var vertCount = 0;
-        var verts = poses.ToArray();
         for (var i = 0; i < verts.Length; ++i)
         {
             if (i == 0)
@@ -348,12 +351,10 @@ public sealed class Polyline<TVector, TNum>
             var cull = dist.IsApproxZero();
             if (cull)
             {
-                //lerp for similar orientation across two same posit poses
                 previous = TVector.Lerp(previous, current, Numbers<TNum>.Half);
                 continue;
             }
 
-            //avoid reassign if no previous cascading change
             vertCount++;
             var noChange = i == vertCount;
             if (noChange) continue;
