@@ -71,17 +71,20 @@ public readonly struct Result<TInfo, TValue> : IValueResult<Result<TInfo, TValue
         => !(left == right);
 
     /// <inheritdoc />
-    public override string ToString() => this ? $"{{Value {Value} Success {true}}}" : $"{{Info {Info} Success {false}}}";
+    public override string ToString() =>
+        this ? $"{{Value {Value} Success {true}}}" : $"{{Info {Info} Success {false}}}";
 
-    public bool TryGetValue([NotNullWhen(returnValue:true)] out TValue? value)
+    public bool TryGetValue([NotNullWhen(returnValue: true)] out TValue? value)
     {
         var has = HasValue;
         value = has ? Value : default;
         return has;
     }
 
-    public Result<TInfo, TValue> When(bool test) => !test && !IsSuccess ? DefaultFailure : this; //already failure or correct 
-    public Result<TInfo,TValue> FailWhen(bool fail)=>When(!fail);
+    public Result<TInfo, TValue> When(bool test) =>
+        !test && !IsSuccess ? DefaultFailure : this; //already failure or correct 
+
+    public Result<TInfo, TValue> FailWhen(bool fail) => When(!fail);
 
     public Result<TInfo, TValue> When(Func<bool> test)
     {
@@ -89,20 +92,22 @@ public readonly struct Result<TInfo, TValue> : IValueResult<Result<TInfo, TValue
             return this;
         return test() ? this : DefaultFailure;
     }
+
     public Result<TInfo, TValue> FailWhen(Func<bool> test)
     {
         if (IsFailure)
             return this;
         return test() ? DefaultFailure : this;
     }
-    
-    public Result<TInfo, TValue> When(Func<TValue,bool> test)
+
+    public Result<TInfo, TValue> When(Func<TValue, bool> test)
     {
         if (IsFailure)
             return this;
         return test(this) ? this : DefaultFailure;
     }
-    public Result<TInfo, TValue> FailWhen(Func<TValue,bool> test)
+
+    public Result<TInfo, TValue> FailWhen(Func<TValue, bool> test)
     {
         if (IsFailure)
             return this;
@@ -141,8 +146,9 @@ public readonly struct Result<TInfo> : IResult<Result<TInfo>, TInfo>
     /// <inheritdoc />
     public static bool operator !=(Result<TInfo> left, Result<TInfo> right)
         => !AreEqual(left.Info, right.Info);
-    
-    public static implicit operator Result<TInfo>(TInfo info)=>Unsafe.As<TInfo,Result<TInfo>>(ref info);
+
+    public static implicit operator Result<TInfo>(TInfo info) => Unsafe.As<TInfo, Result<TInfo>>(ref info);
+
     // ReSharper disable once InconsistentNaming
     private static readonly Result<TInfo> _success = new(EnumResultHelper<TInfo>.SuccessConstant);
     public static Result<TInfo> Success() => _success;
@@ -173,40 +179,35 @@ public static class Result
         result.IsSuccess ? result : TResult.Success(func());
 
 
-    //explicitly typed Overloads for performance gains
-    
-    public static Result<TInfo> OrElse<TInfo>(in this Result<TInfo> result, Func<Result<TInfo>> func)
-        where TInfo : unmanaged, Enum
-        => result.IsSuccess ? result : func();
 
-    public static Result<TInfo> OrElse<TInfo>(in this Result<TInfo> result, Func<TInfo> func)
+    public static TValue OrElse<TInfo, TValue>(this Result<TInfo, TValue> result, Func<TValue> func)
         where TInfo : unmanaged, Enum
-        => result.IsSuccess ? result : func();
-    
-    public static TValue OrElse<TInfo, TValue>(this Result<TInfo,TValue> result, Func<TValue> func)
-    where TInfo:unmanaged,Enum
-    =>result.IsSuccess ? result : func();
-    
-    public static TValue OrElse<TInfo, TValue>(this Result<TInfo,TValue> result, TValue v)
-        where TInfo:unmanaged,Enum
-        =>result.IsSuccess ? result : v;
-    
-    public static Result<TInfo,TOut> Select<TInfo, TValue,TOut>(this Result<TInfo,TValue> result, Func<TValue,TOut> func)
-        where TInfo:unmanaged,Enum
-        =>result.IsSuccess ? func(result):Result<TInfo, TOut>.Failure(result.Info);
-    
-    
-    public static ExceptionResult<TOut> Select<TValue,TOut>(this ExceptionResult<TValue> result, Func<TValue,TOut> func) 
-        =>result.IsSuccess ? func.Try(result):ExceptionResult<TOut>.Failure(result.Info);
+        => result ? result.Value! : func();
+
+    public static TValue OrElse<TInfo, TValue>(this Result<TInfo, TValue> result, TValue v)
+        where TInfo : unmanaged, Enum
+        => result ? result.Value! : v;
+
+    public static Result<TInfo, TOut> Select<TInfo, TValue, TOut>(this Result<TInfo, TValue> result,
+        Func<TValue, TOut> func)
+        where TInfo : unmanaged, Enum
+        => result ? func(result) : Result<TInfo, TOut>.Failure(result.Info);
+
+
+    public static ExceptionResult<TOut> Select<TValue, TOut>(this ExceptionResult<TValue> result,
+        Func<TValue, TOut> func)
+        => result.IsSuccess ? func.Try(result) : ExceptionResult<TOut>.Failure(result.Info);
 
     public static ExceptionResult OrElse(in this ExceptionResult result, Action func)
         => result.IsSuccess ? result : Func.Try(func);
 
     public static ExceptionResult<T> OrElse<T>(in this ExceptionResult<T> result, Func<T> func)
         => result.IsSuccess ? result : Func.Try(func);
+
     public static bool TryGetValue<TResult, TInfo, TValue>(this TResult result,
-        [NotNullWhen(returnValue: true),AllowNull] out TValue value)
-    where TResult: struct, IValueResult<TResult,TInfo, TValue>
+        [NotNullWhen(returnValue: true), AllowNull]
+        out TValue value)
+        where TResult : struct, IValueResult<TResult, TInfo, TValue>
     {
         if (result.IsFailure)
         {
@@ -226,6 +227,7 @@ public static class Result
             value = nullable.Value!;
             return true;
         }
+
         value = default;
         return false;
     }

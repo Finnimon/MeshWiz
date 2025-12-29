@@ -14,4 +14,4 @@ for(var i=0;i<100;i++)
 }
 // b.ExitNewton()
 // RollingSpan<int> roll=(int[])[0,1,2,3,4];
-// Console.WriteLine(roll[-1]);
+// Console.WriteLine(roll[-1]);B
