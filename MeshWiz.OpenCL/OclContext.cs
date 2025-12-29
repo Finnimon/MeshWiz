@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using MeshWiz.RefLinq;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 using OpenTK.Compute.OpenCL;
@@ -30,6 +31,9 @@ public readonly record struct OclContext(IntPtr Handle) : IDisposable
         return context;
     }
 
+    public static Result<CLResultCode, byte[]> GetInfo(CLContext context, ContextInfo info)
+        => CL.GetContextInfo(context, info, out var bytes).AsResult(bytes);
+
     public static OclContext FromDevice(OclDevice obj)
         => FromDevices(obj);
 
@@ -48,46 +52,25 @@ public readonly record struct OclContext(IntPtr Handle) : IDisposable
     }
 
     public static OclDevice[] GetDevices(CLContext context)
-    {
-        CL.GetContextInfo(context, ContextInfo.Devices, out var value).ThrowOnError();
-        _ = value ?? throw new NullReferenceException();
-        return value.As<byte, OclDevice>().ToArray();
-    }
+    => GetInfo(context, ContextInfo.Devices).Select(b => b.As<byte,CLDevice>().Select(OclDevice.Create).ToArray());
 
     public static int GetReferenceCount(CLContext context)
-    {
-        CL.GetContextInfo(context, ContextInfo.ReferenceCount, out var value).LogError();
-        if (value is null) return -1;
-        return BitConverter.ToInt32(value);
-    }
+        => GetInfo(context, ContextInfo.ReferenceCount).Select(b => BitConverter.ToInt32(b));
 
 
-    public static int GetDeviceCount(CLContext context)
-    {
-        CL.GetContextInfo(context, ContextInfo.NumberOfDevices, out var value).LogError();
-        if (value is null) return -1;
-        return BitConverter.ToInt32(value);
-    }
+    public static Result<CLResultCode,int> GetDeviceCount(CLContext context)
+        => GetInfo(context, ContextInfo.NumberOfDevices).Select(b => BitConverter.ToInt32(b));
 
-    public static unsafe IntPtr[] GetProperties(CLContext context)
+    public static IntPtr[] GetProperties(CLContext context)
         => GetInfo(context, ContextInfo.Properties).Select(x => x.As<byte, IntPtr>().ToArray());
-    public static Result<CLResultCode, byte[]> GetInfo(CLContext context, ContextInfo target)
-        => CL.GetContextInfo(context, target, out var dat).AsResult(dat);
 
-    public OclBuffer CreateBuffer<T>(MemoryFlags flags, Span<T> data) where T : unmanaged
-    {
-        var buf= CL.CreateBuffer(this, flags, data, out var code);
-        code.ThrowOnError();
-        return buf;
-    }
+    public Result<CLResultCode,OclBuffer> CreateBuffer<T>(MemoryFlags flags, Span<T> data) where T : unmanaged 
+        => CL.CreateBuffer(this, flags, data, out var code).AsResult(code)
+            .Select(OclBuffer.Create);
 
-    public bool TryCreateBuffer<T>(MemoryFlags flags, Span<T> data, out OclBuffer buffer, bool log=true) 
+    public bool TryCreateBuffer<T>(MemoryFlags flags, Span<T> data, out OclBuffer buffer)
         where T : unmanaged
-    {
-        buffer= CL.CreateBuffer(this, flags, data, out var code);
-        if (log) code.LogError();
-        return code is CLResultCode.Success;
-    }
+        => CreateBuffer(flags, data).TryGetValue(out buffer);
 
     public bool TryCreateCommandQueue(OclDevice device,IntPtr properties, out OclCommandQueue commandQueue, bool log=true)
     {
@@ -100,5 +83,5 @@ public readonly record struct OclContext(IntPtr Handle) : IDisposable
 
     /// <inheritdoc />
     public void Dispose() => CL.ReleaseContext(this);
-    public void Retain() => CL.RetainContext(this);
+    public Result<CLResultCode> Retain() => CL.RetainContext(this);
 }

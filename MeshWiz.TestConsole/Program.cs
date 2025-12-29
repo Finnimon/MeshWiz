@@ -2,16 +2,18 @@
 using MeshWiz.Math;
 using MeshWiz.Math.Benchmark;
 using MeshWiz.Math.Signals;
+using MeshWiz.OpenCL;
+using MeshWiz.Utility;
+using OpenTK.Compute.OpenCL;
 
-// var signal = new FSignal<double, double>(double.Sin).InputGain(1000).Cache();
-var b=new GeodesicBench<double>();
-b.Setup();
-for(var i=0;i<100;i++)
+OclPlatform[] platforms=OclPlatform.GetAll();
+foreach (var oclPlatform in platforms)
 {
-    var per = b.TracePeriod();
-    var poses = per.FinalizedPoses;
-    Console.WriteLine($"{i} {poses.HasValue} {poses.Value.Count}");
+    using var disp = oclPlatform;
+    Console.WriteLine($"{oclPlatform.Name}");
+    foreach (var dev in oclPlatform.AllDevices.OrElse([]))
+    {
+        using var dispose = dev;
+        Console.WriteLine($"\t{dev.Name}");
+    }
 }
-// b.ExitNewton()
-// RollingSpan<int> roll=(int[])[0,1,2,3,4];
-// Console.WriteLine(roll[-1]);B

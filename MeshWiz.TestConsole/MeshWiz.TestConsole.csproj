@@ -8,6 +8,7 @@
     <ItemGroup>
       <ProjectReference Include="..\MeshWiz.Math.Benchmark\MeshWiz.Math.Benchmark.csproj" />
       <ProjectReference Include="..\MeshWiz.Math\MeshWiz.Math.csproj" />
+      <ProjectReference Include="..\MeshWiz.OpenCL\MeshWiz.OpenCL.csproj" />
     </ItemGroup>
 
     <ItemGroup>

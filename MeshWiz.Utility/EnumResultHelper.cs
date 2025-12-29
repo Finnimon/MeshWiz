@@ -22,8 +22,16 @@ public static class EnumResultHelper<TInfo>
         {
             SuccessConstant = default;
             DefaultFailureConstant = (TInfo)(object)1;
-            if (type.IsAssignableTo(typeof(Enum)))
-                invalidType |= !Enum.IsDefined(type, DefaultFailureConstant);
+            var isEnum = type.IsAssignableTo(typeof(Enum));
+            if (!isEnum)
+                return;
+            if(!Enum.IsDefined(type, DefaultFailureConstant))
+                return;
+            DefaultFailureConstant = (TInfo)(object)-1;
+            
+            if(!Enum.IsDefined(type, DefaultFailureConstant))
+                return;
+            invalidType = true;
         }
         catch
         {

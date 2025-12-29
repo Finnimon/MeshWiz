@@ -9,6 +9,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MeshWiz.Contracts\MeshWiz.Contracts.csproj" />
+    <ProjectReference Include="..\MeshWiz.RefLinq\MeshWiz.RefLinq.csproj" />
     <ProjectReference Include="..\MeshWiz.Utility\MeshWiz.Utility.csproj" />
   </ItemGroup>
   <ItemGroup>
