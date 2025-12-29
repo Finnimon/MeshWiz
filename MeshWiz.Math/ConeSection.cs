@@ -15,7 +15,7 @@ public readonly struct ConeSection<TNum>
         IEquatable<ConeSection<TNum>>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    public readonly Line<Vector3<TNum>, TNum> Axis;
+    public readonly Line<Vec3<TNum>, TNum> Axis;
     public readonly TNum BaseRadius;
     public readonly TNum TopRadius;
     public Circle3<TNum> Base => new(Axis.Start, Axis.AxisVector, BaseRadius);
@@ -44,7 +44,7 @@ public readonly struct ConeSection<TNum>
     }
 
 
-    public ConeSection(Line<Vector3<TNum>, TNum> axis, TNum baseRadius, TNum topRadius)
+    public ConeSection(Line<Vec3<TNum>, TNum> axis, TNum baseRadius, TNum topRadius)
     {
         Axis = axis;
         BaseRadius = baseRadius;
@@ -62,7 +62,7 @@ public readonly struct ConeSection<TNum>
         return true;
     }
 
-    public bool TryGetInflection(out Vector3<TNum> inflectionPoint)
+    public bool TryGetInflection(out Vec3<TNum> inflectionPoint)
     {
         inflectionPoint = default;
         var failed = !Solver.Linear.TrySolveForZero(BaseRadius, TopRadius, out var at);
@@ -72,9 +72,9 @@ public readonly struct ConeSection<TNum>
     }
 
     /// <inheritdoc />
-    public Vector3<TNum> Centroid => IsComplex ? ComplexCentroid() : SimpleCentroid();
+    public Vec3<TNum> Centroid => IsComplex ? ComplexCentroid() : SimpleCentroid();
 
-    private Vector3<TNum> ComplexCentroid()
+    private Vec3<TNum> ComplexCentroid()
     {
         var failed = !TryGetInflection(out var tip);
         if (failed) ThrowHelper.ThrowInvalidOperationException();
@@ -86,7 +86,7 @@ public readonly struct ConeSection<TNum>
         return (baseCone.Centroid * baseV + topCone.Centroid * topV) / (baseV + topV);
     }
 
-    private Vector3<TNum> SimpleCentroid()
+    private Vec3<TNum> SimpleCentroid()
     {
         var baseRadius = TNum.Abs(BaseRadius);
         var topRadius = TNum.Abs(TopRadius);
@@ -103,7 +103,7 @@ public readonly struct ConeSection<TNum>
     public TNum SurfaceArea => SlantSurfaceArea + Top.SurfaceArea + Base.SurfaceArea;
 
     /// <inheritdoc />
-    public AABB<Vector3<TNum>> BBox => Base.BBox.CombineWith(Top.BBox);
+    public AABB<Vec3<TNum>> BBox => Base.BBox.CombineWith(Top.BBox);
 
     /// <inheritdoc />
     public IMesh<TNum> Tessellate()
@@ -120,7 +120,7 @@ public readonly struct ConeSection<TNum>
     {
         var baseMesh = baseC.Tessellate(edgeCount);
         var topMesh = topC.Tessellate(edgeCount);
-        Vector3<TNum>[] vertices = [..baseMesh.Vertices, ..topMesh.Vertices];
+        Vec3<TNum>[] vertices = [..baseMesh.Vertices, ..topMesh.Vertices];
         var indices = new TriangleIndexer[edgeCount * 4];
         baseMesh.Indices.CopyTo(indices);
         topMesh.Indices.CopyTo(indices, edgeCount);
@@ -153,7 +153,7 @@ public readonly struct ConeSection<TNum>
         if (failed) ThrowHelper.ThrowInvalidOperationException();
         var baseMesh = new Cone<TNum>(Base.Centroid.LineTo(tip), Base.Radius).Tessellate(edgeCount);
         var topMesh = new Cone<TNum>(Top.Centroid.LineTo(tip), Top.Radius).Tessellate(edgeCount);
-        Vector3<TNum>[] vertices = [..baseMesh.Vertices, ..topMesh.Vertices]; //acceptable duplication of tip
+        Vec3<TNum>[] vertices = [..baseMesh.Vertices, ..topMesh.Vertices]; //acceptable duplication of tip
         var shift = vertices.Length / 2;
         TriangleIndexer[] indices = [..baseMesh.Indices, ..topMesh.Indices.Select(i => i + shift)];
         return new(vertices, indices);
@@ -180,9 +180,9 @@ public readonly struct ConeSection<TNum>
     }
 
     /// <inheritdoc />
-    public IDiscreteCurve<Vector3<TNum>, TNum> SweepCurve => IsComplex ? ComplexSweepCurve() : SimpleSweepCurve();
+    public IDiscreteCurve<Vec3<TNum>, TNum> SweepCurve => IsComplex ? ComplexSweepCurve() : SimpleSweepCurve();
 
-    private Polyline<Vector3<TNum>, TNum> ComplexSweepCurve()
+    private Polyline<Vec3<TNum>, TNum> ComplexSweepCurve()
     {
         var failed = !TryGetInflection(out var tip);
         if (failed) ThrowHelper.ThrowInvalidOperationException();
@@ -192,17 +192,17 @@ public readonly struct ConeSection<TNum>
         var normal = Axis.AxisVector; //gets normalized in ctor
         var start = new Circle3<TNum>(Axis.Start, normal, baseRad).TraverseByAngle(TNum.Zero);
         var end = new Circle3<TNum>(Axis.End, normal, topRad).TraverseByAngle(TNum.Zero);
-        return new Polyline<Vector3<TNum>, TNum>(start, tip, end);
+        return new Polyline<Vec3<TNum>, TNum>(start, tip, end);
     }
 
-    private Line<Vector3<TNum>, TNum> SimpleSweepCurve()
+    private Line<Vec3<TNum>, TNum> SimpleSweepCurve()
         => Base.TraverseByAngle(TNum.Zero).LineTo(Top.TraverseByAngle(TNum.Zero));
 
     /// <inheritdoc />
     public Ray3<TNum> SweepAxis => Axis.Start.RayThrough(Axis.End);
 
     /// <inheritdoc />
-    public Vector3<TNum> NormalAt(Vector3<TNum> p)
+    public Vec3<TNum> NormalAt(Vec3<TNum> p)
     {
         p = ClampToSurface(p);
         return this.TryGetComplete(out var cone)
@@ -211,25 +211,25 @@ public readonly struct ConeSection<TNum>
     }
     //
     // /// <inheritdoc />
-    // public ConicalHelicoid<TNum> GetGeodesic(Vector3<TNum> p1, Vector3<TNum> p2)
+    // public ConicalHelicoid<TNum> GetGeodesic(Vec3<TNum> p1, Vec3<TNum> p2)
     // {
     //     return ConicalHelicoid<TNum>.BetweenPoints(in this, p1, p2);
     // }
     //
     // /// <inheritdoc />
-    // public ConicalHelicoid<TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint, Vector3<TNum> direction)
+    // public ConicalHelicoid<TNum> GetGeodesicFromEntry(Vec3<TNum> entryPoint, Vec3<TNum> direction)
     // {
     //     return ConicalHelicoid<TNum>.FromEntry(in this, entryPoint, direction);
     // }
     [Pure]
-    public Vector3<TNum> ClampToSurface(Vector3<TNum> p)
+    public Vec3<TNum> ClampToSurface(Vec3<TNum> p)
     {
         var (closest, onseg) = Axis.ClosestPoints(p);
         var vShift = onseg - closest;
         p += vShift;
         var pos = onseg.DistanceTo(Axis.Start) / Axis.Length;
         var radius = TNum.Abs(RadiusAt(pos));
-        return Vector3<TNum>.ExactLerp(onseg, p, radius);
+        return Vec3<TNum>.ExactLerp(onseg, p, radius);
     }
     
     
@@ -237,7 +237,7 @@ public readonly struct ConeSection<TNum>
     public TNum RadiusAt(TNum pos) => TNum.Lerp(BaseRadius, TopRadius, pos);
 
     /// <inheritdoc />
-    public ConeGeodesic<TNum> GetGeodesic(Vector3<TNum> p1, Vector3<TNum> p2)
+    public ConeGeodesic<TNum> GetGeodesic(Vec3<TNum> p1, Vec3<TNum> p2)
     {
         ValidateForGeodesics();
         return ConeGeodesic<TNum>.BetweenPoints(
@@ -256,7 +256,7 @@ public readonly struct ConeSection<TNum>
     private bool CanGeodesic => !IsComplex&&!IsCylinder;
 
     /// <inheritdoc />
-    public ConeGeodesic<TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint, Vector3<TNum> direction)
+    public ConeGeodesic<TNum> GetGeodesicFromEntry(Vec3<TNum> entryPoint, Vec3<TNum> direction)
     {
         ValidateForGeodesics();
         return ConeGeodesic<TNum>.FromDirection(surface: MakeUpright(this), entryPoint, direction);

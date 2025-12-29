@@ -7,14 +7,14 @@ using MeshWiz.Utility.Extensions;
 namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vector3<TNum>, TNum>,
+public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vec3<TNum>, TNum>,
     IEquatable<Helix<TNum>> 
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly Cylinder<TNum> Cylinder;
-    public readonly Line<Vector2<TNum>, TNum> Line;
+    public readonly Line<Vec2<TNum>, TNum> Line;
     public TNum Length => Line.Length;
-    public Vector3<TNum> Start => Project(in Cylinder, Line.Start);
+    public Vec3<TNum> Start => Project(in Cylinder, Line.Start);
 
     /// <inheritdoc />
     public Pose3<TNum> EndPose => GetPose(TNum.Zero);
@@ -22,12 +22,12 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vector3<TNum
     /// <inheritdoc />
     public Pose3<TNum> StartPose => GetPose(TNum.Zero);
 
-    public Vector3<TNum> End => Project(in Cylinder, Line.End);
-    public Vector3<TNum> EntryDirection => GetTangent(TNum.Zero);
-    public Vector3<TNum> ExitDirection => GetTangent(TNum.One);
+    public Vec3<TNum> End => Project(in Cylinder, Line.End);
+    public Vec3<TNum> EntryDirection => GetTangent(TNum.Zero);
+    public Vec3<TNum> ExitDirection => GetTangent(TNum.One);
 
 
-    public Helix(Cylinder<TNum> cylinder, Line<Vector2<TNum>, TNum> line)
+    public Helix(Cylinder<TNum> cylinder, Line<Vec2<TNum>, TNum> line)
     {
         Cylinder = cylinder;
         Line = line;
@@ -35,7 +35,7 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vector3<TNum
 
 
     [Pure]
-    public static Vector3<TNum> Project(in Cylinder<TNum> cylinder, Vector2<TNum> p)
+    public static Vec3<TNum> Project(in Cylinder<TNum> cylinder, Vec2<TNum> p)
     {
         var baseCircle = cylinder.Base;
         var xPos = p.X / baseCircle.Circumference;
@@ -45,7 +45,7 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vector3<TNum
     }
 
     [Pure]
-    public static Vector2<TNum> Project(in Cylinder<TNum> cylinder, Vector3<TNum> p)
+    public static Vec2<TNum> Project(in Cylinder<TNum> cylinder, Vec3<TNum> p)
     {
         var axisDir = cylinder.Axis.Direction;
         var closest = cylinder.Axis.ClosestPoint(p);
@@ -67,11 +67,11 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vector3<TNum
         var circ = cylinder.Circumference;
         var x = angle / Numbers<TNum>.TwoPi * circ;
 
-        return new Vector2<TNum>(x, y);
+        return new Vec2<TNum>(x, y);
     }
     
     [Pure]
-    public static Vector2<TNum> ProjectDirection(in Cylinder<TNum> cylinder, Vector3<TNum> p, Vector3<TNum> direction)
+    public static Vec2<TNum> ProjectDirection(in Cylinder<TNum> cylinder, Vec3<TNum> p, Vec3<TNum> direction)
     {
         direction = direction.Normalized();
         var axisDir = cylinder.Axis.Direction;
@@ -82,11 +82,11 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vector3<TNum
         
         var dxCircumference = tangentialDir.Dot(direction) * cylinder.Radius; // linear distance along circumference
         var dy = axisDir.Dot(direction); // along cylinder axis
-        return new Vector2<TNum>(dxCircumference, dy).Normalized();
+        return new Vec2<TNum>(dxCircumference, dy).Normalized();
     }
 
     [Pure]
-    public static Vector3<TNum> ProjectDirection(in Cylinder<TNum> cylinder, Vector2<TNum> p, Vector2<TNum> direction)
+    public static Vec3<TNum> ProjectDirection(in Cylinder<TNum> cylinder, Vec2<TNum> p, Vec2<TNum> direction)
     {
         direction = direction.Normalized();
 
@@ -104,7 +104,7 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vector3<TNum
         return world.Normalized();
     }
     [Pure]
-    public static Ray3<TNum> ProjectDirectionComplete(in Cylinder<TNum> cylinder, Vector2<TNum> p, Vector2<TNum> direction)
+    public static Ray3<TNum> ProjectDirectionComplete(in Cylinder<TNum> cylinder, Vec2<TNum> p, Vec2<TNum> direction)
     {
         direction = direction.Normalized();
 
@@ -123,7 +123,7 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vector3<TNum
     }
     
     [Pure]
-    private static Vector3<TNum> ProjectDirection(in Cylinder<TNum> cylinder, Vector3<TNum> p3, Vector2<TNum> direction)
+    private static Vec3<TNum> ProjectDirection(in Cylinder<TNum> cylinder, Vec3<TNum> p3, Vec2<TNum> direction)
     {
         direction = direction.Normalized();
         var axisDir = cylinder.Axis.Direction;
@@ -141,7 +141,7 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vector3<TNum
 
 
     /// <inheritdoc />
-    public Vector3<TNum> TraverseOnCurve(TNum t) => Traverse(TNum.Clamp(t, TNum.Zero, TNum.One));
+    public Vec3<TNum> TraverseOnCurve(TNum t) => Traverse(TNum.Clamp(t, TNum.Zero, TNum.One));
 
     /// <inheritdoc />
 
@@ -153,34 +153,34 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vector3<TNum
         var cylAxis = Cylinder.Axis;
         var normal = pos - cylAxis.Start;
         var axisDir = cylAxis.Direction;
-        normal -= axisDir * Vector3<TNum>.Dot(normal, axisDir);
+        normal -= axisDir * Vec3<TNum>.Dot(normal, axisDir);
         return Pose3<TNum>.CreateFromOrientation(pos,front,normal);
     }
 
     /// <inheritdoc />
-    public Vector3<TNum> Traverse(TNum t)
+    public Vec3<TNum> Traverse(TNum t)
         => Project(in Cylinder, Line.Traverse(t));
 
     /// <inheritdoc />
-    public Polyline<Vector3<TNum>, TNum> ToPolyline() =>
+    public Polyline<Vec3<TNum>, TNum> ToPolyline() =>
         ToPolyline(new PolylineTessellationParameter<TNum>
             { MaxAngularDeviation = Numbers<TNum>.TwoPi * Numbers<TNum>.Eps3 });
 
     /// <inheritdoc />
-    public PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum> ToPosePolyline()
+    public PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum> ToPosePolyline()
         => ToPosePolyline(new PolylineTessellationParameter<TNum>
             { MaxAngularDeviation = Numbers<TNum>.TwoPi * Numbers<TNum>.Eps3 });
     /// <inheritdoc />
-    public PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum> ToPosePolyline(PolylineTessellationParameter<TNum> tessellationParameter)
+    public PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum> ToPosePolyline(PolylineTessellationParameter<TNum> tessellationParameter)
     {
         var poses = GetAngularDevPolylineSteps(tessellationParameter).Select(GetPose);
-        return new PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>(poses);
+        return new PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum>(poses);
     }
     /// <inheritdoc />
-    public Polyline<Vector3<TNum>, TNum> ToPolyline(PolylineTessellationParameter<TNum> tessellationParameter)
+    public Polyline<Vec3<TNum>, TNum> ToPolyline(PolylineTessellationParameter<TNum> tessellationParameter)
     {
         var pts = GetAngularDevPolylineSteps(tessellationParameter).Select(Traverse);
-        return new Polyline<Vector3<TNum>, TNum>(pts);
+        return new Polyline<Vec3<TNum>, TNum>(pts);
     }
 
     private IEnumerable<TNum> GetAngularDevPolylineSteps(PolylineTessellationParameter<TNum> tessellationParameter)
@@ -202,7 +202,7 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vector3<TNum
         return relative * Numbers<TNum>.TwoPi;
     }
 
-    public static Helix<TNum> BetweenPoints(in Cylinder<TNum> surface, Vector3<TNum> p1, Vector3<TNum> p2)
+    public static Helix<TNum> BetweenPoints(in Cylinder<TNum> surface, Vec3<TNum> p1, Vec3<TNum> p2)
     {
         var start = Project(in surface, surface.ClampToSurface(p1));
         var end = Project(in surface, surface.ClampToSurface(p2));
@@ -216,7 +216,7 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vector3<TNum
             bestEndX = end.X - surface.Circumference;
         else
             bestEndX = end.X + surface.Circumference;
-        end = new Vector2<TNum>(bestEndX, end.Y);
+        end = new Vec2<TNum>(bestEndX, end.Y);
         return new Helix<TNum>(surface, start.LineTo(end));
     }
 
@@ -226,7 +226,7 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vector3<TNum
     /// <param name="direction">direction at <paramref name="p"/></param>
     /// <returns>Helix that traverses to the next boundary</returns>
     /// <exception cref="ArithmeticException"></exception>
-    public static Helix<TNum> FromOrigin(in Cylinder<TNum> surface, Vector3<TNum> p, Vector3<TNum> direction)
+    public static Helix<TNum> FromOrigin(in Cylinder<TNum> surface, Vec3<TNum> p, Vec3<TNum> direction)
     {
         p = surface.ClampToSurface(p);
         direction = direction.Normalized();
@@ -234,7 +234,7 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vector3<TNum
         var localDir = ProjectDirection(in surface, p, direction);
         if (localDir.Y.IsApproxZero())
         {
-            var localEnd = localOrigin + new Vector2<TNum>(surface.Circumference, TNum.Zero);
+            var localEnd = localOrigin + new Vec2<TNum>(surface.Circumference, TNum.Zero);
             var horizontalLine = localOrigin.LineTo(localEnd);
             return new Helix<TNum>(surface, horizontalLine);
         }
@@ -248,7 +248,7 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vector3<TNum
     }
 
     [Pure]
-    public Vector3<TNum> GetTangent(TNum t)
+    public Vec3<TNum> GetTangent(TNum t)
         => ProjectDirection(in Cylinder, Line.Traverse(t), Line.AxisVector);
 
     /// <inheritdoc />

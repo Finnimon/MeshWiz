@@ -9,7 +9,7 @@ public static partial class Polyline
     public static class Reduction
     {
         public static Polyline<TVec, TNum> DouglasPeucker<TVec, TNum>(Polyline<TVec, TNum> polyline, TNum? eps=null)
-            where TVec : unmanaged, IVector<TVec, TNum>
+            where TVec : unmanaged, IVec<TVec, TNum>
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             eps ??= Numbers<TNum>.ZeroEpsilon;
@@ -56,7 +56,7 @@ public static partial class Polyline
         public static TPos[] DouglasPeucker<TPos,TVector, TNum>(ReadOnlySpan<TPos> ptSpan, TNum? eps=null)
             where TPos : unmanaged, IPosition<TPos,TVector, TNum>
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
-            where TVector : unmanaged, IVector<TVector, TNum>
+            where TVector : unmanaged, IVec<TVector, TNum>
         {
             eps ??= Numbers<TNum>.ZeroEpsilon;
             var epsilon = TNum.Abs(eps.Value);

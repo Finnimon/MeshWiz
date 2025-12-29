@@ -7,28 +7,28 @@ namespace MeshWiz.Utility.Benchmark;
 public class RollingListBenchmark
 {
     //big struct to show benefits
-    private Vector3<double>[]? _prepend;
-    private Vector3<double>[]? _append;
+    private Vec3<double>[]? _prepend;
+    private Vec3<double>[]? _append;
 
     private const int Size = 100000;
 
     [GlobalSetup]
     public void Setup()
     {
-        _prepend = new Vector3<double>[Size];
-        _append = new Vector3<double>[Size];
+        _prepend = new Vec3<double>[Size];
+        _append = new Vec3<double>[Size];
         var rand = new Random();
         for (int i = 0; i < Size; i++)
         {
-            _prepend[i] = new Vector3<double>(rand.NextDouble(), rand.NextDouble(), rand.NextDouble());
-            _append[i] = new Vector3<double>(rand.NextDouble(), rand.NextDouble(), rand.NextDouble());
+            _prepend[i] = new Vec3<double>(rand.NextDouble(), rand.NextDouble(), rand.NextDouble());
+            _append[i] = new Vec3<double>(rand.NextDouble(), rand.NextDouble(), rand.NextDouble());
         }
     }
 
     [Benchmark]
-    public Vector3<double>[] RollingListMixedAddsToArray()
+    public Vec3<double>[] RollingListMixedAddsToArray()
     {
-        RollingList<Vector3<double>> rolyPoly = [];
+        RollingList<Vec3<double>> rolyPoly = [];
         var prepend = _prepend!;
         var append = _append!;
         for (var i = 0; i < Size; i++)
@@ -41,9 +41,9 @@ public class RollingListBenchmark
     }
 
     [Benchmark]
-    public Vector3<double>[] LinkedListMixedAddsToArray()
+    public Vec3<double>[] LinkedListMixedAddsToArray()
     {
-        LinkedList<Vector3<double>> linkedList = [];
+        LinkedList<Vec3<double>> linkedList = [];
         var prepend = _prepend!;
         var append = _append!;
         for (var i = 0; i < Size; i++)
@@ -56,10 +56,10 @@ public class RollingListBenchmark
     }
     
     [Benchmark]
-    public Vector3<double>[] ListMixedAddsToArray()
+    public Vec3<double>[] ListMixedAddsToArray()
     {
-        List<Vector3<double>> prepList = [];
-        List<Vector3<double>> appeList = [];
+        List<Vec3<double>> prepList = [];
+        List<Vec3<double>> appeList = [];
         var prepend = _prepend!;
         var append = _append!;
         for (var i = 0; i < Size; i++)

@@ -28,7 +28,7 @@ public sealed class BBoxView : IOpenGLControl
     ];
     
     
-    public AABB<Vector3<float>> BBox
+    public AABB<Vec3<float>> BBox
     {
         get;
         set
@@ -94,7 +94,7 @@ public sealed class BBoxView : IOpenGLControl
         var min = BBox.Min;
         var max=BBox.Max;
 
-        Vector3<float>[] verts = [
+        Vec3<float>[] verts = [
             min,
             new(max.X, min.Y, min.Z),
             new(max.X, max.Y, min.Z),
@@ -106,7 +106,7 @@ public sealed class BBoxView : IOpenGLControl
         ];
         _vbo.BindAnd().BufferData(verts,BufferUsageHint.StaticDraw);
         var posLoc = _shaderProgram!.GetAttribLoc("position");
-        GL.VertexAttribPointer(posLoc,3,VertexAttribPointerType.Float,false,Vector3<float>.ByteSize,0);
+        GL.VertexAttribPointer(posLoc,3,VertexAttribPointerType.Float,false,Vec3<float>.ByteSize,0);
         GL.EnableVertexAttribArray(posLoc);
         OpenGLHelper.LogGlError(nameof(BBoxView));
     }

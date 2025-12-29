@@ -7,7 +7,7 @@ namespace MeshWiz.Slicer;
 
 public class SimpleConcentric
 {
-    public static IEnumerable<Polyline<Vector2<TNum>, TNum>> GenPattern<TNum>(Polyline<Vector2<TNum>, TNum> outerBounds,
+    public static IEnumerable<Polyline<Vec2<TNum>, TNum>> GenPattern<TNum>(Polyline<Vec2<TNum>, TNum> outerBounds,
         TNum pathWidth)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
@@ -21,7 +21,7 @@ public class SimpleConcentric
         // var isConvex= Polyline.Evaluate.IsConvex(wall);
         if (wallWinding != WindingOrder.CounterClockwise)
             yield break;
-        RollingList<(Polyline<Vector2<TNum>, TNum> Polyline, TNum amount, bool isConvex, int depth)> toInflate =
+        RollingList<(Polyline<Vec2<TNum>, TNum> Polyline, TNum amount, bool isConvex, int depth)> toInflate =
         [
             ..Polyline.Simplicity.MakeSimple(outerBounds, epsilon)
                 .Select(polyline=>polyline.CullDeadSegments())
@@ -95,8 +95,8 @@ public class SimpleConcentric
     {
         var intersection = mesh.IntersectRolling(plane);
 
-        List<Polyline<Vector2<TNum>, TNum>> perimeter = [];
-        List<Polyline<Vector2<TNum>, TNum>> infill = [];
+        List<Polyline<Vec2<TNum>, TNum>> perimeter = [];
+        List<Polyline<Vec2<TNum>, TNum>> infill = [];
         var epsilon = TNum.CreateTruncating(0.000001);
         foreach (var outerBounds in intersection)
         {
@@ -108,7 +108,7 @@ public class SimpleConcentric
             // var isConvex= Polyline.Evaluate.IsConvex(wall);
             if (wallWinding != WindingOrder.CounterClockwise)
                 continue;
-            RollingList<(Polyline<Vector2<TNum>, TNum> Polyline, TNum amount, bool isConvex, int depth)> toInflate =
+            RollingList<(Polyline<Vec2<TNum>, TNum> Polyline, TNum amount, bool isConvex, int depth)> toInflate =
             [
                 ..Polyline.Simplicity.MakeSimple(outerBounds, TNum.CreateTruncating(epsilon))
                     .Where(polyline => Polyline.Evaluate.GetWindingOrder(polyline) == wallWinding)

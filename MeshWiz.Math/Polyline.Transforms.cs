@@ -15,24 +15,24 @@ public static partial class Polyline
         /// <param name="amount">the amount by which the polyline should be inflated</param>
         /// <typeparam name="TNum"></typeparam>
         /// <returns></returns>
-        public static Polyline<Vector2<TNum>, TNum> InflateClosedDegenerativeBad<TNum>(
-            Polyline<Vector2<TNum>, TNum> polyline,
+        public static Polyline<Vec2<TNum>, TNum> InflateClosedDegenerativeBad<TNum>(
+            Polyline<Vec2<TNum>, TNum> polyline,
             TNum amount)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             if (!polyline.IsClosed) ThrowHelper.ThrowArgumentException("Polyline must be closed", nameof(polyline));
 
             var n = polyline.Count;
-            if (n == 0) return Polyline<Vector2<TNum>, TNum>.Empty;
+            if (n == 0) return Polyline<Vec2<TNum>, TNum>.Empty;
 
-            var lines = new Line<Vector2<TNum>, TNum>[n];
+            var lines = new Line<Vec2<TNum>, TNum>[n];
             for (var i = 0; i < n; i++)
             {
                 var seg = polyline[i];
                 var segDirection = seg.Direction;
-                Vector2<TNum> outsideDirection = new(segDirection.Y, -segDirection.X);
+                Vec2<TNum> outsideDirection = new(segDirection.Y, -segDirection.X);
                 var offset = outsideDirection * amount;
-                lines[i] = new Line<Vector2<TNum>, TNum>(seg.Start + offset, seg.End + offset);
+                lines[i] = new Line<Vec2<TNum>, TNum>(seg.Start + offset, seg.End + offset);
             }
 
             // Alive flags
@@ -66,7 +66,7 @@ public static partial class Polyline
                 inQueue[i] = false;
 
                 if (!alive[i]) continue;
-                if (aliveCount < 3) return Polyline<Vector2<TNum>, TNum>.Empty;
+                if (aliveCount < 3) return Polyline<Vec2<TNum>, TNum>.Empty;
 
                 var p = prev[i];
                 var nx = next[i];
@@ -124,7 +124,7 @@ public static partial class Polyline
                 }
             }
 
-            if (aliveCount < 3) return Polyline<Vector2<TNum>, TNum>.Empty;
+            if (aliveCount < 3) return Polyline<Vec2<TNum>, TNum>.Empty;
 
             // Compact remaining lines into front of array using the linked list
             var firstAlive = -1;
@@ -135,9 +135,9 @@ public static partial class Polyline
                     break;
                 }
 
-            if (firstAlive == -1) return Polyline<Vector2<TNum>, TNum>.Empty;
+            if (firstAlive == -1) return Polyline<Vec2<TNum>, TNum>.Empty;
 
-            var compact = new Line<Vector2<TNum>, TNum>[aliveCount];
+            var compact = new Line<Vec2<TNum>, TNum>[aliveCount];
             var idx = 0;
             var curIdx = firstAlive;
             do
@@ -149,7 +149,7 @@ public static partial class Polyline
             // Compute intersection points between consecutive compact lines
             var m = aliveCount;
             var pCount = m + 1;
-            var points = new Vector2<TNum>[pCount];
+            var points = new Vec2<TNum>[pCount];
             for (var i = 0; i < m; i++)
             {
                 var a = compact[i];
@@ -160,7 +160,7 @@ public static partial class Polyline
 
             points[0] = points[^1];
 
-            return new Polyline<Vector2<TNum>, TNum>(points);
+            return new Polyline<Vec2<TNum>, TNum>(points);
         }
 
 
@@ -172,23 +172,23 @@ public static partial class Polyline
         /// <param name="amount">the amount by which the polyline should be inflated</param>
         /// <typeparam name="TNum"></typeparam>
         /// <returns></returns>
-        public static Polyline<Vector2<TNum>, TNum> InflateClosedDegenerative<TNum>(
-            Polyline<Vector2<TNum>, TNum> polyline,
+        public static Polyline<Vec2<TNum>, TNum> InflateClosedDegenerative<TNum>(
+            Polyline<Vec2<TNum>, TNum> polyline,
             TNum amount)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             if (!polyline.IsClosed) ThrowHelper.ThrowArgumentException("Polyline must be closed", nameof(polyline));
 
             var n = polyline.Count;
-            if (n == 0) return Polyline<Vector2<TNum>, TNum>.Empty;
-            var lines = new Line<Vector2<TNum>, TNum>[n];
+            if (n == 0) return Polyline<Vec2<TNum>, TNum>.Empty;
+            var lines = new Line<Vec2<TNum>, TNum>[n];
             for (var i = 0; i < n; i++)
             {
                 var seg = polyline[i];
                 var segDirection = seg.Direction;
-                Vector2<TNum> outsideDirection = new(segDirection.Y, -segDirection.X);
+                Vec2<TNum> outsideDirection = new(segDirection.Y, -segDirection.X);
                 var offset = outsideDirection * amount;
-                lines[i] = new Line<Vector2<TNum>, TNum>(seg.Start + offset, seg.End + offset);
+                lines[i] = new Line<Vec2<TNum>, TNum>(seg.Start + offset, seg.End + offset);
             }
 
 
@@ -220,7 +220,7 @@ public static partial class Polyline
                 inQueue[i] = false;
 
                 if (!alive[i]) continue;
-                if (aliveCount < 3) return Polyline<Vector2<TNum>, TNum>.Empty;
+                if (aliveCount < 3) return Polyline<Vec2<TNum>, TNum>.Empty;
 
                 var p = prev[i];
                 var nx = next[i];
@@ -278,7 +278,7 @@ public static partial class Polyline
                 }
             }
 
-            if (aliveCount < 3) return Polyline<Vector2<TNum>, TNum>.Empty;
+            if (aliveCount < 3) return Polyline<Vec2<TNum>, TNum>.Empty;
 
             // Compact remaining lines into front of array using the linked list
             var firstAlive = -1;
@@ -289,9 +289,9 @@ public static partial class Polyline
                     break;
                 }
 
-            if (firstAlive == -1) return Polyline<Vector2<TNum>, TNum>.Empty;
+            if (firstAlive == -1) return Polyline<Vec2<TNum>, TNum>.Empty;
 
-            var compact = new Line<Vector2<TNum>, TNum>[aliveCount];
+            var compact = new Line<Vec2<TNum>, TNum>[aliveCount];
             var idx = 0;
             var curIdx = firstAlive;
             do
@@ -303,7 +303,7 @@ public static partial class Polyline
             // Compute intersection points between consecutive compact lines
             var m = aliveCount;
             var pCount = m + 1;
-            var points = new Vector2<TNum>[pCount];
+            var points = new Vec2<TNum>[pCount];
             for (var i = 0; i < m; i++)
             {
                 var a = compact[i];
@@ -314,11 +314,11 @@ public static partial class Polyline
 
             points[0] = points[^1];
 
-            return new Polyline<Vector2<TNum>, TNum>(points);
+            return new Polyline<Vec2<TNum>, TNum>(points);
         }
 
-        // public static Polyline<Vector2<TNum>, TNum>[] ShrinkUntilDegenerated<TNum>(
-        //     Polyline<Vector2<TNum>, TNum> toShrink,
+        // public static Polyline<Vec2<TNum>, TNum>[] ShrinkUntilDegenerated<TNum>(
+        //     Polyline<Vec2<TNum>, TNum> toShrink,
         //     TNum stepSize,
         //     bool checkWindingOrder = true)
         //     where TNum : unmanaged, IFloatingPointIeee754<TNum>
@@ -327,18 +327,18 @@ public static partial class Polyline
         // }
 
 
-        public static Polyline<Vector2<TNum>, TNum> InflateFast<TNum>(Polyline<Vector2<TNum>, TNum> polyline,
+        public static Polyline<Vec2<TNum>, TNum> InflateFast<TNum>(Polyline<Vec2<TNum>, TNum> polyline,
             TNum amount)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
-            if (polyline.Count < 1) return Polyline<Vector2<TNum>, TNum>.Empty;
+            if (polyline.Count < 1) return Polyline<Vec2<TNum>, TNum>.Empty;
             var isClosed = polyline.IsClosed;
 
             var prevLine = polyline[0];
             prevLine += prevLine.Direction.Right * amount;
             var lastLine = polyline[^1];
             lastLine += lastLine.Direction.Right * amount;
-            var interSectionPoints = new Vector2<TNum>[polyline.Points.Length];
+            var interSectionPoints = new Vec2<TNum>[polyline.Points.Length];
             if (!isClosed)
             {
                 interSectionPoints[0] = prevLine.Start;
@@ -361,7 +361,7 @@ public static partial class Polyline
                 interSectionPoints[i] = p;
             }
 
-            return new Polyline<Vector2<TNum>, TNum>(interSectionPoints);
+            return new Polyline<Vec2<TNum>, TNum>(interSectionPoints);
         }
     }
 }

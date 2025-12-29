@@ -6,13 +6,13 @@ namespace MeshWiz.Math;
 /// <summary>
 /// interface for operations on mathematically defined surfaces that would for example be very slow on Meshes
 /// </summary>
-public interface IMathSurface<TVector, TNum> : ISurface<TVector, TNum>
+public interface IMathSurface<TVec, out TNum> : ISurface<TVec, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum> 
-    where TVector : unmanaged, IVector<TVector, TNum>
+    where TVec : unmanaged, IVec<TVec, TNum>
 {
     [Pure]
-    public TVector NormalAt(TVector p);
+    public TVec NormalAt(TVec p);
 
     [Pure]
-    public TVector ClampToSurface(TVector p);
+    public TVec ClampToSurface(TVec p);
 }

@@ -11,13 +11,13 @@ public static partial class Mesh
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             public readonly Triangle3<TNum> Triangle = triangle;
-            public readonly AABB<Vector3<TNum>> BBox = triangle.BBox;
-            public readonly Vector3<TNum> Centroid = triangle.Centroid;
+            public readonly AABB<Vec3<TNum>> BBox = triangle.BBox;
+            public readonly Vec3<TNum> Centroid = triangle.Centroid;
         }
 
         public static (BoundedVolumeHierarchy<TNum> hierarchy,
             TriangleIndexer[] indices,
-            Vector3<TNum>[] vertices,
+            Vec3<TNum>[] vertices,
             uint depth)
             HierarchizeSah<TNum>(
                 IReadOnlyList<Triangle3<TNum>> mesh,
@@ -27,7 +27,7 @@ public static partial class Mesh
         {
             splitTests = uint.Clamp(splitTests, 2, 32);
             var triangles = new BvhSortingTriangle<TNum>[mesh.Count];
-            var rootBox = AABB<Vector3<TNum>>.Empty;
+            var rootBox = AABB<Vec3<TNum>>.Empty;
             var resultDepth = 0U;
             for (var i = 0; i < mesh.Count; i++)
             {
@@ -89,16 +89,16 @@ public static partial class Mesh
         private static (int bestSplitAxis,
             TNum bestLevel,
             TNum bestCost,
-            AABB<Vector3<TNum>> leftBounds,
-            AABB<Vector3<TNum>> rightBounds)
+            AABB<Vec3<TNum>> leftBounds,
+            AABB<Vec3<TNum>> rightBounds)
             ChooseSplit<TNum>(
                 in BoundedVolume<TNum> parent,
                 BvhSortingTriangle<TNum>[] triangles,
                 uint splitTests)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
-            var leftBounds = AABB<Vector3<TNum>>.Empty;
-            var rightBounds = AABB<Vector3<TNum>>.Empty;
+            var leftBounds = AABB<Vec3<TNum>>.Empty;
+            var rightBounds = AABB<Vec3<TNum>>.Empty;
 
             var bestCost = TNum.PositiveInfinity;
             var bestSplitAxis = -1;
@@ -112,8 +112,8 @@ public static partial class Mesh
             for (var i = 0; i < splitTests; i++)
             {
                 var splitFactor = TNum.CreateTruncating(i + 1) / TNum.CreateTruncating(splitTests + 1);
-                var splitPos = Vector3<TNum>.Lerp(parentMin, parentMax, splitFactor);
-                for (var axis = 0; axis < Vector3<TNum>.Dimensions; axis++)
+                var splitPos = Vec3<TNum>.Lerp(parentMin, parentMax, splitFactor);
+                for (var axis = 0; axis < Vec3<TNum>.Dimensions; axis++)
                 {
                     var (cost, bbLeft, bbRight) = EvalSplit(parentStart, parentEnd, axis, splitPos[axis], triangles);
                     if (cost >= bestCost) continue;
@@ -128,7 +128,7 @@ public static partial class Mesh
             return (bestSplitAxis, bestLevel, bestCost, leftBounds, rightBounds);
         }
 
-        private static (TNum cost, AABB<Vector3<TNum>> boundsLeft, AABB<Vector3<TNum>> boundsRight) EvalSplit<TNum>(
+        private static (TNum cost, AABB<Vec3<TNum>> boundsLeft, AABB<Vec3<TNum>> boundsRight) EvalSplit<TNum>(
             int parentStart,
             int parentEnd,
             int axis,
@@ -136,8 +136,8 @@ public static partial class Mesh
             BvhSortingTriangle<TNum>[] triangles)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
-            var boundsLeft = AABB<Vector3<TNum>>.Empty;
-            var boundsRight = AABB<Vector3<TNum>>.Empty;
+            var boundsLeft = AABB<Vec3<TNum>>.Empty;
+            var boundsRight = AABB<Vec3<TNum>>.Empty;
             var numLeft = 0;
             var numRight = 0;
             for (var i = parentStart; i < parentEnd; i++)
@@ -165,7 +165,7 @@ public static partial class Mesh
         [Obsolete($"Use the other overload. It has no side effects and is much faster.")]
         public static BoundedVolumeHierarchy<TNum> HierarchizeSah<TNum>(
             TriangleIndexer[] indices,
-            Vector3<TNum>[] vertices,
+            Vec3<TNum>[] vertices,
             uint maxDepth = 32,
             uint splitTests = 4)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
@@ -173,7 +173,7 @@ public static partial class Mesh
             splitTests = uint.Clamp(splitTests, 2, 10);
             Vec3Comparer<TNum> comparer = new(vertices);
             BoundedVolumeHierarchy<TNum> hierarchy =
-                [BoundedVolume<TNum>.MakeLeaf(AABB<Vector3<TNum>>.From(vertices), 0, indices.Length)];
+                [BoundedVolume<TNum>.MakeLeaf(AABB<Vec3<TNum>>.From(vertices), 0, indices.Length)];
             Stack<(int parentIndex, uint depth)> recursiveStack = new((int)maxDepth);
             recursiveStack.Push((0, 0));
             while (recursiveStack.TryPop(out var job))
@@ -220,7 +220,7 @@ public static partial class Mesh
         }
 
         [Obsolete]
-        private sealed class Vec3Comparer<TNum>(Vector3<TNum>[] vertices, int axis = 0)
+        private sealed class Vec3Comparer<TNum>(Vec3<TNum>[] vertices, int axis = 0)
             : IComparer<TriangleIndexer>
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
@@ -232,18 +232,18 @@ public static partial class Mesh
         }
 
         [Obsolete]
-        private static (int bestSplitAxis, TNum bestLevel, TNum bestCost, AABB<Vector3<TNum>> leftBounds,
-            AABB<Vector3<TNum>>
+        private static (int bestSplitAxis, TNum bestLevel, TNum bestCost, AABB<Vec3<TNum>> leftBounds,
+            AABB<Vec3<TNum>>
             rightBounds)
             ChooseSplit<TNum>(
                 in BoundedVolume<TNum> toSplit,
                 TriangleIndexer[] indices,
-                Vector3<TNum>[] vertices,
+                Vec3<TNum>[] vertices,
                 uint splitTests)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
-            var leftBounds = AABB<Vector3<TNum>>.Empty;
-            var rightBounds = AABB<Vector3<TNum>>.Empty;
+            var leftBounds = AABB<Vec3<TNum>>.Empty;
+            var rightBounds = AABB<Vec3<TNum>>.Empty;
 
             var bestCost = TNum.PositiveInfinity;
             var bestSplitAxis = -1;
@@ -255,8 +255,8 @@ public static partial class Mesh
             var parentMax = toSplit.Bounds.Max;
             var parentStart = toSplit.Start;
             var parentLength = toSplit.Length;
-            var centroids = new Vector3<TNum>[parentLength];
-            var bounds = new AABB<Vector3<TNum>>[parentLength];
+            var centroids = new Vec3<TNum>[parentLength];
+            var bounds = new AABB<Vec3<TNum>>[parentLength];
             for (var i = 0; i < parentLength; i++)
             {
                 var tri = indices[i + parentStart].Extract(vertices);
@@ -267,8 +267,8 @@ public static partial class Mesh
             for (var i = 0; i < splitTests; i++)
             {
                 var splitT = TNum.CreateTruncating(i + 1) / TNum.CreateTruncating(splitTests + 1);
-                var splitPos = Vector3<TNum>.Lerp(parentMin, parentMax, splitT);
-                for (var axis = 0; axis < Vector3<TNum>.Dimensions; axis++)
+                var splitPos = Vec3<TNum>.Lerp(parentMin, parentMax, splitT);
+                for (var axis = 0; axis < Vec3<TNum>.Dimensions; axis++)
                 {
                     var (cost, bbLeft, bbRight) = EvalSplit(axis, splitPos[axis], centroids, bounds);
                     if (cost >= bestCost) continue;
@@ -284,15 +284,15 @@ public static partial class Mesh
         }
 
         [Obsolete]
-        private static (TNum cost, AABB<Vector3<TNum>> boundsLeft, AABB<Vector3<TNum>> boundsRight) EvalSplit<TNum>(
+        private static (TNum cost, AABB<Vec3<TNum>> boundsLeft, AABB<Vec3<TNum>> boundsRight) EvalSplit<TNum>(
             int axis,
             TNum splitSuggest,
-            Vector3<TNum>[] centroids,
-            AABB<Vector3<TNum>>[] bounds)
+            Vec3<TNum>[] centroids,
+            AABB<Vec3<TNum>>[] bounds)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
-            var boundsLeft = AABB<Vector3<TNum>>.Empty;
-            var boundsRight = AABB<Vector3<TNum>>.Empty;
+            var boundsLeft = AABB<Vec3<TNum>>.Empty;
+            var boundsRight = AABB<Vec3<TNum>>.Empty;
             var numLeft = 0;
             var numRight = 0;
             for (var i = 0; i < centroids.Length; i++)
@@ -316,7 +316,7 @@ public static partial class Mesh
             return (leftCost + rightCost, boundsLeft, boundsRight);
         }
 
-        public static BoundedVolume<TNum>[] RecalculateBBoxes<TNum>(TriangleIndexer[] tris, Vector3<TNum>[] verts,
+        public static BoundedVolume<TNum>[] RecalculateBBoxes<TNum>(TriangleIndexer[] tris, Vec3<TNum>[] verts,
             BoundedVolume<TNum>[] bounds)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
@@ -324,7 +324,7 @@ public static partial class Mesh
             for (var i = bounds.Length - 1; i >= 0; i--)
             {
                 var bound = bounds[i];
-                AABB<Vector3<TNum>> newBBox;
+                AABB<Vec3<TNum>> newBBox;
                 if (bound.IsParent)
                 {
                     newBBox = newBounds[bound.FirstChild].Bounds.CombineWith(newBounds[bound.SecondChild].Bounds);
@@ -332,7 +332,7 @@ public static partial class Mesh
                     continue;
                 }
 
-                newBBox = AABB<Vector3<TNum>>.Empty;
+                newBBox = AABB<Vec3<TNum>>.Empty;
                 for (var tri = bound.Start; tri < bound.End; tri++)
                 {
                     var triBBox = tris[tri].Extract(verts).BBox;

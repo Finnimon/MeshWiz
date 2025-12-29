@@ -75,7 +75,7 @@ public sealed class OpenGLParent : OpenGlControlBase, IDisposable
 
     private (bool visible, float aspectratio) UpdateViewport()
     {
-        var trueBound = new Vector2<double>(Bounds.Width, Bounds.Height) * RenderScale;
+        var trueBound = new Vec2<double>(Bounds.Width, Bounds.Height) * RenderScale;
         GL.Viewport(0, 0, (int)trueBound.X, (int)trueBound.Y);
         return (trueBound.Length >= 1, (float)(trueBound.X / trueBound.Y));
     }

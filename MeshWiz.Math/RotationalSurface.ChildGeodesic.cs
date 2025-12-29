@@ -9,7 +9,7 @@ namespace MeshWiz.Math;
 
 public sealed partial record RotationalSurface<TNum>
 {
-    public readonly struct ChildGeodesic : IDiscretePoseCurve<Pose3<TNum>, Vector3<TNum>, TNum>,
+    public readonly struct ChildGeodesic : IDiscretePoseCurve<Pose3<TNum>, Vec3<TNum>, TNum>,
         IEquatable<ChildGeodesic>
     {
         public readonly ChildSurfaceType Type;
@@ -24,7 +24,7 @@ public sealed partial record RotationalSurface<TNum>
         {
             var containerSize = Unsafe.SizeOf<InlineArray14<TNum>>();
             var coneGeodesicSize = Unsafe.SizeOf<ConeGeodesic<TNum>>();
-            var poseLineSize = Unsafe.SizeOf<PoseLine<Pose3<TNum>, Vector3<TNum>, TNum>>();
+            var poseLineSize = Unsafe.SizeOf<PoseLine<Pose3<TNum>, Vec3<TNum>, TNum>>();
             var helixSize = Unsafe.SizeOf<Helix<TNum>>();
             var valid = containerSize >= coneGeodesicSize
                         && containerSize >= poseLineSize
@@ -44,20 +44,20 @@ public sealed partial record RotationalSurface<TNum>
             init => WriteData(value);
         }
 
-        private PoseLine<Pose3<TNum>, Vector3<TNum>, TNum> Line
+        private PoseLine<Pose3<TNum>, Vec3<TNum>, TNum> Line
         {
-            get => ReadData<PoseLine<Pose3<TNum>, Vector3<TNum>, TNum>>();
+            get => ReadData<PoseLine<Pose3<TNum>, Vec3<TNum>, TNum>>();
             init => WriteData(value);
         }
 
-        public IDiscretePoseCurve<Pose3<TNum>, Vector3<TNum>, TNum> PoseCurve => Type switch
+        public IDiscretePoseCurve<Pose3<TNum>, Vec3<TNum>, TNum> PoseCurve => Type switch
         {
             ChildSurfaceType.Cylinder => Helix,
             ChildSurfaceType.Cone => ConeGeodesic,
             ChildSurfaceType.ConeSection => ConeGeodesic,
             ChildSurfaceType.Circle => Line,
             ChildSurfaceType.CircleSection => Line,
-            _ => ThrowHelper.ThrowInvalidOperationException<IDiscretePoseCurve<Pose3<TNum>, Vector3<TNum>, TNum>>()
+            _ => ThrowHelper.ThrowInvalidOperationException<IDiscretePoseCurve<Pose3<TNum>, Vec3<TNum>, TNum>>()
         };
 
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -92,15 +92,15 @@ public sealed partial record RotationalSurface<TNum>
             => new(ChildSurfaceType.Cylinder, index) { Helix = geodesic };
 
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ChildGeodesic CreateCircle(int index, PoseLine<Pose3<TNum>, Vector3<TNum>, TNum> geodesic)
+        public static ChildGeodesic CreateCircle(int index, PoseLine<Pose3<TNum>, Vec3<TNum>, TNum> geodesic)
             => new(ChildSurfaceType.Circle, index) { Line = geodesic };
 
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ChildGeodesic CreateCircleSection(int index, PoseLine<Pose3<TNum>, Vector3<TNum>, TNum> geodesic)
+        public static ChildGeodesic CreateCircleSection(int index, PoseLine<Pose3<TNum>, Vec3<TNum>, TNum> geodesic)
             => new(ChildSurfaceType.CircleSection, index) { Line = geodesic };
 
         /// <inheritdoc />
-        public Vector3<TNum> Traverse(TNum t)
+        public Vec3<TNum> Traverse(TNum t)
             => Type switch
             {
                 ChildSurfaceType.Cylinder => Helix.Traverse(t),
@@ -108,11 +108,11 @@ public sealed partial record RotationalSurface<TNum>
                 ChildSurfaceType.ConeSection => ConeGeodesic.Traverse(t),
                 ChildSurfaceType.Circle => Line.Traverse(t),
                 ChildSurfaceType.CircleSection => Line.Traverse(t),
-                _ => ThrowHelper.ThrowInvalidOperationException<Vector3<TNum>>()
+                _ => ThrowHelper.ThrowInvalidOperationException<Vec3<TNum>>()
             };
 
         /// <inheritdoc />
-        public Vector3<TNum> GetTangent(TNum t)
+        public Vec3<TNum> GetTangent(TNum t)
             => Type switch
             {
                 ChildSurfaceType.Cylinder => Helix.GetTangent(t),
@@ -120,7 +120,7 @@ public sealed partial record RotationalSurface<TNum>
                 ChildSurfaceType.ConeSection => ConeGeodesic.GetTangent(t),
                 ChildSurfaceType.Circle => Line.GetTangent(t),
                 ChildSurfaceType.CircleSection => Line.GetTangent(t),
-                _ => ThrowHelper.ThrowInvalidOperationException<Vector3<TNum>>()
+                _ => ThrowHelper.ThrowInvalidOperationException<Vec3<TNum>>()
             };
 
 
@@ -136,37 +136,37 @@ public sealed partial record RotationalSurface<TNum>
         };
 
         /// <inheritdoc />
-        public Vector3<TNum> Start => Type switch
+        public Vec3<TNum> Start => Type switch
         {
             ChildSurfaceType.Cylinder => Helix.Start,
             ChildSurfaceType.Cone => ConeGeodesic.Start,
             ChildSurfaceType.ConeSection => ConeGeodesic.Start,
             ChildSurfaceType.Circle => Line.Start,
             ChildSurfaceType.CircleSection => Line.Start,
-            _ => ThrowHelper.ThrowInvalidOperationException<Vector3<TNum>>()
+            _ => ThrowHelper.ThrowInvalidOperationException<Vec3<TNum>>()
         };
 
 
         /// <inheritdoc />
-        public Vector3<TNum> End => Type switch
+        public Vec3<TNum> End => Type switch
         {
             ChildSurfaceType.Cylinder => Helix.End,
             ChildSurfaceType.Cone => ConeGeodesic.End,
             ChildSurfaceType.ConeSection => ConeGeodesic.End,
             ChildSurfaceType.Circle => Line.End,
             ChildSurfaceType.CircleSection => Line.End,
-            _ => ThrowHelper.ThrowInvalidOperationException<Vector3<TNum>>()
+            _ => ThrowHelper.ThrowInvalidOperationException<Vec3<TNum>>()
         };
 
         /// <inheritdoc />
-        public Vector3<TNum> TraverseOnCurve(TNum t) => Type switch
+        public Vec3<TNum> TraverseOnCurve(TNum t) => Type switch
         {
             ChildSurfaceType.Cylinder => Helix.TraverseOnCurve(t),
             ChildSurfaceType.Cone => ConeGeodesic.TraverseOnCurve(t),
             ChildSurfaceType.ConeSection => ConeGeodesic.TraverseOnCurve(t),
             ChildSurfaceType.Circle => Line.TraverseOnCurve(t),
             ChildSurfaceType.CircleSection => Line.TraverseOnCurve(t),
-            _ => ThrowHelper.ThrowInvalidOperationException<Vector3<TNum>>()
+            _ => ThrowHelper.ThrowInvalidOperationException<Vec3<TNum>>()
         };
 
         /// <inheritdoc />
@@ -181,18 +181,18 @@ public sealed partial record RotationalSurface<TNum>
         };
 
         /// <inheritdoc />
-        public Polyline<Vector3<TNum>, TNum> ToPolyline() => Type switch
+        public Polyline<Vec3<TNum>, TNum> ToPolyline() => Type switch
         {
             ChildSurfaceType.Cylinder => Helix.ToPolyline(),
             ChildSurfaceType.Cone => ConeGeodesic.ToPolyline(),
             ChildSurfaceType.ConeSection => ConeGeodesic.ToPolyline(),
             ChildSurfaceType.Circle => Line.ToPolyline(),
             ChildSurfaceType.CircleSection => Line.ToPolyline(),
-            _ => ThrowHelper.ThrowInvalidOperationException<Polyline<Vector3<TNum>, TNum>>()
+            _ => ThrowHelper.ThrowInvalidOperationException<Polyline<Vec3<TNum>, TNum>>()
         };
 
         /// <inheritdoc />
-        public Polyline<Vector3<TNum>, TNum> ToPolyline(PolylineTessellationParameter<TNum> tessellationParameter)
+        public Polyline<Vec3<TNum>, TNum> ToPolyline(PolylineTessellationParameter<TNum> tessellationParameter)
             => Type switch
             {
                 ChildSurfaceType.Cylinder => Helix.ToPolyline(tessellationParameter),
@@ -200,29 +200,29 @@ public sealed partial record RotationalSurface<TNum>
                 ChildSurfaceType.ConeSection => ConeGeodesic.ToPolyline(tessellationParameter),
                 ChildSurfaceType.Circle => Line.ToPolyline(tessellationParameter),
                 ChildSurfaceType.CircleSection => Line.ToPolyline(tessellationParameter),
-                _ => ThrowHelper.ThrowInvalidOperationException<Polyline<Vector3<TNum>, TNum>>()
+                _ => ThrowHelper.ThrowInvalidOperationException<Polyline<Vec3<TNum>, TNum>>()
             };
 
         /// <inheritdoc />
-        public Vector3<TNum> EntryDirection => Type switch
+        public Vec3<TNum> EntryDirection => Type switch
         {
             ChildSurfaceType.Cylinder => Helix.EntryDirection,
             ChildSurfaceType.Cone => ConeGeodesic.EntryDirection,
             ChildSurfaceType.ConeSection => ConeGeodesic.EntryDirection,
             ChildSurfaceType.Circle => Line.EntryDirection,
             ChildSurfaceType.CircleSection => Line.EntryDirection,
-            _ => ThrowHelper.ThrowInvalidOperationException<Vector3<TNum>>()
+            _ => ThrowHelper.ThrowInvalidOperationException<Vec3<TNum>>()
         };
 
         /// <inheritdoc />
-        public Vector3<TNum> ExitDirection => Type switch
+        public Vec3<TNum> ExitDirection => Type switch
         {
             ChildSurfaceType.Cylinder => Helix.ExitDirection,
             ChildSurfaceType.Cone => ConeGeodesic.ExitDirection,
             ChildSurfaceType.ConeSection => ConeGeodesic.ExitDirection,
             ChildSurfaceType.Circle => Line.ExitDirection,
             ChildSurfaceType.CircleSection => Line.ExitDirection,
-            _ => ThrowHelper.ThrowInvalidOperationException<Vector3<TNum>>()
+            _ => ThrowHelper.ThrowInvalidOperationException<Vec3<TNum>>()
         };
 
         /// <inheritdoc />
@@ -249,7 +249,7 @@ public sealed partial record RotationalSurface<TNum>
 
         /// <inheritdoc />
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum> ToPosePolyline()
+        public PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum> ToPosePolyline()
             => Type switch
             {
                 ChildSurfaceType.Cylinder => Helix.ToPosePolyline(),
@@ -257,12 +257,12 @@ public sealed partial record RotationalSurface<TNum>
                 ChildSurfaceType.ConeSection => ConeGeodesic.ToPosePolyline(),
                 ChildSurfaceType.Circle => Line.ToPosePolyline(),
                 ChildSurfaceType.CircleSection => Line.ToPosePolyline(),
-                _ => ThrowHelper.ThrowInvalidOperationException<PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>>()
+                _ => ThrowHelper.ThrowInvalidOperationException<PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum>>()
             };
 
         /// <inheritdoc />
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum> ToPosePolyline(
+        public PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum> ToPosePolyline(
             PolylineTessellationParameter<TNum> tessellationParameter)
             => Type switch
             {
@@ -271,7 +271,7 @@ public sealed partial record RotationalSurface<TNum>
                 ChildSurfaceType.ConeSection => ConeGeodesic.ToPosePolyline(tessellationParameter),
                 ChildSurfaceType.Circle => Line.ToPosePolyline(tessellationParameter),
                 ChildSurfaceType.CircleSection => Line.ToPosePolyline(tessellationParameter),
-                _ => ThrowHelper.ThrowInvalidOperationException<PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>>()
+                _ => ThrowHelper.ThrowInvalidOperationException<PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum>>()
             };
 
         /// <inheritdoc />
@@ -324,8 +324,8 @@ public sealed partial record RotationalSurface<TNum>
             ChildSurfaceType.Cylinder => Helix.GetRay(t),
             ChildSurfaceType.Cone => ConeGeodesic.GetRay(t),
             ChildSurfaceType.ConeSection => ConeGeodesic.GetRay(t),
-            ChildSurfaceType.Circle => (Line<Vector3<TNum>, TNum>)Line,
-            ChildSurfaceType.CircleSection => (Line<Vector3<TNum>, TNum>)Line,
+            ChildSurfaceType.Circle => (Line<Vec3<TNum>, TNum>)Line,
+            ChildSurfaceType.CircleSection => (Line<Vec3<TNum>, TNum>)Line,
             _ => ThrowHelper.ThrowInvalidOperationException<Ray3<TNum>>()
         };
 

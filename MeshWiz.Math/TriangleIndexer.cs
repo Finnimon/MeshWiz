@@ -9,19 +9,19 @@ public readonly struct TriangleIndexer(int a, int b, int c) : IEquatable<Triangl
 {
     public readonly int A = a, B = b, C = c;
 
-    public Triangle3<TNum> Extract<TNum>(IReadOnlyList<Vector3<TNum>> vertices)
+    public Triangle3<TNum> Extract<TNum>(IReadOnlyList<Vec3<TNum>> vertices)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
         => new(vertices[A], vertices[B], vertices[C]);
-    public Triangle3<TNum> Extract<TNum>(ReadOnlySpan<Vector3<TNum>> vertices)
+    public Triangle3<TNum> Extract<TNum>(ReadOnlySpan<Vec3<TNum>> vertices)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
         => new(vertices[A], vertices[B], vertices[C]);
-    public Triangle3<TNum> Extract<TNum>(Span<Vector3<TNum>> vertices)
+    public Triangle3<TNum> Extract<TNum>(Span<Vec3<TNum>> vertices)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
         => new(vertices[A], vertices[B], vertices[C]);
 
     public Triangle<TVector, TNum> Extract<TVector, TNum>(IReadOnlyList<TVector> vertices)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
-        where TVector : unmanaged, IVector<TVector, TNum>
+        where TVector : unmanaged, IVec<TVector, TNum>
         => new(vertices[A], vertices[B], vertices[C]);
 
     public void Deconstruct(out int a, out int b, out int c)

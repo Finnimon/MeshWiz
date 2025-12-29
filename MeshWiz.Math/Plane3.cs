@@ -11,71 +11,71 @@ namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct Plane3<TNum>
-    : IIntersecter<Line<Vector3<TNum>, TNum>, Vector3<TNum>>,
-        IIntersecter<Ray3<TNum>, Vector3<TNum>>,
-        IIntersecter<Triangle3<TNum>, Line<Vector3<TNum>, TNum>>,
-        IIntersecter<AABB<Vector3<TNum>>, Quad3<TNum>>
+    : IIntersecter<Line<Vec3<TNum>, TNum>, Vec3<TNum>>,
+        IIntersecter<Ray3<TNum>, Vec3<TNum>>,
+        IIntersecter<Triangle3<TNum>, Line<Vec3<TNum>, TNum>>,
+        IIntersecter<AABB<Vec3<TNum>>, Quad3<TNum>>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    public static Plane3<TNum> XY => new(Vector3<TNum>.UnitZ, TNum.Zero);
-    public static Plane3<TNum> YZ => new(Vector3<TNum>.UnitX, TNum.Zero);
-    public static Plane3<TNum> ZX => new(Vector3<TNum>.UnitY, TNum.Zero);
+    public static Plane3<TNum> XY => new(Vec3<TNum>.UnitZ, TNum.Zero);
+    public static Plane3<TNum> YZ => new(Vec3<TNum>.UnitX, TNum.Zero);
+    public static Plane3<TNum> ZX => new(Vec3<TNum>.UnitY, TNum.Zero);
 
     public readonly TNum D;
-    public readonly Vector3<TNum> Normal;
+    public readonly Vec3<TNum> Normal;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public Vector4<TNum> AsVector4 => new(Normal, D);
+    public Vec4<TNum> AsVec4 => new(Normal, D);
 
     public Plane3(in Triangle3<TNum> triangleOnPlane) : this(triangleOnPlane.Normal, triangleOnPlane.A) { }
 
-    public Plane3(Vector3<TNum> normal, Vector3<TNum> pointOnPlane)
+    public Plane3(Vec3<TNum> normal, Vec3<TNum> pointOnPlane)
     {
         Normal = normal.Normalized();
         D = -(Normal.Dot(pointOnPlane));
     }
 
-    private Plane3(Vector3<TNum> normal, TNum d, bool _)
+    private Plane3(Vec3<TNum> normal, TNum d, bool _)
     {
         Normal = normal;
         D = d;
     }
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Plane3<TNum> CreateUnsafe(Vector3<TNum> normal, Vector3<TNum> pointOnPlane)
+    public static Plane3<TNum> CreateUnsafe(Vec3<TNum> normal, Vec3<TNum> pointOnPlane)
         => new(normal, -(normal.Dot(pointOnPlane)), true);
     
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Plane3<TNum> CreateUnsafe(Vector3<TNum> normal, TNum d)
+    public static Plane3<TNum> CreateUnsafe(Vec3<TNum> normal, TNum d)
         => new(normal, d, true);
 
-    public Plane3(Vector3<TNum> a, Vector3<TNum> b, Vector3<TNum> c)
+    public Plane3(Vec3<TNum> a, Vec3<TNum> b, Vec3<TNum> c)
     {
-        Normal = Vector3<TNum>.Cross((a - b), (c - a));
+        Normal = Vec3<TNum>.Cross((a - b), (c - a));
         Normal = Normal.Normalized();
         D = -(Normal.Dot(a));
     }
 
-    public Plane3(Vector4<TNum> asVec4) : this(asVec4.XYZ, asVec4.W) { }
+    public Plane3(Vec4<TNum> asVec4) : this(asVec4.XYZ, asVec4.W) { }
 
-    public Plane3(Vector3<TNum> normal, TNum d)
+    public Plane3(Vec3<TNum> normal, TNum d)
     {
         Normal = normal.Normalized();
         D = d;
     }
 
 
-    public bool DoIntersect(Line<Vector3<TNum>, TNum> test)
+    public bool DoIntersect(Line<Vec3<TNum>, TNum> test)
         => TNum.Sign(SignedDistance(test.Start))
            != TNum.Sign(SignedDistance(test.End));
 
-    public bool Intersect(Line<Vector3<TNum>, TNum> test, out Vector3<TNum> result)
+    public bool Intersect(Line<Vec3<TNum>, TNum> test, out Vec3<TNum> result)
     {
         var denominator = Normal.Dot(test.Direction);
         // Check if ray is parallel to the plane
         if (TNum.Abs(denominator) < TNum.Epsilon)
         {
-            result = Vector3<TNum>.NaN;
+            result = Vec3<TNum>.NaN;
             return false;
         }
 
@@ -86,7 +86,7 @@ public readonly struct Plane3<TNum>
         result = test.Traverse(t);
         return t.IsApproxGreaterOrEqual(TNum.NegativeZero) && TNum.One.IsApproxGreaterOrEqual(t);
     }
-    public bool IntersectParameter(Line<Vector3<TNum>, TNum> test, out TNum t)
+    public bool IntersectParameter(Line<Vec3<TNum>, TNum> test, out TNum t)
     {
         var denominator = Normal.Dot(test.Direction);
         // Check if ray is parallel to the plane
@@ -103,7 +103,7 @@ public readonly struct Plane3<TNum>
         return t.IsApproxGreaterOrEqual(TNum.NegativeZero) && TNum.One.IsApproxGreaterOrEqual(t);
     }
 
-    public Vector3<TNum> ForceIntersect(Line<Vector3<TNum>, TNum> line)
+    public Vec3<TNum> ForceIntersect(Line<Vec3<TNum>, TNum> line)
     {
         var denominator = Normal.Dot(line.AxisVector);
         var t = -(Normal.Dot(line.Start) + D) / denominator;
@@ -113,13 +113,13 @@ public readonly struct Plane3<TNum>
     public bool DoIntersect(Ray3<TNum> test)
         => TNum.Abs(test.Direction.Dot(Normal)) >= TNum.Epsilon;
 
-    public bool Intersect(Ray3<TNum> test, out Vector3<TNum> result)
+    public bool Intersect(Ray3<TNum> test, out Vec3<TNum> result)
     {
         var denominator = Normal.Dot(test.Direction);
         // Check if ray is parallel to the plane
         if (TNum.Abs(denominator) < TNum.Epsilon)
         {
-            result = Vector3<TNum>.NaN;
+            result = Vec3<TNum>.NaN;
             return false;
         }
 
@@ -137,7 +137,7 @@ public readonly struct Plane3<TNum>
         return a != b || b != c;
     }
 
-    public bool Intersect(Triangle3<TNum> test, out Line<Vector3<TNum>, TNum> result)
+    public bool Intersect(Triangle3<TNum> test, out Line<Vec3<TNum>, TNum> result)
     {
         var (a, b, c) = test;
         var aSign = DistanceSign(a);
@@ -160,9 +160,9 @@ public readonly struct Plane3<TNum>
     }
 
     private bool TryComputeTriangleIntersection(
-        Vector3<TNum> aUnique, Vector3<TNum> b, Vector3<TNum> c,
+        Vec3<TNum> aUnique, Vec3<TNum> b, Vec3<TNum> c,
         int aSign, int bSign, int cSign,
-        out Line<Vector3<TNum>, TNum> result)
+        out Line<Vec3<TNum>, TNum> result)
     {
         result = default;
         if (aSign == 0) return false;
@@ -179,8 +179,8 @@ public readonly struct Plane3<TNum>
         return true;
     }
 
-    private Line<Vector3<TNum>, TNum> ComputeTriangleIntersection(Vector3<TNum> aUnique, Vector3<TNum> b,
-        Vector3<TNum> c, int aDistanceSign)
+    private Line<Vec3<TNum>, TNum> ComputeTriangleIntersection(Vec3<TNum> aUnique, Vec3<TNum> b,
+        Vec3<TNum> c, int aDistanceSign)
     {
         var ab = aUnique.LineTo(b);
         var ac = aUnique.LineTo(c);
@@ -190,46 +190,46 @@ public readonly struct Plane3<TNum>
     }
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public TNum SignedDistance(Vector3<TNum> p) => Normal.Dot(p) + D;
+    public TNum SignedDistance(Vec3<TNum> p) => Normal.Dot(p) + D;
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int DistanceSign(Vector3<TNum> p) => SignedDistance(p).EpsilonTruncatingSign();
+    public int DistanceSign(Vec3<TNum> p) => SignedDistance(p).EpsilonTruncatingSign();
 
     [Obsolete(nameof(DoIntersect))]
-    public bool DoIntersectDistanceSign(AABB<Vector3<TNum>> box)
+    public bool DoIntersectDistanceSign(AABB<Vec3<TNum>> box)
     {
         var boxMin = box.Min;
         var boxMax = box.Max;
         var d0 = DistanceSign(boxMin);
-        var d1 = DistanceSign(new Vector3<TNum>(boxMax.X, boxMin.Y, boxMin.Z));
-        var d2 = DistanceSign(new Vector3<TNum>(boxMax.X, boxMax.Y, boxMin.Z));
-        var d3 = DistanceSign(new Vector3<TNum>(boxMin.X, boxMax.Y, boxMin.Z));
-        var d4 = DistanceSign(new Vector3<TNum>(boxMin.X, boxMin.Y, boxMax.Z));
-        var d5 = DistanceSign(new Vector3<TNum>(boxMax.X, boxMin.Y, boxMax.Z));
+        var d1 = DistanceSign(new Vec3<TNum>(boxMax.X, boxMin.Y, boxMin.Z));
+        var d2 = DistanceSign(new Vec3<TNum>(boxMax.X, boxMax.Y, boxMin.Z));
+        var d3 = DistanceSign(new Vec3<TNum>(boxMin.X, boxMax.Y, boxMin.Z));
+        var d4 = DistanceSign(new Vec3<TNum>(boxMin.X, boxMin.Y, boxMax.Z));
+        var d5 = DistanceSign(new Vec3<TNum>(boxMax.X, boxMin.Y, boxMax.Z));
         var d6 = DistanceSign(boxMax);
-        var d7 = DistanceSign(new Vector3<TNum>(boxMin.X, boxMax.Y, boxMax.Z));
+        var d7 = DistanceSign(new Vec3<TNum>(boxMin.X, boxMax.Y, boxMax.Z));
 
         // Track whether we saw both sides of the plane
         return d0 != d1 || d1 != d2 || d2 != d3 || d3 != d4 || d4 != d5 || d5 != d6 || d6 != d7;
     }
 
-    public bool DoIntersect(AABB<Vector3<TNum>> box)
+    public bool DoIntersect(AABB<Vec3<TNum>> box)
         => DistanceSign(box.Clamp(Origin)) == 0;
 
 
-    public bool Intersect(AABB<Vector3<TNum>> box, out Quad3<TNum> result)
+    public bool Intersect(AABB<Vec3<TNum>> box, out Quad3<TNum> result)
     {
         // 1) Build the 8 corners
         var min = box.Min;
         var max = box.Max;
-        var v0 = new Vector3<TNum>(min.X, min.Y, min.Z);
-        var v1 = new Vector3<TNum>(max.X, min.Y, min.Z);
-        var v2 = new Vector3<TNum>(max.X, max.Y, min.Z);
-        var v3 = new Vector3<TNum>(min.X, max.Y, min.Z);
-        var v4 = new Vector3<TNum>(min.X, min.Y, max.Z);
-        var v5 = new Vector3<TNum>(max.X, min.Y, max.Z);
-        var v6 = new Vector3<TNum>(max.X, max.Y, max.Z);
-        var v7 = new Vector3<TNum>(min.X, max.Y, max.Z);
+        var v0 = new Vec3<TNum>(min.X, min.Y, min.Z);
+        var v1 = new Vec3<TNum>(max.X, min.Y, min.Z);
+        var v2 = new Vec3<TNum>(max.X, max.Y, min.Z);
+        var v3 = new Vec3<TNum>(min.X, max.Y, min.Z);
+        var v4 = new Vec3<TNum>(min.X, min.Y, max.Z);
+        var v5 = new Vec3<TNum>(max.X, min.Y, max.Z);
+        var v6 = new Vec3<TNum>(max.X, max.Y, max.Z);
+        var v7 = new Vec3<TNum>(min.X, max.Y, max.Z);
 
         // 2) The 12 edges as Line segments
         var edges = new[]
@@ -240,7 +240,7 @@ public readonly struct Plane3<TNum>
         };
 
         // 3) Clip each against the plane, collect unique hits
-        var pts = new List<Vector3<TNum>>();
+        var pts = new List<Vec3<TNum>>();
         foreach (var edge in edges)
         {
             if (!Intersect(edge, out var p)) continue;
@@ -269,7 +269,7 @@ public readonly struct Plane3<TNum>
             : 2;
 
         // 6) Compute centroid
-        var c = new Vector3<TNum>(
+        var c = new Vec3<TNum>(
             pts.Aggregate(TNum.Zero, (s, v) => s + v.X) / TNum.CreateTruncating(pts.Count),
             pts.Aggregate(TNum.Zero, (s, v) => s + v.Y) / TNum.CreateTruncating(pts.Count),
             pts.Aggregate(TNum.Zero, (s, v) => s + v.Z) / TNum.CreateTruncating(pts.Count)
@@ -305,23 +305,23 @@ public readonly struct Plane3<TNum>
         return true;
     }
 
-    public Vector3<TNum> Origin => Normal * -D;
+    public Vec3<TNum> Origin => Normal * -D;
     public TNum DistanceTo(Plane3<TNum> other) => TNum.Abs(D - other.D);
-    public TNum DistanceTo(Vector3<TNum> p) => TNum.Abs(SignedDistance(p));
+    public TNum DistanceTo(Vec3<TNum> p) => TNum.Abs(SignedDistance(p));
 
-    public Vector2<TNum> ProjectIntoLocal(Vector3<TNum> world)
+    public Vec2<TNum> ProjectIntoLocal(Vec3<TNum> world)
     {
         var (u, v) = Basis;
         var local = world - Origin;
-        return new Vector2<TNum>(local.Dot(u), local.Dot(v));
+        return new Vec2<TNum>(local.Dot(u), local.Dot(v));
     }
 
-    public Vector2<TNum>[] ProjectIntoLocal(IReadOnlyList<Vector3<TNum>> world)
+    public Vec2<TNum>[] ProjectIntoLocal(IReadOnlyList<Vec3<TNum>> world)
     {
         var (u, v) = Basis;
         var origin = Origin;
         var pCount = world.Count;
-        var local = new Vector2<TNum>[pCount];
+        var local = new Vec2<TNum>[pCount];
         for (var i = 0; i < pCount; i++)
         {
             var relative = world[i] - origin;
@@ -331,12 +331,12 @@ public readonly struct Plane3<TNum>
         return local;
     }
     
-    public Vector2<TNum>[] ProjectIntoLocal(ReadOnlySpan<Vector3<TNum>> world)
+    public Vec2<TNum>[] ProjectIntoLocal(ReadOnlySpan<Vec3<TNum>> world)
     {
         var (u, v) = Basis;
         var origin = Origin;
         var pCount = world.Length;
-        var local = new Vector2<TNum>[pCount];
+        var local = new Vec2<TNum>[pCount];
         for (var i = 0; i < pCount; i++)
         {
             var relative = world[i] - origin;
@@ -346,22 +346,22 @@ public readonly struct Plane3<TNum>
         return local;
     }
 
-    public Polyline<Vector2<TNum>, TNum> ProjectIntoLocal(Polyline<Vector3<TNum>, TNum> world) =>
+    public Polyline<Vec2<TNum>, TNum> ProjectIntoLocal(Polyline<Vec3<TNum>, TNum> world) =>
         new(ProjectIntoLocal(world.Points));
 
-    public Line<Vector2<TNum>, TNum>[] ProjectIntoLocal(IReadOnlyList<Line<Vector3<TNum>, TNum>> world)
+    public Line<Vec2<TNum>, TNum>[] ProjectIntoLocal(IReadOnlyList<Line<Vec3<TNum>, TNum>> world)
     {
         var (u, v) = Basis;
         var origin = Origin;
         var count = world.Count;
-        var local = new Line<Vector2<TNum>, TNum>[count];
+        var local = new Line<Vec2<TNum>, TNum>[count];
         for (var i = 0; i < count; i++)
         {
             var line = world[i];
             var lineStart = line.Start - origin;
             var lineEnd = line.End - origin;
-            var localStart = new Vector2<TNum>(lineStart.Dot(u), lineStart.Dot(v));
-            var localEnd = new Vector2<TNum>(lineEnd.Dot(u), lineEnd.Dot(v));
+            var localStart = new Vec2<TNum>(lineStart.Dot(u), lineStart.Dot(v));
+            var localEnd = new Vec2<TNum>(lineEnd.Dot(u), lineEnd.Dot(v));
             local[i] = localStart.LineTo(localEnd);
         }
 
@@ -369,13 +369,13 @@ public readonly struct Plane3<TNum>
     }
 
 
-    public Vector3<TNum> ProjectIntoWorld(Vector2<TNum> local)
+    public Vec3<TNum> ProjectIntoWorld(Vec2<TNum> local)
     {
         var (u, v) = Basis;
         return Origin + local.X * u + local.Y * v;
     }
 
-    public Vector3<TNum> Clamp(Vector3<TNum> p)
+    public Vec3<TNum> Clamp(Vec3<TNum> p)
     {
         var d= SignedDistance(p);
         p -= Normal * d;
@@ -383,12 +383,12 @@ public readonly struct Plane3<TNum>
     }
 
 
-    public Vector3<TNum>[] ProjectIntoWorld(IReadOnlyList<Vector2<TNum>> local)
+    public Vec3<TNum>[] ProjectIntoWorld(IReadOnlyList<Vec2<TNum>> local)
     {
         var (u, v) = Basis;
         var origin = Origin;
         var pCount = local.Count;
-        var world = new Vector3<TNum>[pCount];
+        var world = new Vec3<TNum>[pCount];
         for (var i = 0; i < pCount; i++)
         {
             var curLocal = local[i];
@@ -397,12 +397,12 @@ public readonly struct Plane3<TNum>
 
         return world;
     }
-    public Vector3<TNum>[] ProjectIntoWorld(ReadOnlySpan<Vector2<TNum>> local)
+    public Vec3<TNum>[] ProjectIntoWorld(ReadOnlySpan<Vec2<TNum>> local)
     {
         var (u, v) = Basis;
         var origin = Origin;
         var pCount = local.Length;
-        var world = new Vector3<TNum>[pCount];
+        var world = new Vec3<TNum>[pCount];
         for (var i = 0; i < pCount; i++)
         {
             var curLocal = local[i];
@@ -412,12 +412,12 @@ public readonly struct Plane3<TNum>
         return world;
     }
 
-    public Line<Vector3<TNum>, TNum>[] ProjectIntoWorld(IReadOnlyList<Line<Vector2<TNum>, TNum>> local)
+    public Line<Vec3<TNum>, TNum>[] ProjectIntoWorld(IReadOnlyList<Line<Vec2<TNum>, TNum>> local)
     {
         var (u, v) = Basis;
         var origin = Origin;
         var count = local.Count;
-        var world = new Line<Vector3<TNum>, TNum>[count];
+        var world = new Line<Vec3<TNum>, TNum>[count];
         for (var i = 0; i < count; i++)
         {
             var curLocal = local[i];
@@ -431,45 +431,45 @@ public readonly struct Plane3<TNum>
         return world;
     }
 
-    public Polyline<Vector3<TNum>, TNum> ProjectIntoWorld(Polyline<Vector2<TNum>, TNum> local)
+    public Polyline<Vec3<TNum>, TNum> ProjectIntoWorld(Polyline<Vec2<TNum>, TNum> local)
         => new(ProjectIntoWorld(local.Points));
 
 
-    public (Vector3<TNum> U, Vector3<TNum> V) Basis
+    public (Vec3<TNum> U, Vec3<TNum> V) Basis
     {
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => BuildBasisDuff(Normal);
     }
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static (Vector3<TNum> U, Vector3<TNum> V) BuildBasisDuff(Vector3<TNum> n)
+    public static (Vec3<TNum> U, Vec3<TNum> V) BuildBasisDuff(Vec3<TNum> n)
     {
         var sign = TNum.CopySign(TNum.One, n.Z);
         var a = -TNum.One / (sign + n.Z);
         var b = n.X * n.Y * a;
-        var u = new Vector3<TNum>(TNum.One + sign * n.X * n.X * a, sign * b, -sign * n.X);
-        var v = new Vector3<TNum>(b, sign + n.Y * n.Y * a, -n.Y);
+        var u = new Vec3<TNum>(TNum.One + sign * n.X * n.X * a, sign * b, -sign * n.X);
+        var v = new Vec3<TNum>(b, sign + n.Y * n.Y * a, -n.Y);
         return (u, v);
     }
 
 
-    public Line<Vector3<TNum>, TNum> ProjectIntoWorld(Line<Vector2<TNum>, TNum> l)
+    public Line<Vec3<TNum>, TNum> ProjectIntoWorld(Line<Vec2<TNum>, TNum> l)
     {
         var (u, v) = Basis;
         var p1 = Origin + l.Start.X * u + l.Start.Y * v;
         var p2 = Origin + l.End.X * u + l.End.Y * v;
-        return new Line<Vector3<TNum>, TNum>(p1, p2);
+        return new Line<Vec3<TNum>, TNum>(p1, p2);
     }
 
-    public Line<Vector2<TNum>, TNum> ProjectIntoLocal(Line<Vector3<TNum>, TNum> world)
+    public Line<Vec2<TNum>, TNum> ProjectIntoLocal(Line<Vec3<TNum>, TNum> world)
     {
         var (u, v) = Basis;
         var origin = Origin;
         var lineStart = world.Start - origin;
         var lineEnd = world.End - origin;
-        var localStart = new Vector2<TNum>(lineStart.Dot(u), lineStart.Dot(v));
-        var localEnd = new Vector2<TNum>(lineEnd.Dot(u), lineEnd.Dot(v));
-        return new Line<Vector2<TNum>, TNum>(localStart, localEnd);
+        var localStart = new Vec2<TNum>(lineStart.Dot(u), lineStart.Dot(v));
+        var localEnd = new Vec2<TNum>(lineEnd.Dot(u), lineEnd.Dot(v));
+        return new Line<Vec2<TNum>, TNum>(localStart, localEnd);
     }
 
 }

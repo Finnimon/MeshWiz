@@ -6,23 +6,23 @@ namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
 
-public readonly struct Triangle3<TNum>:ISurface<Vector3<TNum>, TNum>, IFlat<TNum>, IByteSize
+public readonly struct Triangle3<TNum>:ISurface<Vec3<TNum>, TNum>, IFlat<TNum>, IByteSize
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    public readonly Vector3<TNum> A,B,C;
-    public Vector3<TNum> Normal => ((B - A).Cross(C-A)).Normalized();
+    public readonly Vec3<TNum> A,B,C;
+    public Vec3<TNum> Normal => ((B - A).Cross(C-A)).Normalized();
     public Plane3<TNum> Plane => new(in this);
-    public Triangle3(Vector3<TNum> a,Vector3<TNum> b,Vector3<TNum> c)
+    public Triangle3(Vec3<TNum> a,Vec3<TNum> b,Vec3<TNum> c)
     {
         A = a;
         B = b;
         C = c;
     }
 
-    public ICurve<Vector3<TNum>, TNum> Bounds => new Polyline<Vector3<TNum>, TNum>([A, B, C]);
+    public ICurve<Vec3<TNum>, TNum> Bounds => new Polyline<Vec3<TNum>, TNum>([A, B, C]);
 
 
-    public Vector3<TNum> Centroid => (A + B + C) /TNum.CreateTruncating(3);
+    public Vec3<TNum> Centroid => (A + B + C) /TNum.CreateTruncating(3);
     public TNum SurfaceArea 
     {
         get
@@ -34,12 +34,12 @@ public readonly struct Triangle3<TNum>:ISurface<Vector3<TNum>, TNum>, IFlat<TNum
         }
     }
     
-    public static implicit operator Triangle3<TNum>(Triangle<Vector3<TNum>,TNum> dimensionless)
+    public static implicit operator Triangle3<TNum>(Triangle<Vec3<TNum>,TNum> dimensionless)
         =>new(dimensionless.A,dimensionless.B,dimensionless.C);
 
-    public static int ByteSize =>Vector3<TNum>.ByteSize*3;
+    public static int ByteSize =>Vec3<TNum>.ByteSize*3;
 
-    public void Deconstruct(out Vector3<TNum> a, out Vector3<TNum> b, out Vector3<TNum> c)
+    public void Deconstruct(out Vec3<TNum> a, out Vec3<TNum> b, out Vec3<TNum> c)
     {
         a = A;
         b = B;
@@ -52,7 +52,7 @@ public readonly struct Triangle3<TNum>:ISurface<Vector3<TNum>, TNum>, IFlat<TNum
         var ca = A.Subtract(B).Length;
         return (ab,bc,ca);
     }
-    public AABB<Vector3<TNum>> BBox=>AABB<Vector3<TNum>>.From(A,B,C);
+    public AABB<Vec3<TNum>> BBox=>AABB<Vec3<TNum>>.From(A,B,C);
 
     public Triangle3<TOtherNum> To<TOtherNum>() 
         where TOtherNum : unmanaged, IFloatingPointIeee754<TOtherNum> =>

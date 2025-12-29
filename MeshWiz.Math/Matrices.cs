@@ -8,8 +8,8 @@ public static class Matrices
     public static TNum Determinant<TRow,TCol,TNum, TMatrix>(ref this TMatrix matrix)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
         where TMatrix : unmanaged,IMatrix<TMatrix,TRow,TCol,TNum>
-        where TRow : unmanaged, IVector<TRow, TNum>
-        where TCol : unmanaged, IVector<TCol, TNum>
+        where TRow : unmanaged, IVec<TRow, TNum>
+        where TCol : unmanaged, IVec<TCol, TNum>
 
     {
         var n = TMatrix.RowCount;

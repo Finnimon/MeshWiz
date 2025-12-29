@@ -9,46 +9,46 @@ public class VectorSizeTests
 
     [Test]
     public void TestVector3Half()
-        => VectorSizeAssert<Vector3<Half>, Half>();
+        => VectorSizeAssert<Vec3<Half>, Half>();
     [Test]
     public void TestVector3Single()
-        => VectorSizeAssert<Vector3<float>, float>();
+        => VectorSizeAssert<Vec3<float>, float>();
     [Test]
     public void TestVector3Double()
-        => VectorSizeAssert<Vector3<double>, double>();
+        => VectorSizeAssert<Vec3<double>, double>();
     [Test]
     public void TestVector3NFloat()
-        => VectorSizeAssert<Vector3<NFloat>,NFloat>();
+        => VectorSizeAssert<Vec3<NFloat>,NFloat>();
     
     [Test]
     public void TestVector2Half()
-        => VectorSizeAssert<Vector2<Half>, Half>();
+        => VectorSizeAssert<Vec2<Half>, Half>();
     [Test]
     public void TestVector2Single()
-        => VectorSizeAssert<Vector2<float>, float>();
+        => VectorSizeAssert<Vec2<float>, float>();
     [Test]
     public void TestVector2Double()
-        => VectorSizeAssert<Vector2<double>, double>();
+        => VectorSizeAssert<Vec2<double>, double>();
     [Test]
     public void TestVector2NFloat()
-        => VectorSizeAssert<Vector2<NFloat>,NFloat>();
+        => VectorSizeAssert<Vec2<NFloat>,NFloat>();
     
     
     [Test]
     public void TestVector4Half()
-        => VectorSizeAssert<Vector4<Half>, Half>();
+        => VectorSizeAssert<Vec4<Half>, Half>();
     [Test]
     public void TestVector4Single()
-        => VectorSizeAssert<Vector4<float>, float>();
+        => VectorSizeAssert<Vec4<float>, float>();
     [Test]
     public void TestVector4Double()
-        => VectorSizeAssert<Vector4<double>, double>();
+        => VectorSizeAssert<Vec4<double>, double>();
     [Test]
     public void TestVector4NFloat()
-        => VectorSizeAssert<Vector4<NFloat>,NFloat>();
+        => VectorSizeAssert<Vec4<NFloat>,NFloat>();
 
-    private unsafe void VectorSizeAssert<TVector,TNum>() 
-        where TVector : unmanaged, IVector<TVector,TNum>
+    private static unsafe void VectorSizeAssert<TVector,TNum>() 
+        where TVector : unmanaged, IVec<TVector,TNum>
         where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum>
     {
         var expected = (int)(sizeof(TNum) * TVector.Dimensions);

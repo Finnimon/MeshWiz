@@ -8,11 +8,11 @@ using MeshWiz.Utility.Extensions;
 namespace MeshWiz.Math;
 
 public readonly struct Circle3Section<TNum> : IFlat<TNum>, IRotationalSurface<TNum>,
-    IGeodesicProvider<PoseLine<Pose3<TNum>, Vector3<TNum>, TNum>, TNum>,
+    IGeodesicProvider<PoseLine<Pose3<TNum>, Vec3<TNum>, TNum>, TNum>,
     IEquatable<Circle3Section<TNum>> where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    public Vector3<TNum> Centroid { get; }
-    public Vector3<TNum> Normal { get; }
+    public Vec3<TNum> Centroid { get; }
+    public Vec3<TNum> Normal { get; }
     public readonly TNum MinorRadius;
     public readonly TNum MajorRadius;
     public Circle3<TNum> Major => new(Centroid, Normal, MajorRadius);
@@ -22,7 +22,7 @@ public readonly struct Circle3Section<TNum> : IFlat<TNum>, IRotationalSurface<TN
     /// <param name="normal">circle normal</param>
     /// <param name="minorRadius">inner radius<paramref name="normal"/></param>
     /// <param name="majorRadius">outer radius</param>
-    public Circle3Section(Vector3<TNum> centroid, Vector3<TNum> normal, TNum minorRadius, TNum majorRadius)
+    public Circle3Section(Vec3<TNum> centroid, Vec3<TNum> normal, TNum minorRadius, TNum majorRadius)
     {
         MinorRadius = TNum.Abs(minorRadius);
         MajorRadius = TNum.Abs(majorRadius);
@@ -37,7 +37,7 @@ public readonly struct Circle3Section<TNum> : IFlat<TNum>, IRotationalSurface<TN
 
 
     /// <inheritdoc />
-    public AABB<Vector3<TNum>> BBox => Major.BBox;
+    public AABB<Vec3<TNum>> BBox => Major.BBox;
 
 
     public IMesh<TNum> Tessellate() => Tessellate(32);
@@ -47,18 +47,18 @@ public readonly struct Circle3Section<TNum> : IFlat<TNum>, IRotationalSurface<TN
 
 
     /// <inheritdoc />
-    public IDiscreteCurve<Vector3<TNum>, TNum> SweepCurve =>
+    public IDiscreteCurve<Vec3<TNum>, TNum> SweepCurve =>
         Minor.TraverseByAngle(TNum.Zero).LineTo(Major.TraverseByAngle(TNum.Zero));
 
     /// <inheritdoc />
     public Ray3<TNum> SweepAxis => new(Centroid, Normal);
 
-    public PoseLine<Pose3<TNum>,Vector3<TNum>,TNum> GetGeodesic(Vector3<TNum> p1, Vector3<TNum> p2)
+    public PoseLine<Pose3<TNum>,Vec3<TNum>,TNum> GetGeodesic(Vec3<TNum> p1, Vec3<TNum> p2)
     {
         var p1p = Plane.ProjectIntoWorld(Plane.ProjectIntoLocal(p1));
         var p2p = Plane.ProjectIntoWorld(Plane.ProjectIntoLocal(p2));
 
-        static TNum RadialDistance(Vector3<TNum> c, Vector3<TNum> pt)
+        static TNum RadialDistance(Vec3<TNum> c, Vec3<TNum> pt)
             => (pt - c).Length;
 
         var r1 = RadialDistance(Centroid, p1p);
@@ -79,7 +79,7 @@ public readonly struct Circle3Section<TNum> : IFlat<TNum>, IRotationalSurface<TN
         if (inside)
         {
             var line=p1p.LineTo(p2p);
-            return PoseLine<Pose3<TNum>, Vector3<TNum>, TNum>.FromLine(line,Normal);
+            return PoseLine<Pose3<TNum>, Vec3<TNum>, TNum>.FromLine(line,Normal);
         }
 
 
@@ -90,11 +90,11 @@ public readonly struct Circle3Section<TNum> : IFlat<TNum>, IRotationalSurface<TN
         var fallbackLen = fallbackDir.Length;
         if (fallbackLen == TNum.Zero) fallbackDir = Plane.Basis.U;
 
-        var l=new Line<Vector3<TNum>, TNum>(cp1, cp2);
-        return PoseLine<Pose3<TNum>, Vector3<TNum>, TNum>.FromLine(l,Normal);
+        var l=new Line<Vec3<TNum>, TNum>(cp1, cp2);
+        return PoseLine<Pose3<TNum>, Vec3<TNum>, TNum>.FromLine(l,Normal);
     }
 
-    private Vector3<TNum> ClampRadial(Vector3<TNum> pt)
+    private Vec3<TNum> ClampRadial(Vec3<TNum> pt)
     {
         var cToP = pt - Centroid;
         var dist = cToP.Length;
@@ -115,8 +115,8 @@ public readonly struct Circle3Section<TNum> : IFlat<TNum>, IRotationalSurface<TN
 
 
     /// <inheritdoc />
-    public PoseLine<Pose3<TNum>, Vector3<TNum>, TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint,
-        Vector3<TNum> direction)
+    public PoseLine<Pose3<TNum>, Vec3<TNum>, TNum> GetGeodesicFromEntry(Vec3<TNum> entryPoint,
+        Vec3<TNum> direction)
     {
         var planeClamped = Plane.ProjectIntoWorld(Plane.ProjectIntoLocal(entryPoint));
         var cToP = planeClamped - Centroid;
@@ -137,10 +137,10 @@ public readonly struct Circle3Section<TNum> : IFlat<TNum>, IRotationalSurface<TN
         Debug.Assert(TNum.IsFinite(t));
         line = line.Section(TNum.Zero, t);
         var line3= Plane.ProjectIntoWorld(line);
-        return PoseLine<Pose3<TNum>, Vector3<TNum>, TNum>.FromLine(line3,Normal);
+        return PoseLine<Pose3<TNum>, Vec3<TNum>, TNum>.FromLine(line3,Normal);
     }
 
-    private static TNum GetClosestIntersection(in Line<Vector2<TNum>, TNum> l, Circle2<TNum> circle)
+    private static TNum GetClosestIntersection(in Line<Vec2<TNum>, TNum> l, Circle2<TNum> circle)
     {
         var t = TNum.PositiveInfinity;
         var d = l.AxisVector;
@@ -168,10 +168,10 @@ public readonly struct Circle3Section<TNum> : IFlat<TNum>, IRotationalSurface<TN
     }
 
     [Pure]
-    public Vector3<TNum> NormalAt(Vector3<TNum> _) => Normal;
+    public Vec3<TNum> NormalAt(Vec3<TNum> _) => Normal;
 
     /// <inheritdoc />
-    public Vector3<TNum> ClampToSurface(Vector3<TNum> p)
+    public Vec3<TNum> ClampToSurface(Vec3<TNum> p)
     {
         p = Plane.Clamp(p);
         var cToP = p - Centroid;

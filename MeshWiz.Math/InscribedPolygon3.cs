@@ -15,22 +15,22 @@ public readonly struct InscribedPolygon3<TNum>(int edgeCount, Circle3<TNum> boun
     public TNum StepAngle => Numbers<TNum>.TwoPi / TNum.CreateTruncating(edgeCount);
 
     /// <inheritdoc />
-    public Vector3<TNum> Normal => Boundary.Normal;
+    public Vec3<TNum> Normal => Boundary.Normal;
 
     /// <inheritdoc />
     public Plane3<TNum> Plane => Boundary.Plane;
 
     /// <inheritdoc />
-    public Vector3<TNum> Centroid => Boundary.Centroid;
+    public Vec3<TNum> Centroid => Boundary.Centroid;
 
     /// <inheritdoc />
     /// faster than explicit check of every Vertex
-    public AABB<Vector3<TNum>> BBox => Boundary.BBox;
+    public AABB<Vec3<TNum>> BBox => Boundary.BBox;
 
     /// <inheritdoc />
     public IMesh<TNum> Tessellate()
     {
-        var vertices = new Vector3<TNum>[EdgeCount + 1];
+        var vertices = new Vec3<TNum>[EdgeCount + 1];
         vertices[0] = Centroid;
         var outerBounds = vertices.AsSpan(1);
         var step = StepAngle;

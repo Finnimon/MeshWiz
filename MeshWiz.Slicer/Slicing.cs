@@ -10,7 +10,7 @@ public static class Slicing
     {
         var vertices = source.Vertices;
         var indices = source.Indices;
-        var normals = new Vector3<TNum>[vertices.Length];
+        var normals = new Vec3<TNum>[vertices.Length];
         var normalCount = new TNum[vertices.Length];
         foreach (var indexer in indices)
         {
@@ -24,7 +24,7 @@ public static class Slicing
             normalCount[c]++;
         }
 
-        var offsetVertices = new Vector3<TNum>[vertices.Length];
+        var offsetVertices = new Vec3<TNum>[vertices.Length];
         for (var i = 0; i < normalCount.Length; i++)
         {
             var normal = normals[i];

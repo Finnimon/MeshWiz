@@ -8,10 +8,10 @@ using MeshWiz.Utility.Extensions;
 namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-public readonly struct Arc2<TNum> : IContiguousDiscreteCurve<Vector2<TNum>, TNum>
+public readonly struct Arc2<TNum> : IContiguousDiscreteCurve<Vec2<TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    public readonly Vector2<TNum> CircumCenter;
+    public readonly Vec2<TNum> CircumCenter;
     public readonly TNum Radius, StartAngle, EndAngle;
     public bool IsCircle => AngleRangeSize.IsApprox(Numbers<TNum>.TwoPi);
     public bool IsAtLeastFullCircle => AngleRangeSize.IsApproxGreaterOrEqual(Numbers<TNum>.TwoPi);
@@ -24,7 +24,7 @@ public readonly struct Arc2<TNum> : IContiguousDiscreteCurve<Vector2<TNum>, TNum
         EndAngle = endAngle;
     }
 
-    public Arc2(Vector2<TNum> circumCenter, TNum radius, TNum startAngle, TNum endAngle)
+    public Arc2(Vec2<TNum> circumCenter, TNum radius, TNum startAngle, TNum endAngle)
     {
         CircumCenter = circumCenter;
         Radius = radius;
@@ -54,7 +54,7 @@ public readonly struct Arc2<TNum> : IContiguousDiscreteCurve<Vector2<TNum>, TNum
     };
 
     /// <inheritdoc />
-    public Vector2<TNum> Traverse(TNum t)
+    public Vec2<TNum> Traverse(TNum t)
     {
         var angle = TNum.Lerp(StartAngle, EndAngle, t);
         return Underlying.TraverseByAngle(angle);
@@ -62,7 +62,7 @@ public readonly struct Arc2<TNum> : IContiguousDiscreteCurve<Vector2<TNum>, TNum
 
 
     /// <inheritdoc />
-    public Vector2<TNum> GetTangent(TNum t)
+    public Vec2<TNum> GetTangent(TNum t)
     {
         var angle = TNum.Lerp(StartAngle, EndAngle, t);
         var underlyingAt = angle / AngleRangeSize;
@@ -71,27 +71,27 @@ public readonly struct Arc2<TNum> : IContiguousDiscreteCurve<Vector2<TNum>, TNum
 
 
     /// <inheritdoc />
-    public Vector2<TNum> Start => Traverse(TNum.Zero);
+    public Vec2<TNum> Start => Traverse(TNum.Zero);
 
     /// <inheritdoc />
-    public Vector2<TNum> End => Traverse(TNum.One);
+    public Vec2<TNum> End => Traverse(TNum.One);
 
     /// <inheritdoc />
-    public Vector2<TNum> TraverseOnCurve(TNum t)
+    public Vec2<TNum> TraverseOnCurve(TNum t)
         => Traverse(TNum.Clamp(t, TNum.Zero, TNum.One));
 
     /// <inheritdoc />
     public TNum Length => AngleRangeSize / Numbers<TNum>.TwoPi * Underlying.Circumference;
 
     /// <inheritdoc />
-    public Polyline<Vector2<TNum>, TNum> ToPolyline()
+    public Polyline<Vec2<TNum>, TNum> ToPolyline()
         => ToPolyline(new PolylineTessellationParameter<TNum> { MaxAngularDeviation = Numbers<TNum>.Eps2 });
 
     /// <inheritdoc />
-    public Polyline<Vector2<TNum>, TNum> ToPolyline(PolylineTessellationParameter<TNum> tessellationParameter)
+    public Polyline<Vec2<TNum>, TNum> ToPolyline(PolylineTessellationParameter<TNum> tessellationParameter)
     {
         var (count, countNum, stepSize) = tessellationParameter.GetStepsForAngle(SignedAngleRange);
-        var verts = new Vector2<TNum>[count + 1];
+        var verts = new Vec2<TNum>[count + 1];
         var step = TNum.One / countNum;
         var pos = TNum.Zero;
 
@@ -101,12 +101,12 @@ public readonly struct Arc2<TNum> : IContiguousDiscreteCurve<Vector2<TNum>, TNum
             pos += step;
         }
 
-        return new Polyline<Vector2<TNum>, TNum>(verts);
+        return new Polyline<Vec2<TNum>, TNum>(verts);
     }
 
     /// <inheritdoc />
-    public Vector2<TNum> EntryDirection => GetTangent(TNum.Zero);
+    public Vec2<TNum> EntryDirection => GetTangent(TNum.Zero);
 
     /// <inheritdoc />
-    public Vector2<TNum> ExitDirection => GetTangent(TNum.One);
+    public Vec2<TNum> ExitDirection => GetTangent(TNum.One);
 }

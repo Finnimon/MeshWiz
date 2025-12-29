@@ -13,10 +13,10 @@ public readonly struct Torus<TNum> : IBody<TNum>, IRotationalSurface<TNum>
     public Circle3<TNum> InnerCircle => new(Centroid, Normal, InnerCircleRadius);
     public TNum InnerCircleRadius => Numbers<TNum>.Half * (MajorRadius + MinorRadius);
 
-    public readonly Vector3<TNum> Normal;
+    public readonly Vec3<TNum> Normal;
     public readonly TNum MinorRadius;
     public readonly TNum MajorRadius;
-    public Vector3<TNum> Centroid { get; }
+    public Vec3<TNum> Centroid { get; }
 
     /// <summary>
     /// Surface area = 4 * pi^2 * R * r
@@ -28,7 +28,7 @@ public readonly struct Torus<TNum> : IBody<TNum>, IRotationalSurface<TNum>
     /// </summary>
     public TNum Volume => Numbers<TNum>.TwoPi * TNum.Pi * MajorRadius * MinorRadius * MinorRadius;
 
-    public AABB<Vector3<TNum>> BBox
+    public AABB<Vec3<TNum>> BBox
     {
         get
         {
@@ -38,14 +38,14 @@ public readonly struct Torus<TNum> : IBody<TNum>, IRotationalSurface<TNum>
 
             var two = TNum.CreateTruncating(2);
             var radialExtent = MajorRadius + MinorRadius; // max distance in u/v-plane from centroid
-            var diag = Vector3<TNum>.Abs(u) + Vector3<TNum>.Abs(v);
+            var diag = Vec3<TNum>.Abs(u) + Vec3<TNum>.Abs(v);
             diag *= two * radialExtent;
-            diag += Vector3<TNum>.Abs(n) * (two * MinorRadius);
+            diag += Vec3<TNum>.Abs(n) * (two * MinorRadius);
             return AABB.Around(Centroid, diag);
         }
     }
 
-    public Torus(Vector3<TNum> centroid, Vector3<TNum> normalUp, TNum minorRadius, TNum majorRadius)
+    public Torus(Vec3<TNum> centroid, Vec3<TNum> normalUp, TNum minorRadius, TNum majorRadius)
     {
         Centroid = centroid;
         MinorRadius = TNum.Abs(minorRadius);
@@ -61,7 +61,7 @@ public readonly struct Torus<TNum> : IBody<TNum>, IRotationalSurface<TNum>
         ArgumentOutOfRangeException.ThrowIfLessThan(radialSegments, 3);
         ArgumentOutOfRangeException.ThrowIfLessThan(tubularSegments, 3);
 
-        var vertices = new Vector3<TNum>[radialSegments * tubularSegments];
+        var vertices = new Vec3<TNum>[radialSegments * tubularSegments];
 
         var plane = MajorCircle.Plane;
         var (u, v) = plane.Basis;
@@ -119,7 +119,7 @@ public readonly struct Torus<TNum> : IBody<TNum>, IRotationalSurface<TNum>
     }
 
     /// <inheritdoc />
-    public IDiscreteCurve<Vector3<TNum>, TNum> SweepCurve
+    public IDiscreteCurve<Vec3<TNum>, TNum> SweepCurve
     {
         get
         {
@@ -134,7 +134,7 @@ public readonly struct Torus<TNum> : IBody<TNum>, IRotationalSurface<TNum>
     public Ray3<TNum> SweepAxis => new(Centroid, Normal);
 
     /// <inheritdoc />
-    public Vector3<TNum> NormalAt(Vector3<TNum> p)
+    public Vec3<TNum> NormalAt(Vec3<TNum> p)
     {
         p = ClampToSurface(p);
         var dir = p - InnerCircle.ClampToEdge(p);
@@ -142,7 +142,7 @@ public readonly struct Torus<TNum> : IBody<TNum>, IRotationalSurface<TNum>
     }
 
     /// <inheritdoc />
-    public Vector3<TNum> ClampToSurface(Vector3<TNum> p)
+    public Vec3<TNum> ClampToSurface(Vec3<TNum> p)
     {
         var upRay = new Ray3<TNum>(Centroid, Normal);
         var axis = upRay.Traverse(-CrossSectionRadius).LineTo(upRay.Traverse(CrossSectionRadius));
@@ -177,13 +177,13 @@ public readonly struct Torus<TNum> : IBody<TNum>, IRotationalSurface<TNum>
     public TNum CrossSectionRadius => (MajorRadius - MinorRadius) * Numbers<TNum>.Half;
 
     /// <inheritdoc />
-    public IPoseCurve<Pose3<TNum>,Vector3<TNum>,TNum> GetGeodesic(Vector3<TNum> p1, Vector3<TNum> p2)
+    public IPoseCurve<Pose3<TNum>,Vec3<TNum>,TNum> GetGeodesic(Vec3<TNum> p1, Vec3<TNum> p2)
     {
         throw new NotImplementedException();
     }
 
     /// <inheritdoc />
-    public IPoseCurve<Pose3<TNum>,Vector3<TNum>,TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint, Vector3<TNum> direction)
+    public IPoseCurve<Pose3<TNum>,Vec3<TNum>,TNum> GetGeodesicFromEntry(Vec3<TNum> entryPoint, Vec3<TNum> direction)
     {
         throw new NotImplementedException();
     }

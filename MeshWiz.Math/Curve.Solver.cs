@@ -14,7 +14,7 @@ public static partial class Curve
             Plane3<TNum> plane,
             AABB<TNum> search = default)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
-            where TCurve : ICurve<Vector3<TNum>, TNum> 
+            where TCurve : ICurve<Vec3<TNum>, TNum> 
             => Intersection(curve, 
                 plane, 
                 (sig, searchRange) => Signal.Analysis.BestFitNewton(sig, searchRange));
@@ -25,7 +25,7 @@ public static partial class Curve
             Func<ISignal<TNum, TNum>, AABB<TNum>, SignalDataPoint<TNum, TNum>> engine,
             AABB<TNum> search = default)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
-            where TCurve : ICurve<Vector3<TNum>, TNum>
+            where TCurve : ICurve<Vec3<TNum>, TNum>
         {
             FSignal<TNum, TNum> sig = new(t => plane.SignedDistance(curve.Traverse(t)));
             if (search == default)
@@ -39,7 +39,7 @@ public static partial class Curve
         public static Result<Arithmetics, TNum> IntersectionBinary<TCurve, TNum>(TCurve curve, Plane3<TNum> plane,
             AABB<TNum> search = default)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
-            where TCurve : ICurve<Vector3<TNum>, TNum>
+            where TCurve : ICurve<Vec3<TNum>, TNum>
             => Intersection(curve, 
                 plane,
                 (sig, searchRange) => Signal.Analysis.BestFitBinary(sig, TNum.Zero, searchRange));

@@ -9,94 +9,94 @@ using MeshWiz.Utility;
 namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
-    : ILine<TVector, TNum>,IBounded<TVector>
-    where TVector : unmanaged, IVector<TVector, TNum>
+public readonly record struct Line<TVec, TNum>(TVec Start, TVec End)
+    : ILine<TVec, TNum>,IBounded<TVec>
+    where TVec : unmanaged, IVec<TVec, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    public Line<TVector, TNum> Normalized() => FromAxisVector(Start, Direction);
+    public Line<TVec, TNum> Normalized() => FromAxisVector(Start, Direction);
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public TVector MidPoint => (Start + End) * Numbers<TNum>.Half;
+    public TVec MidPoint => (Start + End) * Numbers<TNum>.Half;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    bool ICurve<TVector, TNum>.IsClosed => false;
+    bool ICurve<TVec, TNum>.IsClosed => false;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public TNum Length => AxisVector.Length;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public TVector AxisVector => End - Start;
+    public TVec AxisVector => End - Start;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public TVector Direction => AxisVector.Normalized();
+    public TVec Direction => AxisVector.Normalized();
 
     [Pure]
-    public Line<TVector, TNum> Reversed() => new(End, Start);
+    public Line<TVec, TNum> Reversed() => new(End, Start);
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    TNum IDiscreteCurve<TVector, TNum>.Length => AxisVector.Length;
+    TNum IDiscreteCurve<TVec, TNum>.Length => AxisVector.Length;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public TNum SquaredLength => AxisVector.SquaredLength;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public AABB<TVector> Bounds => AABB<TVector>.From(Start, End);
+    public AABB<TVec> Bounds => AABB<TVec>.From(Start, End);
 
     [Pure]
-    public static Line<TVector, TNum> FromAxisVector(TVector start, TVector direction)
+    public static Line<TVec, TNum> FromAxisVector(TVec start, TVec direction)
         => new(start, start+direction);
 
     [Pure]
-    public static Line<TVector, TNum> FromAxisVector(TVector direction)
-        => new(TVector.Zero, direction);
+    public static Line<TVec, TNum> FromAxisVector(TVec direction)
+        => new(TVec.Zero, direction);
 
     [Pure]
-    public TVector Traverse(TNum t)
-        => TVector.Lerp(Start,End,t);
+    public TVec Traverse(TNum t)
+        => TVec.Lerp(Start,End,t);
 
     [Pure]
-    public TVector TraverseOnCurve(TNum t)
+    public TVec TraverseOnCurve(TNum t)
         => Traverse(TNum.Clamp(t, TNum.Zero, TNum.One));
 
     [Pure]
-    public static Line<TVector, TNum> operator +(Line<TVector, TNum> l, Line<TVector, TNum> r)
+    public static Line<TVec, TNum> operator +(Line<TVec, TNum> l, Line<TVec, TNum> r)
         => FromAxisVector(l.Start + r.Start, l.AxisVector + r.AxisVector);
 
     [Pure]
-    public static Line<TVector, TNum> operator +(Line<TVector, TNum> l, TVector r)
+    public static Line<TVec, TNum> operator +(Line<TVec, TNum> l, TVec r)
         => new(l.Start + r, l.End + r);
 
     [Pure]
-    public static Line<TVector, TNum> operator +(TVector l, Line<TVector, TNum> r)
+    public static Line<TVec, TNum> operator +(TVec l, Line<TVec, TNum> r)
         => r + l;
 
     [Pure]
-    public static Line<TVector, TNum> operator -(Line<TVector, TNum> l, Line<TVector, TNum> r)
+    public static Line<TVec, TNum> operator -(Line<TVec, TNum> l, Line<TVec, TNum> r)
         => FromAxisVector(l.Start - r.Start, l.AxisVector - r.AxisVector);
 
     [Pure]
-    public static Line<TVector, TNum> operator *(Line<TVector, TNum> l, TNum r)
+    public static Line<TVec, TNum> operator *(Line<TVec, TNum> l, TNum r)
         => FromAxisVector(l.Start * r, l.AxisVector * r);
 
     [Pure]
-    public TNum DistanceTo(TVector p)
+    public TNum DistanceTo(TVec p)
         => ClosestPoint(p).DistanceTo(p);
     
     [Pure]
-    public TNum DistanceToSegment(TVector p)
+    public TNum DistanceToSegment(TVec p)
         => ClosestPointOnSegment(p).DistanceTo(p);
 
     [Pure]
-    public TNum SquaredDistanceTo(TVector p)
+    public TNum SquaredDistanceTo(TVec p)
         => ClosestPoint(p).SquaredDistanceTo(p);
 
     [Pure]
-    public TNum SquaredDistanceToSegment(TVector p)
+    public TNum SquaredDistanceToSegment(TVec p)
         => ClosestPointOnSegment(p).SquaredDistanceTo(p);
 
     [Pure]
-    public TVector ClosestPoint(TVector p)
+    public TVec ClosestPoint(TVec p)
     {
         var v = p - Start;
         var ndir = Direction;
@@ -106,7 +106,7 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
     }
 
     [Pure]
-    public TVector ClosestPointOnSegment(TVector p)
+    public TVec ClosestPointOnSegment(TVec p)
     {
         var v = p - Start;
         var direction = AxisVector;
@@ -119,7 +119,7 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
     }
 
     [Pure]
-    public (TVector closest, TVector onSeg) ClosestPoints(TVector p)
+    public (TVec closest, TVec onSeg) ClosestPoints(TVec p)
     {
         var v = p - Start;
         var direction = AxisVector;
@@ -133,7 +133,7 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
     }
 
     [Pure]
-    public (TNum closest, TNum onSeg) GetClosestPositions(TVector p)
+    public (TNum closest, TNum onSeg) GetClosestPositions(TVec p)
     {
         var v = p - Start;
         var direction = AxisVector;
@@ -145,24 +145,24 @@ public readonly record struct Line<TVector, TNum>(TVector Start, TVector End)
     }
 
     [Pure]
-    public Line<TVector, TNum> Section(TNum start, TNum end)
+    public Line<TVec, TNum> Section(TNum start, TNum end)
         => new(Traverse(start),Traverse(end));
 
-    public Polyline<TVector, TNum> ToPolyline() => new(Start, End);
-    public Polyline<TVector, TNum> ToPolyline(PolylineTessellationParameter<TNum> _) => new(Start, End);
+    public Polyline<TVec, TNum> ToPolyline() => new(Start, End);
+    public Polyline<TVec, TNum> ToPolyline(PolylineTessellationParameter<TNum> _) => new(Start, End);
 
     /// <inheritdoc />
-    public TVector GetTangent(TNum t)
+    public TVec GetTangent(TNum t)
         => Direction;
 
     /// <inheritdoc />
-    public TVector EntryDirection => Direction;
+    public TVec EntryDirection => Direction;
 
     /// <inheritdoc />
-    public TVector ExitDirection => Direction;
+    public TVec ExitDirection => Direction;
 
     /// <inheritdoc />
-    public AABB<TVector> BBox => AABB.From(Start, End);
+    public AABB<TVec> BBox => AABB.From(Start, End);
 
 }
 
@@ -170,8 +170,8 @@ public static class Line
 {
     [Pure]
     public static bool TryIntersect<TNum>(
-        in Line<Vector2<TNum>, TNum> a,
-        in Line<Vector2<TNum>, TNum> b,
+        in Line<Vec2<TNum>, TNum> a,
+        in Line<Vec2<TNum>, TNum> b,
         out TNum alongA)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
@@ -194,8 +194,8 @@ public static class Line
 
     [Pure]
     public static bool TryIntersectOnSegment<TNum>(
-        in Line<Vector2<TNum>, TNum> a,
-        in Line<Vector2<TNum>, TNum> b,
+        in Line<Vec2<TNum>, TNum> a,
+        in Line<Vec2<TNum>, TNum> b,
         out TNum alongA)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
@@ -224,8 +224,8 @@ public static class Line
 
     [Pure]
     public static bool TryIntersectOnSegment<TNum>(
-        in Line<Vector2<TNum>, TNum> a,
-        in Line<Vector2<TNum>, TNum> b,
+        in Line<Vec2<TNum>, TNum> a,
+        in Line<Vec2<TNum>, TNum> b,
         out TNum alongA,
         out TNum alongB)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>

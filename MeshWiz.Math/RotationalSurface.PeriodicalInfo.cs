@@ -40,7 +40,7 @@ public sealed partial record RotationalSurface<TNum>
 
         [Pure]
         private static List<int> GetIntersectingSegments(Plane3<TNum> plane,
-            PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum> polyline)
+            PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum> polyline)
         {
             List<int> intersections = [];
             for (var i = 0; i < polyline.Count; i++)
@@ -53,12 +53,12 @@ public sealed partial record RotationalSurface<TNum>
             return intersections;
         }
 
-        private Result<PeriodicalGeodesics, Polyline<Vector3<TNum>, TNum>>? _finalizedPath;
+        private Result<PeriodicalGeodesics, Polyline<Vec3<TNum>, TNum>>? _finalizedPath;
 
-        public Result<PeriodicalGeodesics, Polyline<Vector3<TNum>, TNum>> FinalizedPath =>
+        public Result<PeriodicalGeodesics, Polyline<Vec3<TNum>, TNum>> FinalizedPath =>
             _finalizedPath ??= FinalizedPolyline();
 
-        private Result<PeriodicalGeodesics, Polyline<Vector3<TNum>, TNum>> FinalizedPolyline()
+        private Result<PeriodicalGeodesics, Polyline<Vec3<TNum>, TNum>> FinalizedPolyline()
         {
             if (_finalizedPath is not null)
                 return _finalizedPath.Value;
@@ -79,16 +79,16 @@ public sealed partial record RotationalSurface<TNum>
             var concat = Polyline.ForceConcat(segments);
 
             return concat
-                ? Polyline<Vector3<TNum>, TNum>.CreateCulled(concat)
-                : Result<PeriodicalGeodesics, Polyline<Vector3<TNum>, TNum>>.DefaultFailure;
+                ? Polyline<Vec3<TNum>, TNum>.CreateCulled(concat)
+                : Result<PeriodicalGeodesics, Polyline<Vec3<TNum>, TNum>>.DefaultFailure;
         }
 
-        private Result<PeriodicalGeodesics, PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>>? _finalizedPoses;
+        private Result<PeriodicalGeodesics, PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum>>? _finalizedPoses;
 
-        public Result<PeriodicalGeodesics, PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>>
+        public Result<PeriodicalGeodesics, PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum>>
             FinalizedPoses => _finalizedPoses ??= FinalizePoses();
 
-        private Result<PeriodicalGeodesics, PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>> FinalizePoses()
+        private Result<PeriodicalGeodesics, PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum>> FinalizePoses()
         {
             
             if(!TraceResult.TryGetValue(out var trace))
@@ -104,8 +104,8 @@ public sealed partial record RotationalSurface<TNum>
                         : c.Section(TNum.Zero, _exitParameter).ToPosePolyline());
             var poses = Polyline.ForceConcat(segments);
             return !poses
-                ? Result<PeriodicalGeodesics, PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>>.DefaultFailure
-                : PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>.CreateCulledNonCopying(poses);
+                ? Result<PeriodicalGeodesics, PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum>>.DefaultFailure
+                : PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum>.CreateCulledNonCopying(poses);
         }
 
         private Result<PeriodicalGeodesics, Angle<TNum>>? _phase;
@@ -121,18 +121,18 @@ public sealed partial record RotationalSurface<TNum>
         }
 
         [Pure]
-        private static Angle<TNum> AngleAbout(Vector3<TNum> p1, Vector3<TNum> p2, in Ray3<TNum> axis)
+        private static Angle<TNum> AngleAbout(Vec3<TNum> p1, Vec3<TNum> p2, in Ray3<TNum> axis)
         {
             var v1 = p1 - axis.Origin;
             var v2 = p2 - axis.Origin;
-            return Vector3<TNum>.SignedAngleBetween(v1, v2, axis.Direction);
+            return Vec3<TNum>.SignedAngleBetween(v1, v2, axis.Direction);
         }
 
-        public Result<PeriodicalGeodesics, PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>> CreatePattern(
+        public Result<PeriodicalGeodesics, PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum>> CreatePattern(
             int patternCount, bool useParallel = false)
         {
             if (patternCount <= 0)
-                return Result<PeriodicalGeodesics, PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>>.DefaultFailure;
+                return Result<PeriodicalGeodesics, PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum>>.DefaultFailure;
             var finalized = FinalizedPoses;
             if (!finalized)
                 return finalized;
@@ -142,8 +142,8 @@ public sealed partial record RotationalSurface<TNum>
 
             var phase = this.Phase;
             if (!phase)
-                return Result<PeriodicalGeodesics, PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>>.Failure(phase.Info);
-            var segments = new PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>[patternCount];
+                return Result<PeriodicalGeodesics, PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum>>.Failure(phase.Info);
+            var segments = new PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum>[patternCount];
             segments[0] = source;
             if (useParallel)
                 Parallel.For(1, patternCount,
@@ -151,11 +151,11 @@ public sealed partial record RotationalSurface<TNum>
             else
                 for (var i = 1; i < patternCount; i++)
                     segments[i] = Rotate(source, phase.Value * TNum.CreateTruncating(i), Axis);
-            return new PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>(Polyline.ForceConcat(segments));
+            return new PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum>(Polyline.ForceConcat(segments));
         }
 
-        private static PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum> Rotate(
-            PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum> source, TNum angle, Ray3<TNum> axis)
+        private static PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum> Rotate(
+            PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum> source, TNum angle, Ray3<TNum> axis)
         {
             var poses = source.Poses.ToArray();
             var rot = Matrix4x4<TNum>.CreateRotation(axis.Direction, angle);
@@ -169,7 +169,7 @@ public sealed partial record RotationalSurface<TNum>
                 poses[i] = Pose3<TNum>.CreateUnsafe(origin, front, up);
             }
 
-            return PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>.CreateNonCopying(poses);
+            return PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum>.CreateNonCopying(poses);
         }
 
         public Result<PeriodicalGeodesics,(TNum Overlap,int Pattern)> CalculateOverlap(TNum width, int maxTries = 10_000)
@@ -308,10 +308,10 @@ public sealed partial record RotationalSurface<TNum>
             Ray3<TNum> entry = Entry;
             var entryDir = entry.Direction;
             var entryP = entry.Origin;
-            Line<Vector3<TNum>, TNum> axisLine = Axis;
+            Line<Vec3<TNum>, TNum> axisLine = Axis;
             var closest = axisLine.ClosestPoint(entryP);
             var about = entryP - closest;
-            Angle<TNum> result = Vector3<TNum>.SignedAngleBetween(Axis.Direction, entryDir, about);
+            Angle<TNum> result = Vec3<TNum>.SignedAngleBetween(Axis.Direction, entryDir, about);
             return result;
         }
 

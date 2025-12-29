@@ -4,21 +4,21 @@ using System.Runtime.CompilerServices;
 
 namespace MeshWiz.Math;
 
-public readonly struct Ray<TVector, TNum>
+public readonly struct Ray<TVec, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
-    where TVector : unmanaged, IVector<TVector, TNum>
+    where TVec : unmanaged, IVec<TVec, TNum>
 {
-    public readonly TVector Origin;
-    public readonly TVector Direction;
+    public readonly TVec Origin;
+    public readonly TVec Direction;
 
-    public Ray(TVector origin, TVector direction)
+    public Ray(TVec origin, TVec direction)
     {
         Origin = origin;
         Direction = direction;
     }
 
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public TVector ClosestPoint(TVector p)
+    public TVec ClosestPoint(TVec p)
     {
         var v = p - Origin;
         var ndir = Direction;
@@ -28,5 +28,5 @@ public readonly struct Ray<TVector, TNum>
     }
 
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public TNum DistanceTo(TVector p) => ClosestPoint(p).DistanceTo(p);
+    public TNum DistanceTo(TVec p) => ClosestPoint(p).DistanceTo(p);
 }

@@ -10,7 +10,7 @@ public static partial class Polyline
 {
     public static class Simplicity
     {
-        public static Level WindingDirectionCheck<TNum>(Polyline<Vector2<TNum>, TNum> polygon)
+        public static Level WindingDirectionCheck<TNum>(Polyline<Vec2<TNum>, TNum> polygon)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             if (polygon.Count < 3) return Level.Simple;
@@ -27,7 +27,7 @@ public static partial class Polyline
             return Level.Simple;
         }
 
-        private static int OrientationTo<TNum>(Line<Vector2<TNum>, TNum> line, Vector2<TNum> p)
+        private static int OrientationTo<TNum>(Line<Vec2<TNum>, TNum> line, Vec2<TNum> p)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             var lineMid = line.MidPoint;
@@ -50,7 +50,7 @@ public static partial class Polyline
         /// <typeparam name="TNum"></typeparam>
         /// <returns></returns>
         [Pure]
-        public static Level MultiCheck<TNum>(Polyline<Vector2<TNum>, TNum> polygon)
+        public static Level MultiCheck<TNum>(Polyline<Vec2<TNum>, TNum> polygon)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             if (polygon.IsClosed && Evaluate.IsConvex(polygon)) return Level.Simple;
@@ -62,7 +62,7 @@ public static partial class Polyline
         /// Complete O(N^2) complexity check
         /// </summary>
         /// <remarks>Heals the ends if they are not properly touching</remarks>
-        public static Level CompleteCheck<TNum>(Polyline<Vector2<TNum>, TNum> polygon)
+        public static Level CompleteCheck<TNum>(Polyline<Vec2<TNum>, TNum> polygon)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             for (var i = 0; i < polygon.Count - 2; i++)
@@ -84,8 +84,8 @@ public static partial class Polyline
         }
 
 
-        public static Polyline<Vector2<TNum>, TNum>[] MakeSimple<TNum>(
-            Polyline<Vector2<TNum>, TNum> polygon,
+        public static Polyline<Vec2<TNum>, TNum>[] MakeSimple<TNum>(
+            Polyline<Vec2<TNum>, TNum> polygon,
             TNum epsilon)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
@@ -94,15 +94,15 @@ public static partial class Polyline
             return MakeSimpleSkippingPreCheck(polygon, epsilon);
         }
 
-        private static Polyline<Vector2<TNum>, TNum>[] MakeSimpleSkippingPreCheck<TNum>(
-            Polyline<Vector2<TNum>, TNum> polygon, TNum epsilon)
+        private static Polyline<Vec2<TNum>, TNum>[] MakeSimpleSkippingPreCheck<TNum>(
+            Polyline<Vec2<TNum>, TNum> polygon, TNum epsilon)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             var segmentPositions = Evaluate.FindIdentifiableSegments(polygon, epsilon);
-            RollingList<Vector2<TNum>>? connected = null;
+            RollingList<Vec2<TNum>>? connected = null;
             var nextSeg = TNum.NaN;
             var sinceLastAdd = 0;
-            RollingList<Polyline<Vector2<TNum>, TNum>> simplified = [];
+            RollingList<Polyline<Vec2<TNum>, TNum>> simplified = [];
             while (segmentPositions.TryPopFront(out var range))
             {
                 if (range.start.IsApprox(range.next))
@@ -115,7 +115,7 @@ public static partial class Polyline
                     connected[0].IsApprox(connected[^1], epsilon))
                 {
                     if (connected is { Count: > 1 })
-                        simplified.Add(new Polyline<Vector2<TNum>, TNum>(connected.ToArray()));
+                        simplified.Add(new Polyline<Vec2<TNum>, TNum>(connected.ToArray()));
                     connected = new(polygon.ExactSection(range.start, range.end).Points);
                     nextSeg = range.next;
                     sinceLastAdd = 0;
@@ -133,7 +133,7 @@ public static partial class Polyline
                 connected.PushBack(polygon.ExactSection(range.start, range.end).Points[1..]);
             }
             
-            if (connected is { Count: > 1 }) simplified.Add(new Polyline<Vector2<TNum>, TNum>(connected.ToArray()));
+            if (connected is { Count: > 1 }) simplified.Add(new Polyline<Vec2<TNum>, TNum>(connected.ToArray()));
 
             return Creation.UnifyNonReversing(simplified, epsilon);
         }

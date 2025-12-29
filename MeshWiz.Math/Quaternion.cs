@@ -14,11 +14,11 @@ public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
     IEqualityOperators<Quaternion<TNum>, Quaternion<TNum>, bool>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    public static Quaternion<TNum> Identity => Vector4<TNum>.UnitW;
+    public static Quaternion<TNum> Identity => Vec4<TNum>.UnitW;
     public readonly TNum X, Y, Z, W;
-    public Vector3<TNum> Xyz => new(X, Y, Z);
+    public Vec3<TNum> Xyz => new(X, Y, Z);
 
-    public Quaternion(Vector3<TNum> xyz, TNum w)
+    public Quaternion(Vec3<TNum> xyz, TNum w)
     {
         (X, Y, Z) = xyz;
         W = w;
@@ -51,12 +51,12 @@ public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Quaternion<TNum> CreateFromAxisAngle(Vector3<TNum> axis, TNum angle)
+    public static Quaternion<TNum> CreateFromAxisAngle(Vec3<TNum> axis, TNum angle)
     {
         var (sin, num) = TNum.SinCos(angle * Numbers<TNum>.Half);
-        return new Vector4<TNum>(axis, TNum.One) * new Vector4<TNum>(Vector3<TNum>.FromValue(sin), num);
+        return new Vec4<TNum>(axis, TNum.One) * new Vec4<TNum>(Vec3<TNum>.FromValue(sin), num);
     }
-    public (Vector3<TNum> Y, Vector3<TNum> Z) Yz()
+    public (Vec3<TNum> Y, Vec3<TNum> Z) Yz()
     {
         var num1 = X * X;
         var num2 = Y * Y;
@@ -69,17 +69,17 @@ public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
         var num9 = X * W;
         var two = Numbers<TNum>.Two;
         var one = TNum.One;
-        var y = Vector3<TNum>.Create((two * (num4 - num5)), (one - two * (num3 + num1)),
+        var y = Vec3<TNum>.Create((two * (num4 - num5)), (one - two * (num3 + num1)),
             (two * (num8 + num9)));
-        var z = Vector3<TNum>.Create((two * (num6 + num7)), (two * (num8 - num9)),
+        var z = Vec3<TNum>.Create((two * (num6 + num7)), (two * (num8 - num9)),
             (one - two * (num2 + num1)));
         return (y, z);
     }
     public static Quaternion<TNum> Slerp(Quaternion<TNum> a, Quaternion<TNum> b, TNum t)
     {
-        Vector4<TNum> v1 = a;
-        Vector4<TNum> v2 = b;
-        var x1 = Vector4<TNum>.Dot(v1, v2);
+        Vec4<TNum> v1 = a;
+        Vec4<TNum> v2 = b;
+        var x1 = Vec4<TNum>.Dot(v1, v2);
         var num1 = TNum.One;
         if (x1 < TNum.Zero)
         {
@@ -106,7 +106,7 @@ public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
     }
 
     [Pure]
-    public Quaternion<TNum> Normalized() => Vector4<TNum>.Normalize(this);
+    public Quaternion<TNum> Normalized() => Vec4<TNum>.Normalize(this);
 
     /// <inheritdoc />
     public bool Equals(Quaternion<TNum> other) => Xyz == other.Xyz && W == other.W;
@@ -125,14 +125,14 @@ public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
         => left.Xyz != right.Xyz || left.W != right.W;
 
     [Pure]
-    public static implicit operator Vector4<TNum>(in Quaternion<TNum> q) =>
-        Unsafe.As<Quaternion<TNum>, Vector4<TNum>>(ref Unsafe.AsRef(in q));
+    public static implicit operator Vec4<TNum>(in Quaternion<TNum> q) =>
+        Unsafe.As<Quaternion<TNum>, Vec4<TNum>>(ref Unsafe.AsRef(in q));
 
     [Pure]
-    public static implicit operator Quaternion<TNum>(in Vector4<TNum> q) =>
-        Unsafe.As<Vector4<TNum>, Quaternion<TNum>>(ref Unsafe.AsRef(in q));
+    public static implicit operator Quaternion<TNum>(in Vec4<TNum> q) =>
+        Unsafe.As<Vec4<TNum>, Quaternion<TNum>>(ref Unsafe.AsRef(in q));
 
-    public Vector3<TNum> Rotate(Vector3<TNum> dir) => AsMatrix3x3() * dir;
+    public Vec3<TNum> Rotate(Vec3<TNum> dir) => AsMatrix3x3() * dir;
 
     // ReSharper disable once InconsistentNaming
     [Pure]
@@ -149,13 +149,13 @@ public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
         var num9 = X * W;
         var two = Numbers<TNum>.Two;
         var one = TNum.One;
-        var x = Vector4<TNum>.Create((one - two * (num2 + num3)), (two * (num4 + num5)),
+        var x = Vec4<TNum>.Create((one - two * (num2 + num3)), (two * (num4 + num5)),
             (two * (num6 - num7)), TNum.Zero);
-        var y = Vector4<TNum>.Create((two * (num4 - num5)), (one - two * (num3 + num1)),
+        var y = Vec4<TNum>.Create((two * (num4 - num5)), (one - two * (num3 + num1)),
             (two * (num8 + num9)), TNum.Zero);
-        var z = Vector4<TNum>.Create((two * (num6 + num7)), (two * (num8 - num9)),
+        var z = Vec4<TNum>.Create((two * (num6 + num7)), (two * (num8 - num9)),
             (one - two * (num2 + num1)), TNum.Zero);
-        var w = Vector4<TNum>.UnitW;
+        var w = Vec4<TNum>.UnitW;
         return new Matrix4x4<TNum>(x, y, z, w);
     }
 
@@ -174,39 +174,39 @@ public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
         var num9 = X * W;
         var two = Numbers<TNum>.Two;
         var one = TNum.One;
-        var x = Vector3<TNum>.Create((one - two * (num2 + num3)), (two * (num4 + num5)),
+        var x = Vec3<TNum>.Create((one - two * (num2 + num3)), (two * (num4 + num5)),
             (two * (num6 - num7)));
-        var y = Vector3<TNum>.Create((two * (num4 - num5)), (one - two * (num3 + num1)),
+        var y = Vec3<TNum>.Create((two * (num4 - num5)), (one - two * (num3 + num1)),
             (two * (num8 + num9)));
-        var z = Vector3<TNum>.Create((two * (num6 + num7)), (two * (num8 - num9)),
+        var z = Vec3<TNum>.Create((two * (num6 + num7)), (two * (num8 - num9)),
             (one - two * (num2 + num1)));
         return new Matrix3x3<TNum>(x, y, z);
     }
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Vector3<TNum> UnitX()
+    public Vec3<TNum> UnitX()
     {
         var x = TNum.One - Numbers<TNum>.Two * (Y*Y + Z*Z);
         var y = Numbers<TNum>.Two * (X*Y + Z*W);
         var z = Numbers<TNum>.Two * (Z*X - Y*W);
-        return Vector3<TNum>.Create(x, y, z);
+        return Vec3<TNum>.Create(x, y, z);
     }
 
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Vector3<TNum> UnitY()
+    public Vec3<TNum> UnitY()
     {
         var x = Numbers<TNum>.Two * (X*Y - Z*W);
         var y = TNum.One - Numbers<TNum>.Two * (Z*Z + X*X);
         var z = Numbers<TNum>.Two * (Y*Z + X*W);
-        return Vector3<TNum>.Create(x, y, z);
+        return Vec3<TNum>.Create(x, y, z);
     }
 
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Vector3<TNum> UnitZ()
+    public Vec3<TNum> UnitZ()
     {
         var x = Numbers<TNum>.Two * (Z * X + Y * W);
         var y = Numbers<TNum>.Two * (Y * Z - X * W);
         var z = TNum.One - Numbers<TNum>.Two * (Y * Y + X * X);
-        return Vector3<TNum>.Create(x, y, z);
+        return Vec3<TNum>.Create(x, y, z);
     }
     
     [Pure]
@@ -256,7 +256,7 @@ public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
 
     public Quaternion<TOtherNum> To<TOtherNum>() where TOtherNum : unmanaged, IFloatingPointIeee754<TOtherNum>
     {
-        Vector4<TNum> vec4 = this;
+        Vec4<TNum> vec4 = this;
         return vec4.To<TOtherNum>();
     }
 }

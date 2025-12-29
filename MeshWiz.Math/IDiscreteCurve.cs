@@ -2,17 +2,17 @@ using System.Numerics;
 
 namespace MeshWiz.Math;
 
-public interface IDiscreteCurve<TVector, TNum> : ICurve<TVector, TNum>
-    where TVector : unmanaged, IVector<TVector, TNum>
+public interface IDiscreteCurve<TVec, TNum> : ICurve<TVec, TNum>
+    where TVec : unmanaged, IVec<TVec, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    TVector Start { get; }
-    TVector End { get; }
-    TVector TraverseOnCurve(TNum t);
+    TVec Start { get; }
+    TVec End { get; }
+    TVec TraverseOnCurve(TNum t);
     TNum Length { get; }
-    bool ICurve<TVector, TNum>.IsClosed=>Start.Equals(End);
+    bool ICurve<TVec, TNum>.IsClosed=>Start.Equals(End);
     
     
-    Polyline<TVector, TNum> ToPolyline();
-    Polyline<TVector, TNum> ToPolyline(PolylineTessellationParameter<TNum> tessellationParameter);
+    Polyline<TVec, TNum> ToPolyline();
+    Polyline<TVec, TNum> ToPolyline(PolylineTessellationParameter<TNum> tessellationParameter);
 }

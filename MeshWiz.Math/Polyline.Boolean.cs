@@ -13,13 +13,13 @@ public static partial class Polyline
         // public sealed class HierarchyNode<TNum>
         //     where TNum : unmanaged, IFloatingPointIeee754<TNum>
         // {
-        //     public Polyline<Vector2<TNum>, TNum> Polygon { get; }
+        //     public Polyline<Vec2<TNum>, TNum> Polygon { get; }
         //     public WindingOrder Winding { get; }
         //     public HierarchyNode<TNum>? Parent { get; internal set; }
         //     public List<HierarchyNode<TNum>> Children { get; } = new();
         //     internal bool Removed { get; set; } = false;
         //
-        //     public HierarchyNode(Polyline<Vector2<TNum>, TNum> p)
+        //     public HierarchyNode(Polyline<Vec2<TNum>, TNum> p)
         //     {
         //         Polygon = p;
         //         Winding = Evaluate.GetWindingOrder(p);
@@ -27,7 +27,7 @@ public static partial class Polyline
         // }
         //
         // // Entry point: combine inputs and produce hierarchy roots after applying filters
-        // public static IReadOnlyList<HierarchyNode<TNum>> BuildIslandsHierarchyAndFilter<TNum>(IEnumerable<Polyline<Vector2<TNum>, TNum>> inputs)
+        // public static IReadOnlyList<HierarchyNode<TNum>> BuildIslandsHierarchyAndFilter<TNum>(IEnumerable<Polyline<Vec2<TNum>, TNum>> inputs)
         //     where TNum : unmanaged, IFloatingPointIeee754<TNum>
         // {
         //     // 1) Boolean combine according to winding
@@ -129,19 +129,19 @@ public static partial class Polyline
         //
         // // ---------------------- Core polygon boolean helpers (generic) ----------------------
         // // We'll implement a Greiner-Hormann inspired boolean routine but keep it generic by
-        // // converting TNum -> TNum for geometric ops, and returning Polyline<Vector2<TNum>,TNum>.
+        // // converting TNum -> TNum for geometric ops, and returning Polyline<Vec2<TNum>,TNum>.
         //
         // // simple vector conversion helpers
-        // private static Vector2<TNum> ToD<TNum>(Vector2<TNum> v) where TNum : unmanaged, IFloatingPointIeee754<TNum>
-        //     => new Vector2<TNum>(Convert.ToTNum(v.X), Convert.ToTNum(v.Y));
+        // private static Vec2<TNum> ToD<TNum>(Vec2<TNum> v) where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        //     => new Vec2<TNum>(Convert.ToTNum(v.X), Convert.ToTNum(v.Y));
         //
-        // private static Vector2<TNum> FromD<TNum>(Vector2<TNum> v) where TNum : unmanaged, IFloatingPointIeee754<TNum>
-        //     => new Vector2<TNum>(TNum.CreateChecked(v.X), TNum.CreateChecked(v.Y));
+        // private static Vec2<TNum> FromD<TNum>(Vec2<TNum> v) where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        //     => new Vec2<TNum>(TNum.CreateChecked(v.X), TNum.CreateChecked(v.Y));
         //
         // // GH node
         // private sealed class GHNode
         // {
-        //     public Vector2<TNum> P;
+        //     public Vec2<TNum> P;
         //     public bool Intersect;
         //     public TNum Alpha;
         //     public GHNode Other;
@@ -150,10 +150,10 @@ public static partial class Polyline
         //     public GHNode Prev;
         //     public GHNode Next;
         //
-        //     public GHNode(Vector2<TNum> p) { P = p; Intersect = false; Alpha = 0; Entry = false; Visited = false; }
+        //     public GHNode(Vec2<TNum> p) { P = p; Intersect = false; Alpha = 0; Entry = false; Visited = false; }
         // }
         //
-        // private static List<GHNode> BuildNodeList<TNum>(Polyline<Vector2<TNum>, TNum> poly)
+        // private static List<GHNode> BuildNodeList<TNum>(Polyline<Vec2<TNum>, TNum> poly)
         //     where TNum : unmanaged, IFloatingPointIeee754<TNum>
         // {
         //     var nodes = new List<GHNode>();
@@ -168,11 +168,11 @@ public static partial class Polyline
         //     return nodes;
         // }
         //
-        // private static bool SegmentIntersection<TNum>(Vector2<TNum> A, Vector2<TNum> B, Vector2<TNum> C, Vector2<TNum> D,
-        //     out Vector2<TNum> intersection, out TNum t, out TNum u)
+        // private static bool SegmentIntersection<TNum>(Vec2<TNum> A, Vec2<TNum> B, Vec2<TNum> C, Vec2<TNum> D,
+        //     out Vec2<TNum> intersection, out TNum t, out TNum u)
         // where TNum:unmanaged, IFloatingPointIeee754<TNum>
         // {
-        //     intersection = new Vector2<TNum>(); t = u = TNum.NaN;
+        //     intersection = new Vec2<TNum>(); t = u = TNum.NaN;
         //     var r = B - A; var s = D - C;
         //     var rxs = r.Cross(s);
         //     var qpxr = - r.Cross(C-A);
@@ -245,7 +245,7 @@ public static partial class Polyline
         //     }
         // }
         //
-        // private static bool PointInPolygon(List<Vector2<TNum>> pts, Vector2<TNum> p)
+        // private static bool PointInPolygon(List<Vec2<TNum>> pts, Vec2<TNum> p)
         // {
         //     if (pts == null || pts.Count == 0) return false;
         //     var inside = false; for (int i = 0, j = pts.Count - 1; i < pts.Count; j = i++)
@@ -271,9 +271,9 @@ public static partial class Polyline
         //     }
         // }
         //
-        // private static List<List<Vector2<TNum>>> TraverseAndExtract(List<GHNode> subj, List<GHNode> clip, BoolOp op)
+        // private static List<List<Vec2<TNum>>> TraverseAndExtract(List<GHNode> subj, List<GHNode> clip, BoolOp op)
         // {
-        //     var results = new List<List<Vector2<TNum>>>();
+        //     var results = new List<List<Vec2<TNum>>>();
         //     foreach (var n in subj) if (n.Intersect) n.Visited = false;
         //     foreach (var n in clip) if (n.Intersect) n.Visited = false;
         //
@@ -302,7 +302,7 @@ public static partial class Polyline
         //     foreach (var sStart in subj.Where(n => n.Intersect && !n.Visited))
         //     {
         //         var s = sStart;
-        //         var poly = new List<Vector2<TNum>>();
+        //         var poly = new List<Vec2<TNum>>();
         //         while (true)
         //         {
         //             if (s.Visited && s == sStart) break;
@@ -322,7 +322,7 @@ public static partial class Polyline
         //                 poly.Add(s.P);
         //                 s = s.Next;
         //             }
-        //             if (poly.Count > 0 && Vector2.DistanceSquared(poly[0], sStart.P) < 1e-18 && s.Intersect) break;
+        //             if (poly.Count > 0 && Vec2.DistanceSquared(poly[0], sStart.P) < 1e-18 && s.Intersect) break;
         //             if (poly.Count > 10000) break;
         //         }
         //         if (poly.Count >= 3) results.Add(poly);
@@ -334,7 +334,7 @@ public static partial class Polyline
         //         if (op == BoolOp.Union) results.Add(subjPts);
         //         else if (op == BoolOp.Difference)
         //         {
-        //             var final = new List<Vector2<TNum>>();
+        //             var final = new List<Vec2<TNum>>();
         //             var n = subjPts.Count;
         //             for (var i = 0; i < n; i++)
         //             {
@@ -353,8 +353,8 @@ public static partial class Polyline
         //
         // private enum BoolOp { Union, Difference }
         //
-        // private static List<Polyline<Vector2<TNum>, TNum>> PolygonBoolean<TNum>(Polyline<Vector2<TNum>, TNum> subjPoly,
-        //     Polyline<Vector2<TNum>, TNum> clipPoly, BoolOp op)
+        // private static List<Polyline<Vec2<TNum>, TNum>> PolygonBoolean<TNum>(Polyline<Vec2<TNum>, TNum> subjPoly,
+        //     Polyline<Vec2<TNum>, TNum> clipPoly, BoolOp op)
         //     where TNum : unmanaged, IFloatingPointIeee754<TNum>
         // {
         //     var subjNodes = BuildNodeList(subjPoly);
@@ -364,22 +364,22 @@ public static partial class Polyline
         //     FindAndInsertIntersections(subjNodes, clipNodes);
         //     MarkEntryExit(subjNodes, clipNodes, op);
         //     var outList = TraverseAndExtract(subjNodes, clipNodes, op);
-        //     var result = new List<Polyline<Vector2<TNum>, TNum>>();
+        //     var result = new List<Polyline<Vec2<TNum>, TNum>>();
         //     foreach (var path in outList)
         //     {
         //         if (path == null || path.Count < 3) continue;
-        //         var pts = new Vector2<TNum>[path.Count + 1];
+        //         var pts = new Vec2<TNum>[path.Count + 1];
         //         for (var i = 0; i < path.Count; i++) pts[i] = FromD<TNum>(path[i]);
         //         pts[^1] = pts[0];
-        //         result.Add(new Polyline<Vector2<TNum>, TNum>(pts));
+        //         result.Add(new Polyline<Vec2<TNum>, TNum>(pts));
         //     }
         //     return result;
         // }
         //
-        // public static List<Polyline<Vector2<TNum>, TNum>> CombinePolylines<TNum>(IEnumerable<Polyline<Vector2<TNum>, TNum>> inputs)
+        // public static List<Polyline<Vec2<TNum>, TNum>> CombinePolylines<TNum>(IEnumerable<Polyline<Vec2<TNum>, TNum>> inputs)
         //     where TNum : unmanaged, IFloatingPointIeee754<TNum>
         // {
-        //     var result = new List<Polyline<Vector2<TNum>, TNum>>();
+        //     var result = new List<Polyline<Vec2<TNum>, TNum>>();
         //     var polys = inputs.Where(p => p.IsClosed).ToList();
         //     if (polys.Count == 0) return result;
         //     foreach (var poly in polys)
@@ -388,7 +388,7 @@ public static partial class Polyline
         //         if (winding == WindingOrder.CounterClockwise)
         //         {
         //             if (result.Count == 0) { result.Add(poly); continue; }
-        //             var nextResult = new List<Polyline<Vector2<TNum>, TNum>>();
+        //             var nextResult = new List<Polyline<Vec2<TNum>, TNum>>();
         //             foreach (var r in result)
         //             {
         //                 var rb = BBox2<TNum>.FromPolyline(r);
@@ -407,7 +407,7 @@ public static partial class Polyline
         //         else if (winding == WindingOrder.Clockwise)
         //         {
         //             if (result.Count == 0) continue;
-        //             var nextResult = new List<Polyline<Vector2<TNum>, TNum>>();
+        //             var nextResult = new List<Polyline<Vec2<TNum>, TNum>>();
         //             foreach (var r in result)
         //             {
         //                 var rb = BBox2<TNum>.FromPolyline(r);
@@ -427,19 +427,19 @@ public static partial class Polyline
         //         var p = result[i];
         //         if (!p.IsClosed)
         //         {
-        //             var pts = new Vector2<TNum>[p.Points.Length + 1]; Array.Copy(p.Points, pts, p.Points.Length); pts[^1] = pts[0]; result[i] = new Polyline<Vector2<TNum>, TNum>(pts);
+        //             var pts = new Vec2<TNum>[p.Points.Length + 1]; Array.Copy(p.Points, pts, p.Points.Length); pts[^1] = pts[0]; result[i] = new Polyline<Vec2<TNum>, TNum>(pts);
         //         }
         //     }
         //     return result;
         // }
         //
-        // private static bool PointInPolylineCentroid<TNum>(Polyline<Vector2<TNum>, TNum> a, Polyline<Vector2<TNum>, TNum> b)
+        // private static bool PointInPolylineCentroid<TNum>(Polyline<Vec2<TNum>, TNum> a, Polyline<Vec2<TNum>, TNum> b)
         //     where TNum : unmanaged, IFloatingPointIeee754<TNum>
         // {
         //     var c = a.VertexCentroid; return PointInPolygonGeneric(b, c);
         // }
         //
-        // private static bool PointInPolygonGeneric<TNum>(Polyline<Vector2<TNum>, TNum> poly, Vector2<TNum> pt)
+        // private static bool PointInPolygonGeneric<TNum>(Polyline<Vec2<TNum>, TNum> poly, Vec2<TNum> pt)
         //     where TNum : unmanaged, IFloatingPointIeee754<TNum>
         // {
         //     if (!poly.IsClosed) return false;
@@ -455,18 +455,18 @@ public static partial class Polyline
         //     return inside;
         // }
         //
-        // private static List<Polyline<Vector2<TNum>, TNum>> CollapsePolylines<TNum>(List<Polyline<Vector2<TNum>, TNum>> polys)
+        // private static List<Polyline<Vec2<TNum>, TNum>> CollapsePolylines<TNum>(List<Polyline<Vec2<TNum>, TNum>> polys)
         //     where TNum : unmanaged, IFloatingPointIeee754<TNum>
         // {
-        //     var outList = new List<Polyline<Vector2<TNum>, TNum>>();
+        //     var outList = new List<Polyline<Vec2<TNum>, TNum>>();
         //     foreach (var p in polys)
         //     {
         //         if (p.Points.Length < 4) continue;
         //         var found = outList.Any(q =>
         //         {
         //             var da = Math.Abs(Convert.ToTNum(Evaluate.SignedArea(p)) - Convert.ToTNum(Evaluate.SignedArea(q)));
-        //             var dc = Vector2.DistanceSquared(new Vector2<float>(Convert.ToSingle(p.VertexCentroid.X), Convert.ToSingle(p.VertexCentroid.Y)),
-        //                                              new Vector2<float>(Convert.ToSingle(q.VertexCentroid.X), Convert.ToSingle(q.VertexCentroid.Y)));
+        //             var dc = Vec2.DistanceSquared(new Vec2<float>(Convert.ToSingle(p.VertexCentroid.X), Convert.ToSingle(p.VertexCentroid.Y)),
+        //                                              new Vec2<float>(Convert.ToSingle(q.VertexCentroid.X), Convert.ToSingle(q.VertexCentroid.Y)));
         //             return da < 1e-6 && dc < 1e-8;
         //         });
         //         if (!found) outList.Add(p);

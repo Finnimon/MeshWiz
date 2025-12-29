@@ -2,15 +2,15 @@ using System.Numerics;
 
 namespace MeshWiz.Math;
 
-public interface IPose<TSelf, TVector, TNum>
-    : IPosition<TSelf, TVector, TNum>,
+public interface IPose<TSelf, TVec, TNum>
+    : IPosition<TSelf, TVec, TNum>,
         ILerp<TSelf, TNum>,
-        ITransform<TVector>,
+        ITransform<TVec>,
         IEquatable<TSelf>,
         IEqualityOperators<TSelf,TSelf,bool>
-    where TSelf : IPose<TSelf, TVector, TNum>
-    where TVector : unmanaged, IVector<TVector, TNum>
+    where TSelf : IPose<TSelf, TVec, TNum>
+    where TVec : unmanaged, IVec<TVec, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    TVector Front { get; }
+    TVec Front { get; }
 }

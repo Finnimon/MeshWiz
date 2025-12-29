@@ -7,7 +7,7 @@ using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
-public interface IVectorBase<TSelf, TNum>
+public interface IVecBase<TSelf, TNum>
     : IUnmanagedDataVector<TNum>,
         IReadOnlyList<TNum>,
         SysNum.IAdditionOperators<TSelf, TSelf, TSelf>,
@@ -26,7 +26,7 @@ public interface IVectorBase<TSelf, TNum>
         IPosition<TSelf,TSelf, TNum>,
         ILerp<TSelf,TNum> ,
         IByteSize
-    where TSelf : unmanaged, IVectorBase<TSelf, TNum>
+    where TSelf : unmanaged, IVecBase<TSelf, TNum>
     where TNum : unmanaged, SysNum.IFloatingPointIeee754<TNum>
 {
     /// <inheritdoc />

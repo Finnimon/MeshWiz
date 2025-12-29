@@ -41,6 +41,6 @@ public sealed class SafeBinaryStlWriter<TNum>
         }
     }
 
-    private static Vector3<float> FromOtherNumType(in Vector3<TNum> vec)
+    private static Vec3<float> FromOtherNumType(in Vec3<TNum> vec)
         =>new(float.CreateTruncating(vec.X), float.CreateTruncating(vec.Y), float.CreateTruncating(vec.Z));
 }

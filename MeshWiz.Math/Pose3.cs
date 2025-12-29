@@ -8,22 +8,22 @@ using MeshWiz.Utility;
 namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vector3<TNum>, TNum>
+public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
 
     public static Pose3<TNum> Identity => new();
     public readonly Quaternion<TNum> Rotation;
-    public readonly Vector3<TNum> Origin;//quaternion first for better layout ie 32*4+32*3
-    public Vector3<TNum> Position => Origin;
-    public Vector3<TNum> Front => Rotation.UnitY();
-    public Vector3<TNum> Up => Rotation.UnitZ();
-    public Vector3<TNum> Right => Rotation.UnitX();
-    public Vector3<TNum> Back => -Front;
-    public Vector3<TNum> Left => -Right;
-    public Vector3<TNum> Down => -Up;
+    public readonly Vec3<TNum> Origin;//quaternion first for better layout ie 32*4+32*3
+    public Vec3<TNum> Position => Origin;
+    public Vec3<TNum> Front => Rotation.UnitY();
+    public Vec3<TNum> Up => Rotation.UnitZ();
+    public Vec3<TNum> Right => Rotation.UnitX();
+    public Vec3<TNum> Back => -Front;
+    public Vec3<TNum> Left => -Right;
+    public Vec3<TNum> Down => -Up;
 
-    public (Vector3<TNum> Front, Vector3<TNum> Up, Vector3<TNum> Right) Orientation
+    public (Vec3<TNum> Front, Vec3<TNum> Up, Vec3<TNum> Right) Orientation
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
@@ -37,28 +37,28 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vector3<TNum>, TNum>
 
     public Pose3()
     {
-        Origin = Vector3<TNum>.Zero;
+        Origin = Vec3<TNum>.Zero;
         Rotation = Quaternion<TNum>.Identity;
     }
 
-    public Pose3(Quaternion<TNum> rotation, Vector3<TNum> origin)
+    public Pose3(Quaternion<TNum> rotation, Vec3<TNum> origin)
     {
         Rotation = rotation;
         Origin = origin;
     }
 
     [Pure]
-    public static Result<Arithmetics, Pose3<TNum>> CreateFromOrientation(Vector3<TNum> origin, Vector3<TNum> front,
-        Vector3<TNum> up)
+    public static Result<Arithmetics, Pose3<TNum>> CreateFromOrientation(Vec3<TNum> origin, Vec3<TNum> front,
+        Vec3<TNum> up)
     {
-        if (!Vector3<TNum>.IsFinite(origin))
+        if (!Vec3<TNum>.IsFinite(origin))
             return Result<Arithmetics, Pose3<TNum>>.Failure(Arithmetics.NonFiniteArguments);
         var y = front.Normalized();
         var z = up.Normalized();
         var diff = y.Dot(up) * y;
         z -= diff;
         z = z.Normalized();
-        var x = Vector3<TNum>.Cross(y, z);
+        var x = Vec3<TNum>.Cross(y, z);
         if (!z.IsNormalized || !y.IsNormalized)
             return Result<Arithmetics, Pose3<TNum>>.Failure(Arithmetics.NormalizationImpossible);
         Matrix3x3<TNum> mat = new(x, y, z);
@@ -67,13 +67,13 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vector3<TNum>, TNum>
     }
 
     [Pure]
-    public static Pose3<TNum> CreateUnsafe(Vector3<TNum> origin, Vector3<TNum> front, Vector3<TNum> up)
+    public static Pose3<TNum> CreateUnsafe(Vec3<TNum> origin, Vec3<TNum> front, Vec3<TNum> up)
     {
         var y = front.Normalized();
         var z = up;
         z -= y.Dot(z) * y;
         z = z.Normalized();
-        var x = Vector3<TNum>.Cross(y, z).Normalized();
+        var x = Vec3<TNum>.Cross(y, z).Normalized();
         Matrix3x3<TNum> mat = new(x, y, z);
         var rot = Quaternion<TNum>.CreateUnsafe(in mat);
         return new Pose3<TNum>(rot, origin);
@@ -88,16 +88,16 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vector3<TNum>, TNum>
         => Origin.SquaredDistanceTo(other.Origin);
 
     /// <inheritdoc />
-    public static TNum Distance(Pose3<TNum> a, Pose3<TNum> b) => Vector3<TNum>.Distance(a.Origin, b.Origin);
+    public static TNum Distance(Pose3<TNum> a, Pose3<TNum> b) => Vec3<TNum>.Distance(a.Origin, b.Origin);
 
     /// <inheritdoc />
     public static TNum SquaredDistance(Pose3<TNum> a, Pose3<TNum> b) =>
-        Vector3<TNum>.SquaredDistance(a.Origin, b.Origin);
+        Vec3<TNum>.SquaredDistance(a.Origin, b.Origin);
 
 
     /// <inheritdoc />
     public static Pose3<TNum> Lerp(Pose3<TNum> a, Pose3<TNum> b, TNum t)
-        => new(Quaternion<TNum>.Slerp(a.Rotation, b.Rotation, t), Vector3<TNum>.Lerp(a.Origin, b.Origin, t));
+        => new(Quaternion<TNum>.Slerp(a.Rotation, b.Rotation, t), Vec3<TNum>.Lerp(a.Origin, b.Origin, t));
 
     /// <inheritdoc />
     public static Pose3<TNum> ExactLerp(Pose3<TNum> a, Pose3<TNum> b, TNum exactDistance)
@@ -107,7 +107,7 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vector3<TNum>, TNum>
     }
 
     /// <inheritdoc />
-    public Vector3<TNum> Transform(Vector3<TNum> src)
+    public Vec3<TNum> Transform(Vec3<TNum> src)
     {
         var translated = src - Origin;
         return Rotation.Rotate(translated);

@@ -6,10 +6,10 @@ namespace MeshWiz.Math;
 public interface IMesh<TNum> : IReadOnlyList<Triangle3<TNum>>, IBody<TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    public Vector3<TNum> VertexCentroid { get; }
-    public Vector3<TNum> SurfaceCentroid { get; }
-    public Vector3<TNum> VolumeCentroid { get; }
-    Vector3<TNum>  IShape<Vector3<TNum>>.Centroid=> VertexCentroid;
+    public Vec3<TNum> VertexCentroid { get; }
+    public Vec3<TNum> SurfaceCentroid { get; }
+    public Vec3<TNum> VolumeCentroid { get; }
+    Vec3<TNum>  IShape<Vec3<TNum>>.Centroid=> VertexCentroid;
     public IIndexedMesh<TNum> Indexed()=>new IndexedMesh<TNum>(this);
 
     public void InitializeLazies();

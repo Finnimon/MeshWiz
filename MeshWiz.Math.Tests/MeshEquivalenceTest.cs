@@ -6,7 +6,7 @@ public class MeshEquivalenceTest
     [Test]
     public void EquivalenceOfIndexedMeshTest()
     {
-        var tessellations = Sphere<float>.GenerateTessellation(Vector3<float>.Zero, 1, 32, 64);
+        var tessellations = Sphere<float>.GenerateTessellation(Vec3<float>.Zero, 1, 32, 64);
         Console.WriteLine(tessellations.Length);
         var mesh=new Mesh<float>(tessellations);
         var indexed=new IndexedMesh<float>(tessellations);

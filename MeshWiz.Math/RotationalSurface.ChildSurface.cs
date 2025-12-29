@@ -112,14 +112,14 @@ public sealed partial record RotationalSurface<TNum>
         };
 
         /// <inheritdoc />
-        public Vector3<TNum> Centroid => Type switch
+        public Vec3<TNum> Centroid => Type switch
         {
             ChildSurfaceType.Cylinder => Cylinder.Centroid,
             ChildSurfaceType.Cone => Cone.Centroid,
             ChildSurfaceType.ConeSection => ConeSection.Centroid,
             ChildSurfaceType.Circle => Circle.Centroid,
             ChildSurfaceType.CircleSection => CircleSection.Centroid,
-            _ => ThrowHelper.ThrowArgumentOutOfRangeException<Vector3<TNum>>()
+            _ => ThrowHelper.ThrowArgumentOutOfRangeException<Vec3<TNum>>()
         };
 
         /// <inheritdoc />
@@ -134,14 +134,14 @@ public sealed partial record RotationalSurface<TNum>
         };
 
         /// <inheritdoc />
-        public AABB<Vector3<TNum>> BBox => Type switch
+        public AABB<Vec3<TNum>> BBox => Type switch
         {
             ChildSurfaceType.Cylinder => Cylinder.BBox,
             ChildSurfaceType.Cone => Cone.BBox,
             ChildSurfaceType.ConeSection => ConeSection.BBox,
             ChildSurfaceType.Circle => Circle.BBox,
             ChildSurfaceType.CircleSection => CircleSection.BBox,
-            _ => ThrowHelper.ThrowArgumentOutOfRangeException<AABB<Vector3<TNum>>>()
+            _ => ThrowHelper.ThrowArgumentOutOfRangeException<AABB<Vec3<TNum>>>()
         };
 
         /// <inheritdoc />
@@ -156,7 +156,7 @@ public sealed partial record RotationalSurface<TNum>
         };
 
         /// <inheritdoc />
-        public Vector3<TNum> NormalAt(Vector3<TNum> p)
+        public Vec3<TNum> NormalAt(Vec3<TNum> p)
             => Type switch
             {
                 ChildSurfaceType.Cylinder => Cylinder.NormalAt(p),
@@ -164,11 +164,11 @@ public sealed partial record RotationalSurface<TNum>
                 ChildSurfaceType.ConeSection => ConeSection.NormalAt(p),
                 ChildSurfaceType.Circle => Circle.NormalAt(p),
                 ChildSurfaceType.CircleSection => CircleSection.NormalAt(p),
-                _ => ThrowHelper.ThrowArgumentOutOfRangeException<Vector3<TNum>>()
+                _ => ThrowHelper.ThrowArgumentOutOfRangeException<Vec3<TNum>>()
             };
 
         /// <inheritdoc />
-        public Vector3<TNum> ClampToSurface(Vector3<TNum> p)
+        public Vec3<TNum> ClampToSurface(Vec3<TNum> p)
             => Type switch
             {
                 ChildSurfaceType.Cylinder => Cylinder.ClampToSurface(p),
@@ -176,12 +176,12 @@ public sealed partial record RotationalSurface<TNum>
                 ChildSurfaceType.ConeSection => ConeSection.ClampToSurface(p),
                 ChildSurfaceType.Circle => Circle.ClampToSurface(p),
                 ChildSurfaceType.CircleSection => CircleSection.ClampToSurface(p),
-                _ => ThrowHelper.ThrowArgumentOutOfRangeException<Vector3<TNum>>()
+                _ => ThrowHelper.ThrowArgumentOutOfRangeException<Vec3<TNum>>()
             };
 
         /// <inheritdoc />
-        IPoseCurve<Pose3<TNum>, Vector3<TNum>, TNum> IGeodesicProvider<TNum>.GetGeodesic(Vector3<TNum> p1,
-            Vector3<TNum> p2)
+        IPoseCurve<Pose3<TNum>, Vec3<TNum>, TNum> IGeodesicProvider<TNum>.GetGeodesic(Vec3<TNum> p1,
+            Vec3<TNum> p2)
             => Type switch
             {
                 ChildSurfaceType.Cylinder => Cylinder.GetGeodesic(p1, p2),
@@ -189,11 +189,11 @@ public sealed partial record RotationalSurface<TNum>
                 ChildSurfaceType.ConeSection => ConeSection.GetGeodesic(p1, p2),
                 ChildSurfaceType.Circle => Circle.GetGeodesic(p1, p2),
                 ChildSurfaceType.CircleSection => CircleSection.GetGeodesic(p1, p2),
-                _ => ThrowHelper.ThrowArgumentOutOfRangeException<IPoseCurve<Pose3<TNum>, Vector3<TNum>, TNum>>()
+                _ => ThrowHelper.ThrowArgumentOutOfRangeException<IPoseCurve<Pose3<TNum>, Vec3<TNum>, TNum>>()
             };
 
         /// <inheritdoc />
-        public ChildGeodesic GetGeodesicFromEntry(Vector3<TNum> entryPoint, Vector3<TNum> direction)
+        public ChildGeodesic GetGeodesicFromEntry(Vec3<TNum> entryPoint, Vec3<TNum> direction)
             => Type switch
             {
                 ChildSurfaceType.Cylinder => ChildGeodesic.CreateCylinder(Index,
@@ -210,7 +210,7 @@ public sealed partial record RotationalSurface<TNum>
             };
 
         /// <inheritdoc />
-        public ChildGeodesic GetGeodesic(Vector3<TNum> p1, Vector3<TNum> p2)
+        public ChildGeodesic GetGeodesic(Vec3<TNum> p1, Vec3<TNum> p2)
             => Type switch
             {
                 ChildSurfaceType.Cylinder => ChildGeodesic.CreateCylinder(Index, Cylinder.GetGeodesic(p1, p2)),
@@ -223,9 +223,9 @@ public sealed partial record RotationalSurface<TNum>
             };
 
         /// <inheritdoc />
-        IPoseCurve<Pose3<TNum>, Vector3<TNum>, TNum> IGeodesicProvider<TNum>.GetGeodesicFromEntry(
-            Vector3<TNum> entryPoint,
-            Vector3<TNum> direction)
+        IPoseCurve<Pose3<TNum>, Vec3<TNum>, TNum> IGeodesicProvider<TNum>.GetGeodesicFromEntry(
+            Vec3<TNum> entryPoint,
+            Vec3<TNum> direction)
             => Type switch
             {
                 ChildSurfaceType.Cylinder => Cylinder.GetGeodesicFromEntry(entryPoint, direction),
@@ -233,18 +233,18 @@ public sealed partial record RotationalSurface<TNum>
                 ChildSurfaceType.ConeSection => ConeSection.GetGeodesicFromEntry(entryPoint, direction),
                 ChildSurfaceType.Circle => Circle.GetGeodesicFromEntry(entryPoint, direction),
                 ChildSurfaceType.CircleSection => CircleSection.GetGeodesicFromEntry(entryPoint, direction),
-                _ => ThrowHelper.ThrowArgumentOutOfRangeException<IPoseCurve<Pose3<TNum>, Vector3<TNum>, TNum>>()
+                _ => ThrowHelper.ThrowArgumentOutOfRangeException<IPoseCurve<Pose3<TNum>, Vec3<TNum>, TNum>>()
             };
 
         /// <inheritdoc />
-        public IDiscreteCurve<Vector3<TNum>, TNum> SweepCurve => Type switch
+        public IDiscreteCurve<Vec3<TNum>, TNum> SweepCurve => Type switch
         {
             ChildSurfaceType.Cylinder => Cylinder.SweepCurve,
             ChildSurfaceType.Cone => Cone.SweepCurve,
             ChildSurfaceType.ConeSection => ConeSection.SweepCurve,
             ChildSurfaceType.Circle => Circle.SweepCurve,
             ChildSurfaceType.CircleSection => CircleSection.SweepCurve,
-            _ => ThrowHelper.ThrowArgumentOutOfRangeException<IDiscreteCurve<Vector3<TNum>, TNum>>()
+            _ => ThrowHelper.ThrowArgumentOutOfRangeException<IDiscreteCurve<Vec3<TNum>, TNum>>()
         };
 
         /// <inheritdoc />

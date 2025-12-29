@@ -25,7 +25,7 @@ public partial class MainWindow : Window
         // camera.MoveUp(0.2f);
         MeshViewWrap.Unwrap.Camera = camera;
         BBoxWrap.Unwrap.Camera = camera;
-        camera.UnitUp = Vector3<float>.UnitZ;
+        camera.UnitUp = Vec3<float>.UnitZ;
         MeshViewWrap.Unwrap.LightColor = Color4.White;
         MeshViewWrap.Unwrap.SolidColor = Color4.DarkGray;
         MeshViewWrap.Show = true;
@@ -41,7 +41,7 @@ public partial class MainWindow : Window
         LineViewWrapper.Unwrap.LineWidth = 2.5f;
         LineViewWrapper.Unwrap.Show = true;
 
-        IIndexedMesh<float> meshi = AABB.From(Vector3<float>.NegativeOne, Vector3<float>.One)
+        IIndexedMesh<float> meshi = AABB.From(Vec3<float>.NegativeOne, Vec3<float>.One)
             .Tessellate()
             .Indexed();
         //
@@ -54,10 +54,10 @@ public partial class MainWindow : Window
         // camera.UnitUp = surface.Axis.Direction.To<float>();
         
         // var surface = JaggedRotationalSurface<float>.FromSweepCurve(arcPoly, ray);
-        Polyline<Vector3<double>, double> jaggedGeodesic;
+        Polyline<Vec3<double>, double> jaggedGeodesic;
 
         // jaggedGeodesic = surface.TraceGeodesicCycles(new(1,0,surface.SweepCurve.Traverse(0.5f).Z),
-        //     Vector3<double>.UnitY + Vector3<double>.UnitZ,
+        //     Vec3<double>.UnitY + Vec3<double>.UnitZ,
         //     10000);
 
         // jaggedGeodesic = surface.TraceFullCycle(new(1, 0, surface.SweepCurve.Traverse(0.5f).Z),
@@ -68,22 +68,22 @@ public partial class MainWindow : Window
         //     new(0,1,1),
         //     childSurfaceCount:1200);
         // var sum = ParallelEnumerable.Range(1, 1000).Select(z => surface.TracePeriod(
-        //     new Vector3<double>(1, 0, surface.SweepCurve.Traverse(0.5f).Z),
-        //     new Vector3<double>(0, 1, -1 - z * 0.1)).FinalizedPath).Where(p => p).Sum(p => p.Value.Count);
+        //     new Vec3<double>(1, 0, surface.SweepCurve.Traverse(0.5f).Z),
+        //     new Vec3<double>(0, 1, -1 - z * 0.1)).FinalizedPath).Where(p => p).Sum(p => p.Value.Count);
         var sw = Stopwatch.StartNew();
         // sum = ParallelEnumerable.Range(1, 1000).Select(z => surface.TracePeriod(
-        //     new Vector3<double>(1, 0, surface.SweepCurve.Traverse(0.5f).Z),
-        //     new Vector3<double>(0, 1, 1 + z * 0.1)).FinalizedPath).Where(p => p).Sum(p => p.Value.Count);
+        //     new Vec3<double>(1, 0, surface.SweepCurve.Traverse(0.5f).Z),
+        //     new Vec3<double>(0, 1, 1 + z * 0.1)).FinalizedPath).Where(p => p).Sum(p => p.Value.Count);
         // var el = sw.Elapsed;
         // sw.Restart();
         // sum = Enumerable.Range(1, 1000).Select(z => surface.TracePeriod(
-        //     new Vector3<double>(1, 0, surface.SweepCurve.Traverse(0.5f).Z),
-        //     new Vector3<double>(0, 1, 1 + z * 0.1)).FinalizedPath).Where(p => p).Sum(p => p.Value.Count);
+        //     new Vec3<double>(1, 0, surface.SweepCurve.Traverse(0.5f).Z),
+        //     new Vec3<double>(0, 1, 1 + z * 0.1)).FinalizedPath).Where(p => p).Sum(p => p.Value.Count);
         var elapsed = sw.Elapsed;
         // Console.WriteLine($"Par: {el} Seq: {elapsed}");
         sw.Restart(); //0x139
         var start = surface.SweepCurve.Traverse(0.5);
-        var dir = new Vector3<double>(0.8, 0.5, 0);
+        var dir = new Vec3<double>(0.8, 0.5, 0);
         
         var period = surface.TracePeriod(start,
             dir);
@@ -100,7 +100,7 @@ public partial class MainWindow : Window
         
         var poses = period.CreatePattern(context.period.pattern/2+4,useParallel:true).Value;
         // var reduced =
-        //     Polyline.Reduction.DouglasPeucker<Pose3<double>, Vector3<double>, double>(poses.Poses,
+        //     Polyline.Reduction.DouglasPeucker<Pose3<double>, Vec3<double>, double>(poses.Poses,
         //         surface.RadiusRange.Max * 0.001);
         // Console.WriteLine($"Phase {period.Phase.Value}");
         // Console.WriteLine($"Trace {trace} GetPoses  {sw.Elapsed}");
@@ -109,13 +109,13 @@ public partial class MainWindow : Window
         // jaggedGeodesic = poses.ToPolyline();
         // var normals = jaggedGeodesic.Points
         //     .ToArray()
-        //     .Select(p => Line<Vector3<double>, double>.FromAxisVector(p, surface.NormalAt(p)))
-        //     .Select(l => new Line<Vector3<float>, float>(l.Start.To<float>(), l.End.To<float>())).ToArray();
+        //     .Select(p => Line<Vec3<double>, double>.FromAxisVector(p, surface.NormalAt(p)))
+        //     .Select(l => new Line<Vec3<float>, float>(l.Start.To<float>(), l.End.To<float>())).ToArray();
         Console.WriteLine(sw.Elapsed);
         meshi = surface.Tessellate(256).To<float>();
         
         
-        LineViewWrapper.Unwrap.Polyline = jaggedGeodesic.To<Vector3<float>, float>();
+        LineViewWrapper.Unwrap.Polyline = jaggedGeodesic.To<Vec3<float>, float>();
         LineViewWrapper.Unwrap.Show = true;
         // var mesh = BvhMesh<float>.SurfaceAreaHeuristic(meshi);
         var mesh = meshi;
@@ -123,7 +123,7 @@ public partial class MainWindow : Window
         var distance = mesh.BBox.Min.DistanceTo(mesh.BBox.Max) * 2;
         camera.Distance = 0.5f;
         var pC = poses[^1].EndPose.Position.To<float>();
-        var d = new Vector3<float>(0, 0, pC.Z);
+        var d = new Vec3<float>(0, 0, pC.Z);
         Console.WriteLine($"{d} {pC} {d.DistanceTo(pC)} {surface.Axis.Direction}");
         var circ = new Circle3<float>(d, surface.Axis.Direction.To<float>(), d.DistanceTo(pC));
         camera.LookAt = mesh.VertexCentroid;
@@ -131,10 +131,10 @@ public partial class MainWindow : Window
         var minY = mesh.BBox.Min.Y + 0.0001f;
         var maxY = mesh.BBox.Max.Y;
         var range = maxY - minY;
-        poses = new PosePolyline<Pose3<double>, Vector3<double>, double>(Polyline.Reduction.DouglasPeucker<Pose3<double>, Vector3<double>, double>(poses.Poses,
+        poses = new PosePolyline<Pose3<double>, Vec3<double>, double>(Polyline.Reduction.DouglasPeucker<Pose3<double>, Vec3<double>, double>(poses.Poses,
             surface.RadiusRange.Max * 0.001));
         var floatPoses = poses.Poses.ToArray().Select(p => p.To<float>()).ToArray();
-        camera.UnitUp=Vector3<float>.UnitX;
+        camera.UnitUp=Vec3<float>.UnitX;
         var loft = Mesh.Create.Loft(floatPoses, 0.05f);
         GlParent.Children.AddRange(
             [
@@ -149,7 +149,7 @@ public partial class MainWindow : Window
                 },
                 new LineView()
                 {
-                    Polyline = poses.ToPolyline().To<Vector3<float>, float>(),
+                    Polyline = poses.ToPolyline().To<Vec3<float>, float>(),
                     Color=Color4.Pink,
                     Camera = camera,
                     DepthOffset = 0.0006f
@@ -163,7 +163,7 @@ public partial class MainWindow : Window
 
     public static RotationalSurface<double> CreateTabloidSurface()
     {
-        var c = new Circle2<double>(Vector2<double>.Zero, 1f);
+        var c = new Circle2<double>(Vec2<double>.Zero, 1f);
         Arc2<double> arc = new(c, 0f, double.Pi);
         var seq = Enumerable.Sequence(0.5, -0.001, -0.001);
         var v1 = seq.Select(arc.Traverse).ToArray();
@@ -171,9 +171,9 @@ public partial class MainWindow : Window
 
         var v2 = seq.Select(pos => pos + 0.5f).Select(arc.Traverse).Select(v => v + shift);
 
-        Vector2<double>[] sweep = [..v2, ..v1];
+        Vec2<double>[] sweep = [..v2, ..v1];
         var surface =
-            new RotationalSurface<double>(Vector3<double>.Zero.RayThrough(Vector3<double>.UnitX), sweep);
+            new RotationalSurface<double>(Vec3<double>.Zero.RayThrough(Vec3<double>.UnitX), sweep);
         return surface;
     }
 
@@ -183,10 +183,10 @@ public partial class MainWindow : Window
         var up = axis.Direction;
         var mid = surface.SweepCurve.Traverse(0.5);
         var normal = surface.NormalAt(mid);
-        var initialDir = Vector3<double>.Cross(up, normal);
+        var initialDir = Vec3<double>.Cross(up, normal);
         var startPose = Pose3<double>.CreateFromOrientation(mid, up, normal);
         var endPose = Pose3<double>.CreateFromOrientation(mid, initialDir, normal);
-        PoseLine<Pose3<double>, Vector3<double>, double> poseLine = new(startPose, endPose);
+        PoseLine<Pose3<double>, Vec3<double>, double> poseLine = new(startPose, endPose);
         using var stream = new StreamWriter("/home/finnimon/Documents/output.csv");
         var items = Enumerable.Sequence(0.0, 1.00000001, 0.001).AsParallel().Select(t => (t, poseLine.GetPose(t))).Select(pose =>
             (t: pose.t, period: surface.TracePeriod(pose.Item2.Origin, pose.Item2.Front)))
@@ -202,27 +202,27 @@ public partial class MainWindow : Window
         var file = "/home/finnimon/Downloads/liner_thickened.stl";
         var mesh = SafeStlReader<double>.Read(File.OpenRead(file)).Indexed();
         mesh = Mesh.Indexing.Split(mesh).OrderByDescending(m => m.BBox.GetVolume()).First();
-        var up=Vector3<double>.UnitX;
+        var up=Vec3<double>.UnitX;
         var vertices= mesh.Vertices.ToArray();//defensive copy
         Ray3<double> ray = new(mesh.VertexCentroid, up);
         up = ray.Direction;//normalized
-        Line<Vector3<double>,double> rayline = ray;
+        Line<Vec3<double>,double> rayline = ray;
         vertices= vertices.OrderBy(v =>
             rayline.GetClosestPositions(v).closest
         ).DistinctBy(v =>
             double.Round(rayline.GetClosestPositions(v).closest,5))
             .ToArray();
-        var sweep =new Vector2<double>[vertices.Length];
+        var sweep =new Vec2<double>[vertices.Length];
         for (var i = 0; i < vertices.Length; i++)
         {
             var p = vertices[i];
             var t = rayline.GetClosestPositions(p).closest;
             var x = t;
             var y = rayline.Traverse(t).DistanceTo(p);
-            sweep[i] = new Vector2<double>(x, y)*4;
+            sweep[i] = new Vec2<double>(x, y)*4;
         }
 
-        sweep = Polyline.Reduction.DouglasPeucker<Vector2<double>, double>(new(sweep),0.0001)
+        sweep = Polyline.Reduction.DouglasPeucker<Vec2<double>, double>(new(sweep),0.0001)
             .Points.ToArray();
         return new RotationalSurface<double>(ray, sweep);
     }

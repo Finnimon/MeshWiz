@@ -6,19 +6,19 @@ using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
-public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vector3<TNum>, TNum>,
-    IRotationalSurface<TNum>, IGeodesicProvider<PoseLine<Pose3<TNum>, Vector3<TNum>, TNum>, TNum>,
+public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec3<TNum>, TNum>,
+    IRotationalSurface<TNum>, IGeodesicProvider<PoseLine<Pose3<TNum>, Vec3<TNum>, TNum>, TNum>,
     IEquatable<Circle3<TNum>>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     /// <inheritdoc />
-    public Vector3<TNum> Start => TraverseByAngle(TNum.Zero);
+    public Vec3<TNum> Start => TraverseByAngle(TNum.Zero);
 
     /// <inheritdoc />
-    public Vector3<TNum> End => Start;
+    public Vec3<TNum> End => Start;
 
     /// <inheritdoc />
-    public Vector3<TNum> TraverseOnCurve(TNum t)
+    public Vec3<TNum> TraverseOnCurve(TNum t)
         => Traverse(t);
 
     /// <inheritdoc />
@@ -28,10 +28,10 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
     public bool IsClosed => true;
 
     /// <inheritdoc />
-    public Polyline<Vector3<TNum>, TNum> ToPolyline()
+    public Polyline<Vec3<TNum>, TNum> ToPolyline()
     {
         const int edgeCount = 32;
-        var verts = new Vector3<TNum>[edgeCount + 1];
+        var verts = new Vec3<TNum>[edgeCount + 1];
         var edgeCountNum = TNum.CreateTruncating(edgeCount);
         for (var i = 0; i < verts.Length - 1; i++)
         {
@@ -44,13 +44,13 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
     }
 
     /// <inheritdoc />
-    public Polyline<Vector3<TNum>, TNum> ToPolyline(PolylineTessellationParameter<TNum> tessellationParameter)
+    public Polyline<Vec3<TNum>, TNum> ToPolyline(PolylineTessellationParameter<TNum> tessellationParameter)
     {
         var steps = Numbers<TNum>.TwoPi / tessellationParameter.MaxAngularDeviation;
         steps = TNum.Round(steps, MidpointRounding.AwayFromZero);
         var intSteps = int.CreateTruncating(steps);
         intSteps = int.Abs(intSteps);
-        var verts = new Vector3<TNum>[intSteps + 1];
+        var verts = new Vec3<TNum>[intSteps + 1];
         var angleStep = Numbers<TNum>.TwoPi / TNum.CreateTruncating(intSteps);
         var i = -1;
         for (var angle = TNum.Zero; angle < Numbers<TNum>.TwoPi; angle += angleStep)
@@ -61,16 +61,16 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
     }
 
     public TNum Circumference => Numbers<TNum>.TwoPi * Radius;
-    public readonly Vector3<TNum> Center;
-    public Vector3<TNum> Centroid => Center;
-    public readonly Vector3<TNum> N;
-    public Vector3<TNum> Normal => N;
+    public readonly Vec3<TNum> Center;
+    public Vec3<TNum> Centroid => Center;
+    public readonly Vec3<TNum> N;
+    public Vec3<TNum> Normal => N;
     public readonly TNum Radius;
 
     /// <param name="centroid"></param>
     /// <param name="normal"></param>
     /// <param name="radius">negative radius reverses <paramref name="normal"/></param>
-    public Circle3(Vector3<TNum> centroid, Vector3<TNum> normal, TNum radius)
+    public Circle3(Vec3<TNum> centroid, Vec3<TNum> normal, TNum radius)
     {
         Center = centroid;
         var absRadius = TNum.Abs(radius);
@@ -82,16 +82,16 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
     public TNum Diameter => Radius * Numbers<TNum>.Two;
     public Plane3<TNum> Plane => Plane3<TNum>.CreateUnsafe(N, Center);
     public TNum SurfaceArea => Radius * Radius * TNum.Pi;
-    public (Vector3<TNum> U, Vector3<TNum> V) Basis => Plane.Basis;
+    public (Vec3<TNum> U, Vec3<TNum> V) Basis => Plane.Basis;
 
 
     /// <inheritdoc />
-    public AABB<Vector3<TNum>> BBox
+    public AABB<Vec3<TNum>> BBox
     {
         get
         {
             var (u, v) = Basis;
-            var diag = Vector3<TNum>.Abs(u) + Vector3<TNum>.Abs(v);
+            var diag = Vec3<TNum>.Abs(u) + Vec3<TNum>.Abs(v);
             diag *= Diameter;
             return AABB.Around(Center, diag);
         }
@@ -103,10 +103,10 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
     public IIndexedMesh<TNum> Tessellate(int edgeCount)
         => new InscribedPolygon3<TNum>(edgeCount, this).Tessellate().Indexed();
 
-    public Vector3<TNum> Traverse(TNum t)
+    public Vec3<TNum> Traverse(TNum t)
         => TraverseByAngle(t * Numbers<TNum>.TwoPi);
 
-    public Vector3<TNum> TraverseByAngle(TNum angle)
+    public Vec3<TNum> TraverseByAngle(TNum angle)
     {
         var (u, v) = Plane.Basis; // assumed normalized orthonormal basis
         var (sin, cos) = TNum.SinCos(angle);
@@ -127,7 +127,7 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
         => new(Center, -N, Radius);
 
     /// <inheritdoc />
-    public IDiscreteCurve<Vector3<TNum>, TNum> SweepCurve => (Basis.U * Radius + Center).LineTo(Center);
+    public IDiscreteCurve<Vec3<TNum>, TNum> SweepCurve => (Basis.U * Radius + Center).LineTo(Center);
 
     /// <inheritdoc />
     public Ray3<TNum> SweepAxis => new(Center, Normal);
@@ -148,7 +148,7 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
 
     public Arc3<TNum> ArcSection(TNum startAngle, TNum endAngle) => new(this, startAngle, endAngle);
 
-    public Vector3<TNum> GetTangentAtAngle(TNum angle)
+    public Vec3<TNum> GetTangentAtAngle(TNum angle)
     {
         var (u, v) = Plane.Basis; // assumed orthonormal basis
         var (sin, cos) = TNum.SinCos(angle);
@@ -160,23 +160,23 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
 
 
     /// <inheritdoc />
-    public Vector3<TNum> GetTangent(TNum t)
+    public Vec3<TNum> GetTangent(TNum t)
         => GetTangentAtAngle(t * Numbers<TNum>.TwoPi);
 
     /// <inheritdoc />
-    public Vector3<TNum> EntryDirection => GetTangentAtAngle(TNum.Zero);
+    public Vec3<TNum> EntryDirection => GetTangentAtAngle(TNum.Zero);
 
     /// <inheritdoc />
-    public Vector3<TNum> ExitDirection => EntryDirection;
+    public Vec3<TNum> ExitDirection => EntryDirection;
 
     public Circle2<TNum> OnPlane => new(Plane.ProjectIntoLocal(Center), TNum.Abs(Radius));
 
     /// <inheritdoc />
-    public Vector3<TNum> NormalAt(Vector3<TNum> _)
+    public Vec3<TNum> NormalAt(Vec3<TNum> _)
         => Normal;
 
     /// <inheritdoc />
-    public Vector3<TNum> ClampToSurface(Vector3<TNum> p)
+    public Vec3<TNum> ClampToSurface(Vec3<TNum> p)
     {
         p = Plane.Clamp(p);
         var cToP = p - Center;
@@ -187,7 +187,7 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
     }
 
     [Pure]
-    public Vector3<TNum> ClampToEdge(Vector3<TNum> p)
+    public Vec3<TNum> ClampToEdge(Vec3<TNum> p)
     {
         p = Plane.Clamp(p);
         var cToP = p - Center;
@@ -197,16 +197,16 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
     }
 
     /// <inheritdoc />
-    public PoseLine<Pose3<TNum>, Vector3<TNum>, TNum> GetGeodesic(Vector3<TNum> p1, Vector3<TNum> p2)
+    public PoseLine<Pose3<TNum>, Vec3<TNum>, TNum> GetGeodesic(Vec3<TNum> p1, Vec3<TNum> p2)
     {
         p1 = ClampToSurface(p1);
         p2 = ClampToSurface(p2);
-        return PoseLine<Pose3<TNum>, Vector3<TNum>, TNum>.FromLine(p1, p2, Normal);
+        return PoseLine<Pose3<TNum>, Vec3<TNum>, TNum>.FromLine(p1, p2, Normal);
     }
 
     /// <inheritdoc />
-    public PoseLine<Pose3<TNum>, Vector3<TNum>, TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint,
-        Vector3<TNum> direction)
+    public PoseLine<Pose3<TNum>, Vec3<TNum>, TNum> GetGeodesicFromEntry(Vec3<TNum> entryPoint,
+        Vec3<TNum> direction)
     {
         entryPoint = ClampToSurface(entryPoint);
         direction -= N * direction.Dot(Normal);
@@ -218,13 +218,13 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
         if (!hit)
             ThrowHelper.ThrowInvalidOperationException();
         var exitPoint = direction * t + entryPoint;
-        return PoseLine<Pose3<TNum>, Vector3<TNum>, TNum>.FromLine(entryPoint, exitPoint, Normal);
+        return PoseLine<Pose3<TNum>, Vec3<TNum>, TNum>.FromLine(entryPoint, exitPoint, Normal);
     }
 
     private static bool RayCircleIntersect(
-        Vector3<TNum> rayOrigin,
-        Vector3<TNum> rayDir, // normalized not required
-        Vector3<TNum> circleCenter,
+        Vec3<TNum> rayOrigin,
+        Vec3<TNum> rayDir, // normalized not required
+        Vec3<TNum> circleCenter,
         TNum circleRadius,
         out TNum t)
     {

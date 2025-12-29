@@ -13,24 +13,24 @@ using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
-public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TNum>[] Positions)
+public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vec2<TNum>[] Positions)
     : IReadOnlyList<RotationalSurface<TNum>.ChildSurface>,
         IRotationalSurface<TNum>,
-        IGeodesicProvider<PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>, TNum>
+        IGeodesicProvider<PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     private TNum? _height;
     public TNum Height => _height ??= AABB.From(Positions).Size.Y;
-    private Vector3<TNum>? _basisU;
-    private Vector3<TNum> BasisU => _basisU ??= new Plane3<TNum>(Axis.Direction, Axis.Origin).Basis.U;
+    private Vec3<TNum>? _basisU;
+    private Vec3<TNum> BasisU => _basisU ??= new Plane3<TNum>(Axis.Direction, Axis.Origin).Basis.U;
     public int Count => int.Max(Positions.Length - 1, 0);
-    private Vector3<TNum>? _centroid;
+    private Vec3<TNum>? _centroid;
 
     /// <inheritdoc />
-    public Vector3<TNum> Centroid => _centroid ??= ComputeCentroid();
+    public Vec3<TNum> Centroid => _centroid ??= ComputeCentroid();
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector3<TNum> Project(Vector2<TNum> p, in Vector3<TNum> u, in Ray3<TNum> axis)
+    private static Vec3<TNum> Project(Vec2<TNum> p, in Vec3<TNum> u, in Ray3<TNum> axis)
         => axis.Traverse(p.X) + u * p.Y;
 
     public ChildSurface this[int index]
@@ -115,7 +115,7 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TN
     }
 
     [field: AllowNull, MaybeNull]
-    public Polyline<Vector2<TNum>, TNum> Sweep => field ??= new Polyline<Vector2<TNum>, TNum>(Positions);
+    public Polyline<Vec2<TNum>, TNum> Sweep => field ??= new Polyline<Vec2<TNum>, TNum>(Positions);
 
     /// <inheritdoc />
     public IEnumerator<ChildSurface> GetEnumerator() => Enumerable.Range(0,Count)
@@ -132,10 +132,10 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TN
         .Select(s => s.SurfaceArea)
         .Sum();
 
-    private AABB<Vector3<TNum>>? _bbox;
+    private AABB<Vec3<TNum>>? _bbox;
 
     /// <inheritdoc />
-    public AABB<Vector3<TNum>> BBox => _bbox ??= AABB.Combine(this.Select(s => s.BBox));
+    public AABB<Vec3<TNum>> BBox => _bbox ??= AABB.Combine(this.Select(s => s.BBox));
 
     /// <inheritdoc />
     public IMesh<TNum> Tessellate()
@@ -146,28 +146,28 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TN
 
     /// <inheritdoc />
     [field: AllowNull, MaybeNull]
-    public IDiscreteCurve<Vector3<TNum>, TNum> SweepCurve
+    public IDiscreteCurve<Vec3<TNum>, TNum> SweepCurve
     {
         get => field ??= CreateSweepCurve(this);
         private init;
     }
 
-    private static Polyline<Vector3<TNum>, TNum> CreateSweepCurve(RotationalSurface<TNum> surf)
+    private static Polyline<Vec3<TNum>, TNum> CreateSweepCurve(RotationalSurface<TNum> surf)
     {
         var u = surf.BasisU;
         var axis = surf.Axis;
-        var pts = new Vector3<TNum>[surf.Positions.Length];
+        var pts = new Vec3<TNum>[surf.Positions.Length];
         for (var i = 0; i < surf.Positions.Length; i++)
             pts[i] = Project(surf.Positions[i], in u, in axis);
-        return new Polyline<Vector3<TNum>, TNum>(pts);
+        return new Polyline<Vec3<TNum>, TNum>(pts);
     }
 
 
-    public static RotationalSurface<TNum> FromSweepCurve(Polyline<Vector3<TNum>, TNum> sweepCurve,
+    public static RotationalSurface<TNum> FromSweepCurve(Polyline<Vec3<TNum>, TNum> sweepCurve,
         Ray3<TNum> axis)
     {
         var axisLine = axis.Origin.LineTo(axis.Origin + axis.Direction);
-        var positions = new Vector2<TNum>[sweepCurve.Points.Length];
+        var positions = new Vec2<TNum>[sweepCurve.Points.Length];
         for (var i = 0; i < sweepCurve.Points.Length; i++)
         {
             var p = sweepCurve.Points[i];
@@ -176,7 +176,7 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TN
             if (i == 0)
             {
                 axisLine = closest.LineTo(closest + axis.Direction);
-                positions[0] = new Vector2<TNum>(TNum.Zero, radius);
+                positions[0] = new Vec2<TNum>(TNum.Zero, radius);
                 continue;
             }
 
@@ -184,7 +184,7 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TN
             var startToP = p - axisLine.Start;
             var sign = startToP.Dot(axisLine.AxisVector);
             var along = TNum.CopySign(absAlong, sign);
-            positions[i] = new Vector2<TNum>(along, radius);
+            positions[i] = new Vec2<TNum>(along, radius);
         }
 
         return new RotationalSurface<TNum>(axisLine, positions);//do not contorted { SweepCurve = sweepCurve };
@@ -193,10 +193,10 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TN
     /// <inheritdoc />
     public Ray3<TNum> SweepAxis => Axis;
 
-    private Vector3<TNum> ComputeCentroid()
+    private Vec3<TNum> ComputeCentroid()
     {
         var total = TNum.Zero;
-        var centroid = Vector3<TNum>.Zero;
+        var centroid = Vec3<TNum>.Zero;
         foreach (var rotationalSurface in this)
         {
             var area = rotationalSurface.SurfaceArea;
@@ -210,23 +210,23 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TN
     }
 
     /// <inheritdoc />
-    public Vector3<TNum> NormalAt(Vector3<TNum> p)
+    public Vec3<TNum> NormalAt(Vec3<TNum> p)
     {
         var foundAny = TryFindClosestSurface(p, out var surfIndex);
         return foundAny
             ? this[surfIndex].NormalAt(p)
-            : ThrowHelper.ThrowInvalidOperationException<Vector3<TNum>>("No surface found");
+            : ThrowHelper.ThrowInvalidOperationException<Vec3<TNum>>("No surface found");
     }
 
-    public Vector3<TNum> ClampToSurface(Vector3<TNum> p)
+    public Vec3<TNum> ClampToSurface(Vec3<TNum> p)
     {
         var foundAny = TryFindClosestSurface(p, out var surfIndex);
         return foundAny
             ? this[surfIndex].ClampToSurface(p)
-            : ThrowHelper.ThrowInvalidOperationException<Vector3<TNum>>("No surface found");
+            : ThrowHelper.ThrowInvalidOperationException<Vec3<TNum>>("No surface found");
     }
 
-    public bool TryFindClosestSurface(Vector3<TNum> p, out int surfaceIndex)
+    public bool TryFindClosestSurface(Vec3<TNum> p, out int surfaceIndex)
     {
         surfaceIndex = -1;
         if (Count == 0)
@@ -239,13 +239,13 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TN
 
         var (closestPos, _) = Axis.LineSection(TNum.Zero, TNum.One).GetClosestPositions(p);
         var radius = Axis.Traverse(closestPos).DistanceTo(p);
-        Vector2<TNum> pRelative = new(closestPos, radius);
+        Vec2<TNum> pRelative = new(closestPos, radius);
         var minDist = TNum.PositiveInfinity;
         for (var i = 0; i < Positions.Length - 1; i++)
         {
             var start = Positions[i];
             var end = Positions[i + 1];
-            Line<Vector2<TNum>, TNum> line = new(start, end);
+            Line<Vec2<TNum>, TNum> line = new(start, end);
             var diff = line.DistanceTo(pRelative);
             if (diff >= minDist)
                 continue;
@@ -258,12 +258,12 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TN
         return surfaceIndex != -1;
     }
 
-    public Line<Vector3<TNum>, TNum> AxisLine => SweepAxis.LineSection(TNum.Zero, Height);
+    public Line<Vec3<TNum>, TNum> AxisLine => SweepAxis.LineSection(TNum.Zero, Height);
     private AABB<TNum>? _radiusRange;
     public AABB<TNum> RadiusRange => _radiusRange ??= AABB<TNum>.From(this.Positions.Select(p => TNum.Abs(p.Y)));
 
-    public IEnumerable<ChildGeodesic> TraceGeodesics(Vector3<TNum> p,
-        Vector3<TNum> dir,
+    public IEnumerable<ChildGeodesic> TraceGeodesics(Vec3<TNum> p,
+        Vec3<TNum> dir,
         Func<int, bool> @while)
     {
         if (Count == 0) yield break;
@@ -284,12 +284,12 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TN
             {
                 surface = this[surfaceIndex];
                 var newNormal = surface.NormalAt(previousEnd);
-                var normalCalcPossible = Vector3<TNum>.IsRealNumber(newNormal)
-                                         && Vector3<TNum>.IsRealNumber(previousNormal);
+                var normalCalcPossible = Vec3<TNum>.IsRealNumber(newNormal)
+                                         && Vec3<TNum>.IsRealNumber(previousNormal);
                 if (normalCalcPossible && !newNormal.IsParallelTo(previousNormal))
                 {
                     var about = previousNormal.Cross(newNormal);
-                    var transformAngle = Vector3<TNum>.SignedAngleBetween(previousNormal, newNormal, about);
+                    var transformAngle = Vec3<TNum>.SignedAngleBetween(previousNormal, newNormal, about);
                     var rotation = Matrix4x4<TNum>.CreateRotation(about, transformAngle);
                     var rotatedDir = rotation.MultiplyDirection(previousDir);
                     previousDir = rotatedDir;
@@ -339,7 +339,7 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TN
             if (couldBeSameSurfaceAgain)
                 retryOrder.Add(surfaceIndex);
 
-            if (Vector3<TNum>.IsNaN(previousDir))
+            if (Vec3<TNum>.IsNaN(previousDir))
                 yield break;
         }
     }
@@ -348,8 +348,8 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TN
 
 
     public IEnumerable<ChildGeodesic> TraceGeodesicsWithChildSurfaces(
-        Vector3<TNum> p,
-        Vector3<TNum> dir,
+        Vec3<TNum> p,
+        Vec3<TNum> dir,
         Func<int, bool> @while)
     {
         if (Count == 0) return [];
@@ -360,7 +360,7 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TN
         return ChildGeodesicsInternal(p, dir, @while, surfaceIndex);
     }
 
-    private IEnumerable<ChildGeodesic> ChildGeodesicsInternal(Vector3<TNum> p, Vector3<TNum> dir,
+    private IEnumerable<ChildGeodesic> ChildGeodesicsInternal(Vec3<TNum> p, Vec3<TNum> dir,
         Func<int, bool> @while, int surfaceIndex)
     {
         var previousDir = dir;
@@ -380,7 +380,7 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TN
 
             previousDir = current.ExitDirection;
 
-            if (Vector3<TNum>.IsNaN(previousDir))
+            if (Vec3<TNum>.IsNaN(previousDir))
                 yield break;
 
 
@@ -391,7 +391,7 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TN
         }
     }
 
-    private void FindNextSurface(int surfaceIndex, Vector3<TNum> previousEnd, RollingList<int> retryOrder,
+    private void FindNextSurface(int surfaceIndex, Vec3<TNum> previousEnd, RollingList<int> retryOrder,
         ChildSurfaceType surface)
     {
         var minusOneIndex = surfaceIndex != 0 ? surfaceIndex - 1 : Count - 1;
@@ -416,8 +416,8 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TN
             retryOrder.Add(surfaceIndex);
     }
 
-    private int FindNextCurve(RollingList<int> retryOrder, Vector3<TNum> previousEnd, Vector3<TNum> previousNormal,
-        Vector3<TNum> previousDir,
+    private int FindNextCurve(RollingList<int> retryOrder, Vec3<TNum> previousEnd, Vec3<TNum> previousNormal,
+        Vec3<TNum> previousDir,
         out ChildSurface surface, out ChildGeodesic current)
     {
         surface = ChildSurface.CreateDead();
@@ -427,12 +427,12 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TN
         {
             surface = ChildSurfaces[surfaceIndex];
             var newNormal = surface.NormalAt(previousEnd);
-            var normalCalcPossible = Vector3<TNum>.IsRealNumber(newNormal)
-                                     && Vector3<TNum>.IsRealNumber(previousNormal);
+            var normalCalcPossible = Vec3<TNum>.IsRealNumber(newNormal)
+                                     && Vec3<TNum>.IsRealNumber(previousNormal);
             if (normalCalcPossible && !newNormal.IsParallelTo(previousNormal))
             {
                 var about = previousNormal.Cross(newNormal);
-                var transformAngle = Vector3<TNum>.SignedAngleBetween(previousNormal, newNormal, about);
+                var transformAngle = Vec3<TNum>.SignedAngleBetween(previousNormal, newNormal, about);
                 var rotation = Matrix4x4<TNum>.CreateRotation(about, transformAngle);
                 var rotatedDir = rotation.MultiplyDirection(previousDir);
                 previousDir = rotatedDir;
@@ -460,7 +460,7 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TN
         return surfaceIndex;
     }
 
-    public PeriodicalInfo TracePeriod(Vector3<TNum> p, Vector3<TNum> dir)
+    public PeriodicalInfo TracePeriod(Vec3<TNum> p, Vec3<TNum> dir)
     {
         var result = new PeriodicalInfo(new Ray3<TNum>(p, dir), Axis,
             Result<PeriodicalGeodesics, IReadOnlyList<ChildGeodesic>>
@@ -496,10 +496,10 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TN
             : result with { TraceResult = cache };
     }
 
-    public PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum> TraceGeodesicCycles(Vector3<TNum> p, Vector3<TNum> dir,
+    public PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum> TraceGeodesicCycles(Vec3<TNum> p, Vec3<TNum> dir,
         int childSurfaceCount)
     {
-        var vertices = new List<Vector3<TNum>>();
+        var vertices = new List<Vec3<TNum>>();
         var segments = TraceGeodesics(p, dir, i => i < childSurfaceCount)
             .ToArray(); //execute entirely to improve function caching
         if (segments.Length == 0)
@@ -507,18 +507,18 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TN
         if (segments.Length == 1)
             return segments[0].ToPosePolyline();
         var first = Bool.Once();
-        return PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>.CreateCulled(
+        return PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum>.CreateCulled(
             Polyline.ForceConcat(segments.Select(s => s.ToPosePolyline())));
     }
 
     /// <inheritdoc />
-    PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>
-        IGeodesicProvider<PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>, TNum>.GetGeodesic(Vector3<TNum> p1,
-            Vector3<TNum> p2)
-        => ThrowHelper.ThrowNotSupportedException<PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>>();
+    PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum>
+        IGeodesicProvider<PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum>, TNum>.GetGeodesic(Vec3<TNum> p1,
+            Vec3<TNum> p2)
+        => ThrowHelper.ThrowNotSupportedException<PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum>>();
 
     /// <inheritdoc />
-    public PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint,
-        Vector3<TNum> direction)
+    public PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum> GetGeodesicFromEntry(Vec3<TNum> entryPoint,
+        Vec3<TNum> direction)
         => TraceGeodesicCycles(entryPoint, direction, 1000);
 }

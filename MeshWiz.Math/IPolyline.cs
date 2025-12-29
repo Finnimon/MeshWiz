@@ -6,14 +6,14 @@ using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
-public interface IPolyline<out TSelf, TLine, TVert, TVector, TNum>
-    : IContiguousDiscreteCurve<TVector, TNum>,
+public interface IPolyline<out TSelf, TLine, TVert, TVec, TNum>
+    : IContiguousDiscreteCurve<TVec, TNum>,
         IVersionedList<TLine>,
-        IBounded<TVector> 
-    where TSelf : IPolyline<TSelf, TLine, TVert, TVector, TNum>
-    where TLine : unmanaged, ILine<TVector, TNum>
-    where TVert : ILerp<TVert, TNum>, IPosition<TVert, TVector, TNum>
-    where TVector : unmanaged, IVector<TVector, TNum>
+        IBounded<TVec> 
+    where TSelf : IPolyline<TSelf, TLine, TVert, TVec, TNum>
+    where TLine : unmanaged, ILine<TVec, TNum>
+    where TVert : ILerp<TVert, TNum>, IPosition<TVert, TVec, TNum>
+    where TVec : unmanaged, IVec<TVec, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     IReadOnlyList<TVert> Vertices { get; }

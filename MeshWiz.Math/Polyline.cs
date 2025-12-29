@@ -12,34 +12,34 @@ using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
-public sealed class Polyline<TVector, TNum> 
-    : IPolyline<Polyline<TVector,TNum>,Line<TVector,TNum>,TVector,TVector,TNum>
-    where TVector : unmanaged, IVector<TVector, TNum>
+public sealed class Polyline<TVec, TNum> 
+    : IPolyline<Polyline<TVec,TNum>,Line<TVec,TNum>,TVec,TVec,TNum>
+    where TVec : unmanaged, IVec<TVec, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember]
-    private TVector? _vertexCentroid;
+    private TVec? _vertexCentroid;
 
-    private readonly TVector[] _points;
-    public ReadOnlySpan<TVector> Points => _points;
+    private readonly TVec[] _points;
+    public ReadOnlySpan<TVec> Points => _points;
 
 
-    public Polyline(params ReadOnlySpan<TVector> points) => _points = points.ToArray();
-    public Polyline(IEnumerable<TVector> pts) : this(pts.ToArray()) { }
-    internal Polyline(TVector[] points) => _points = points;
-
-    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public TVector Start => _points[0];
+    public Polyline(params ReadOnlySpan<TVec> points) => _points = points.ToArray();
+    public Polyline(IEnumerable<TVec> pts) : this(pts.ToArray()) { }
+    internal Polyline(TVec[] points) => _points = points;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public TVector End => _points[^1];
+    public TVec Start => _points[0];
+
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
+    public TVec End => _points[^1];
 
     /// <inheritdoc />
-    public bool Contains(Line<TVector, TNum> item)
+    public bool Contains(Line<TVec, TNum> item)
         => IndexOf(item) != -1;
 
     /// <inheritdoc />
-    public void CopyTo(Line<TVector, TNum>[] array, int arrayIndex)
+    public void CopyTo(Line<TVec, TNum>[] array, int arrayIndex)
     {
         for (var i = 0; i < this.Count; i++) array[arrayIndex + i] = this[i];
     }
@@ -48,16 +48,16 @@ public sealed class Polyline<TVector, TNum>
     public int Count => int.Max(_points.Length - 1, 0);
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public static Polyline<TVector, TNum> Empty { get; } = [];
+    public static Polyline<TVec, TNum> Empty { get; } = [];
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember]
-    private AABB<TVector>? _bbox;
+    private AABB<TVec>? _bbox;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public AABB<TVector> BBox => _bbox ??= AABB<TVector>.From(_points);
+    public AABB<TVec> BBox => _bbox ??= AABB<TVec>.From(_points);
 
     /// <inheritdoc />
-    public int IndexOf(Line<TVector, TNum> item)
+    public int IndexOf(Line<TVec, TNum> item)
     {
         var i = -1;
         var count = Count;
@@ -67,22 +67,22 @@ public sealed class Polyline<TVector, TNum>
 
     /// <inheritdoc />
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public Line<TVector, TNum> this[int index]
+    public Line<TVec, TNum> this[int index]
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
             if (Count <= (uint)index) IndexThrowHelper.Throw(index, Count);
-            return Unsafe.As<TVector, Line<TVector, TNum>>(ref _points[index]);
+            return Unsafe.As<TVec, Line<TVec, TNum>>(ref _points[index]);
         }
     }
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public TVector VertexCentroid => _vertexCentroid ??= GetVertexCentroid();
+    public TVec VertexCentroid => _vertexCentroid ??= GetVertexCentroid();
 
-    private TVector GetVertexCentroid()
+    private TVec GetVertexCentroid()
     {
-        var centroid = TVector.Zero;
+        var centroid = TVec.Zero;
 
         if (Count <= 0)
             return centroid;
@@ -105,11 +105,11 @@ public sealed class Polyline<TVector, TNum>
     public bool IsClosed => Count > 2 && _points[0].IsApprox(_points[^1]);
 
     /// <inheritdoc />
-    public Polyline<TVector, TNum> ToPolyline()
+    public Polyline<TVec, TNum> ToPolyline()
         => this;
 
     /// <inheritdoc />
-    public Polyline<TVector, TNum> ToPolyline(PolylineTessellationParameter<TNum> tessellationParameter)
+    public Polyline<TVec, TNum> ToPolyline(PolylineTessellationParameter<TNum> tessellationParameter)
         => this;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
@@ -118,25 +118,25 @@ public sealed class Polyline<TVector, TNum>
     [field:AllowNull,MaybeNull]
     // ReSharper disable once InconsistentNaming
     private TNum[] _cumulativeDistances =>
-        field ??= Polyline.CalculateCumulativeDistances<TVector, TNum>(verts: _points);
+        field ??= Polyline.CalculateCumulativeDistances<TVec, TNum>(verts: _points);
 
     public ReadOnlySpan<TNum> CumulativeDistances =>_cumulativeDistances;
 
 
-    public TVector Traverse(TNum t)
+    public TVec Traverse(TNum t)
         => Polyline.Traverse(t, CumulativeDistances, IsClosed, _points);
 
-    public TVector TraverseOnCurve(TNum t)
+    public TVec TraverseOnCurve(TNum t)
         => Polyline.TraverseOnCurve(t, CumulativeDistances, IsClosed, _points);
 
 
     [Pure]
-    public Polyline<TVector, TNum> this[TNum start, TNum end] => Section(start, end);
+    public Polyline<TVec, TNum> this[TNum start, TNum end] => Section(start, end);
     [Pure]
-    public Polyline<TVector, TNum> Section(TNum start, TNum end) => ExactSection(Length * start, Length * end);
+    public Polyline<TVec, TNum> Section(TNum start, TNum end) => ExactSection(Length * start, Length * end);
 
     [Pure]
-    public Polyline<TVector, TNum> ExactSection(TNum start, TNum end)
+    public Polyline<TVec, TNum> ExactSection(TNum start, TNum end)
         => new(Polyline.ExactSection(start, end, _points, IsClosed, CumulativeDistances));
 
 
@@ -144,7 +144,7 @@ public sealed class Polyline<TVector, TNum>
     public int Version { get; }
 
     /// <inheritdoc />
-    public IEnumerator<Line<TVector, TNum>> GetEnumerator()
+    public IEnumerator<Line<TVec, TNum>> GetEnumerator()
     {
         for (var i = 0; i < Count; i++)
             yield return this[i];
@@ -154,11 +154,11 @@ public sealed class Polyline<TVector, TNum>
         => GetEnumerator();
 
 
-    public static Polyline<TVector, TNum> FromSegments(IReadOnlyList<Line<TVector, TNum>> list)
+    public static Polyline<TVec, TNum> FromSegments(IReadOnlyList<Line<TVec, TNum>> list)
     {
         if (list.Count == 0) return Empty;
         if (list.Count == 1) return new([list[0].Start, list[0].End]);
-        var points = new TVector[list.Count + 1];
+        var points = new TVec[list.Count + 1];
         var firstLine = list[0];
         var prevDirection = firstLine.Direction;
         var pI = -1;
@@ -179,23 +179,23 @@ public sealed class Polyline<TVector, TNum>
 
         var pCount = pI + 1;
         if (pCount == points.Length) return new(points);
-        if (pCount < 4) return new Polyline<TVector, TNum>(points[..pCount]);
+        if (pCount < 4) return new Polyline<TVec, TNum>(points[..pCount]);
         var startPt = points[0];
         var endPt = points[pI];
         var isClosed = startPt.IsApprox(endPt);
-        if (!isClosed) return new Polyline<TVector, TNum>(points[..pCount]);
+        if (!isClosed) return new Polyline<TVec, TNum>(points[..pCount]);
         var startDirection = (points[1] - startPt).Normalized();
         var endDirection = (endPt - points[pI - 1]).Normalized();
         if (!startDirection.Dot(endDirection).IsApprox(TNum.One))
-            return new Polyline<TVector, TNum>(points[..pCount]);
+            return new Polyline<TVec, TNum>(points[..pCount]);
         points[0] = points[pI - 1];
-        return new Polyline<TVector, TNum>(points[..pI]);
+        return new Polyline<TVec, TNum>(points[..pI]);
     }
 
-    public static Polyline<TVector, TNum> FromSegments(IEnumerable<Line<TVector, TNum>> connected)
+    public static Polyline<TVec, TNum> FromSegments(IEnumerable<Line<TVec, TNum>> connected)
     {
-        List<TVector> points = new();
-        var prevDirection = TVector.NaN;
+        List<TVec> points = new();
+        var prevDirection = TVec.NaN;
         var first = true;
         foreach (var line in connected)
         {
@@ -218,26 +218,26 @@ public sealed class Polyline<TVector, TNum>
             prevDirection = curDirection;
         }
 
-        if (points.Count < 4) return new Polyline<TVector, TNum>(points.ToArray());
+        if (points.Count < 4) return new Polyline<TVec, TNum>(points.ToArray());
         var startPt = points[0];
         var endPt = points[^1];
         var areEqual = startPt.IsApprox(endPt);
-        if (!areEqual) return new Polyline<TVector, TNum>(points.ToArray());
+        if (!areEqual) return new Polyline<TVec, TNum>(points.ToArray());
         var startDirection = (points[1] - startPt).Normalized();
         var endDirection = (endPt - points[^2]).Normalized();
         if (!(startDirection.Dot(endDirection)).IsApprox(TNum.One))
-            return new Polyline<TVector, TNum>(points.ToArray());
+            return new Polyline<TVec, TNum>(points.ToArray());
         points[0] = points[^2];
-        return new Polyline<TVector, TNum>(points.ToArray());
+        return new Polyline<TVec, TNum>(points.ToArray());
     }
 
-    public static Polyline<TVector, TNum> FromSegmentCollection(IReadOnlyCollection<Line<TVector, TNum>> collection)
+    public static Polyline<TVec, TNum> FromSegmentCollection(IReadOnlyCollection<Line<TVec, TNum>> collection)
     {
         if (collection.Count == 0) return Empty;
         var firstLine = collection.First();
         if (collection.Count == 1) return new([firstLine.Start, firstLine.End]);
 
-        List<TVector> points = new(collection.Count + 1);
+        List<TVec> points = new(collection.Count + 1);
         var prevDirection = firstLine.Direction;
         points.Add(firstLine.Start);
         points.Add(firstLine.End);
@@ -253,10 +253,10 @@ public sealed class Polyline<TVector, TNum>
             prevDirection = curDirection;
         }
 
-        return new Polyline<TVector, TNum>(points.ToArray());
+        return new Polyline<TVec, TNum>(points.ToArray());
     }
 
-    public Polyline<TVector, TNum> CullDeadSegments(TNum? epsilon = null)
+    public Polyline<TVec, TNum> CullDeadSegments(TNum? epsilon = null)
     {
         if (Count is 0)
             return Empty;
@@ -282,7 +282,7 @@ public sealed class Polyline<TVector, TNum>
         }
 
         if (cullCount == 0) return this;
-        var culled = new TVector[_points.Length - cullCount];
+        var culled = new TVec[_points.Length - cullCount];
         var culledPos = -1;
         for (var i = 0; i < _points.Length; i++)
         {
@@ -290,13 +290,13 @@ public sealed class Polyline<TVector, TNum>
             culled[++culledPos] = _points[i];
         }
 
-        return new Polyline<TVector, TNum>(culled);
+        return new Polyline<TVec, TNum>(culled);
     }
 
     [Pure]
-    public Polyline<TVector, TNum> Shift(TVector shift)
+    public Polyline<TVec, TNum> Shift(TVec shift)
     {
-        Polyline<TVector, TNum> pl = new(_points.Select(p => p + shift).ToArray())
+        Polyline<TVec, TNum> pl = new(_points.Select(p => p + shift).ToArray())
         {
             _vertexCentroid = _vertexCentroid is null ? null : VertexCentroid + shift,
             _bbox = _bbox is null ? null : _bbox + shift
@@ -306,34 +306,34 @@ public sealed class Polyline<TVector, TNum>
     }
 
     public Polyline<TOtherVec, TOtherNum> To<TOtherVec, TOtherNum>()
-        where TOtherVec : unmanaged, IVector<TOtherVec, TOtherNum>
+        where TOtherVec : unmanaged, IVec<TOtherVec, TOtherNum>
         where TOtherNum : unmanaged, IFloatingPointIeee754<TOtherNum> =>
-        new(_points.Select(TOtherVec.FromComponentsConstrained<TVector, TNum>).ToArray());
+        new(_points.Select(TOtherVec.FromComponentsConstrained<TVec, TNum>).ToArray());
 
     /// <inheritdoc />
-    public TVector GetTangent(TNum t)
+    public TVec GetTangent(TNum t)
     {
         var pos = t * Length;
 
-        var found = Polyline.TryFindContainingSegmentExactly<TVector, TNum>(IsClosed,
+        var found = Polyline.TryFindContainingSegmentExactly<TVec, TNum>(IsClosed,
             CumulativeDistances,
             pos,
             out var seg,
             out _);
-        return !found ? TVector.NaN : this[seg].Direction;
+        return !found ? TVec.NaN : this[seg].Direction;
     }
 
     /// <inheritdoc />
-    public TVector EntryDirection => this[0].Direction;
+    public TVec EntryDirection => this[0].Direction;
 
     /// <inheritdoc />
-    public TVector ExitDirection => this[^1].Direction;
+    public TVec ExitDirection => this[^1].Direction;
 
-    public static Polyline<TVector, TNum> CreateCulled(params ReadOnlySpan<TVector> poses)
+    public static Polyline<TVec, TNum> CreateCulled(params ReadOnlySpan<TVec> poses)
     {
         return poses.Length is 0 or 1 ? Empty : CreateCulledNonCopying(poses.ToArray());
     }
-    public static Polyline<TVector, TNum> CreateCulledNonCopying(TVector[] verts)
+    public static Polyline<TVec, TNum> CreateCulledNonCopying(TVec[] verts)
     {
         if (verts.Length is 0 or 1)
             return Empty;
@@ -352,7 +352,7 @@ public sealed class Polyline<TVector, TNum>
             var cull = dist.IsApproxZero();
             if (cull)
             {
-                previous = TVector.Lerp(previous, current, Numbers<TNum>.Half);
+                previous = TVec.Lerp(previous, current, Numbers<TNum>.Half);
                 continue;
             }
 
@@ -362,28 +362,28 @@ public sealed class Polyline<TVector, TNum>
             verts[vertCount - 1] = current;
         }
 
-        return new Polyline<TVector, TNum>(verts);
+        return new Polyline<TVec, TNum>(verts);
     }
 
     /// <inheritdoc />
-    public IReadOnlyList<TVector> Vertices => _points;
+    public IReadOnlyList<TVec> Vertices => _points;
 
     /// <inheritdoc />
     public IReadOnlyList<TNum> CumulativeLengths => _cumulativeDistances;
 
     /// <inheritdoc />
-    public static Polyline<TVector, TNum> CreateNonCopying(TVector[] vertices) => new(vertices);
+    public static Polyline<TVec, TNum> CreateNonCopying(TVec[] vertices) => new(vertices);
 
     /// <inheritdoc />
-    public static Polyline<TVector, TNum> Create(IEnumerable<TVector> verts)
+    public static Polyline<TVec, TNum> Create(IEnumerable<TVec> verts)
     =>new(verts.ToArray());
 
     /// <inheritdoc />
-    public static Polyline<TVector, TNum> Create(params ReadOnlySpan<TVector> vertices) => new(vertices);
+    public static Polyline<TVec, TNum> Create(params ReadOnlySpan<TVec> vertices) => new(vertices);
 
     /// <inheritdoc />
-    public static Polyline<TVector, TNum> CreateCulled(IEnumerable<TVector> source) 
-        => CreateNonCopying(Polyline.Cull<TVector, TNum>(source));
+    public static Polyline<TVec, TNum> CreateCulled(IEnumerable<TVec> source) 
+        => CreateNonCopying(Polyline.Cull<TVec, TNum>(source));
 }
 
 public static partial class Polyline
@@ -761,7 +761,7 @@ public static partial class Polyline
     
     
     public static Result<Arithmetics, TVector[]> ForceConcat<TVector, TNum>(params IEnumerable<Polyline<TVector,TNum>> segs)
-        where TVector : unmanaged, IVector<TVector, TNum>
+        where TVector : unmanaged, IVec<TVector, TNum>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         var half = Numbers<TNum>.Half;
@@ -781,7 +781,7 @@ public static partial class Polyline
     
     
     public static Result<Arithmetics, TPose[]> ForceConcat<TPose,TVector, TNum>(params IEnumerable<PosePolyline<TPose,TVector,TNum>> segs)
-        where TVector : unmanaged, IVector<TVector, TNum>
+        where TVector : unmanaged, IVec<TVector, TNum>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
         where TPose : IPose<TPose, TVector, TNum>
     {

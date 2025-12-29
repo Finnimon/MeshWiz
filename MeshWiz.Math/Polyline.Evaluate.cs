@@ -12,7 +12,7 @@ public static partial class Polyline
     public static class Evaluate
     {
         
-        public static bool DoIntersect<TNum>(Polyline<Vector2<TNum>, TNum> polyline, Polyline<Vector2<TNum>, TNum> other)
+        public static bool DoIntersect<TNum>(Polyline<Vec2<TNum>, TNum> polyline, Polyline<Vec2<TNum>, TNum> other)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             if (!polyline.BBox.IntersectsWith(other.BBox)) return false;
@@ -20,7 +20,7 @@ public static partial class Polyline
         }
 
         public static SortedDictionary<int, List<(int With, TNum at)>> FindSelfIntersections<TNum>(
-            Polyline<Vector2<TNum>, TNum> polygon)
+            Polyline<Vec2<TNum>, TNum> polygon)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             SortedDictionary<int, List<(int With, TNum at)>> intersections = [];
@@ -55,7 +55,7 @@ public static partial class Polyline
         }
 
 
-        public static TNum SignedArea<TNum>(Polyline<Vector2<TNum>, TNum> polyline)
+        public static TNum SignedArea<TNum>(Polyline<Vec2<TNum>, TNum> polyline)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             if (!polyline.IsClosed) return TNum.Zero;
@@ -73,16 +73,16 @@ public static partial class Polyline
             return area / TNum.CreateTruncating(2);
         }
 
-        public static TNum Area<TNum>(Polyline<Vector2<TNum>, TNum> polyline)
+        public static TNum Area<TNum>(Polyline<Vec2<TNum>, TNum> polyline)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
             => TNum.Abs(SignedArea(polyline));
 
-        public static int AreaSign<TNum>(Polyline<Vector2<TNum>, TNum> polyline)
+        public static int AreaSign<TNum>(Polyline<Vec2<TNum>, TNum> polyline)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
             => SignedArea(polyline).EpsilonTruncatingSign();
 
 
-        public static WindingOrder GetWindingOrder<TNum>(Polyline<Vector2<TNum>, TNum> polyline)
+        public static WindingOrder GetWindingOrder<TNum>(Polyline<Vec2<TNum>, TNum> polyline)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             if (!polyline.IsClosed) return WindingOrder.NotClosed;
@@ -113,13 +113,13 @@ public static partial class Polyline
                 -1 => WindingOrder.Clockwise,
                 0 => u.Y < TNum.Zero ? WindingOrder.CounterClockwise : WindingOrder.Clockwise,
                 1 => WindingOrder.CounterClockwise,
-                _ => ThrowHelper.ThrowInvalidOperationException<WindingOrder>(nameof(Vector2<>.CrossSign))
+                _ => ThrowHelper.ThrowInvalidOperationException<WindingOrder>(nameof(Vec2<>.CrossSign))
             };
         }
 
 
         [Pure]
-        public static bool IsConvex<TNum>(Polyline<Vector2<TNum>, TNum> closedPolyline)
+        public static bool IsConvex<TNum>(Polyline<Vec2<TNum>, TNum> closedPolyline)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             if (!closedPolyline.IsClosed)
@@ -141,8 +141,8 @@ public static partial class Polyline
             return true;
         }
         
-    public static RollingList<Polyline<Vector2<TNum>, TNum>> FindSegments<TNum>(
-        Polyline<Vector2<TNum>, TNum> polygon,
+    public static RollingList<Polyline<Vec2<TNum>, TNum>> FindSegments<TNum>(
+        Polyline<Vec2<TNum>, TNum> polygon,
         TNum minSegLength)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
@@ -166,7 +166,7 @@ public static partial class Polyline
         }
 
         ranges.Sort();
-        RollingList<Polyline<Vector2<TNum>, TNum>> segments = new(ranges.Count);
+        RollingList<Polyline<Vec2<TNum>, TNum>> segments = new(ranges.Count);
 
         for (var i = 0; i < ranges.Count - 1; i++)
         {
@@ -182,7 +182,7 @@ public static partial class Polyline
     }
 
     public static RollingList<(TNum start, TNum end, TNum next)> FindIdentifiableSegments<TNum>(
-        Polyline<Vector2<TNum>, TNum> polygon,
+        Polyline<Vec2<TNum>, TNum> polygon,
         TNum minSegLength)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {

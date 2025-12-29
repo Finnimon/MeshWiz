@@ -5,20 +5,20 @@ using OpenTK.Mathematics;
 
 namespace MeshWiz.OpenTK;
 
-public class OrbitCamera(float fovRad, Vector3<float> orbitAround, float distance, float azimuthRad, float pitchRad) : ICamera
+public class OrbitCamera(float fovRad, Vec3<float> orbitAround, float distance, float azimuthRad, float pitchRad) : ICamera
 {
     public float FovRad { get; set; } = fovRad;
-    public Vector3<float> LookAt { get; set; } = orbitAround;
+    public Vec3<float> LookAt { get; set; } = orbitAround;
 
     public float Distance { get; set; } = distance;
 
-    public Vector3<float> UnitUp
+    public Vec3<float> UnitUp
     {
         get;
         set => field = value.Normalized();
     }
 
-    public Vector3<float> Position =>GetPosition();
+    public Vec3<float> Position =>GetPosition();
 
     public float AzimuthRad
     {
@@ -28,12 +28,12 @@ public class OrbitCamera(float fovRad, Vector3<float> orbitAround, float distanc
 
     public float PitchRad { get; set; } = pitchRad;     // around CameraRight
 
-    private Vector3<float> GetPosition()
+    private Vec3<float> GetPosition()
     {
         var up = UnitUp;
-        var reference = float.Abs(up.Dot(Vector3<float>.UnitY)) < 0.99f
-                ? Vector3<float>.UnitY
-                : Vector3<float>.UnitX;;
+        var reference = float.Abs(up.Dot(Vec3<float>.UnitY)) < 0.99f
+                ? Vec3<float>.UnitY
+                : Vec3<float>.UnitX;;
         var forward = up.Cross(reference).Normalized();
 
         var local =
@@ -44,7 +44,7 @@ public class OrbitCamera(float fovRad, Vector3<float> orbitAround, float distanc
         return LookAt + local;
     }
 
-    public Vector3<float> UnitRight()
+    public Vec3<float> UnitRight()
     {
         var up=UnitUp;
         var dir= (LookAt - Position).Normalized();
@@ -74,6 +74,6 @@ public class OrbitCamera(float fovRad, Vector3<float> orbitAround, float distanc
     }
 
     public static ICamera Default()
-        =>    new OrbitCamera(float.Pi / 4, Vector3<float>.Zero, 1, 0, 0);
+        =>    new OrbitCamera(float.Pi / 4, Vec3<float>.Zero, 1, 0, 0);
 
 }

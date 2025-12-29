@@ -10,17 +10,17 @@ namespace MeshWiz.Math;
 public readonly struct Ray2<TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    public readonly Vector2<TNum> Origin, Direction;
+    public readonly Vec2<TNum> Origin, Direction;
 
-    public Ray2(Vector2<TNum> origin, Vector2<TNum> direction)
+    public Ray2(Vec2<TNum> origin, Vec2<TNum> direction)
     {
         Origin = origin;
         Direction = direction.Normalized();
     }
 
     [Pure]
-    public Vector2<TNum> Traverse(TNum distance)
-        => Vector2<TNum>.FusedMultiplyAdd(Direction, new Vector2<TNum>(distance),Origin);
+    public Vec2<TNum> Traverse(TNum distance)
+        => Vec2<TNum>.FusedMultiplyAdd(Direction, new Vec2<TNum>(distance),Origin);
 
     public bool HitTest(in Ray2<TNum> ray, out TNum t)
     {
@@ -30,11 +30,11 @@ public readonly struct Ray2<TNum>
         var s = ray.Direction;
         var delta = ray.Origin - Origin;
 
-        var rxs = Vector2<TNum>.Cross(r, s);
+        var rxs = Vec2<TNum>.Cross(r, s);
         if (TNum.Abs(rxs) < TNum.Epsilon)
             return false; // Parallel or colinear
 
-        var tNumerator = Vector2<TNum>.Cross(delta , s);
+        var tNumerator = Vec2<TNum>.Cross(delta , s);
         t = tNumerator / rxs;
 
         return t >= TNum.Zero;
@@ -43,10 +43,10 @@ public readonly struct Ray2<TNum>
 
     public static Ray2<TNum> operator -(Ray2<TNum> ray) => new(ray.Origin, -ray.Direction);
 
-    public static implicit operator Ray2<TNum>(in Line<Vector2<TNum>, TNum> line)
+    public static implicit operator Ray2<TNum>(in Line<Vec2<TNum>, TNum> line)
         => new(line.Start, line.AxisVector);
 
-    public static implicit operator Line<Vector2<TNum>, TNum>(in Ray2<TNum> ray) =>
+    public static implicit operator Line<Vec2<TNum>, TNum>(in Ray2<TNum> ray) =>
         new(ray.Origin, ray.Origin + ray.Direction);
 
     [Pure]
@@ -114,7 +114,7 @@ public readonly struct Ray2<TNum>
         return t.IsApproxGreaterOrEqual(TNum.Zero) || t2.IsApproxGreaterOrEqual(TNum.Zero);
     }
 
-    public bool TryIntersect(in Line<Vector2<TNum>, TNum> otherLine, out TNum t)
+    public bool TryIntersect(in Line<Vec2<TNum>, TNum> otherLine, out TNum t)
     {
         var hit = Line.TryIntersect(this, in otherLine, out t);
         if (!hit || !t.IsApproxGreaterOrEqual(TNum.Zero)) return false;
@@ -123,7 +123,7 @@ public readonly struct Ray2<TNum>
     }
     
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Vector2<TNum> ClosestPoint(Vector2<TNum> p)
+    public Vec2<TNum> ClosestPoint(Vec2<TNum> p)
     {
         var v = p - Origin;
         var ndir = Direction;
@@ -133,6 +133,6 @@ public readonly struct Ray2<TNum>
     }
 
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public TNum DistanceTo(Vector2<TNum> p) => ClosestPoint(p).DistanceTo(p);
+    public TNum DistanceTo(Vec2<TNum> p) => ClosestPoint(p).DistanceTo(p);
 
 }

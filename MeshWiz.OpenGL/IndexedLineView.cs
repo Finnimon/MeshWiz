@@ -35,7 +35,7 @@ public class IndexedLineView : IOpenGLControl
     public bool GLInitialized { get; private set; }
     private bool _newLine;
     private int _uploadedVertexCount;
-    public IEnumerable<Line<Vector3<float>, float>> Lines
+    public IEnumerable<Line<Vec3<float>, float>> Lines
     {
         get;
         set
@@ -49,7 +49,7 @@ public class IndexedLineView : IOpenGLControl
 
     public IndexedLineView() : this([]) { }
 
-    public IndexedLineView(IEnumerable<Line<Vector3<float>, float>> lines)
+    public IndexedLineView(IEnumerable<Line<Vec3<float>, float>> lines)
     {
         Show= true;
         Lines = lines;

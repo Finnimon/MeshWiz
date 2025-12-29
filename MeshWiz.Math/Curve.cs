@@ -13,7 +13,7 @@ public static partial class Curve
     public static Section<TSource, TVec, TNum> CreateSection<TSource, TVec, TNum>(this TSource sourceCurve, TNum start,
         TNum end)
         where TSource : ICurve<TVec, TNum>
-        where TVec : unmanaged, IVector<TVec, TNum>
+        where TVec : unmanaged, IVec<TVec, TNum>
         where TNum : unmanaged, IFloatingPointIeee754<TNum> =>
         new(sourceCurve, start, end);
 
@@ -22,7 +22,7 @@ public static partial class Curve
         TNum start,
         TNum end)
         where TSource : IDiscreteCurve<TVec, TNum>
-        where TVec : unmanaged, IVector<TVec, TNum>
+        where TVec : unmanaged, IVec<TVec, TNum>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         var invLen = TNum.One / sourceCurve.Length;
@@ -34,7 +34,7 @@ public static partial class Curve
         this TSource sourceCurve, TNum start,
         TNum end)
         where TSource : IPoseCurve<TPose, TVec, TNum>
-        where TVec : unmanaged, IVector<TVec, TNum>
+        where TVec : unmanaged, IVec<TVec, TNum>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
         where TPose : IPose<TPose, TVec, TNum>
         => new(sourceCurve, start, end);
@@ -46,7 +46,7 @@ public static partial class Curve
         TNum end)
         where TSource : IDiscretePoseCurve<TPose, TVec, TNum>
         where TPose : IPose<TPose, TVec, TNum>
-        where TVec : unmanaged, IVector<TVec, TNum>
+        where TVec : unmanaged, IVec<TVec, TNum>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         var invLen = TNum.One / sourceCurve.Length;
@@ -58,7 +58,7 @@ public static partial class Curve
     public readonly struct Section<TSource, TVec, TNum>(TSource source, TNum start, TNum end)
         : IDiscreteCurve<TVec, TNum>
         where TSource : ICurve<TVec, TNum>
-        where TVec : unmanaged, IVector<TVec, TNum>
+        where TVec : unmanaged, IVec<TVec, TNum>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         public readonly TSource Source = source;
@@ -142,7 +142,7 @@ public static partial class Curve
     public readonly struct PoseSection<TSource, TPose, TVec, TNum>(TSource source, TNum start, TNum end)
         : IDiscretePoseCurve<TPose, TVec, TNum>
         where TSource : IPoseCurve<TPose, TVec, TNum>
-        where TVec : unmanaged, IVector<TVec, TNum>
+        where TVec : unmanaged, IVec<TVec, TNum>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
         where TPose : IPose<TPose, TVec, TNum>
     {

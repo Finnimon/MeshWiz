@@ -61,15 +61,15 @@ public class SmoothMeshView : IOpenGLControl
         set => _lightColor.Value = value;
     }
 
-    private readonly EquatableScopedProperty<Vector3<float>> _lightPosition;
+    private readonly EquatableScopedProperty<Vec3<float>> _lightPosition;
 
-    private Vector3<float> LightPosition
+    private Vec3<float> LightPosition
     {
-        get => Vector3<float>.IsNaN(_lightPosition) ? AboveHead : _lightPosition;
+        get => Vec3<float>.IsNaN(_lightPosition) ? AboveHead : _lightPosition;
         set => _lightPosition.Value = value;
     }
 
-    private Vector3<float> AboveHead => Camera.UnitUp * 2 + Camera.Position;
+    private Vec3<float> AboveHead => Camera.UnitUp * 2 + Camera.Position;
     private readonly FloatingPointScopedProperty<float> _solidAmbientStrength;
 
     public float SolidAmbientStrength
@@ -267,7 +267,7 @@ public class SmoothMeshView : IOpenGLControl
         _vbo.BindAnd()
             .BufferData(vertexData, BufferUsageHint.StaticDraw);
 
-        var stride = 2 * Vector3<float>.ByteSize;
+        var stride = 2 * Vec3<float>.ByteSize;
         var positionLoc = _blinnPhongShader!.GetAttribLoc("position");
         var normalLoc = _blinnPhongShader.GetAttribLoc("normal");
 
@@ -285,9 +285,9 @@ public class SmoothMeshView : IOpenGLControl
         OpenGLHelper.LogGlError(nameof(SmoothMeshView));
     }
 
-    Vector3<float>[] GetInterleavedMesh(IIndexedMesh<float> mesh)
+    Vec3<float>[] GetInterleavedMesh(IIndexedMesh<float> mesh)
     {
-        var normals = new Vector3<float>[mesh.Vertices.Length];
+        var normals = new Vec3<float>[mesh.Vertices.Length];
         var counts = new uint[mesh.Vertices.Length];
 
         for (var i = 0; i < mesh.Indices.Length; i++)
@@ -318,7 +318,7 @@ public class SmoothMeshView : IOpenGLControl
         _wireframeColor = this.Property(Color4.Black);
         _solidColor = this.Property(Color4.Gray);
         _lightColor = this.Property(Color4.White);
-        _lightPosition = this.Property(Vector3<float>.NaN);
+        _lightPosition = this.Property(Vec3<float>.NaN);
         _solidAmbientStrength = this.FloatingPointProperty(0.15f);
         _depthOffset = this.FloatingPointProperty(0.0005f);
         _solidSpecularStrength = this.FloatingPointProperty(0.75f);

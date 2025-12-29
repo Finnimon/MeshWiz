@@ -10,7 +10,7 @@ public static partial class Mesh
 {
     public static class Create
     {
-        public static IndexedMesh<TNum> LoftInterleavedRibs<TNum>(Vector3<TNum>[] interleavedOutsideRibs, int ribCount)
+        public static IndexedMesh<TNum> LoftInterleavedRibs<TNum>(Vec3<TNum>[] interleavedOutsideRibs, int ribCount)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             var rowCount = interleavedOutsideRibs.Length / ribCount;
@@ -37,7 +37,7 @@ public static partial class Mesh
             return new IndexedMesh<TNum>(interleavedOutsideRibs, indices);
         }
 
-        public static IndexedMesh<TNum> LoftRibs<TNum>(IReadOnlyList<Vector3<TNum>[]> ribs)
+        public static IndexedMesh<TNum> LoftRibs<TNum>(IReadOnlyList<Vec3<TNum>[]> ribs)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             var ribCount = ribs.Count;
@@ -64,18 +64,18 @@ public static partial class Mesh
             }
 
 
-            var verts = new Vector3<TNum>[ribCount * rowCount];
+            var verts = new Vec3<TNum>[ribCount * rowCount];
             for (var i = 0; i < ribs.Count; i++) Array.Copy(ribs[i], 0, verts, i * rowCount, rowCount);
             return new(verts, indices);
         }
 
-        public static IndexedMesh<TNum> LoftRibsInterleaving<TNum>(IReadOnlyList<Vector3<TNum>[]> ribs)
+        public static IndexedMesh<TNum> LoftRibsInterleaving<TNum>(IReadOnlyList<Vec3<TNum>[]> ribs)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             var ribCount = ribs.Count;
             var rowCount = ribs[0].Length;
             var vertCount = rowCount * ribCount;
-            var verts = new Vector3<TNum>[vertCount];
+            var verts = new Vec3<TNum>[vertCount];
             for (var i = 0; i < vertCount; i++)
             {
                 var rib = i % ribCount;
@@ -86,7 +86,7 @@ public static partial class Mesh
             return LoftInterleavedRibs(verts, ribCount);
         }
 
-        public static IndexedMesh<TNum> LoftRibsClosed<TNum>(IReadOnlyList<Vector3<TNum>[]> ribs)
+        public static IndexedMesh<TNum> LoftRibsClosed<TNum>(IReadOnlyList<Vec3<TNum>[]> ribs)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             if (ribs.Count < 2) ThrowHelper.ThrowArgumentException("At least two ribs required.", nameof(ribs));
@@ -126,14 +126,14 @@ public static partial class Mesh
             return new IndexedMesh<TNum>(verts, indices);
         }
 
-        public static IndexedMesh<TNum> PipeAlong<TNum>(Polyline<Vector3<TNum>, TNum> baseFace,
-            Polyline<Vector3<TNum>, TNum> along)
+        public static IndexedMesh<TNum> PipeAlong<TNum>(Polyline<Vec3<TNum>, TNum> baseFace,
+            Polyline<Vec3<TNum>, TNum> along)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             if (along.Count == 0) return IndexedMesh<TNum>.Empty;
             var sourcePoints = (baseFace.IsClosed ? baseFace.Points[1..] : baseFace.Points[..]).ToArray();
 
-            var points = Enumerable.Range(0, sourcePoints.Length).Select(_ => new Vector3<TNum>[along.Points.Length])
+            var points = Enumerable.Range(0, sourcePoints.Length).Select(_ => new Vec3<TNum>[along.Points.Length])
                 .ToArray();
             for (var rib = 0; rib < sourcePoints.Length; rib++) points[rib][0] = sourcePoints[rib];
             for (var row = 0; row < along.Count; row++)
@@ -147,8 +147,8 @@ public static partial class Mesh
         }
 
         public static IndexedMesh<TNum> PipeAlongAligning<TNum>(
-            Polyline<Vector2<TNum>, TNum> baseFace,
-            Polyline<Vector3<TNum>, TNum> along)
+            Polyline<Vec2<TNum>, TNum> baseFace,
+            Polyline<Vec3<TNum>, TNum> along)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             if (along.Count == 0)
@@ -157,13 +157,13 @@ public static partial class Mesh
             var basePoints2D = baseFace.IsClosed ? baseFace.Points[1..] : baseFace.Points[..];
 
             var points = Enumerable.Range(0, basePoints2D.Length)
-                .Select(_ => new Vector3<TNum>[along.Points.Length])
+                .Select(_ => new Vec3<TNum>[along.Points.Length])
                 .ToArray();
 
             for (int row = 0; row < along.Points.Length; row++)
             {
                 var origin = along.Points[row];
-                Vector3<TNum> normal;
+                Vec3<TNum> normal;
                 if (row == 0)
                     normal = along[0].Direction;
                 else if (row == along.Points.Length - 1)
@@ -174,7 +174,7 @@ public static partial class Mesh
                     var l2 = along[row];
                     var n1 = l1.Direction;
                     var n2 = l2.Direction;
-                    normal = Vector3<TNum>.Lerp(n1, n2, Numbers<TNum>.Half).Normalized();
+                    normal = Vec3<TNum>.Lerp(n1, n2, Numbers<TNum>.Half).Normalized();
                     if (!normal.SquaredLength.IsApprox(TNum.One, Numbers<TNum>.Eps5)) normal = n2;
                 }
 
@@ -182,7 +182,7 @@ public static partial class Mesh
                 var planeOrigin = projector.Origin;
                 var current = projector.ProjectIntoWorld(basePoints2D);
                 var shift = origin - planeOrigin;
-                if (!shift.IsApprox(Vector3<TNum>.Zero))
+                if (!shift.IsApprox(Vec3<TNum>.Zero))
                     for (var i = 0; i < current.Length; i++)
                         current[i] += shift;
                 for (var rib = 0; rib < basePoints2D.Length; rib++) points[rib][row] = current[rib];
@@ -192,8 +192,8 @@ public static partial class Mesh
         }
 
         public static IndexedMesh<TNum> PipeAlongAligned<TNum>(
-            Polyline<Vector2<TNum>, TNum> baseFace,
-            Polyline<Vector3<TNum>, TNum> along)
+            Polyline<Vec2<TNum>, TNum> baseFace,
+            Polyline<Vec3<TNum>, TNum> along)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             if (along.Count == 0) return IndexedMesh<TNum>.Empty;
@@ -202,17 +202,17 @@ public static partial class Mesh
 
             // We'll build a 2D array [rib][row] of points like in your original version.
             var points = Enumerable.Range(0, sourcePoints.Length)
-                .Select(_ => new Vector3<TNum>[along.Points.Length])
+                .Select(_ => new Vec3<TNum>[along.Points.Length])
                 .ToArray();
 
             for (int row = 0; row < along.Points.Length; row++)
             {
-                Vector3<TNum> tangent;
+                Vec3<TNum> tangent;
                 tangent = row > along.Count - 1 ? along[^1].Direction : along[row].Direction;
 
-                var up = Vector3<TNum>.UnitX;
+                var up = Vec3<TNum>.UnitX;
                 if (up.IsApprox(tangent, Numbers<TNum>.Eps5))
-                    up = Vector3<TNum>.UnitY;
+                    up = Vec3<TNum>.UnitY;
 
                 var normal = up.Cross(tangent).Normalized();
                 var binormal = tangent.Cross(normal).Normalized();
@@ -243,8 +243,8 @@ public static partial class Mesh
             if (centerline.Length < 2) return IndexedMesh<TNum>.Empty;
             if (TNum.Zero.IsApproxGreaterOrEqual(width) || !TNum.IsFinite(width))
                 ThrowHelper.ThrowArgumentOutOfRangeException(nameof(width), width, "width must be a finite number >0");
-            var leftSpine = new Vector3<TNum>[centerline.Length];
-            var rightSpine = new Vector3<TNum>[centerline.Length];
+            var leftSpine = new Vec3<TNum>[centerline.Length];
+            var rightSpine = new Vec3<TNum>[centerline.Length];
             for (var i = 0; i < centerline.Length; i++)
             {
                 ref readonly var center = ref centerline[i];

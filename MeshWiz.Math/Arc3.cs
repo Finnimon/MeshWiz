@@ -7,7 +7,7 @@ using MeshWiz.Utility.Extensions;
 namespace MeshWiz.Math;
 
 public readonly struct Arc3<TNum>(Circle3<TNum> underlying, TNum startAngle, TNum endAngle)
-    : IFlat<TNum>, IContiguousDiscreteCurve<Vector3<TNum>, TNum>
+    : IFlat<TNum>, IContiguousDiscreteCurve<Vec3<TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly Circle3<TNum> Underlying = underlying;
@@ -30,15 +30,15 @@ public readonly struct Arc3<TNum>(Circle3<TNum> underlying, TNum startAngle, TNu
     public Plane3<TNum> Plane => Underlying.Plane;
 
     /// <inheritdoc />
-    public Vector3<TNum> Normal => Underlying.Normal;
+    public Vec3<TNum> Normal => Underlying.Normal;
 
-    public Vector3<TNum> CircumCenter => Underlying.Centroid;
-
-    /// <inheritdoc />
-    public Vector3<TNum> Start => Underlying.TraverseByAngle(StartAngle);
+    public Vec3<TNum> CircumCenter => Underlying.Centroid;
 
     /// <inheritdoc />
-    public Vector3<TNum> End => Underlying.TraverseByAngle(EndAngle);
+    public Vec3<TNum> Start => Underlying.TraverseByAngle(StartAngle);
+
+    /// <inheritdoc />
+    public Vec3<TNum> End => Underlying.TraverseByAngle(EndAngle);
 
     /// <inheritdoc />
     public bool IsClosed
@@ -52,23 +52,23 @@ public readonly struct Arc3<TNum>(Circle3<TNum> underlying, TNum startAngle, TNu
 
 
     /// <inheritdoc />
-    public Vector3<TNum> TraverseOnCurve(TNum t)
+    public Vec3<TNum> TraverseOnCurve(TNum t)
         => Traverse(TNum.Clamp(t, TNum.Zero, TNum.One));
 
 
     /// <inheritdoc />
-    public Polyline<Vector3<TNum>, TNum> ToPolyline() => ToPolyline(new PolylineTessellationParameter<TNum>
+    public Polyline<Vec3<TNum>, TNum> ToPolyline() => ToPolyline(new PolylineTessellationParameter<TNum>
         { MaxAngularDeviation = Numbers<TNum>.Eps2 });
 
     /// <inheritdoc />
-    public Polyline<Vector3<TNum>, TNum> ToPolyline(PolylineTessellationParameter<TNum> tessellationParameter)
+    public Polyline<Vec3<TNum>, TNum> ToPolyline(PolylineTessellationParameter<TNum> tessellationParameter)
     {
         var maxAngleStep = TNum.Abs(tessellationParameter.MaxAngularDeviation);
         var angleRange = EndAngle - StartAngle;
         var absAngleRange = TNum.Abs(angleRange);
         var stepCount = int.CreateSaturating(TNum.Round(absAngleRange / maxAngleStep, MidpointRounding.AwayFromZero)) +
                         1;
-        var pts = new Vector3<TNum>[stepCount];
+        var pts = new Vec3<TNum>[stepCount];
         var angleStep = angleRange / TNum.CreateTruncating(stepCount - 1);
         Console.WriteLine($"angleStep: {angleStep} maxAngleStep: {maxAngleStep}");
         var curAngle = StartAngle;
@@ -85,11 +85,11 @@ public readonly struct Arc3<TNum>(Circle3<TNum> underlying, TNum startAngle, TNu
         }
 
         Console.WriteLine($"End:{EndAngle} actualEnd{curAngle - angleStep}");
-        return new Polyline<Vector3<TNum>, TNum>(pts);
+        return new Polyline<Vec3<TNum>, TNum>(pts);
     }
 
     /// <inheritdoc />
-    public Vector3<TNum> Traverse(TNum t)
+    public Vec3<TNum> Traverse(TNum t)
     {
         var pos = GetAngleAtNormalPos(t);
         return Underlying.TraverseByAngle(pos);
@@ -104,15 +104,15 @@ public readonly struct Arc3<TNum>(Circle3<TNum> underlying, TNum startAngle, TNu
     }
 
     /// <inheritdoc />
-    public Vector3<TNum> GetTangent(TNum t)
+    public Vec3<TNum> GetTangent(TNum t)
         => GetTangentAtAngle(GetAngleAtNormalPos(t));
 
-    public Vector3<TNum> GetTangentAtAngle(TNum angle)
+    public Vec3<TNum> GetTangentAtAngle(TNum angle)
         => Underlying.GetTangentAtAngle(angle) * WindingDirection;
 
     /// <inheritdoc />
-    public Vector3<TNum> EntryDirection => GetTangentAtAngle(StartAngle);
+    public Vec3<TNum> EntryDirection => GetTangentAtAngle(StartAngle);
 
     /// <inheritdoc />
-    public Vector3<TNum> ExitDirection => GetTangentAtAngle(EndAngle);
+    public Vec3<TNum> ExitDirection => GetTangentAtAngle(EndAngle);
 }

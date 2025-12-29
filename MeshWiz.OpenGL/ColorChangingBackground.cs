@@ -25,7 +25,7 @@ public class ColorChangingBackground : IOpenGLControl
     {
         var millis = _stopwatch.ElapsedMilliseconds;
         var factor = millis * 2 / (float)RotationMillis;
-        var col = Vector4<float>.CosineLerp(From.ToVec4(), To.ToVec4(), factor);
+        var col = Vec4<float>.CosineLerp(From.ToVec4(), To.ToVec4(), factor);
         return col.ToColor4();
     }
 

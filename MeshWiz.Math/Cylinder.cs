@@ -9,17 +9,17 @@ namespace MeshWiz.Math;
 public readonly struct Cylinder<TNum> : IBody<TNum>, IRotationalSurface<TNum>, IGeodesicProvider<Helix<TNum>, TNum>, IEquatable<Cylinder<TNum>>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    public readonly Line<Vector3<TNum>, TNum> Axis;
+    public readonly Line<Vec3<TNum>, TNum> Axis;
     public readonly TNum Radius;
     public TNum Height => Axis.Length;
     public Circle3<TNum> Top => new(Axis.End, Axis.AxisVector, Radius);
     public Circle3<TNum> Base => new(Axis.Start, Axis.AxisVector, Radius);
     public TNum SurfaceArea => Top.Circumference * Axis.Length + Top.SurfaceArea * Numbers<TNum>.Two;
     public TNum Volume => Top.SurfaceArea * Axis.Length;
-    public Vector3<TNum> Centroid => Axis.MidPoint;
-    public AABB<Vector3<TNum>> BBox => Base.BBox.CombineWith(Top.BBox);
+    public Vec3<TNum> Centroid => Axis.MidPoint;
+    public AABB<Vec3<TNum>> BBox => Base.BBox.CombineWith(Top.BBox);
 
-    public Cylinder(Line<Vector3<TNum>, TNum> axis, TNum radius)
+    public Cylinder(Line<Vec3<TNum>, TNum> axis, TNum radius)
     {
         if (TNum.IsPositive(radius))
         {
@@ -36,7 +36,7 @@ public readonly struct Cylinder<TNum> : IBody<TNum>, IRotationalSurface<TNum>, I
     public IndexedMesh<TNum> Tessellate(int edgeCount)=>ConeSection<TNum>.TessellateCylindrical(Base, Top, edgeCount);
 
     /// <inheritdoc />
-    public IDiscreteCurve<Vector3<TNum>, TNum> SweepCurve
+    public IDiscreteCurve<Vec3<TNum>, TNum> SweepCurve
     {
         get
         {
@@ -51,26 +51,26 @@ public readonly struct Cylinder<TNum> : IBody<TNum>, IRotationalSurface<TNum>, I
 
     public TNum Circumference => Radius * Numbers<TNum>.TwoPi;
 
-    public Vector3<TNum> ClampToSurface(Vector3<TNum> p)
+    public Vec3<TNum> ClampToSurface(Vec3<TNum> p)
     {
         var (closestOnAxis, onSeg) = Axis.ClosestPoints(p);
         var d = closestOnAxis.DistanceTo(p);
         var radialDiff = Radius / d;
-        p = Vector3<TNum>.Lerp(closestOnAxis, p, radialDiff);
+        p = Vec3<TNum>.Lerp(closestOnAxis, p, radialDiff);
         var vShift = onSeg - closestOnAxis;
         return p + vShift;
     }
 
     /// <inheritdoc />
-    public Helix<TNum> GetGeodesic(Vector3<TNum> p1, Vector3<TNum> p2) 
+    public Helix<TNum> GetGeodesic(Vec3<TNum> p1, Vec3<TNum> p2) 
         => Helix<TNum>.BetweenPoints(in this, p1, p2);
 
     /// <inheritdoc />
-    public Helix<TNum> GetGeodesicFromEntry(Vector3<TNum> entryPoint, Vector3<TNum> direction)
+    public Helix<TNum> GetGeodesicFromEntry(Vec3<TNum> entryPoint, Vec3<TNum> direction)
         => Helix<TNum>.FromOrigin(in this, entryPoint, direction);
 
     [Pure]
-    public Vector3<TNum> NormalAt(Vector3<TNum> p)
+    public Vec3<TNum> NormalAt(Vec3<TNum> p)
     {
         var cp= Axis.ClosestPoint(p);
         return (p - cp).Normalized();

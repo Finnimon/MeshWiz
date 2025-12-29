@@ -4,7 +4,7 @@ using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
 
-public readonly record struct Sphere<TNum>(Vector3<TNum> Centroid, TNum Radius)
+public readonly record struct Sphere<TNum>(Vec3<TNum> Centroid, TNum Radius)
     : IBody<TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
@@ -12,7 +12,7 @@ public readonly record struct Sphere<TNum>(Vector3<TNum> Centroid, TNum Radius)
         => TNum.CreateChecked(4) * TNum.Pi * Radius * Radius * Radius / TNum.CreateChecked(3);
     public TNum Diameter=>Numbers<TNum>.Two*Radius;
     public TNum SurfaceArea => TNum.CreateChecked(4) * TNum.Pi * Radius * Radius;
-    public AABB<Vector3<TNum>> BBox => AABB.Around(Centroid, Numbers<Vector3<TNum>>.Two * Radius);
+    public AABB<Vec3<TNum>> BBox => AABB.Around(Centroid, Numbers<Vec3<TNum>>.Two * Radius);
     public IMesh<TNum> Tessellate() => Tessellate(16, 32);
 
     public IndexedMesh<TNum> Tessellate(int stacks, int slices)
@@ -21,7 +21,7 @@ public readonly record struct Sphere<TNum>(Vector3<TNum> Centroid, TNum Radius)
         if (slices < 3) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(slices));
 
         // Vertices
-        var vertices = new Vector3<TNum>[(stacks + 1) * (slices + 1)];
+        var vertices = new Vec3<TNum>[(stacks + 1) * (slices + 1)];
         for (var i = 0; i <= stacks; i++)
         {
             var theta = TNum.CreateChecked(i) * TNum.Pi / TNum.CreateChecked(stacks);
@@ -34,7 +34,7 @@ public readonly record struct Sphere<TNum>(Vector3<TNum> Centroid, TNum Radius)
                 var sinPhi = TNum.Sin(phi);
                 var cosPhi = TNum.Cos(phi);
 
-                vertices[i * (slices + 1) + j] = Centroid + new Vector3<TNum>(
+                vertices[i * (slices + 1) + j] = Centroid + new Vec3<TNum>(
                     Radius * sinTheta * cosPhi,
                     Radius * cosTheta,
                     Radius * sinTheta * sinPhi
@@ -60,5 +60,5 @@ public readonly record struct Sphere<TNum>(Vector3<TNum> Centroid, TNum Radius)
         return new IndexedMesh<TNum>(vertices, indices);
     }
     
-    public static Triangle3<TNum>[] GenerateTessellation(Vector3<TNum> center, TNum radius, int stacks, int slices) => new Sphere<TNum>(center, radius).Tessellate(stacks, slices).ToArray();
+    public static Triangle3<TNum>[] GenerateTessellation(Vec3<TNum> center, TNum radius, int stacks, int slices) => new Sphere<TNum>(center, radius).Tessellate(stacks, slices).ToArray();
 }

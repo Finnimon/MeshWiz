@@ -6,15 +6,15 @@ public static partial class Mesh
 {
     public static class Indexing
     {
-        public static (TriangleIndexer[] Indices, Vector3<TNum>[] Vertices) Indicate<TNum>(
+        public static (TriangleIndexer[] Indices, Vec3<TNum>[] Vertices) Indicate<TNum>(
             IReadOnlyList<Triangle3<TNum>> mesh)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             var indices = new TriangleIndexer[mesh.Count];
             //on avg there is two triangles per unique vertex
             var averageUniqueVertices = mesh.Count / 2;
-            var vertices = new List<Vector3<TNum>>(averageUniqueVertices);
-            var unified = new Dictionary<Vector3<TNum>, int>(averageUniqueVertices);
+            var vertices = new List<Vec3<TNum>>(averageUniqueVertices);
+            var unified = new Dictionary<Vec3<TNum>, int>(averageUniqueVertices);
 
             for (var i = 0; i < mesh.Count; i++)
             {
@@ -28,15 +28,15 @@ public static partial class Mesh
             return (indices, [..vertices]);
         }
 
-        public static (int[] Indices, Vector3<TNum>[] Vertices) IndicateWithNormals<TNum>(
+        public static (int[] Indices, Vec3<TNum>[] Vertices) IndicateWithNormals<TNum>(
             IReadOnlyList<Triangle3<TNum>> mesh)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             var indices = new int[mesh.Count * 4];
             //on avg there is two triangles per unique vertex
             var averageUniqueVertices = mesh.Count / 2;
-            var vertices = new List<Vector3<TNum>>(averageUniqueVertices);
-            var unified = new Dictionary<Vector3<TNum>, int>(averageUniqueVertices);
+            var vertices = new List<Vec3<TNum>>(averageUniqueVertices);
+            var unified = new Dictionary<Vec3<TNum>, int>(averageUniqueVertices);
             var indexPosition = -1;
             foreach (var triangle in mesh)
             {
@@ -49,15 +49,15 @@ public static partial class Mesh
             return (indices, [..vertices]);
         }
 
-        public static (int[] Indices, Vector3<TNum>[] Vertices) IndicateWithNormalsInterleaved<TNum>(
+        public static (int[] Indices, Vec3<TNum>[] Vertices) IndicateWithNormalsInterleaved<TNum>(
             IReadOnlyList<Triangle3<TNum>> mesh)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             var indices = new int[mesh.Count * 6];
             //on avg there is two triangles per unique vertex
             var averageUniqueVertices = mesh.Count / 2;
-            var vertices = new List<Vector3<TNum>>(averageUniqueVertices);
-            var unified = new Dictionary<Vector3<TNum>, int>(averageUniqueVertices);
+            var vertices = new List<Vec3<TNum>>(averageUniqueVertices);
+            var unified = new Dictionary<Vec3<TNum>, int>(averageUniqueVertices);
             var indexPosition = -1;
             foreach (var triangle in mesh)
             {
@@ -116,7 +116,7 @@ public static partial class Mesh
                 }
 
                 var oldToNew = new Dictionary<int, int>();
-                var newVertices = new List<Vector3<TNum>>(componentTris.Count/2);
+                var newVertices = new List<Vec3<TNum>>(componentTris.Count/2);
                 var newIndices = new List<TriangleIndexer>(componentTris.Count);
 
                 foreach (var triIndex in componentTris)
@@ -154,7 +154,7 @@ public static partial class Mesh
 
         private static int GetOrAdd<TNum>(int oldIndex,
             Dictionary<int, int> oldToNew,
-            List<Vector3<TNum>> newVertices,
+            List<Vec3<TNum>> newVertices,
             IIndexedMesh<TNum> mesh)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {

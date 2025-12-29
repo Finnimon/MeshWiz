@@ -40,15 +40,15 @@ public class HarshMeshView : IOpenGLControl
         set => _lightColor.Value = value;
     }
 
-    private readonly EquatableScopedProperty<Vector3<float>> _lightPosition;
+    private readonly EquatableScopedProperty<Vec3<float>> _lightPosition;
 
-    private Vector3<float> LightPosition
+    private Vec3<float> LightPosition
     {
-        get => Vector3<float>.IsNaN(_lightPosition) ? AboveHead : _lightPosition;
+        get => Vec3<float>.IsNaN(_lightPosition) ? AboveHead : _lightPosition;
         set => _lightPosition.Value = value;
     }
 
-    private Vector3<float> AboveHead => Camera.UnitUp * 2 + Camera.Position;
+    private Vec3<float> AboveHead => Camera.UnitUp * 2 + Camera.Position;
 
     private readonly FloatingPointScopedProperty<float> _solidAmbientStrength;
 
@@ -232,7 +232,7 @@ public class HarshMeshView : IOpenGLControl
         _newMesh = false;
         this.OutOfDate();
         var mesh = Mesh;
-        var interleaved = new Vector3<float>[Mesh.Count * 6];
+        var interleaved = new Vec3<float>[Mesh.Count * 6];
         for (var i = 0; i < mesh.Count; i++)
         {
             var tri = mesh[i];
@@ -248,18 +248,18 @@ public class HarshMeshView : IOpenGLControl
         _vbo = new BufferObject(BufferTarget.ArrayBuffer);
         _vbo.BindAnd().BufferData(interleaved, BufferUsageHint.StaticDraw);
         var positionLoc = _blinnPhongShader!.GetAttribLoc("position");
-        GL.VertexAttribPointer(positionLoc, 3, VertexAttribPointerType.Float, false, Vector3<float>.ByteSize * 2, 0);
+        GL.VertexAttribPointer(positionLoc, 3, VertexAttribPointerType.Float, false, Vec3<float>.ByteSize * 2, 0);
         GL.EnableVertexAttribArray(positionLoc);
         var normLoc = _blinnPhongShader!.GetAttribLoc("normal");
-        GL.VertexAttribPointer(normLoc, 3, VertexAttribPointerType.Float, false, Vector3<float>.ByteSize * 2,
-            Vector3<float>.ByteSize);
+        GL.VertexAttribPointer(normLoc, 3, VertexAttribPointerType.Float, false, Vec3<float>.ByteSize * 2,
+            Vec3<float>.ByteSize);
         GL.EnableVertexAttribArray(normLoc);
         _uploadedCount = Mesh.Count * 3;
 
 
         _vao.Unbind();
 
-        // var normals = new Vector3<float>[mesh.Count * 3];
+        // var normals = new Vec3<float>[mesh.Count * 3];
         // for (var i = 0; i < mesh.Count; i++) normals[i] = mesh[i].Normal;
         // var normalIndices = new uint[mesh.Count * 3];
         // for (uint i = 0; i < mesh.Count; i++)
@@ -281,7 +281,7 @@ public class HarshMeshView : IOpenGLControl
         //
         // int positionLoc = _blinnPhongShader!.GetAttribLoc("position");
         //
-        // GL.VertexAttribPointer(positionLoc, 3, VertexAttribPointerType.Float, false, Vector3<float>.ByteSize, 0);
+        // GL.VertexAttribPointer(positionLoc, 3, VertexAttribPointerType.Float, false, Vec3<float>.ByteSize, 0);
         // GL.EnableVertexAttribArray(positionLoc);
 
 
@@ -305,7 +305,7 @@ public class HarshMeshView : IOpenGLControl
         _wireframeColor = this.Property(Color4.Black);
         _solidColor = this.Property(Color4.Gray);
         _lightColor = this.Property(Color4.White);
-        _lightPosition = this.Property(Vector3<float>.NaN);
+        _lightPosition = this.Property(Vec3<float>.NaN);
         _solidAmbientStrength = this.FloatingPointProperty(0.15f);
         _solidSpecularStrength = this.FloatingPointProperty(0.75f);
         _solidShininessStrength = this.FloatingPointProperty(32f);

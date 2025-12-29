@@ -7,11 +7,11 @@ using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
 
-public interface IVector<TSelf, TNum>
-    : IVectorBase<TSelf,TNum>,  
+public interface IVec<TSelf, TNum>
+    : IVecBase<TSelf,TNum>,  
         IFloatingPointIeee754<TSelf>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
-    where TSelf : unmanaged, IVector<TSelf, TNum>
+    where TSelf : unmanaged, IVec<TSelf, TNum>
 {
     static bool INumberBase<TSelf>.TryConvertFromChecked<TOther>(TOther value, out TSelf result)
     {

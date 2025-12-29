@@ -4,23 +4,23 @@ using System.Runtime.InteropServices;
 namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-public readonly struct Triangle<TVector, TNum> : ISurface<TVector, TNum>
-    where TVector : unmanaged, IVector<TVector, TNum>
+public readonly struct Triangle<TVec, TNum> : ISurface<TVec, TNum>
+    where TVec : unmanaged, IVec<TVec, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    public readonly TVector A, B, C;
+    public readonly TVec A, B, C;
 
-    public Triangle(in TVector a, in TVector b, in TVector c)
+    public Triangle(in TVec a, in TVec b, in TVec c)
     {
         A = a;
         B = b;
         C = c;
     }
 
-    public ICurve<TVector, TNum> Bounds => new Polyline<TVector, TNum>([A, B, C,A]);
+    public ICurve<TVec, TNum> Bounds => new Polyline<TVec, TNum>([A, B, C,A]);
 
 
-    public TVector Centroid => (A + B + C) / TNum.CreateTruncating(3);
+    public TVec Centroid => (A + B + C) / TNum.CreateTruncating(3);
 
     public TNum SurfaceArea
     {

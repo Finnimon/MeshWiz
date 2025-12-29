@@ -6,31 +6,31 @@ using System.Xml.Serialization;
 
 namespace MeshWiz.Math;
 
-public interface ILine<TVector, TNum>
-    : IContiguousDiscreteCurve<TVector, TNum>
-    where TVector : unmanaged, IVector<TVector, TNum>
+public interface ILine<TVec, TNum>
+    : IContiguousDiscreteCurve<TVec, TNum>
+    where TVec : unmanaged, IVec<TVec, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    TVector AxisVector => End-Start;
+    TVec AxisVector => End-Start;
     
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    TVector Direction => AxisVector.Normalized();
+    TVec Direction => AxisVector.Normalized();
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    TNum IDiscreteCurve<TVector, TNum>.Length => AxisVector.Length;
+    TNum IDiscreteCurve<TVec, TNum>.Length => AxisVector.Length;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    bool ICurve<TVector, TNum>.IsClosed => false;
+    bool ICurve<TVec, TNum>.IsClosed => false;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    TVector MidPoint { get; }
+    TVec MidPoint { get; }
 
     /// <inheritdoc />
-    TVector IContiguousCurve<TVector, TNum>.GetTangent(TNum t)
+    TVec IContiguousCurve<TVec, TNum>.GetTangent(TNum t)
         => Direction;
 
     /// <inheritdoc />
-    TVector IContiguousDiscreteCurve<TVector, TNum>.EntryDirection => Direction;
-    TVector IContiguousDiscreteCurve<TVector, TNum>.ExitDirection => Direction;
+    TVec IContiguousDiscreteCurve<TVec, TNum>.EntryDirection => Direction;
+    TVec IContiguousDiscreteCurve<TVec, TNum>.ExitDirection => Direction;
 }

@@ -37,7 +37,7 @@ public class LineView : IOpenGLControl
     public bool GLInitialized { get; private set; }
     private bool _newLine=true;
     private int _uploadedVertexCount;
-    public Polyline<Vector3<float>, float> Polyline
+    public Polyline<Vec3<float>, float> Polyline
     {
         get;
         set
@@ -50,9 +50,9 @@ public class LineView : IOpenGLControl
 
     
 
-    public LineView() : this(Polyline<Vector3<float>, float>.Empty) { }
+    public LineView() : this(Polyline<Vec3<float>, float>.Empty) { }
 
-    public LineView(Polyline<Vector3<float>,float> polyline)
+    public LineView(Polyline<Vec3<float>,float> polyline)
     {
         _show = this.Property(true);
         _lineWidth = this.FloatingPointProperty(1f);

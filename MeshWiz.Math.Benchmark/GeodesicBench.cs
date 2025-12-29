@@ -11,7 +11,7 @@ public class GeodesicBench<TNum>
 where TNum:unmanaged,IFloatingPointIeee754<TNum>
 {
     public RotationalSurface<TNum>? Surface;
-    private Vector3<TNum> Start,Dir;
+    private Vec3<TNum> Start,Dir;
     // [Params(0.01, 0.1)] public double Width;
     private RotationalSurface<TNum>.PeriodicalInfo? _periodicalInfo;
     [GlobalSetup]
@@ -19,7 +19,7 @@ where TNum:unmanaged,IFloatingPointIeee754<TNum>
     {
         Surface = GetSurface();
         Start = Surface.SweepCurve.Traverse(Numbers<TNum>.Half);
-        Dir = new Vector3<double>(0.8, 0.5, 0).To<TNum>();
+        Dir = new Vec3<double>(0.8, 0.5, 0).To<TNum>();
         _periodicalInfo = TracePeriod();
     }
     private static RotationalSurface<TNum> GetSurface()
@@ -27,27 +27,27 @@ where TNum:unmanaged,IFloatingPointIeee754<TNum>
         var file = "/home/finnimon/Downloads/liner_thickened.stl";
         var mesh = SafeStlReader<TNum>.Read(File.OpenRead(file)).Indexed();
         mesh = Mesh.Indexing.Split(mesh).OrderByDescending(m => m.BBox.GetVolume()).First();
-        var up=Vector3<TNum>.UnitX;
+        var up=Vec3<TNum>.UnitX;
         var vertices= mesh.Vertices.ToArray();//defensive copy
         Ray3<TNum> ray = new(mesh.VertexCentroid, up);
         up = ray.Direction;//normalized
-        Line<Vector3<TNum>,TNum> rayline = ray;
+        Line<Vec3<TNum>,TNum> rayline = ray;
         vertices= vertices.OrderBy(v =>
                 rayline.GetClosestPositions(v).closest
             ).DistinctBy(v =>
                 TNum.Round(rayline.GetClosestPositions(v).closest,5))
             .ToArray();
-        var sweep =new Vector2<TNum>[vertices.Length];
+        var sweep =new Vec2<TNum>[vertices.Length];
         for (var i = 0; i < vertices.Length; i++)
         {
             var p = vertices[i];
             var t = rayline.GetClosestPositions(p).closest;
             var x = t;
             var y = rayline.Traverse(t).DistanceTo(p);
-            sweep[i] = new Vector2<TNum>(x, y);
+            sweep[i] = new Vec2<TNum>(x, y);
         }
 
-        sweep = Polyline.Reduction.DouglasPeucker<Vector2<TNum>, TNum>(new(sweep),Numbers<TNum>.ZeroEpsilon)
+        sweep = Polyline.Reduction.DouglasPeucker<Vec2<TNum>, TNum>(new(sweep),Numbers<TNum>.ZeroEpsilon)
             .Points.ToArray();
         return new RotationalSurface<TNum>(ray, sweep);
     }
@@ -56,12 +56,12 @@ where TNum:unmanaged,IFloatingPointIeee754<TNum>
     public RotationalSurface<TNum>.PeriodicalInfo TracePeriod() => Surface!.TracePeriod(Start, Dir);
     //
     [Benchmark]
-    public PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum> FinalizedPoses() => TracePeriod().FinalizedPoses;
+    public PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum> FinalizedPoses() => TracePeriod().FinalizedPoses;
 
     [Benchmark]
-    public PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum> FinalizedPosesOnly() => CopyPeriodicalInfo()!.FinalizedPoses;
+    public PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum> FinalizedPosesOnly() => CopyPeriodicalInfo()!.FinalizedPoses;
     // [Benchmark]
-    // public Polyline<Vector3<TNum>, TNum> FinalizedPath() => TracePeriod().FinalizedPath;
+    // public Polyline<Vec3<TNum>, TNum> FinalizedPath() => TracePeriod().FinalizedPath;
     [Benchmark(Baseline = true)]
     public RotationalSurface<TNum>.PeriodicalInfo TracePeriodOnly() => TracePeriod();
     //

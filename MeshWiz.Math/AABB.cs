@@ -340,7 +340,7 @@ public static class AABB
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static AABB<TVector> From<TPose,TVector,TIgnore>(params ReadOnlySpan<TPose> pts)
         where TPose:IPosition<TPose,TVector,TIgnore>
-        where TVector : unmanaged,IVector<TVector, TIgnore> 
+        where TVector : unmanaged,IVec<TVector, TIgnore> 
         where TIgnore : unmanaged, IFloatingPointIeee754<TIgnore>
         => pts.Length switch
         {
@@ -355,7 +355,7 @@ public static class AABB
 
     private static AABB<TVector> FromNotEmptyArray<TVector, TPose,TNum>(ReadOnlySpan<TPose> pts) 
         where TPose:IPosition<TPose,TVector,TNum>
-        where TVector : unmanaged,IVector<TVector, TNum> 
+        where TVector : unmanaged,IVec<TVector, TNum> 
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         var min = pts[0].Position;
@@ -379,37 +379,37 @@ public static class AABB
     =>AABB<TNum>.Combine(select);
 
     [Pure]
-    public static TNum GetArea<TNum>(this AABB<Vector2<TNum>> aabb)
+    public static TNum GetArea<TNum>(this AABB<Vec2<TNum>> aabb)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         var size = aabb.Size;
-        return Vector2<TNum>.IsFinite(size)
+        return Vec2<TNum>.IsFinite(size)
             ? TNum.Abs(size.X * size.Y)
             : TNum.NaN;
     }
 
     [Pure]
-    public static TNum GetVolume<TNum>(this AABB<Vector3<TNum>> aabb)
+    public static TNum GetVolume<TNum>(this AABB<Vec3<TNum>> aabb)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         var size = aabb.Size;
-        return Vector3<TNum>.IsFinite(size)
+        return Vec3<TNum>.IsFinite(size)
             ? TNum.Abs(size.X * size.Y * size.Z)
             : TNum.NaN;
     }
 
     [Pure]
-    public static TNum GetArea<TNum>(this AABB<Vector3<TNum>> aabb)
+    public static TNum GetArea<TNum>(this AABB<Vec3<TNum>> aabb)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         var size = aabb.Size;
-        return Vector3<TNum>.IsFinite(size)
+        return Vec3<TNum>.IsFinite(size)
             ? size.YZX.Dot(size) * Numbers<TNum>.Two
             : TNum.NaN;
     }
 
     [Pure]
-    public static IndexedMesh<TNum> Tessellate<TNum>(this AABB<Vector3<TNum>> box)
+    public static IndexedMesh<TNum> Tessellate<TNum>(this AABB<Vec3<TNum>> box)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
         => new(Vertices(box), Indices());
 
@@ -427,7 +427,7 @@ public static class AABB
 
     [Pure]
     [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
-    public static Vector3<TNum>[] Vertices<TNum>(AABB<Vector3<TNum>> box)
+    public static Vec3<TNum>[] Vertices<TNum>(AABB<Vec3<TNum>> box)
         where TNum : unmanaged, IFloatingPointIeee754<TNum> =>
     [
         box.Min, // 000

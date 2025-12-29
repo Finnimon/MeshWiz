@@ -2,11 +2,11 @@ using System.Numerics;
 
 namespace MeshWiz.Math;
 
-public interface ICurve<TVector, TNum>
-    where TVector :unmanaged, IVector<TVector, TNum>
+public interface ICurve<out TVec, in TNum>
+    where TVec :unmanaged, IVec<TVec, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    TVector Traverse(TNum t);
+    TVec Traverse(TNum t);
     bool IsClosed { get; }
     
 }

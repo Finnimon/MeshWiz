@@ -14,8 +14,8 @@ public class PlaneAabbIntersect
     [TestCase(0,0.1f)]
     public void TestClampAgainstSignIntersect(float d,float boxSize)
     {
-        var box = AABB<Vector3<float>>.Around(Vector3<float>.Zero, Vector3<float>.One * boxSize);
-        var plane = new Plane3<float>(new Vector3<float>(0, 0, 1),d);
+        var box = AABB<Vec3<float>>.Around(Vec3<float>.Zero, Vec3<float>.One * boxSize);
+        var plane = new Plane3<float>(new Vec3<float>(0, 0, 1),d);
 #pragma warning disable CS0618 // Type or member is obsolete
         Assert.That(plane.DoIntersect(box),Is.EqualTo(plane.DoIntersectDistanceSign(box)));
 #pragma warning restore CS0618 // Type or member is obsolete

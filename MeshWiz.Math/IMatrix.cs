@@ -15,8 +15,8 @@ public interface IMatrix<TSelf, out TRow, out TCol, TNum>
         ISpanParsable<TSelf>,
         ISpanFormattable
     where TSelf : IMatrix<TSelf, TRow, TCol, TNum>
-    where TRow : unmanaged, IVector<TRow, TNum>
-    where TCol : unmanaged, IVector<TCol, TNum>
+    where TRow : unmanaged, IVec<TRow, TNum>
+    where TCol : unmanaged, IVec<TCol, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public TCol GetCol(int column);

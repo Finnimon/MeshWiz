@@ -7,6 +7,6 @@ public interface IPreProcessor<TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public IReadOnlyList<ToolCenterPoint<TNum>> CreateToolpath(
-        IReadOnlyList<ICurve<Vector3<TNum>, TNum>> printingLines,
+        IReadOnlyList<ICurve<Vec3<TNum>, TNum>> printingLines,
         SlicingDirective<TNum> directive);
 }

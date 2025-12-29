@@ -13,10 +13,10 @@ public class Ray3Bench<TNum>
     [GlobalSetup]
     public void Setup()
     {
-        var iMesh = new Sphere<TNum>(Vector3<TNum>.Zero, TNum.One).Tessellate(512, 1024);
+        var iMesh = new Sphere<TNum>(Vec3<TNum>.Zero, TNum.One).Tessellate(512, 1024);
         Mesh = new(iMesh.ToArray());
         BvhMesh = BvhMesh<TNum>.SurfaceAreaHeuristic(iMesh);
-        _ray = (Vector3<TNum>.One * TNum.CreateTruncating(100)).RayThrough(Mesh.VolumeCentroid);
+        _ray = (Vec3<TNum>.One * TNum.CreateTruncating(100)).RayThrough(Mesh.VolumeCentroid);
     }
 
     [Benchmark]

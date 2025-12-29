@@ -6,24 +6,24 @@ public sealed record Mesh<TNum>(Triangle3<TNum>[] TessellatedSurface) : IMesh<TN
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     
-    TNum ISurface<Vector3<TNum>,TNum>.SurfaceArea => SurfaceArea;
-    public Vector3<TNum> VertexCentroid => _vertexCentroid ??= Mesh.Math.VertexCentroid(TessellatedSurface);
-    public Vector3<TNum> SurfaceCentroid => _surfaceCentroid ??= Mesh.Math.SurfaceCentroid(TessellatedSurface).XYZ;
-    public Vector3<TNum> VolumeCentroid => _volumeCentroid ??= Mesh.Math.VolumeCentroid(TessellatedSurface).XYZ;
+    TNum ISurface<Vec3<TNum>,TNum>.SurfaceArea => SurfaceArea;
+    public Vec3<TNum> VertexCentroid => _vertexCentroid ??= Mesh.Math.VertexCentroid(TessellatedSurface);
+    public Vec3<TNum> SurfaceCentroid => _surfaceCentroid ??= Mesh.Math.SurfaceCentroid(TessellatedSurface).XYZ;
+    public Vec3<TNum> VolumeCentroid => _volumeCentroid ??= Mesh.Math.VolumeCentroid(TessellatedSurface).XYZ;
     public TNum Volume => _volume ??= Mesh.Math.Volume(TessellatedSurface);
 
 
     public TNum SurfaceArea => _surfaceArea ??= Mesh.Math.SurfaceArea(TessellatedSurface);
 
-    public ISurface<Vector3<TNum>, TNum> Surface => this;
-    public AABB<Vector3<TNum>> BBox =>_bBox??=Mesh.Math.BBox(TessellatedSurface);
+    public ISurface<Vec3<TNum>, TNum> Surface => this;
+    public AABB<Vec3<TNum>> BBox =>_bBox??=Mesh.Math.BBox(TessellatedSurface);
 
     private TNum? _surfaceArea;
     private TNum? _volume;
-    private Vector3<TNum>? _vertexCentroid;
-    private Vector3<TNum>? _surfaceCentroid;
-    private Vector3<TNum>? _volumeCentroid;
-    private AABB<Vector3<TNum>>? _bBox;
+    private Vec3<TNum>? _vertexCentroid;
+    private Vec3<TNum>? _surfaceCentroid;
+    private Vec3<TNum>? _volumeCentroid;
+    private AABB<Vec3<TNum>>? _bBox;
 
     public IndexedMesh<TNum> Indexed()=>new(this);
     

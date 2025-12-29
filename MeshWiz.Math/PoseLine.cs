@@ -7,11 +7,11 @@ namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
 [SuppressMessage("ReSharper", "ConvertToAutoPropertyWhenPossible",Justification = "Pose Copy Cost")]
-public readonly struct PoseLine<TPose, TVector, TNum>(TPose start, TPose end) : ILine<TVector, TNum>,IDiscretePoseCurve<TPose,TVector,TNum>,
-    IEquatable<PoseLine<TPose,TVector,TNum>>
-    where TVector : unmanaged, IVector<TVector, TNum>
+public readonly struct PoseLine<TPose, TVec, TNum>(TPose start, TPose end) : ILine<TVec, TNum>,IDiscretePoseCurve<TPose,TVec,TNum>,
+    IEquatable<PoseLine<TPose,TVec,TNum>>
+    where TVec : unmanaged, IVec<TVec, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
-    where TPose : IPose<TPose, TVector, TNum>
+    where TPose : IPose<TPose, TVec, TNum>
 {
     private readonly TPose _start = start, _end = end;
     public TPose StartPose => _start;
@@ -20,10 +20,10 @@ public readonly struct PoseLine<TPose, TVector, TNum>(TPose start, TPose end) : 
     public TNum Length => _start.DistanceTo(_end);
 
     /// <inheritdoc />
-    public TVector AxisVector => _end.Position - _start.Position;
+    public TVec AxisVector => _end.Position - _start.Position;
 
     /// <inheritdoc />
-    public TVector Direction => TVector.Normalize(_end.Position - _start.Position);
+    public TVec Direction => TVec.Normalize(_end.Position - _start.Position);
 
     public TPose GetPose(TNum t) => TPose.Lerp(_start, _end, t);
 
@@ -31,77 +31,77 @@ public readonly struct PoseLine<TPose, TVector, TNum>(TPose start, TPose end) : 
     public bool IsClosed => false;
 
     /// <inheritdoc />
-    public TVector Traverse(TNum t)
-        => TVector.Lerp(_start.Position, _end.Position, t);
+    public TVec Traverse(TNum t)
+        => TVec.Lerp(_start.Position, _end.Position, t);
 
     /// <inheritdoc />
-    public TVector Start => _start.Position;
+    public TVec Start => _start.Position;
 
 
     /// <inheritdoc />
-    public TVector End => _end.Position;
+    public TVec End => _end.Position;
 
     /// <inheritdoc />
-    public TVector TraverseOnCurve(TNum t)
-        => TVector.Lerp(_start.Position, _end.Position, TNum.Clamp(t, TNum.Zero, TNum.One));
+    public TVec TraverseOnCurve(TNum t)
+        => TVec.Lerp(_start.Position, _end.Position, TNum.Clamp(t, TNum.Zero, TNum.One));
 
     /// <inheritdoc />
-    public Polyline<TVector, TNum> ToPolyline()
+    public Polyline<TVec, TNum> ToPolyline()
         => new([_start.Position, _end.Position]);
 
     /// <inheritdoc />
-    public Polyline<TVector, TNum> ToPolyline(
+    public Polyline<TVec, TNum> ToPolyline(
         PolylineTessellationParameter<TNum> tessellationParameter)
         => new([_start.Position, _end.Position]);
 
     /// <inheritdoc />
-    TVector ILine<TVector, TNum>.MidPoint => TVector.Lerp(_start.Position, _end.Position, Numbers<TNum>.Half);
+    TVec ILine<TVec, TNum>.MidPoint => TVec.Lerp(_start.Position, _end.Position, Numbers<TNum>.Half);
 
     public TPose MidPoint => GetPose(Numbers<TNum>.Half);
 
-    public static implicit operator Line<TVector, TNum>(in PoseLine<TPose, TVector, TNum> source)
+    public static implicit operator Line<TVec, TNum>(in PoseLine<TPose, TVec, TNum> source)
         => new(source._start.Position, source._end.Position);
 
     /// <inheritdoc />
-    public TVector GetTangent(TNum t) => this.GetPose(t).Front;
+    public TVec GetTangent(TNum t) => this.GetPose(t).Front;
 
     /// <inheritdoc />
-    public TVector EntryDirection => _start.Front;
+    public TVec EntryDirection => _start.Front;
 
     /// <inheritdoc />
-    public TVector ExitDirection =>_end.Front;
+    public TVec ExitDirection =>_end.Front;
 
     /// <inheritdoc />
-    public PosePolyline<TPose, TVector, TNum> ToPosePolyline()
+    public PosePolyline<TPose, TVec, TNum> ToPosePolyline()
         => new(_start, _end);
 
     /// <inheritdoc />
-    public PosePolyline<TPose, TVector, TNum> ToPosePolyline(PolylineTessellationParameter<TNum> tessellationParameter)
+    public PosePolyline<TPose, TVec, TNum> ToPosePolyline(PolylineTessellationParameter<TNum> tessellationParameter)
         => new(_start, _end);
 
-    public static PoseLine<Pose3<TNum>, Vector3<TNum>, TNum> FromLine(
-        Line<Vector3<TNum>, TNum> line,
-        Vector3<TNum> up)
+    public static PoseLine<Pose3<TNum>, Vec3<TNum>, TNum> FromLine(
+        Line<Vec3<TNum>, TNum> line,
+        Vec3<TNum> up)
         => FromLine(line.Start, line.End, up);
     
-    public static PoseLine<Pose3<TNum>, Vector3<TNum>, TNum> FromLine(
-        Vector3<TNum> a,
-        Vector3<TNum> b,
-        Vector3<TNum> normal)
+    public static PoseLine<Pose3<TNum>, Vec3<TNum>, TNum> FromLine(
+        Vec3<TNum> a,
+        Vec3<TNum> b,
+        Vec3<TNum> normal)
     {
         var pose1 = Pose3<TNum>.CreateFromOrientation(a,b-a, normal)
             .Value;
         var pose2 = new Pose3<TNum>(pose1.Rotation, b);
-        return new PoseLine<Pose3<TNum>, Vector3<TNum>, TNum>(pose1, pose2);
+        return new PoseLine<Pose3<TNum>, Vec3<TNum>, TNum>(pose1, pose2);
     }
 
     /// <inheritdoc />
-    public bool Equals(PoseLine<TPose, TVector, TNum> other) => _start == other._start && _end == other._end;
+    public bool Equals(PoseLine<TPose, TVec, TNum> other) => _start == other._start && _end == other._end;
 
     /// <inheritdoc />
     public override bool Equals(object? obj)
     {
-        return obj is PoseLine<TPose, TVector, TNum> other && Equals(other);
+        return obj is PoseLine<TPose, TVec, TNum> other && Equals(other);
     }
 
     /// <inheritdoc />
@@ -110,16 +110,16 @@ public readonly struct PoseLine<TPose, TVector, TNum>(TPose start, TPose end) : 
         return HashCode.Combine(_start, _end);
     }
 
-    public static bool operator ==(PoseLine<TPose, TVector, TNum> left, PoseLine<TPose, TVector, TNum> right)
+    public static bool operator ==(PoseLine<TPose, TVec, TNum> left, PoseLine<TPose, TVec, TNum> right)
     {
         return left.Equals(right);
     }
 
-    public static bool operator !=(PoseLine<TPose, TVector, TNum> left, PoseLine<TPose, TVector, TNum> right)
+    public static bool operator !=(PoseLine<TPose, TVec, TNum> left, PoseLine<TPose, TVec, TNum> right)
     {
         return !left.Equals(right);
     }
 
-    public PoseLine<TPose, TVector, TNum> Section(TNum p0, TNum p1)
+    public PoseLine<TPose, TVec, TNum> Section(TNum p0, TNum p1)
         => new(GetPose(p0), GetPose(p1));
 }

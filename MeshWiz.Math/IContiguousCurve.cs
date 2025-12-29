@@ -4,7 +4,7 @@ namespace MeshWiz.Math;
 
 public interface IContiguousCurve<TVector, TNum> : ICurve<TVector,TNum> 
     where TNum : unmanaged, IFloatingPointIeee754<TNum> 
-    where TVector : unmanaged, IVector<TVector, TNum>
+    where TVector : unmanaged, IVec<TVector, TNum>
 {
     public TVector GetTangent(TNum t);
 }

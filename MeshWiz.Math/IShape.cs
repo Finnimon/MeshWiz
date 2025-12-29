@@ -1,6 +1,6 @@
 namespace MeshWiz.Math;
 
-public interface IShape<out TVector>
+public interface IShape<out TVec>
 {
-    TVector Centroid { get; }
+    TVec Centroid { get; }
 }

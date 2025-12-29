@@ -6,7 +6,7 @@ namespace MeshWiz.Slicer;
 public interface ISlicer<TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    public IReadOnlyList<ICurve<Vector3<TNum>, TNum>> Slice(
+    public IReadOnlyList<ICurve<Vec3<TNum>, TNum>> Slice(
         IMesh<TNum> mesh,
         SlicingDirective<TNum> directive);
 }

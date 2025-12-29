@@ -9,7 +9,7 @@ public static partial class Polyline
         public static (LineIndexer[] Indices, TVector[] Vertices) Indicate<TVector, TNum>
             (IEnumerable<Line<TVector, TNum>> lines)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
-            where TVector : unmanaged, IVector<TVector, TNum>
+            where TVector : unmanaged, IVec<TVector, TNum>
         {
             if (lines is IReadOnlyList<Line<TVector, TNum>> lineList) return Indicate(lineList);
             List<LineIndexer> indices = [];
@@ -29,7 +29,7 @@ public static partial class Polyline
         public static (LineIndexer[] Indices, TVector[] Vertices) Indicate<TVector, TNum>
             (IReadOnlyList<Line<TVector, TNum>> lines)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
-            where TVector : unmanaged, IVector<TVector, TNum>
+            where TVector : unmanaged, IVec<TVector, TNum>
         {
             var indices = new LineIndexer[lines.Count];
             var averageUniqueVertices = lines.Count / 2;

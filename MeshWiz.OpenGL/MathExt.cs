@@ -9,27 +9,27 @@ namespace MeshWiz.OpenTK;
 
 public static class MathExt
 {
-    public static Vector2 ToOpenTK<TNum>(this Vector2<TNum> vec)
+    public static Vector2 ToOpenTK<TNum>(this Vec2<TNum> vec)
         where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum> =>
         new(float.CreateTruncating(vec.X),
             float.CreateTruncating(vec.Y));
 
-    public static Vector3 ToOpenTK<TNum>(this Vector3<TNum> vec)
+    public static Vector3 ToOpenTK<TNum>(this Vec3<TNum> vec)
         where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum> =>
         new(float.CreateTruncating(vec.X),
             float.CreateTruncating(vec.Y),
             float.CreateTruncating(vec.Z));
 
-    public static Vector4 ToOpenTK<TNum>(this Vector4<TNum> vec)
+    public static Vector4 ToOpenTK<TNum>(this Vec4<TNum> vec)
         where TNum : unmanaged, IBinaryFloatingPointIeee754<TNum> =>
         new(float.CreateTruncating(vec.X),
             float.CreateTruncating(vec.Y),
             float.CreateTruncating(vec.Z),
             float.CreateTruncating(vec.W));
 
-    public static Vector4<float> ToVec4(this Color4 color) => new(color.R, color.G, color.B, color.A);
+    public static Vec4<float> ToVec4(this Color4 color) => new(color.R, color.G, color.B, color.A);
 
-    public static Color4 ToColor4<TNum>(this Vector4<TNum> vec) where TNum : unmanaged, IFloatingPointIeee754<TNum> =>
+    public static Color4 ToColor4<TNum>(this Vec4<TNum> vec) where TNum : unmanaged, IFloatingPointIeee754<TNum> =>
         new(
             Clamped(vec.X),
             Clamped(vec.Y),

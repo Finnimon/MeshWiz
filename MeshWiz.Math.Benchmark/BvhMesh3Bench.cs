@@ -15,7 +15,7 @@ where TNum:unmanaged, IFloatingPointIeee754<TNum>
 
     [GlobalSetup]
     public void Setup() 
-        => _mesh= new Sphere<TNum>(Vector3<TNum>.Zero, TNum.One).Tessellate();
+        => _mesh= new Sphere<TNum>(Vec3<TNum>.Zero, TNum.One).Tessellate();
 
     [Benchmark]
     [Obsolete("Obsolete")]
@@ -26,6 +26,6 @@ where TNum:unmanaged, IFloatingPointIeee754<TNum>
     }
 
     [Benchmark]
-    public (BoundedVolumeHierarchy<TNum> hierarchy, TriangleIndexer[] indices, Vector3<TNum>[] vertices, uint d) OptimizedHierarchize() 
+    public (BoundedVolumeHierarchy<TNum> hierarchy, TriangleIndexer[] indices, Vec3<TNum>[] vertices, uint d) OptimizedHierarchize() 
         => Mesh.Bvh.HierarchizeSah(_mesh!, MaxDepth,SplitTests);
 }

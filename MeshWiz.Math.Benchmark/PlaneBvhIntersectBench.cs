@@ -13,28 +13,28 @@ public class PlaneBvhIntersectBench
     {
         Triangle3<float>[] tris =
         [
-            .. new Sphere<float>(-Vector3<float>.One, 1f).Tessellate(),
-            // ..Sphere<float>.GenerateTessellation(Vector3<float>.One * 2, 1, 256, 512)
+            .. new Sphere<float>(-Vec3<float>.One, 1f).Tessellate(),
+            // ..Sphere<float>.GenerateTessellation(Vec3<float>.One * 2, 1, 256, 512)
         ];
         tris = MeshIO.ReadFile<FastStlReader, float>("/home/finnimon/source/repos/TestFiles/drag.stl").ToArray();
         _mesh = BvhMesh<float>.SurfaceAreaHeuristic(tris);
-        _plane = new Plane3<float>(Vector3<float>.UnitZ, _mesh.VolumeCentroid);
+        _plane = new Plane3<float>(Vec3<float>.UnitZ, _mesh.VolumeCentroid);
             
     }
     [Benchmark]
-    public Polyline<Vector2<float>, float>[] BenchIntersectionRolling()
+    public Polyline<Vec2<float>, float>[] BenchIntersectionRolling()
     {
         var mesh=_mesh!;
         return mesh.IntersectRolling(_plane);
         }//1(200*10^-6)
     // [Benchmark]
-    // public PolyLine<Vector3<float>, float>[] BigBenchIntersection()
+    // public PolyLine<Vec3<float>, float>[] BigBenchIntersection()
     // {
     //     var mesh=_bigMesh!;
     //     return mesh.Intersect(_plane);
     // }
     // [Benchmark]
-    // public PolyLine<Vector3<float>, float>[] BigBenchIntersectionRolling()
+    // public PolyLine<Vec3<float>, float>[] BigBenchIntersectionRolling()
     // {
     //     var mesh=_bigMesh!;
     //     return mesh.IntersectRolling(_plane);

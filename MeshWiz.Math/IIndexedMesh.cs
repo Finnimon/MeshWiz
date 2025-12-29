@@ -6,5 +6,5 @@ public interface IIndexedMesh<TNum> : IMesh<TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public TriangleIndexer[] Indices { get; }
-    public Vector3<TNum>[] Vertices { get; }
+    public Vec3<TNum>[] Vertices { get; }
 }

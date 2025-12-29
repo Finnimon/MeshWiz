@@ -2,11 +2,11 @@ using System.Numerics;
 
 namespace MeshWiz.Math;
 
-public interface IContiguousDiscreteCurve<TVector, TNum> : IContiguousCurve<TVector, TNum>,
-    IDiscreteCurve<TVector, TNum> 
-    where TVector : unmanaged, IVector<TVector, TNum> 
+public interface IContiguousDiscreteCurve<TVec, TNum> : IContiguousCurve<TVec, TNum>,
+    IDiscreteCurve<TVec, TNum> 
+    where TVec : unmanaged, IVec<TVec, TNum> 
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    public TVector EntryDirection { get; }
-    public TVector ExitDirection { get; }
+    public TVec EntryDirection { get; }
+    public TVec ExitDirection { get; }
 }
