@@ -7,8 +7,7 @@ public readonly record struct OclSampler(IntPtr Handle) : IDisposable
 {
     public static implicit operator CLSampler(OclSampler obj) => Unsafe.As<OclSampler, CLSampler>(ref obj);
     public static implicit operator OclSampler(CLSampler obj) => Unsafe.As<CLSampler, OclSampler>(ref obj);
-    public static CLSampler LowLevel(OclSampler obj) => obj;
-    public static OclSampler Abstract(CLSampler obj) => obj;
+    public static OclSampler Create(CLSampler obj) => obj;
 
 
     public void Retain() => CL.RetainSampler(this);

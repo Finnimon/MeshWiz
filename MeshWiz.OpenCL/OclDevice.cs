@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Text;
+using MeshWiz.Utility;
 using OpenTK.Compute.OpenCL;
 
 namespace MeshWiz.OpenCL;
@@ -13,60 +14,41 @@ public readonly record struct OclDevice(IntPtr Handle) : IDisposable
     public static implicit operator CLDevice(OclDevice oclDevice) => Unsafe.As<OclDevice, CLDevice>(ref oclDevice);
     public static implicit operator OclDevice(CLDevice device) => Unsafe.As<CLDevice, OclDevice>(ref device);
 
-    /// <inheritdoc />
-    public static OclDevice Abstract(CLDevice lowLevel) => lowLevel;
+    public static OclDevice Create(CLDevice lowLevel) => lowLevel;
+    public Result<CLResultCode,int> MaxComputeUnits => GetMaxComputeUnits(this);
+    public Result<CLResultCode,string> Name => GetName(this);
+    public Result<CLResultCode,int> VendorId => GetVendorId(this);
+    public Result<CLResultCode,DeviceType> Type => GetDeviceType(this);
+    public Result<CLResultCode,string> Version => GetVersion(this);
+    public Result<CLResultCode,string> OclVersion => GetOclCVersion(this);
 
-    /// <inheritdoc />
-    public static CLDevice LowLevel(OclDevice highLevel) => highLevel;
+    public static Result<CLResultCode,string> GetOclCVersion(CLDevice device)
+        =>GetInfo(device,DeviceInfo.OpenClCVersion).Select(Encoding.ASCII.GetString);
 
-    public int MaxComputeUnits => GetMaxComputeUnits(this);
-    public string Name => GetName(this);
-    public int VendorId => GetVendorId(this);
-    public DeviceType Type => GetDeviceType(this);
-    public string Version => GetVersion(this);
-    public string OclVersion => GetOclCVersion(this);
-
-    public static string GetOclCVersion(CLDevice device)
-    {
-        CL.GetDeviceInfo(device, DeviceInfo.OpenClCVersion, out var value).ThrowOnError();
-        return Encoding.ASCII.GetString(value!);
-    }
-
-    private string GetVersion(CLDevice obj)
-    {
-        CL.GetDeviceInfo(obj, DeviceInfo.Version, out var result).ThrowOnError();
-        return Encoding.ASCII.GetString(result!);
-    }
+    public static Result<CLResultCode,string> GetVersion(CLDevice obj)
+        =>GetInfo(obj,DeviceInfo.Version).Select(Encoding.ASCII.GetString);
 
 
-    public static DeviceType GetDeviceType(CLDevice obj)
-    {
-        CL.GetDeviceInfo(obj, DeviceInfo.Type, out var value).ThrowOnError();
-        return Unsafe.As<byte, DeviceType>(ref value![0]);
-    }
+    public static Result<CLResultCode,DeviceType> GetDeviceType(CLDevice obj)
+        => GetInfo(obj,DeviceInfo.Type).Select(b=>Unsafe.As<byte, DeviceType>(ref b[0]));
 
-    public static int GetVendorId(CLDevice obj)
-    {
-        CL.GetDeviceInfo(obj, DeviceInfo.VendorId, out var value).ThrowOnError();
-        return Unsafe.As<byte, int>(ref value![0]);
-    }
 
-    public static int GetMaxComputeUnits(CLDevice obj)
-    {
-        CL.GetDeviceInfo(obj, DeviceInfo.MaximumComputeUnits, out var value).ThrowOnError();
-        return BitConverter.ToInt32(value!);
-    }
+    public static Result<CLResultCode,int> GetVendorId(CLDevice obj) 
+        => GetInfo(obj,DeviceInfo.VendorId).Select(b=>BitConverter.ToInt32(b));
 
-    public static string GetName(CLDevice obj)
-    {
-        CL.GetDeviceInfo(obj, DeviceInfo.Name, out var value)
-            .ThrowOnError();
-        return Encoding.ASCII.GetString(value!);
-    }
+    public static Result<CLResultCode,int> GetMaxComputeUnits(CLDevice obj)
+        => GetInfo(obj,DeviceInfo.MaximumComputeUnits).Select(b=>BitConverter.ToInt32(b));
 
+
+    public static Result<CLResultCode,string> GetName(CLDevice obj)
+    =>GetInfo(obj,DeviceInfo.Name).Select(Encoding.ASCII.GetString);
+
+    public static Result<CLResultCode, byte[]> GetInfo(CLDevice obj, DeviceInfo target)
+        => CL.GetDeviceInfo(obj, target, out var dat).AsResult(dat);
+    
 
     /// <inheritdoc />
     public void Dispose() => CL.ReleaseDevice(this).LogError();
 
-    public void Retain() => CL.RetainDevice(this);
+    public Result<CLResultCode> Retain() => CL.RetainDevice(this);
 }

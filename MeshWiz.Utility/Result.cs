@@ -72,7 +72,7 @@ public readonly struct Result<TInfo, TValue> : IValueResult<Result<TInfo, TValue
 
     /// <inheritdoc />
     public override string ToString() =>
-        this ? $"{{Value {Value} Success {true}}}" : $"{{Info {Info} Success {false}}}";
+        this ? Value?.ToString()??"" : $"{{{Info}}}";
 
     public bool TryGetValue([NotNullWhen(returnValue: true)] out TValue? value)
     {

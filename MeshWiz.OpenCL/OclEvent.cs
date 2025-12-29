@@ -7,8 +7,7 @@ public readonly record struct OclEvent(IntPtr Handle) : IDisposable
 {
     public static implicit operator CLEvent(OclEvent obj) => Unsafe.As<OclEvent, CLEvent>(ref obj);
     public static implicit operator OclEvent(CLEvent obj) => Unsafe.As<CLEvent, OclEvent>(ref obj);
-    public static CLEvent LowLevel(OclEvent obj) => obj;
-    public static OclEvent Abstract(CLEvent obj) => obj;
+    public static OclEvent Create(CLEvent obj) => obj;
 
 
     public void Retain() => CL.RetainEvent(this);

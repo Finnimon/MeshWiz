@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 using OpenTK.Compute.OpenCL;
 
@@ -6,19 +7,14 @@ namespace MeshWiz.OpenCL;
 
 public readonly record struct OclContext(IntPtr Handle) : IDisposable
 {
-    /// <inheritdoc />
     public static implicit operator OclContext(CLContext lowLevel) => new(lowLevel.Handle);
 
-    /// <inheritdoc />
     public static implicit operator CLContext(OclContext highLevel) => new(highLevel.Handle);
 
-    /// <inheritdoc />
-    public static OclContext Abstract(CLContext lowLevel) => lowLevel;
+    public static OclContext Create(CLContext lowLevel) => lowLevel;
 
-    /// <inheritdoc />
-    public static CLContext LowLevel(OclContext highLevel) => highLevel;
 
-    public IntPtr[] Properties => GetProperties(this);
+    public Result<CLResultCode,IntPtr[]> Properties => GetProperties(this);
     public OclDevice[] Devices => GetDevices(this);
     public int DeviceCount => GetDeviceCount(this);
     public bool IsMultiDevice => DeviceCount != 1;
@@ -74,12 +70,9 @@ public readonly record struct OclContext(IntPtr Handle) : IDisposable
     }
 
     public static unsafe IntPtr[] GetProperties(CLContext context)
-    {
-        CL.GetContextInfo(context, ContextInfo.Properties, out var value).ThrowOnError();
-        _ = value ?? throw new NullReferenceException();
-        var count = value.Length / Unsafe.SizeOf<IntPtr>();
-        fixed (void* ptr = &value[0]) return new ReadOnlySpan<IntPtr>(ptr, count).ToArray();
-    }
+        => GetInfo(context, ContextInfo.Properties).Select(x => x.As<byte, IntPtr>().ToArray());
+    public static Result<CLResultCode, byte[]> GetInfo(CLContext context, ContextInfo target)
+        => CL.GetContextInfo(context, target, out var dat).AsResult(dat);
 
     public OclBuffer CreateBuffer<T>(MemoryFlags flags, Span<T> data) where T : unmanaged
     {

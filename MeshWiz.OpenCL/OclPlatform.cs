@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Text;
+using MeshWiz.Utility;
 using OpenTK.Compute.OpenCL;
 
 namespace MeshWiz.OpenCL;
@@ -8,35 +9,37 @@ public readonly record struct OclPlatform(IntPtr Handle) : IDisposable
 {
     public static implicit operator OclPlatform(CLPlatform platform) => Unsafe.As<CLPlatform, OclPlatform>(ref platform);
     public static implicit operator CLPlatform(OclPlatform platform) => Unsafe.As<OclPlatform, CLPlatform>(ref platform);
-    public static OclPlatform Abstract(CLPlatform lowLevel) => lowLevel;
-    public static CLPlatform LowLevel(OclPlatform highLevel) => highLevel;
+    public static OclPlatform Create(CLPlatform lowLevel) => lowLevel;
 
-    public OclDevice[] Gpus => GetDevices(this, DeviceType.Gpu);
-    public OclDevice[] Cpus => GetDevices(this, DeviceType.Cpu);
-    public OclDevice[] AcceleratorDevices => GetDevices(this, DeviceType.Accelerator);
-    public OclDevice[] CustomDevices => GetDevices(this, DeviceType.Custom);
-    public OclDevice[] AllDevices => GetDevices(this, DeviceType.All);
-    public string Name => GetName(this);
+    public Result<CLResultCode,OclDevice[]> Gpus => GetDevices(this, DeviceType.Gpu);
+    public Result<CLResultCode,OclDevice[]> Cpus => GetDevices(this, DeviceType.Cpu);
+    public Result<CLResultCode,OclDevice[]> AcceleratorDevices => GetDevices(this, DeviceType.Accelerator);
+    public Result<CLResultCode,OclDevice[]> CustomDevices => GetDevices(this, DeviceType.Custom);
+    public Result<CLResultCode,OclDevice[]> AllDevices => GetDevices(this, DeviceType.All);
+    public Result<CLResultCode,string> Name => GetName(this);
 
-    public static string GetName(CLPlatform platform)
+    public static Result<CLResultCode,string> GetName(CLPlatform platform) =>
+        GetInfo(platform, PlatformInfo.Name)
+            .Select(Encoding.ASCII.GetString);
+
+    public static Result<CLResultCode, byte[]> GetInfo(CLPlatform platform, PlatformInfo info)
+        => CL.GetPlatformInfo(platform, info, out var data).AsResult(data);
+    
+
+    public static Result<CLResultCode,OclPlatform[]> GetAll()
     {
-        CL.GetPlatformInfo(platform, PlatformInfo.Name, out var info)
-            .ThrowOnError();
-        return Encoding.ASCII.GetString(info!);
+        return CL.GetPlatformIds(out var value).AsResult(value)
+            .Select(dev => dev.Select(Create).ToArray());
     }
 
-    public static OclPlatform[] GetAll()
+    public static Result<CLResultCode,OclDevice[]> GetDevices(CLPlatform obj, DeviceType deviceType)
     {
-        CL.GetPlatformIds(out var value).ThrowOnError();
-        _ = value ?? throw new NullReferenceException();
-        return value.Select(Abstract).ToArray();
-    }
-
-    private OclDevice[] GetDevices(CLPlatform obj, DeviceType deviceType)
-    {
-        CL.GetDeviceIds(obj, deviceType, out var devices).ThrowOnError(ignore: CLResultCode.InvalidValue);
-        devices ??= [];
-        return devices.Select(OclDevice.Abstract).ToArray();
+        var code= CL.GetDeviceIds(obj, deviceType, out var devices);
+        if (code is CLResultCode.InvalidValue)
+            return Array.Empty<OclDevice>();
+        return code.AsResult(devices)
+            .Select(d => d.Select(OclDevice.Create))
+            .Select(Enumerable.ToArray);
     }
 
     /// <inheritdoc />

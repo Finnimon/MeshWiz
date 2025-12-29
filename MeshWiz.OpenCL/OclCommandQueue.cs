@@ -12,8 +12,7 @@ public readonly record struct OclCommandQueue(IntPtr Handle)
     public static implicit operator OclCommandQueue(CLCommandQueue obj) =>
         Unsafe.As<CLCommandQueue, OclCommandQueue>(ref obj);
 
-    public static CLCommandQueue LowLevel(OclCommandQueue obj) => obj;
-    public static OclCommandQueue Abstract(CLCommandQueue obj) => obj;
+    public static OclCommandQueue Create(CLCommandQueue obj) => obj;
 
 
     public void Retain() => CL.RetainCommandQueue(this);
