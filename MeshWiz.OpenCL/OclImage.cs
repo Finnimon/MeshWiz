@@ -1,10 +1,9 @@
 using System.Runtime.CompilerServices;
-using MeshWiz.Contracts;
 using OpenTK.Compute.OpenCL;
 
 namespace MeshWiz.OpenCL;
 
-public readonly record struct OclImage(IntPtr Handle) : IAbstraction<OclImage, CLImage>
+public readonly record struct OclImage(IntPtr Handle)
 {
     public static implicit operator CLImage(OclImage obj) => Unsafe.As<OclImage, CLImage>(ref obj);
     public static implicit operator OclImage(CLImage obj) => Unsafe.As<CLImage, OclImage>(ref obj);

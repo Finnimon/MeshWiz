@@ -1,6 +1,5 @@
 using System.Runtime.CompilerServices;
 using System.Text;
-using MeshWiz.Contracts;
 using OpenTK.Compute.OpenCL;
 
 namespace MeshWiz.OpenCL;
@@ -9,7 +8,7 @@ namespace MeshWiz.OpenCL;
 /// Abstraction Layer for <see cref="CLDevice"/>
 /// </summary>
 /// <param name="Handle">Handle to the hardware device</param>
-public readonly record struct OclDevice(IntPtr Handle) : IDisposable, IAbstraction<OclDevice, CLDevice>
+public readonly record struct OclDevice(IntPtr Handle) : IDisposable
 {
     public static implicit operator CLDevice(OclDevice oclDevice) => Unsafe.As<OclDevice, CLDevice>(ref oclDevice);
     public static implicit operator OclDevice(CLDevice device) => Unsafe.As<CLDevice, OclDevice>(ref device);

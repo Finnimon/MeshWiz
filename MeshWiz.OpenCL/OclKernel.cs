@@ -1,10 +1,9 @@
 using System.Runtime.CompilerServices;
-using MeshWiz.Contracts;
 using OpenTK.Compute.OpenCL;
 
 namespace MeshWiz.OpenCL;
 
-public readonly record struct OclKernel(IntPtr Handle) : IAbstraction<OclKernel, CLKernel>, IDisposable
+public readonly record struct OclKernel(IntPtr Handle) : IDisposable
 {
     public static implicit operator CLKernel(OclKernel obj) => Unsafe.As<OclKernel, CLKernel>(ref obj);
     public static implicit operator OclKernel(CLKernel obj) => Unsafe.As<CLKernel, OclKernel>(ref obj);

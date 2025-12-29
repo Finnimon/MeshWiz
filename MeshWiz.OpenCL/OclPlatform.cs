@@ -1,11 +1,10 @@
 using System.Runtime.CompilerServices;
 using System.Text;
-using MeshWiz.Contracts;
 using OpenTK.Compute.OpenCL;
 
 namespace MeshWiz.OpenCL;
 
-public readonly record struct OclPlatform(IntPtr Handle) : IAbstraction<OclPlatform, CLPlatform>, IDisposable
+public readonly record struct OclPlatform(IntPtr Handle) : IDisposable
 {
     public static implicit operator OclPlatform(CLPlatform platform) => Unsafe.As<CLPlatform, OclPlatform>(ref platform);
     public static implicit operator CLPlatform(OclPlatform platform) => Unsafe.As<OclPlatform, CLPlatform>(ref platform);

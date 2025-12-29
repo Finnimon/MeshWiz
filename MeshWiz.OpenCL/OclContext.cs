@@ -1,11 +1,10 @@
 using System.Runtime.CompilerServices;
-using MeshWiz.Contracts;
 using MeshWiz.Utility.Extensions;
 using OpenTK.Compute.OpenCL;
 
 namespace MeshWiz.OpenCL;
 
-public readonly record struct OclContext(IntPtr Handle) : IAbstraction<OclContext, CLContext>, IDisposable
+public readonly record struct OclContext(IntPtr Handle) : IDisposable
 {
     /// <inheritdoc />
     public static implicit operator OclContext(CLContext lowLevel) => new(lowLevel.Handle);

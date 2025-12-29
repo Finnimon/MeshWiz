@@ -1,10 +1,9 @@
 using System.Runtime.CompilerServices;
-using MeshWiz.Contracts;
 using OpenTK.Compute.OpenCL;
 
 namespace MeshWiz.OpenCL;
 
-public readonly record struct OclSampler(IntPtr Handle) : IAbstraction<OclSampler, CLSampler>, IDisposable
+public readonly record struct OclSampler(IntPtr Handle) : IDisposable
 {
     public static implicit operator CLSampler(OclSampler obj) => Unsafe.As<OclSampler, CLSampler>(ref obj);
     public static implicit operator OclSampler(CLSampler obj) => Unsafe.As<CLSampler, OclSampler>(ref obj);

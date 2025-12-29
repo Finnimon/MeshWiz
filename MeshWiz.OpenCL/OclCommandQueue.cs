@@ -1,11 +1,10 @@
 using System.Runtime.CompilerServices;
-using MeshWiz.Contracts;
 using OpenTK.Compute.OpenCL;
 
 namespace MeshWiz.OpenCL;
 
 public readonly record struct OclCommandQueue(IntPtr Handle)
-    : IAbstraction<OclCommandQueue, CLCommandQueue>, IDisposable
+    : IDisposable
 {
     public static implicit operator CLCommandQueue(OclCommandQueue obj) =>
         Unsafe.As<OclCommandQueue, CLCommandQueue>(ref obj);
