@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace MeshWiz.Signals;
+namespace MeshWiz.Math.Signals;
 
 public sealed record InputGain<TIn, TOut>(ISignal<TIn, TOut> Underlying, TIn Scalar)
     : ISignal<TIn, TOut> where TIn : unmanaged, IFloatingPointIeee754<TIn>

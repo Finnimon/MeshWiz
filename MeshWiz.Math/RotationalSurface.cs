@@ -69,25 +69,6 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TN
             _ => ChildSurface.CreateDead(index)
         };
     
-    private IRotationalSurface<TNum> CreateChildSurface(int index)
-    {
-        var type = GetIncompleteChildSurfaceType(index);
-        return type switch
-        {
-            ChildSurfaceType.Cylinder => CreateCylinder(index),
-            ChildSurfaceType.Cone => CreateConical(index),
-            ChildSurfaceType.Circle => CreateCircular(index),
-            ChildSurfaceType.ConeSection => CreateConical(index),
-            ChildSurfaceType.CircleSection => CreateCircular(index),
-            _ => ThrowHelper.ThrowInvalidOperationException<IRotationalSurface<TNum>>(),
-        };
-    }
-
-    private IRotationalSurface<TNum> CreateCircular(int index)
-    {
-        var (start, end) = Sweep[index];
-        return new Circle3Section<TNum>(Axis.Traverse(start.X), Axis.Direction, start.Y, end.Y);
-    }
 
     private ChildSurface CreateCircular2(int index)
     {
@@ -101,16 +82,6 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TN
         return ChildSurface.Create(index, surf);
     }
 
-    private IRotationalSurface<TNum> CreateConical(int index)
-    {
-        var (start, end) = Sweep[index];
-        var axisSection = Axis.LineSection(start.X, end.X);
-        var isFullCone = start.Y.IsApproxZero() || end.Y.IsApproxZero();
-        if (!isFullCone) return new ConeSection<TNum>(axisSection, start.Y, end.Y);
-        (var radius, axisSection) =
-            start.Y.IsApproxZero() ? (end.Y, axisSection.Reversed()) : (start.Y, axisSection);
-        return new Cone<TNum>(axisSection, radius);
-    }
 
 
     private ChildSurface CreateConical2(int index)
@@ -129,15 +100,7 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TN
         return ChildSurface.Create(index, cone);
     }
 
-    private Cylinder<TNum> CreateCylinder(int index)
-    {
-        var (start, end) = Sweep[index];
-        var radius = start.Y;
-        var verticalPositions = AABB.From(start.X, end.X);
-        var axis = Axis.LineSection(verticalPositions.Min, verticalPositions.Max);
-        //var inverted=end.X<start.X;//(todo)
-        return new Cylinder<TNum>(axis, radius);
-    }
+   
 
 
     private ChildSurface CreateCylinder2(int index)
@@ -224,7 +187,7 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vector2<TN
             positions[i] = new Vector2<TNum>(along, radius);
         }
 
-        return new RotationalSurface<TNum>(axisLine, positions) { SweepCurve = sweepCurve };
+        return new RotationalSurface<TNum>(axisLine, positions);//do not contorted { SweepCurve = sweepCurve };
     }
 
     /// <inheritdoc />

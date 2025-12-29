@@ -35,6 +35,19 @@ public readonly struct Plane3<TNum>
         D = -(Normal.Dot(pointOnPlane));
     }
 
+    private Plane3(Vector3<TNum> normal, TNum d, bool _)
+    {
+        Normal = normal;
+        D = d;
+    }
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Plane3<TNum> CreateUnsafe(Vector3<TNum> normal, Vector3<TNum> pointOnPlane)
+        => new(normal, -(normal.Dot(pointOnPlane)), true);
+    
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Plane3<TNum> CreateUnsafe(Vector3<TNum> normal, TNum d)
+        => new(normal, d, true);
 
     public Plane3(Vector3<TNum> a, Vector3<TNum> b, Vector3<TNum> c)
     {
@@ -71,6 +84,22 @@ public readonly struct Plane3<TNum>
         var testLen = test.Length;
         t /= testLen;
         result = test.Traverse(t);
+        return t.IsApproxGreaterOrEqual(TNum.NegativeZero) && TNum.One.IsApproxGreaterOrEqual(t);
+    }
+    public bool IntersectParameter(Line<Vector3<TNum>, TNum> test, out TNum t)
+    {
+        var denominator = Normal.Dot(test.Direction);
+        // Check if ray is parallel to the plane
+        if (TNum.Abs(denominator) < TNum.Epsilon)
+        {
+            t = default;
+            return false;
+        }
+
+        // Compute intersection distance along ray direction
+        t = -(Normal.Dot(test.Start) + D) / denominator;
+        var testLen = test.Length;
+        t /= testLen;
         return t.IsApproxGreaterOrEqual(TNum.NegativeZero) && TNum.One.IsApproxGreaterOrEqual(t);
     }
 

@@ -102,7 +102,6 @@
     <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
     <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
   </Project>
-  <Project Path="MeshWiz.Signals/MeshWiz.Signals.csproj" Id="474d6388-5b6f-423c-85f7-a59f1a7de8f4" />
   <Project Path="MeshWiz.Slicer.OpenTK\MeshWiz.Slicer.OpenTK.csproj">
     <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
     <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />

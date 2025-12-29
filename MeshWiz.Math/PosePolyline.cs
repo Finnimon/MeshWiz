@@ -23,8 +23,15 @@ public sealed class PosePolyline<TPose, TVector, TNum> : IDiscretePoseCurve<TPos
     {
         if (poses.Length is 0 or 1)
             return new PosePolyline<TPose, TVector, TNum>();
+        return CreateCulledNonCopying(poses.ToArray());
+    }
+
+    private static PosePolyline<TPose, TVector, TNum> CreateCulledNonCopying(TPose[] poses)
+    {
+        if (poses.Length is 0 or 1)
+            return new PosePolyline<TPose, TVector, TNum>();
         var vertCount = 0;
-        var verts = poses.ToArray();
+        var verts = poses;
         for (var i = 0; i < verts.Length; ++i)
         {
             if (i == 0)
@@ -53,6 +60,8 @@ public sealed class PosePolyline<TPose, TVector, TNum> : IDiscretePoseCurve<TPos
 
         return new PosePolyline<TPose, TVector, TNum>(verts);
     }
+
+    public static PosePolyline<TPose, TVector, TNum> CreateCulled(IEnumerable<TPose> poses) => CreateCulledNonCopying(poses.ToArray());
 
     public ReadOnlySpan<TPose> Poses => _poses;
     public int Count => int.Max(0, _poses.Length - 1);

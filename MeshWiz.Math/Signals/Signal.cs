@@ -1,9 +1,8 @@
 ﻿using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using MeshWiz.Math;
 
-namespace MeshWiz.Signals;
+namespace MeshWiz.Math.Signals;
 
 public static partial class Signal
 {
@@ -59,11 +58,11 @@ public static partial class Signal
         => new(sig, shift);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static SignalResult<TIn, TOut> GetResult<TIn, TOut>(this ISignal<TIn, TOut> sig,
+    public static SignalDataPoint<TIn, TOut> GetResult<TIn, TOut>(this ISignal<TIn, TOut> sig,
         TIn input)
         where TIn : unmanaged, IFloatingPointIeee754<TIn>
         where TOut : unmanaged, IFloatingPointIeee754<TOut>
-        => SignalResult<TIn, TOut>.Create(sig, input);
+        => SignalDataPoint<TIn, TOut>.Create(sig, input);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ISignal<TIn, TOut> ChainWith<TIn, TIntermediate, TOut>(
@@ -73,5 +72,13 @@ public static partial class Signal
         where TIntermediate : unmanaged, IFloatingPointIeee754<TIntermediate>
         where TOut : unmanaged, IFloatingPointIeee754<TOut> =>
         new ChainedSignal<TIn, TIntermediate, TOut>(left, right);
+
+    
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ISignal<TIn, TOut> AsSignal<TIn, TOut>(
+        Func<TIn, TOut> right)
+        where TIn : unmanaged, IFloatingPointIeee754<TIn>
+        where TOut : unmanaged, IFloatingPointIeee754<TOut> =>
+        new FSignal<TIn,TOut>(right);
 
 }

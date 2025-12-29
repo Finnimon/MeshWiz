@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace MeshWiz.Signals;
+namespace MeshWiz.Math.Signals;
 
 public sealed record Shift<TIn, TOut>(ISignal<TIn,TOut> Signal, TOut Value)
     : ISignal<TIn, TOut>

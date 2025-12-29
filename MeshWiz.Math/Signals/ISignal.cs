@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Numerics;
 
-namespace MeshWiz.Signals;
+namespace MeshWiz.Math.Signals;
 
 public interface ISignal<in TIn, out TOut>
     where TIn : unmanaged, IFloatingPointIeee754<TIn>

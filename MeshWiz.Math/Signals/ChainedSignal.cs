@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace MeshWiz.Signals;
+namespace MeshWiz.Math.Signals;
 
 public sealed record ChainedSignal<TIn, TIntermediate, TOut>(
     ISignal<TIn, TIntermediate> Left,

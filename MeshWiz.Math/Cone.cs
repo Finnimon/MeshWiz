@@ -1,5 +1,6 @@
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
@@ -96,8 +97,13 @@ public readonly struct Cone<TNum> : IBody<TNum>,
     /// <inheritdoc />
     public Vector3<TNum> NormalAt(Vector3<TNum> p)
     {
-        var baseC = Base;
         p = ClampToSurface(p);
+        return NormalAtUnsafe(p);
+    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Vector3<TNum> NormalAtUnsafe(Vector3<TNum> p)
+    {
+        var baseC = Base;
         if (p.IsApprox(Tip))
             return Axis.Direction;
         var p2 = baseC.Plane.ProjectIntoLocal(p - baseC.Centroid);
@@ -106,23 +112,8 @@ public readonly struct Cone<TNum> : IBody<TNum>,
         var tangent = baseC.GetTangentAtAngle(anglePos);
         var pToTip = Tip - p;
         return tangent.Cross(pToTip).Normalized();
-        // var closest = Axis.ClosestPoint(p);
-        // var axisToP = (p - closest).Normalized;
-        // var axisN = Axis.Direction;
-        // var axisLen = axisN.Length;
-        // axisN /= axisLen;
-        //
-        // // Degenerate case (tip)
-        // if (!axisToP.IsNormalized)
-        //     return axisN;
-        //
-        // // Half-angle of cone (tip-to-base)
-        // var apexAngle = TNum.Atan(Radius / axisLen);
-        // var (sin, cos) = TNum.SinCos(apexAngle);
-        //
-        // // Note the minus sign for outward normal
-        // return (cos * axisN - sin * axisToP).Normalized;
     }
+    
 
 
     public TNum ApexAngle => TNum.Atan(Radius / Axis.Length);

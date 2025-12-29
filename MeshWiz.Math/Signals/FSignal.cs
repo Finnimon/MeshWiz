@@ -1,12 +1,14 @@
 ﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 
-namespace MeshWiz.Signals;
+namespace MeshWiz.Math.Signals;
 
 public record FSignal<TIn, TOut>(Func<TIn, TOut> Func)
     : ISignal<TIn, TOut>
     where TIn : unmanaged, IFloatingPointIeee754<TIn>
     where TOut : unmanaged, IFloatingPointIeee754<TOut>
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TOut Sample(TIn input) => Func(input);
 
     public Func<TIn, TOut> AsFunc()

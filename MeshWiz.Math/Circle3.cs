@@ -80,7 +80,7 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
     }
 
     public TNum Diameter => Radius * Numbers<TNum>.Two;
-    public Plane3<TNum> Plane => new(N, Center);
+    public Plane3<TNum> Plane => Plane3<TNum>.CreateUnsafe(N, Center);
     public TNum SurfaceArea => Radius * Radius * TNum.Pi;
     public (Vector3<TNum> U, Vector3<TNum> V) Basis => Plane.Basis;
 
@@ -113,6 +113,16 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
         return Center + u * (cos * Radius) + v * (sin * Radius);
     }
 
+    public Ray3<TNum> GetRay(Angle<TNum> angle)
+    {
+        var (sin, cos) = TNum.SinCos(angle);
+        var (u, v) = Plane.Basis; // assumed orthonormal basis
+        var p= Center + u * (cos * Radius) + v * (sin * Radius);
+
+        var tangent = (-u * sin + v * cos) * Radius;
+        return new Ray3<TNum>(p, tangent);
+    }
+
     public Circle3<TNum> Reversed()
         => new(Center, -N, Radius);
 
@@ -141,8 +151,7 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
     public Vector3<TNum> GetTangentAtAngle(TNum angle)
     {
         var (u, v) = Plane.Basis; // assumed orthonormal basis
-        var cos = TNum.Cos(angle);
-        var sin = TNum.Sin(angle);
+        var (sin, cos) = TNum.SinCos(angle);
 
         var tangent = (-u * sin + v * cos) * Radius;
 

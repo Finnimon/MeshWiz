@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
-using MeshWiz.Math;
 
-namespace MeshWiz.Signals;
+namespace MeshWiz.Math.Signals;
 
 public sealed record ClampedSignal<TIn, TOut>(ISignal<TIn,TOut> Source, AABB<TOut> Bounds)
     : ISignal<TIn, TOut>

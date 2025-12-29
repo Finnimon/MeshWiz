@@ -1,7 +1,9 @@
+using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices.JavaScript;
+using MeshWiz.Collections;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
@@ -38,6 +40,8 @@ public sealed partial record RotationalSurface<TNum>
 
         private Result<PeriodicalGeodesics, Ray3<TNum>> CalculateExit()
         {
+            if (!TraceResult)
+                return Result<PeriodicalGeodesics, Ray3<TNum>>.Failure(TraceResult.Info);
             if (_exitCurve is not null)
                 return new Ray3<TNum>(_exitCurve.Poses[^1].Origin, _exitCurve.Poses[^1].Front);
             var curves = TraceResult.Value;
@@ -200,51 +204,134 @@ public sealed partial record RotationalSurface<TNum>
             return PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum>.CreateNonCopying(poses);
         }
 
-        /// <param name="width">the absolute width, not when considering the angle</param>
-        /// <returns></returns>
-        public Result<PeriodicalGeodesics, TNum> CalculateOverlap(TNum width, int maxTries = 10000)
+        public Result<PeriodicalGeodesics,(TNum Overlap,int Pattern)> CalculateOverlap(TNum width, int maxTries = 10_000)
         {
-            if (width < TNum.Zero)
-                return Result<PeriodicalGeodesics, TNum>.DefaultFailure;
+            if (!Phase.TryGetValue(out var phase))
+                return Phase.Info;
+            if (!EntryAngle.TryGetValue(out var entryAngle))
+                return EntryAngle.Info;
+            if (!Radius.TryGetValue(out var radius))
+                return Radius.Info;
             if (width.IsApproxZero())
-                return TNum.Zero;
-            if (!Phase)
-                return Result<PeriodicalGeodesics, TNum>.Failure(Phase.Info);
-            TNum phase = Phase.Value;
-            if (!EntryAngle)
-                return Result<PeriodicalGeodesics, TNum>.Failure(EntryAngle.Info);
-            TNum entryAngle = EntryAngle.Value;
-
+                return (TNum.Zero,0);
             var realWidth = GetRealWidth(width, entryAngle);
+            var relWidth = realWidth / (Numbers<TNum>.TwoPi * radius);
+            var phaseStep = (phase / Numbers<TNum>.TwoPi).WrapSaturating();
+            var widthBox = AABB.Around(TNum.Zero, relWidth);
+            var curStep = 0;
+            var half = Numbers<TNum>.Half;
+            while (++curStep < maxTries)
+            {
+                var d = TNum.Abs((phaseStep * TNum.CreateTruncating(curStep)).Wrap(-half,half));
+                if(!relWidth.IsApproxGreaterOrEqual(d))
+                    continue;
+                var absOverlap = relWidth - (d-relWidth*half);
+
+                var overlap = absOverlap/relWidth;
+                var pattern = ExpectedFullCoveragePattern(overlap,relWidth);
+                if(pattern<0)
+                    Console.WriteLine($"{curStep} {pattern} {overlap}");
+                return (overlap,pattern);
+            }
+            return Result<PeriodicalGeodesics, (TNum Overlap, int Pattern)>.DefaultFailure;
+        }
+
+        private static int ExpectedFullCoveragePattern(TNum overlap, TNum relWidth)
+        {
+            var realRelWidth = relWidth*(TNum.One - overlap);
+            return int.CreateTruncating(TNum.Ceiling(TNum.One / realRelWidth))/2;
+        }
+        public Result<PeriodicalGeodesics, TNum> Radius => Entry.Select(e => e.Origin).Select(Axis.DistanceTo);
+        public Result<PeriodicalGeodesics, (TNum Covereage, TNum Overlap, int Pattern)>
+            CalculateCoverageAndOverlap(TNum width, TNum thickness = default, int pattern = -1)
+        {
+            if (!Phase.TryGetValue(out var phase))
+                return Phase.Info;
+            if (thickness == default) thickness = TNum.One;
             var radius = Axis.DistanceTo(Entry.Value.Origin);
             var circ = Numbers<TNum>.TwoPi * radius;
-            var fractionWidth = realWidth / circ;
-            var angularWidth = fractionWidth * Numbers<TNum>.TwoPi;
-            var angleHitBox = AABB.Around(TNum.Zero, Numbers<TNum>.Two * angularWidth);
-            var currentPhase = phase.Wrap(-TNum.Pi, TNum.Pi);
-            while (!angleHitBox.Contains(currentPhase) && --maxTries >= 0)
-            {
-                currentPhase += phase;
-                currentPhase = currentPhase.Wrap(-TNum.Pi, TNum.Pi);
-            }
+            var relWidth = width / circ;
+            var res = int.CreateTruncating(TNum.One / relWidth) * 32;
+            var mapping = CreateThicknessMapping(res,
+                phase,
+                relWidth,
+                pattern == -1,
+                ref pattern,
+                thickness);
+            var coveredPixels = mapping.Where(v => v > thickness).ToArray();
+            var coverage = -TNum.CreateTruncating(mapping.Length-coveredPixels.Length) 
+                           / TNum.CreateTruncating(mapping.Length);
+            coverage += TNum.One;
+            Console.WriteLine(++ovl);
+            var overlap = Numbers<TNum>.AverageOf(coveredPixels) / thickness-TNum.One;
+            return (coverage, overlap, pattern);
+        }
 
-            if (maxTries < 0)
-                return Result<PeriodicalGeodesics, TNum>.Failure(PeriodicalGeodesics.CyclesExceeded);
-            var currentDistance = TNum.Abs(currentPhase) / Numbers<TNum>.TwoPi;
-            var entryTapeBox = AABB.Around(TNum.Zero, realWidth);
-            var overlapping = AABB.Around(currentDistance, realWidth);
-            var overlap = entryTapeBox & overlapping;
-            var absoluteOverlap = TNum.Max(TNum.Zero, overlap.Size);
-            return absoluteOverlap / realWidth;
+        private static int ovl = 0;
+
+        private static TNum[] CreateThicknessMapping(int resolution,
+            TNum phase,
+            TNum relWidth,
+            bool computeCoveringPattern,
+            ref int pattern,
+            TNum thickness = default)
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(resolution, 0, nameof(phase));
+            if (thickness == default)
+                thickness = Numbers<TNum>.Eps4;
+            var relShift = phase / Numbers<TNum>.TwoPi;
+            var mappingArr = new TNum[resolution];
+            var mappingSpan = mappingArr.AsSpan();
+            RollingSpan<TNum> mapping = mappingSpan;
+
+            var curPattern = 0;
+            DrawThicknessPosition(relWidth, mapping, TNum.Zero, thickness);
+            DrawThicknessPosition(relWidth, mapping, relShift, thickness);
+            curPattern++;
+            while (curPattern++ < pattern
+                   || computeCoveringPattern && mappingSpan.Contains(TNum.Zero))
+            {
+                var pos = TNum.CreateTruncating(curPattern) * relShift;
+                var wrappedAround = pos.IsApproxZero();
+                if(wrappedAround)
+                {
+                    curPattern--;
+                    break;
+                }
+                DrawThicknessPosition(relWidth,
+                    mapping,
+                    pos,
+                    thickness);
+            }
+            pattern = curPattern;
+            return mappingArr;
+        }
+
+        private static void DrawThicknessPosition(TNum relWidth,
+            RollingSpan<TNum> mapping,
+            TNum pos,
+            TNum thickness)
+        {
+            pos = pos.WrapSaturating();
+            var lengthNum = TNum.CreateTruncating(mapping.Length);
+            var width = relWidth * lengthNum;
+            var pixels = int.CreateTruncating(TNum.Ceiling(width));
+            var targetPixel = pos * lengthNum;
+            var subPixelShift = targetPixel.WrapSaturating();
+            var targetPixelIndex = int.CreateTruncating(TNum.Floor(targetPixel));
+            var postPixelSmoothed = thickness * subPixelShift;
+            var prePixelSmoothed = TNum.One - postPixelSmoothed;
+            var firstPixel = targetPixelIndex - pixels / 2;
+            mapping[firstPixel - 1] += prePixelSmoothed;
+
+            for (var i = 0; i < pixels; i++)
+                mapping[i + firstPixel] += thickness;
+            mapping[firstPixel + pixels + 1] += postPixelSmoothed;
         }
 
 
         [Pure]
-        private static TNum GetRealWidth(TNum width, TNum entryAngle)
-        {
-            var realWidth = TNum.Cos(entryAngle) * width;
-            return realWidth;
-        }
+        private TNum GetRealWidth(TNum width,Angle<TNum> entry) => TNum.Abs(width / TNum.Cos(entry));
 
         private Result<PeriodicalGeodesics, Angle<TNum>> CalculateEntryAngle()
         {
@@ -261,5 +348,41 @@ public sealed partial record RotationalSurface<TNum>
         }
 
         public Result<PeriodicalGeodesics, TNum> CalculateCoverage(TNum width) => throw new NotImplementedException();
+
+        public Result<PeriodicalGeodesics, Ray3<TNum>> Exit2()
+        {
+            if (!TraceResult)
+                return Result<PeriodicalGeodesics, Ray3<TNum>>.Failure(TraceResult.Info);
+            var trace = TraceResult.Value;
+            if (trace.Count < 1)
+                return Result<PeriodicalGeodesics, Ray3<TNum>>.DefaultFailure;
+            var firstCurve = trace[0];
+            var lastCurve = trace[^1];
+            Plane3<TNum> startPlane = new(Axis.Direction, firstCurve.Start);
+
+            var param = lastCurve.SolveIntersection(startPlane);
+
+            if (!param)
+                return Result<PeriodicalGeodesics, Ray3<TNum>>.DefaultFailure;
+            return lastCurve.GetRay(param);
+        }
+
+        public Result<PeriodicalGeodesics, Ray3<TNum>> Exit3()
+        {
+            if (!TraceResult)
+                return Result<PeriodicalGeodesics, Ray3<TNum>>.Failure(TraceResult.Info);
+            var trace = TraceResult.Value;
+            if (trace.Count < 1)
+                return Result<PeriodicalGeodesics, Ray3<TNum>>.DefaultFailure;
+            var firstCurve = trace[0];
+            var lastCurve = trace[^1];
+            Plane3<TNum> startPlane = new(Axis.Direction, firstCurve.Start);
+
+            var solve = Curve.Solver.IntersectionBinary(lastCurve, startPlane)
+                .Select(lastCurve.GetPose)
+                .Select(Pose3<TNum>.FrontRay);
+
+            return solve ? solve.Value : Result<PeriodicalGeodesics, Ray3<TNum>>.DefaultFailure;
+        }
     }
 }

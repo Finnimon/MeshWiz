@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace MeshWiz.Signals;
+namespace MeshWiz.Math.Signals;
 
 public sealed record CachingSignal<TIn, TOut>(ISignal<TIn, TOut> Signal)
     : ISignal<TIn, TOut>

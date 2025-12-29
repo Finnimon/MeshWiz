@@ -10,7 +10,7 @@ namespace MeshWiz.Utility;
 public readonly struct Result<TInfo, TValue> : IValueResult<Result<TInfo, TValue>, TInfo, TValue>
     where TInfo : unmanaged, Enum
 {
-    public static readonly Result<TInfo, TValue> DefaultFailure =
+    public static Result<TInfo, TValue> DefaultFailure =>
         Failure(EnumResultHelper<TInfo>.DefaultFailureConstant);
 
     [field: AllowNull, MaybeNull]
@@ -35,6 +35,7 @@ public readonly struct Result<TInfo, TValue> : IValueResult<Result<TInfo, TValue
     public static implicit operator TValue(Result<TInfo, TValue> result) => result.Value;
     public static implicit operator bool(Result<TInfo, TValue> result) => result.HasValue;
     public static implicit operator Result<TInfo, TValue>(TValue value) => Success(value);
+    public static implicit operator Result<TInfo, TValue>(TInfo info) => Failure(info);
     public static Result<TInfo, TValue> Success(TValue value) => new(value, EnumResultHelper<TInfo>.SuccessConstant);
 
     public static Result<TInfo, TValue> Failure(TInfo info)
@@ -68,6 +69,45 @@ public readonly struct Result<TInfo, TValue> : IValueResult<Result<TInfo, TValue
     /// <inheritdoc />
     public static bool operator !=(Result<TInfo, TValue> left, Result<TInfo, TValue> right)
         => !(left == right);
+
+    /// <inheritdoc />
+    public override string ToString() => this ? $"{{Value {Value} Success {true}}}" : $"{{Info {Info} Success {false}}}";
+
+    public bool TryGetValue(out TValue? value)
+    {
+        var has = HasValue;
+        value = has ? Value : default;
+        return has;
+    }
+
+    public Result<TInfo, TValue> When(bool test) => !test && !IsSuccess ? DefaultFailure : this; //already failure or correct 
+    public Result<TInfo,TValue> FailWhen(bool fail)=>When(!fail);
+
+    public Result<TInfo, TValue> When(Func<bool> test)
+    {
+        if (IsFailure)
+            return this;
+        return test() ? this : DefaultFailure;
+    }
+    public Result<TInfo, TValue> FailWhen(Func<bool> test)
+    {
+        if (IsFailure)
+            return this;
+        return test() ? DefaultFailure : this;
+    }
+    
+    public Result<TInfo, TValue> When(Func<TValue,bool> test)
+    {
+        if (IsFailure)
+            return this;
+        return test(this) ? this : DefaultFailure;
+    }
+    public Result<TInfo, TValue> FailWhen(Func<TValue,bool> test)
+    {
+        if (IsFailure)
+            return this;
+        return test(this) ? DefaultFailure : this;
+    }
 }
 
 public readonly struct Result<TInfo> : IResult<Result<TInfo>, TInfo>
@@ -143,16 +183,27 @@ public static class Result
         where TInfo : unmanaged, Enum
         => result.IsSuccess ? result : func();
     
-    public static Result<TInfo,TValue> OrElse<TInfo, TValue>(this Result<TInfo,TValue> result, Func<TValue> func)
+    public static TValue OrElse<TInfo, TValue>(this Result<TInfo,TValue> result, Func<TValue> func)
     where TInfo:unmanaged,Enum
     =>result.IsSuccess ? result : func();
+    
+    public static TValue OrElse<TInfo, TValue>(this Result<TInfo,TValue> result, TValue v)
+        where TInfo:unmanaged,Enum
+        =>result.IsSuccess ? result : v;
+    
+    public static Result<TInfo,TOut> Select<TInfo, TValue,TOut>(this Result<TInfo,TValue> result, Func<TValue,TOut> func)
+        where TInfo:unmanaged,Enum
+        =>result.IsSuccess ? func(result):Result<TInfo, TOut>.Failure(result.Info);
+    
+    
+    public static ExceptionResult<TOut> Select<TValue,TOut>(this ExceptionResult<TValue> result, Func<TValue,TOut> func) 
+        =>result.IsSuccess ? func.Try(result):ExceptionResult<TOut>.Failure(result.Info);
 
     public static ExceptionResult OrElse(in this ExceptionResult result, Action func)
         => result.IsSuccess ? result : Func.Try(func);
 
     public static ExceptionResult<T> OrElse<T>(in this ExceptionResult<T> result, Func<T> func)
         => result.IsSuccess ? result : Func.Try(func);
-
     public static bool TryGetValue<TResult, TInfo, TValue>(this TResult result,
         [NotNullWhen(returnValue: true),AllowNull] out TValue value)
     where TResult: struct, IValueResult<TResult,TInfo, TValue>

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -7,45 +8,69 @@ namespace MeshWiz.Math;
 
 public sealed partial record RotationalSurface<TNum>
 {
-    [StructLayout(LayoutKind.Sequential)]
     public readonly struct ChildSurface : IRotationalSurface<TNum>, IGeodesicProvider<ChildGeodesic, TNum>,
         IEquatable<ChildSurface>
     {
         public readonly ChildSurfaceType Type;
         public readonly int Index;
 
-        // ReSharper disable PrivateFieldCanBeConvertedToLocalVariable
-        private readonly TNum F0, F1, F2, F3, F4, F5, F6, F7;
-        // ReSharper enable PrivateFieldCanBeConvertedToLocalVariable
-
-        private unsafe Cone<TNum> Cone
+#pragma warning disable CS0649
+        [SuppressMessage("ReSharper", "UnassignedReadonlyField")] 
+        private readonly InlineArray8<TNum> _data;
+#pragma warning restore CS0649
+        static ChildSurface()
         {
-            get => Unsafe.As<TNum, Cone<TNum>>(ref Unsafe.AsRef(in F0));
-            init => Unsafe.Write(Unsafe.AsPointer(ref F0), value);
+            //Asserts
+            var containerSize = Unsafe.SizeOf<InlineArray8<TNum>>();
+            var valid = containerSize >= Unsafe.SizeOf<Cone<TNum>>()
+                && containerSize>=Unsafe.SizeOf<Circle3<TNum>>()
+                && containerSize>=Unsafe.SizeOf<Circle3Section<TNum>>()
+                &&containerSize>=Unsafe.SizeOf<ConeSection<TNum>>()
+                &&containerSize>=Unsafe.SizeOf<Cylinder<TNum>>();
+            if(valid) return;
+            ThrowHelper.ThrowInvalidOperationException($"{nameof(ChildSurface)} data container is too small for union");
+        }
+        private Cone<TNum> Cone
+        {
+            get => ReadData<Cone<TNum>>();
+            init => WriteData(value);
         }
 
-        private unsafe ConeSection<TNum> ConeSection
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private unsafe void* Data() => Unsafe.AsPointer(in _data);
+
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private unsafe T ReadData<T>()
+            where T : unmanaged
+            => Unsafe.ReadUnaligned<T>(Data());
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private unsafe void WriteData<T>(T value)
+            where T : unmanaged
+            => Unsafe.WriteUnaligned(Data(), value);
+
+        private ConeSection<TNum> ConeSection
         {
-            get => Unsafe.As<TNum, ConeSection<TNum>>(ref Unsafe.AsRef(in F0));
-            init => Unsafe.Write(Unsafe.AsPointer(ref F0), value);
+            get => ReadData<ConeSection<TNum>>();
+            init => WriteData(value);
         }
 
-        private unsafe Circle3<TNum> Circle
+        private Circle3<TNum> Circle
         {
-            get => Unsafe.As<TNum, Circle3<TNum>>(ref Unsafe.AsRef(in F0));
-            init => Unsafe.Write(Unsafe.AsPointer(in F0), value);
+            get => ReadData<Circle3<TNum>>();
+            init => WriteData(value);
         }
 
-        private unsafe Circle3Section<TNum> CircleSection
+        private Circle3Section<TNum> CircleSection
         {
-            get => Unsafe.As<TNum, Circle3Section<TNum>>(ref Unsafe.AsRef(in F0));
-            init => Unsafe.Write(Unsafe.AsPointer(in F0), value);
+            get => ReadData<Circle3Section<TNum>>();
+            init => WriteData(value);
         }
 
-        private unsafe Cylinder<TNum> Cylinder
+        private Cylinder<TNum> Cylinder
         {
-            get => Unsafe.As<TNum, Cylinder<TNum>>(ref Unsafe.AsRef(in F0));
-            init => Unsafe.Write(Unsafe.AsPointer(in F0), value);
+            get => ReadData<Cylinder<TNum>>();
+            init => WriteData(value);
         }
 
         private ChildSurface(ChildSurfaceType type, int index)
@@ -237,28 +262,20 @@ public sealed partial record RotationalSurface<TNum>
         public bool Equals(ChildSurface other) =>
             Type == other.Type
             && Index == other.Index
-            &&F0==other.F0
-            &&F1==other.F1
-            &&F2==other.F2
-            &&F3==other.F3
-            &&F4==other.F4
-            &&F5==other.F5
-            &&F6==other.F6
-            &&F7==other.F7;
+            && ((ReadOnlySpan<TNum>)_data).SequenceEqual(other._data);
 
-        
 
         /// <inheritdoc />
         public override bool Equals(object? obj) => obj is ChildSurface other && Equals(other);
 
         /// <inheritdoc />
-        public override int GetHashCode() => HashCode.Combine((int)Type,Index, F0, F1, F2, F3, F4, F5);
+        public override int GetHashCode() => HashCode.Combine((int)Type, Index);
 
         public static bool operator ==(ChildSurface left, ChildSurface right) => left.Equals(right);
 
         public static bool operator !=(ChildSurface left, ChildSurface right) => !left.Equals(right);
 
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ChildSurface CreateDead(int index=-1) => new(ChildSurfaceType.Dead, index);
+        public static ChildSurface CreateDead(int index = -1) => new(ChildSurfaceType.Dead, index);
     }
 }

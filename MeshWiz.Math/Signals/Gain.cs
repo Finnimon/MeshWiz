@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace MeshWiz.Signals;
+namespace MeshWiz.Math.Signals;
 
 public sealed record Gain<TIn, TOut>(ISignal<TIn,TOut> Source, TOut Value)
     : ISignal<TIn, TOut>
