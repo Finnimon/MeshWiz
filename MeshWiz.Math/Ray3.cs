@@ -2,6 +2,7 @@ using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using CommunityToolkit.Diagnostics;
 
 namespace MeshWiz.Math;
 
@@ -20,9 +21,19 @@ public readonly struct Ray3<TNum>
         Direction = direction.Normalized();
     }
 
-    public static Ray3<TNum> UnitX => new(Vector3<TNum>.Zero, Vector3<TNum>.UnitX);
-    public static Ray3<TNum> UnitY => new(Vector3<TNum>.Zero, Vector3<TNum>.UnitY);
-    public static Ray3<TNum> UnitZ => new(Vector3<TNum>.Zero, Vector3<TNum>.UnitZ);
+    private Ray3(Vector3<TNum> origin, Vector3<TNum> direction, bool _)
+    {
+#if DEBUG
+        if(!direction.IsNormalized)
+            ThrowHelper.ThrowArgumentException("Parameter direction must already be normal for unsafe creation");
+#endif
+        Origin = origin;
+        Direction = direction;
+    }
+
+    public static Ray3<TNum> UnitX => CreateUnsafe(Vector3<TNum>.Zero, Vector3<TNum>.UnitX);
+    public static Ray3<TNum> UnitY => CreateUnsafe(Vector3<TNum>.Zero, Vector3<TNum>.UnitY);
+    public static Ray3<TNum> UnitZ => CreateUnsafe(Vector3<TNum>.Zero, Vector3<TNum>.UnitZ);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector3<TNum> Traverse(TNum distance)
@@ -62,7 +73,7 @@ public readonly struct Ray3<TNum>
 
         var edge1 = triangle.B - triangle.A;
         var edge2 = triangle.C - triangle.A;
-        var h=  Vector3<TNum>.Cross(Direction , edge2); // cross product
+        var h = Vector3<TNum>.Cross(Direction, edge2); // cross product
         var a = edge1.Dot(h); // dot product
 
         if (TNum.Abs(a) < TNum.Epsilon)
@@ -81,7 +92,7 @@ public readonly struct Ray3<TNum>
         if (v < TNum.Zero || u + v > TNum.One)
             return false;
 
-        t = f * (edge2 .Dot(q));
+        t = f * (edge2.Dot(q));
 
         return t >= TNum.Zero; // Intersection in ray direction
     }
@@ -113,14 +124,15 @@ public readonly struct Ray3<TNum>
         return true;
     }
 
-    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator Ray3<TNum>(Line<Vector3<TNum>, TNum> line)
         => new(line.Start, line.AxisVector);
-    
-    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator Line<Vector3<TNum>, TNum>(Ray3<TNum> ray)
-        => new(ray.Origin, ray.Direction+ray.Origin);
-    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+        => new(ray.Origin, ray.Direction + ray.Origin);
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector3<TNum> ClosestPoint(Vector3<TNum> p)
     {
         var v = p - Origin;
@@ -130,19 +142,27 @@ public readonly struct Ray3<TNum>
         return Origin + alongVector;
     }
 
-    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TNum DistanceTo(Vector3<TNum> p) => ClosestPoint(p).DistanceTo(p);
 
 
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool DoIntersect(Triangle3<TNum> test)
         => Intersect(test, out _);
 
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool DoIntersect(AABB<Vector3<TNum>> test)
         => Intersect(test, out _);
 
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Intersect(AABB<Vector3<TNum>> test, out TNum result)
         => HitTest(test, out result, out _);
 
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Line<Vector3<TNum>, TNum> LineSection(TNum start, TNum end)
         => new(Origin + Direction * start, Origin + Direction * end);
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Ray3<TNum> CreateUnsafe(Vector3<TNum> origin, Vector3<TNum> direction) =>
+        new(origin, direction, true);
 }

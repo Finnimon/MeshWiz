@@ -103,6 +103,24 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vector3<TNum
         var world = tangentialDir * dx + axisDir * dy;
         return world.Normalized();
     }
+    [Pure]
+    public static Ray3<TNum> ProjectDirectionComplete(in Cylinder<TNum> cylinder, Vector2<TNum> p, Vector2<TNum> direction)
+    {
+        direction = direction.Normalized();
+
+        var p3 = Project(in cylinder, p);
+        var axisDir = cylinder.Axis.Direction;
+        var closest = cylinder.Axis.ClosestPoint(p3);
+        var axisToP = (p3 - closest).Normalized();
+
+        var tangentialDir = axisDir.Cross(axisToP).Normalized();
+
+        var dx = direction.X;
+        var dy = direction.Y;
+
+        var worldDir = tangentialDir * dx + axisDir * dy;
+        return new(p3,worldDir);
+    }
     
     [Pure]
     private static Vector3<TNum> ProjectDirection(in Cylinder<TNum> cylinder, Vector3<TNum> p3, Vector2<TNum> direction)
@@ -234,30 +252,20 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vector3<TNum
         => ProjectDirection(in Cylinder, Line.Traverse(t), Line.AxisVector);
 
     /// <inheritdoc />
-    public bool Equals(Helix<TNum> other)
-    {
-        return Cylinder.Equals(other.Cylinder) && Line.Equals(other.Line);
-    }
+    public bool Equals(Helix<TNum> other) => Cylinder.Equals(other.Cylinder) && Line.Equals(other.Line);
 
     /// <inheritdoc />
-    public override bool Equals(object? obj)
-    {
-        return obj is Helix<TNum> other && Equals(other);
-    }
+    public override bool Equals(object? obj) => obj is Helix<TNum> other && Equals(other);
 
     /// <inheritdoc />
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(Cylinder, Line);
-    }
+    public override int GetHashCode() => HashCode.Combine(Cylinder, Line);
 
-    public static bool operator ==(Helix<TNum> left, Helix<TNum> right)
-    {
-        return left.Equals(right);
-    }
+    public static bool operator ==(Helix<TNum> left, Helix<TNum> right) => left.Equals(right);
 
-    public static bool operator !=(Helix<TNum> left, Helix<TNum> right)
-    {
-        return !left.Equals(right);
-    }
+    public static bool operator !=(Helix<TNum> left, Helix<TNum> right) => !left.Equals(right);
+
+    public Ray3<TNum> GetRay(TNum t) => ProjectDirectionComplete(Cylinder, Line.Traverse(t), Line.Direction);
+
+    public Helix<TNum> Section(TNum start, TNum end)
+        => new(Cylinder, Line.Section(start, end));
 }

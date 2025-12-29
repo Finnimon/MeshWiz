@@ -73,7 +73,7 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vector3<TNum>, TNum>
         var z = up;
         z -= y.Dot(z) * y;
         z = z.Normalized();
-        var x = Vector3<TNum>.Cross(y, z);
+        var x = Vector3<TNum>.Cross(y, z).Normalized();
         Matrix3x3<TNum> mat = new(x, y, z);
         var rot = Quaternion<TNum>.CreateUnsafe(in mat);
         return new Pose3<TNum>(rot, origin);
@@ -139,4 +139,7 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vector3<TNum>, TNum>
     {
         return HashCode.Combine(Rotation, Origin);
     }
+
+    public static Ray3<TNum> FrontRay(Pose3<TNum> arg) => new(arg.Origin, arg.Front);
+    public static Ray3<TNum> UpRay(Pose3<TNum> arg) => new(arg.Origin, arg.Up);
 }

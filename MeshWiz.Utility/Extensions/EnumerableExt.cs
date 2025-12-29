@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 
@@ -28,12 +29,15 @@ public static class EnumerableExt
 
     
     [Pure]
+    [SuppressMessage("ReSharper", "InvokeAsExtensionMethod")]
     public static TAdd Sum<TAdd>(this IEnumerable<TAdd> enumerable)
-        where TAdd : INumberBase<TAdd> 
-    {
-        return enumerable.Aggregate(TAdd.AdditiveIdentity, (current, item) => current + item);
-    }
-    
+        where TAdd : INumberBase<TAdd> =>
+        enumerable switch
+        {
+            IEnumerable<float> nums => (TAdd)(object)Enumerable.Average(nums),
+            _ => enumerable.Aggregate(TAdd.AdditiveIdentity, (current, item) => current + item)
+        };
+
     [Pure]
     public static TAdd Sum<TSource, TAdd>(this IEnumerable<TSource> enumerable, Func<TSource, TAdd> selector)
         where TAdd : unmanaged, IAdditionOperators<TAdd, TAdd, TAdd>

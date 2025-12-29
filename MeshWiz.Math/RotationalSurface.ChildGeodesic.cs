@@ -1,39 +1,53 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.Diagnostics;
+using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
 
 public sealed partial record RotationalSurface<TNum>
 {
-    [StructLayout(LayoutKind.Sequential)]
     public readonly struct ChildGeodesic : IDiscretePoseCurve<Pose3<TNum>, Vector3<TNum>, TNum>,
         IEquatable<ChildGeodesic>
     {
         public readonly ChildSurfaceType Type;
         public readonly int Index;
+
+#pragma warning disable CS0649
+        [SuppressMessage("ReSharper", "UnassignedReadonlyField")] 
+        private readonly InlineArray14<TNum> _data;
+#pragma warning restore CS0649
         
-        // ReSharper disable PrivateFieldCanBeConvertedToLocalVariable
-        private readonly TNum F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10;
-
-        // ReSharper enable PrivateFieldCanBeConvertedToLocalVariable
-        private unsafe Helix<TNum> Helix
+        static ChildGeodesic()
         {
-            get => Unsafe.As<TNum, Helix<TNum>>(ref Unsafe.AsRef(in F0));
-            init => Unsafe.Write(Unsafe.AsPointer(ref F0), value);
+            var containerSize = Unsafe.SizeOf<InlineArray14<TNum>>();
+            var coneGeodesicSize = Unsafe.SizeOf<ConeGeodesic<TNum>>();
+            var poseLineSize = Unsafe.SizeOf<PoseLine<Pose3<TNum>, Vector3<TNum>, TNum>>();
+            var helixSize = Unsafe.SizeOf<Helix<TNum>>();
+            var valid = containerSize >= coneGeodesicSize
+                        && containerSize >= poseLineSize
+                        && containerSize >= helixSize;
+            if(valid) return;
+            ThrowHelper.ThrowInvalidOperationException($"{nameof(ChildSurface)} data container is too small for union");
+        }
+        private Helix<TNum> Helix
+        {
+            get => ReadData<Helix<TNum>>();
+            init => WriteData(value);
         }
 
-        private unsafe ConeGeodesic<TNum> ConeGeodesic
+        private ConeGeodesic<TNum> ConeGeodesic
         {
-            get => Unsafe.As<TNum, ConeGeodesic<TNum>>(ref Unsafe.AsRef(in F0));
-            init => Unsafe.Write(Unsafe.AsPointer(ref F0), value);
+            get => ReadData<ConeGeodesic<TNum>>();
+            init => WriteData(value);
         }
 
-        private unsafe PoseLine<Pose3<TNum>, Vector3<TNum>, TNum> Line
+        private PoseLine<Pose3<TNum>, Vector3<TNum>, TNum> Line
         {
-            get => Unsafe.As<TNum, PoseLine<Pose3<TNum>, Vector3<TNum>, TNum>>(ref Unsafe.AsRef(in F0));
-            init => Unsafe.Write(Unsafe.AsPointer(ref F0), value);
+            get => ReadData<PoseLine<Pose3<TNum>, Vector3<TNum>, TNum>>();
+            init => WriteData(value);
         }
 
         public IDiscretePoseCurve<Pose3<TNum>, Vector3<TNum>, TNum> PoseCurve => Type switch
@@ -46,29 +60,42 @@ public sealed partial record RotationalSurface<TNum>
             _ => ThrowHelper.ThrowInvalidOperationException<IDiscretePoseCurve<Pose3<TNum>, Vector3<TNum>, TNum>>()
         };
 
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private unsafe void* Data() => Unsafe.AsPointer(in _data);
+
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private unsafe T ReadData<T>()
+            where T : unmanaged
+            => Unsafe.ReadUnaligned<T>(Data());
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private unsafe void WriteData<T>(T value)
+            where T : unmanaged
+            => Unsafe.WriteUnaligned(Data(), value);
+
         private ChildGeodesic(ChildSurfaceType type, int index)
         {
             Type = type;
             Index = index;
         }
 
-        [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ChildGeodesic CreateCone(int index, ConeGeodesic<TNum> geodesic)
             => new(ChildSurfaceType.Cone, index) { ConeGeodesic = geodesic };
 
-        [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ChildGeodesic CreateConeSection(int index, ConeGeodesic<TNum> geodesic)
             => new(ChildSurfaceType.ConeSection, index) { ConeGeodesic = geodesic };
 
-        [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ChildGeodesic CreateCylinder(int index, Helix<TNum> geodesic)
             => new(ChildSurfaceType.Cylinder, index) { Helix = geodesic };
 
-        [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ChildGeodesic CreateCircle(int index, PoseLine<Pose3<TNum>, Vector3<TNum>, TNum> geodesic)
             => new(ChildSurfaceType.Circle, index) { Line = geodesic };
 
-        [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ChildGeodesic CreateCircleSection(int index, PoseLine<Pose3<TNum>, Vector3<TNum>, TNum> geodesic)
             => new(ChildSurfaceType.CircleSection, index) { Line = geodesic };
 
@@ -221,6 +248,7 @@ public sealed partial record RotationalSurface<TNum>
         };
 
         /// <inheritdoc />
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum> ToPosePolyline()
             => Type switch
             {
@@ -233,6 +261,7 @@ public sealed partial record RotationalSurface<TNum>
             };
 
         /// <inheritdoc />
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum> ToPosePolyline(
             PolylineTessellationParameter<TNum> tessellationParameter)
             => Type switch
@@ -246,33 +275,69 @@ public sealed partial record RotationalSurface<TNum>
             };
 
         /// <inheritdoc />
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(ChildGeodesic other) =>
             Type == other.Type
             && Index == other.Index
-            && F0 == other.F0
-            && F1 == other.F1
-            && F2 == other.F2
-            && F3 == other.F3
-            && F4 == other.F4
-            && F5 == other.F5
-            && F6 == other.F6
-            && F7 == other.F7
-            && F8 == other.F8
-            && F9 == other.F9
-            && F10 == other.F10;
+            && ((ReadOnlySpan<TNum>)_data).SequenceEqual(other._data);
 
 
         /// <inheritdoc />
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object? obj) => obj is ChildGeodesic other && Equals(other);
 
         /// <inheritdoc />
-        public override int GetHashCode() => HashCode.Combine((int)Type, Index, F0, F1, F2, F3, F4, F5);
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override int GetHashCode() =>
+            HashCode.Combine((int)Type, Index);
 
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(ChildGeodesic left, ChildGeodesic right) => left.Equals(right);
 
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(ChildGeodesic left, ChildGeodesic right) => !left.Equals(right);
 
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ChildGeodesic CreateDead(int index=-1) => new(ChildSurfaceType.Dead, index);
+        public static ChildGeodesic CreateDead(int index = -1) => new(ChildSurfaceType.Dead, index);
+
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Result<Arithmetics, TNum> SolveIntersection(Plane3<TNum> plane)
+            => Type switch
+            {
+                ChildSurfaceType.Cylinder => Curve.Solver.IntersectionNewton(Helix, plane),
+                ChildSurfaceType.Cone => Curve.Solver.IntersectionNewton(ConeGeodesic, plane),
+                ChildSurfaceType.ConeSection => Curve.Solver.IntersectionNewton(ConeGeodesic, plane),
+                ChildSurfaceType.Circle => LineIntersect(plane),
+                ChildSurfaceType.CircleSection => LineIntersect(plane),
+                _ => Result<Arithmetics, TNum>.DefaultFailure
+            };
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private Result<Arithmetics, TNum> LineIntersect(Plane3<TNum> plane) =>
+            plane.IntersectParameter(Line, out var t)
+                ? t
+                : Result<Arithmetics, TNum>.DefaultFailure;
+
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Ray3<TNum> GetRay(TNum t) => Type switch
+        {
+            ChildSurfaceType.Cylinder => Helix.GetRay(t),
+            ChildSurfaceType.Cone => ConeGeodesic.GetRay(t),
+            ChildSurfaceType.ConeSection => ConeGeodesic.GetRay(t),
+            ChildSurfaceType.Circle => (Line<Vector3<TNum>, TNum>)Line,
+            ChildSurfaceType.CircleSection => (Line<Vector3<TNum>, TNum>)Line,
+            _ => ThrowHelper.ThrowInvalidOperationException<Ray3<TNum>>()
+        };
+
+        public ChildGeodesic Section(TNum start, TNum end)
+            => Type switch
+            {
+                ChildSurfaceType.Cylinder => CreateCylinder(Index,Helix.Section(start,end)),
+                ChildSurfaceType.Cone => CreateCone(Index,ConeGeodesic.Section(start,end)),
+                ChildSurfaceType.ConeSection => CreateCone(Index,ConeGeodesic.Section(start,end)),
+                ChildSurfaceType.Circle => CreateCircle(Index,Line.Section(start,end)),
+                ChildSurfaceType.CircleSection => CreateCircle(Index,Line.Section(start,end)),
+                _ => ThrowHelper.ThrowInvalidOperationException<ChildGeodesic>()
+            };
     }
 }

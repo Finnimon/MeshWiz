@@ -12,7 +12,7 @@ where TNum:unmanaged,IFloatingPointIeee754<TNum>
 {
     public RotationalSurface<TNum>? Surface;
     private Vector3<TNum> Start,Dir;
-    [Params(0.01, 0.1)] public double Width;
+    // [Params(0.01, 0.1)] public double Width;
     private RotationalSurface<TNum>.PeriodicalInfo? _periodicalInfo;
     [GlobalSetup]
     public void Setup()
@@ -53,24 +53,51 @@ where TNum:unmanaged,IFloatingPointIeee754<TNum>
     }
     // [Benchmark]
     // public Angle<TNum> GetPhase() => TracePeriod().Phase;
-    private RotationalSurface<TNum>.PeriodicalInfo TracePeriod() => Surface!.TracePeriod(Start, Dir);
+    public RotationalSurface<TNum>.PeriodicalInfo TracePeriod() => Surface!.TracePeriod(Start, Dir);
     //
-    // [Benchmark]
-    // public PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum> FinalizedPoses() => TracePeriod().FinalizedPoses;
+    [Benchmark]
+    public PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum> FinalizedPoses() => TracePeriod().FinalizedPoses;
+
+    [Benchmark]
+    public PosePolyline<Pose3<TNum>, Vector3<TNum>, TNum> FinalizedPosesOnly() => CopyPeriodicalInfo()!.FinalizedPoses;
     // [Benchmark]
     // public Polyline<Vector3<TNum>, TNum> FinalizedPath() => TracePeriod().FinalizedPath;
-    // [Benchmark(Baseline = true)]
-    // public RotationalSurface<TNum>.PeriodicalInfo TracePeriodOnly() => TracePeriod();
+    [Benchmark(Baseline = true)]
+    public RotationalSurface<TNum>.PeriodicalInfo TracePeriodOnly() => TracePeriod();
     //
-    private static TNum _overlap;
-    [Benchmark]
-    public TNum CalcOverlapOnly()
-    {
-        TNum overlap= _periodicalInfo!.CalculateOverlap(TNum.CreateTruncating(Width));
-        // Console.WriteLine($"Overlap : {overlap}");
-        _overlap = overlap;
-        return overlap;
-    }
-    
+    // private static TNum _overlap;
+    // [Benchmark]
+    // public TNum CalcOverlapOnly()
+    // {
+    //     TNum overlap= _periodicalInfo!.CalculateOverlap(TNum.CreateTruncating(Width));
+    //     // Console.WriteLine($"Overlap : {overlap}");
+    //     _overlap = overlap;
+    //     return overlap;
+    // }
 
+    // [Benchmark(Baseline = true)]
+    // public Ray3<TNum> OldExit()
+    // {
+    //     var period = CopyPeriodicalInfo();
+    //     return period.Exit;
+    // }
+    //
+    // [Benchmark]
+    // public Ray3<TNum> ExitNewton()
+    // {
+    //     return CopyPeriodicalInfo().Exit2();
+    // }
+    //
+    // [Benchmark]
+    // public Ray3<TNum> ExitBinary()
+    // {
+    //     return CopyPeriodicalInfo().Exit3();
+    // }
+
+    private RotationalSurface<TNum>.PeriodicalInfo CopyPeriodicalInfo()
+    {
+        var (startingConditions, ray3, traceResult) = _periodicalInfo!;
+        RotationalSurface<TNum>.PeriodicalInfo period = new(startingConditions, ray3, traceResult);
+        return period;
+    }
 }

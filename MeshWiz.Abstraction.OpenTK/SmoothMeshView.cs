@@ -154,7 +154,8 @@ public class SmoothMeshView : IOpenGLControl
             .SetUniform(nameof(depthOffset), depthOffset)
             .SetUniform(colorUniformName, WireFrameColor)
             .Unbind();
-
+        OpenGLHelper.LogGlError(nameof(SmoothMeshView));
+        
         _blinnPhongShader!.BindAnd()
             .SetUniform(nameof(model), ref model)
             .SetUniform(nameof(view), ref view)
@@ -224,6 +225,11 @@ public class SmoothMeshView : IOpenGLControl
         _blinnPhongShader?.Dispose();
         _solidColorShader?.Unbind();
         _solidColorShader?.Dispose();
+        _vao = null;
+        _vbo = null;
+        _ibo = null;
+        _blinnPhongShader = null;
+        _solidColorShader = null;
     }
 
 

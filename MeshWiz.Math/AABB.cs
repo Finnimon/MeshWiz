@@ -20,7 +20,7 @@ public readonly struct AABB<TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember]
-    public static readonly AABB<TNum> Empty = new(TNum.PositiveInfinity, TNum.NegativeInfinity);
+    public static AABB<TNum> Empty => new(TNum.PositiveInfinity, TNum.NegativeInfinity);
 
     public readonly TNum Min, Max;
 
@@ -283,7 +283,9 @@ public readonly struct AABB<TNum>
 
         return new AABB<TNum>(min, max);
     }
-    
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public TNum Lerp(TNum t) => TNum.Lerp(Min, Max, t);
     public static AABB<TNum> operator +(AABB<TNum> l, TNum r)=>new(l.Min+r,l.Max+r); 
     public static AABB<TNum> operator +(TNum l, AABB<TNum> r)=>r+l;
     public static AABB<TNum> operator |(AABB<TNum> l, AABB<TNum> r) => l.CombineWith(r);
@@ -304,7 +306,7 @@ public readonly struct AABB<TNum>
         max = Max;
     }
 
-    public static readonly AABB<TNum> Saturate = new(TNum.Zero, TNum.One);
+    public static AABB<TNum> Saturate => new(TNum.Zero, TNum.One);
 }
 
 public static class AABB
@@ -413,9 +415,7 @@ public static class AABB
 
     [Pure]
     [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
-    public static TriangleIndexer[] Indices() => TesselationIndices[..];
-
-    private static readonly TriangleIndexer[] TesselationIndices =
+    public static TriangleIndexer[] Indices() =>
     [
         new(0b010, 0b110, 0b000), new(0b110, 0b100, 0b000),
         new(0b111, 0b011, 0b001), new(0b101, 0b111, 0b001),

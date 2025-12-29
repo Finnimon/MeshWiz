@@ -119,4 +119,7 @@ public readonly struct PoseLine<TPose, TVector, TNum>(TPose start, TPose end) : 
     {
         return !left.Equals(right);
     }
+
+    public PoseLine<TPose, TVector, TNum> Section(TNum p0, TNum p1)
+        => new(GetPose(p0), GetPose(p1));
 }
