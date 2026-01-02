@@ -47,7 +47,7 @@ where TNum:unmanaged,IFloatingPointIeee754<TNum>
             sweep[i] = new Vec2<TNum>(x, y);
         }
 
-        sweep = Polyline.Reduction.DouglasPeucker<Vec2<TNum>, TNum>(new(sweep),Numbers<TNum>.ZeroEpsilon)
+        sweep = Polyline.Reduction.DouglasPeucker<Vec2<TNum>, TNum>(new(sweep))
             .Points.ToArray();
         return new RotationalSurface<TNum>(ray, sweep);
     }

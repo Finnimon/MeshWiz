@@ -16,7 +16,7 @@ public readonly struct Result<TInfo, TValue> : IValueResult<Result<TInfo, TValue
     [field: AllowNull, MaybeNull]
     public TValue Value => HasValue
         ? field!
-        : ThrowHelper.ThrowInvalidOperationException<TValue>("Illegal result access");
+        : Result.ThrowIllegalValueAccess<TInfo, TValue>(Info);
 
     public TInfo Info { get; }
     public bool HasValue => IsSuccess(Info);
@@ -50,7 +50,8 @@ public readonly struct Result<TInfo, TValue> : IValueResult<Result<TInfo, TValue
 
     /// <inheritdoc />
     public override bool Equals([NotNullWhen(true)] object? obj)
-        => obj is Result<TInfo, TValue> other && other == this;
+        => obj is Result<TInfo, TValue> other && other == this || obj is TValue val && Equals(val);
+
 
     /// <inheritdoc />
     public override int GetHashCode() => HasValue ? Value!.GetHashCode() : Info.GetHashCode();
@@ -59,11 +60,25 @@ public readonly struct Result<TInfo, TValue> : IValueResult<Result<TInfo, TValue
     public bool Equals(Result<TInfo, TValue> other)
         => this == other;
 
+    public bool Equals(TValue value)
+    {
+        if (!HasValue)
+            return false;
+        var v = Value;
+        if (v is null)
+            return value is null;
+        return v.Equals(value);
+    }
+
     /// <inheritdoc />
     public static bool operator ==(Result<TInfo, TValue> left, Result<TInfo, TValue> right)
     {
         var sameInfo = AreEqual(left.Info, right.Info);
-        return left.HasValue && right.HasValue ? sameInfo && left.Value!.Equals(right.Value!) : sameInfo;
+        if (!sameInfo) return false;
+        if (!left.HasValue) return true;
+        if (left.Value is null)
+            return right.Value is null;
+        return right.Value is not null && left.Value.Equals(right.Value);
     }
 
     /// <inheritdoc />
@@ -72,7 +87,7 @@ public readonly struct Result<TInfo, TValue> : IValueResult<Result<TInfo, TValue
 
     /// <inheritdoc />
     public override string ToString() =>
-        this ? Value?.ToString()??"" : $"{{{Info}}}";
+        this ? Value?.ToString() ?? "" : $"{{{Info}}}";
 
     public bool TryGetValue([NotNullWhen(returnValue: true)] out TValue? value)
     {
@@ -148,6 +163,7 @@ public readonly struct Result<TInfo> : IResult<Result<TInfo>, TInfo>
         => !AreEqual(left.Info, right.Info);
 
     public static implicit operator Result<TInfo>(TInfo info) => Unsafe.As<TInfo, Result<TInfo>>(ref info);
+    public static implicit operator bool(Result<TInfo> info) => info.IsSuccess;
 
     // ReSharper disable once InconsistentNaming
     private static readonly Result<TInfo> _success = new(EnumResultHelper<TInfo>.SuccessConstant);
@@ -166,9 +182,14 @@ public static class Result
     [DoesNotReturn, StackTraceHidden]
     internal static T ThrowIllegalValueAccess<T>()
     {
-        const string msg = "Value access on failure Result";
-        return ThrowHelper.ThrowInvalidOperationException<T>(msg);
+        return ThrowHelper.ThrowInvalidOperationException<T>(Msg);
     }
+
+    private const string Msg = "Value access on failure Result";
+
+    [DoesNotReturn, StackTraceHidden]
+    internal static T ThrowWrappingException<T>(Exception inner) =>
+        ThrowHelper.ThrowInvalidOperationException<T>(Msg, inner);
 
     public static TResult OrElse<TResult, TInfo>(this TResult result, Func<TResult> func)
         where TResult : struct, IResult<TResult, TInfo> =>
@@ -177,7 +198,6 @@ public static class Result
     public static TResult OrElse<TResult, TInfo, TValue>(this TResult result, Func<TValue> func)
         where TResult : struct, IValueResult<TResult, TInfo, TValue> =>
         result.IsSuccess ? result : TResult.Success(func());
-
 
 
     public static TValue OrElse<TInfo, TValue>(this Result<TInfo, TValue> result, Func<TValue> func)
@@ -231,4 +251,8 @@ public static class Result
         value = default;
         return false;
     }
+
+    public static TValue ThrowIllegalValueAccess<TInfo, TValue>(TInfo info)
+        => ThrowHelper.ThrowInvalidOperationException<TValue>($"Illegal result access on {info}.");
+
 }

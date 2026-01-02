@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\MeshWiz.OpenCL\MeshWiz.OpenCL.csproj" />
+    <ProjectReference Include="..\MeshWiz.Utility\MeshWiz.Utility.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="aabb.cl" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="OpenTK.Compute">
+      <HintPath>..\..\..\..\.nuget\packages\opentk.compute\4.9.4\lib\netcoreapp3.1\OpenTK.Compute.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

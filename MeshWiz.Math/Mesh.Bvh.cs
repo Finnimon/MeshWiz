@@ -67,8 +67,7 @@ public static partial class Mesh
 
                 if (leftChildLength.OutsideInclusiveRange(0, parent.Length - 1)) continue;
                 BoundedVolume<TNum> leftChild = BoundedVolume<TNum>.MakeLeaf(bboxLeft, parent.Start, leftChildLength);
-                BoundedVolume<TNum> rightChild =
-                    BoundedVolume<TNum>.MakeLeaf(bboxRight, leftChild.End, parent.Length - leftChildLength);
+                BoundedVolume<TNum> rightChild = BoundedVolume<TNum>.MakeLeaf(bboxRight, leftChild.End, parent.Length - leftChildLength);
                 var leftIndex = hierarchy.Add(leftChild);
                 var rightIndex = hierarchy.Add(rightChild);
 

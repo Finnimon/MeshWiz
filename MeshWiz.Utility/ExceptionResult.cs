@@ -1,4 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
+using CommunityToolkit.Diagnostics;
 
 namespace MeshWiz.Utility;
 
@@ -67,9 +69,11 @@ public readonly struct ExceptionResult<T> : IValueResult<ExceptionResult<T>, Exc
 
     public T Value
     {
-        get => IsSuccess ? (T)_value! : throw Info;
+        get => IsSuccess ? (T)_value! : Rethrow(Info);
         private init => _value = value;
     }
+    [DoesNotReturn]
+    private static T Rethrow(Exception ex) => Result.ThrowWrappingException<T>(ex);
 
     [Pure]
     public static ExceptionResult<T> Success(T value) => new() { IsSuccess = true, Value = value };

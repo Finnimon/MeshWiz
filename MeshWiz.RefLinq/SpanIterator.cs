@@ -118,6 +118,8 @@ public ref struct SpanIterator<TItem>(ReadOnlySpan<TItem> source) : IRefIterator
 
     public static implicit operator SpanIterator<TItem>(ReadOnlySpan<TItem> span)
         => new(span);
+    public static implicit operator SpanIterator<TItem>(Span<TItem> span)
+        => new(span);
 
     public static implicit operator SpanIterator<TItem>(List<TItem> data) => new(CollectionsMarshal.AsSpan(data));
 
@@ -226,4 +228,58 @@ public ref struct SpanIterator<TItem>(ReadOnlySpan<TItem> source) : IRefIterator
         => new(prepend,this);
 
     public static SpanIterator<TItem> Empty() => new(ReadOnlySpan<TItem>.Empty);
+
+    /// <inheritdoc />
+    public TItem Min()
+        => Min(null);
+
+    /// <inheritdoc />
+    public TItem Max()
+        => Max(null);
+
+    /// <inheritdoc />
+    public TItem? MinOrDefault()
+        => MinOrDefault(null);
+
+    /// <inheritdoc />
+    public TItem? MaxOrDefault()
+        => MaxOrDefault(null);
+
+    /// <inheritdoc />
+    public TItem Min(IComparer<TItem>? comp)
+    =>Iterator.TryGetMin(this,comp,out var min)?min!:ThrowHelper.ThrowInvalidOperationException<TItem>();
+
+    /// <inheritdoc />
+    public TItem Max(IComparer<TItem>? comp)
+        =>Iterator.TryGetMax(this,comp,out var min)?min!:ThrowHelper.ThrowInvalidOperationException<TItem>();
+
+    /// <inheritdoc />
+    public TItem? MinOrDefault(IComparer<TItem>? comp)
+    {
+        Iterator.TryGetMin(this,comp,out var min);
+        return min;
+    }
+
+    /// <inheritdoc />
+    public TItem? MaxOrDefault(IComparer<TItem>? comp)
+    {
+        Iterator.TryGetMax(this,comp,out var min);
+        return min;
+    }
+
+    /// <inheritdoc />
+    public TItem MinBy<T>(Func<TItem, T> bySel) where T : IComparable<T> => Min(Equality.CompareBy(bySel));
+
+    /// <inheritdoc />
+    public TItem MaxBy<T>(Func<TItem, T> bySel) where T : IComparable<T> => Max(Equality.CompareBy(bySel));
+
+    /// <inheritdoc />
+    public TItem? MinOrDefaultBy<T>(Func<TItem, T> bySel) where T : IComparable<T>
+        => MinOrDefault(Equality.CompareBy(bySel));
+
+    /// <inheritdoc />
+    public TItem? MaxOrDefaultBy<T>(Func<TItem, T> bySel) where T : IComparable<T>
+        => MaxOrDefault(Equality.CompareBy(bySel));
+
+
 }

@@ -1,4 +1,5 @@
 using System.Collections;
+using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 
 namespace MeshWiz.RefLinq;
@@ -182,4 +183,56 @@ public record AdapterIterator<T>(IEnumerable<T> Source) : IRefIterator<AdapterIt
     public ConcatIterator<ItemIterator<T>,AdapterIterator<T>, T> Prepend(T prepend) 
         => new(prepend,this);
     public static AdapterIterator<T> Empty()=>new([]);
+    
+    
+    /// <inheritdoc />
+    public T Min()
+        => Min(null);
+
+    /// <inheritdoc />
+    public T Max()
+        => Max(null);
+
+    /// <inheritdoc />
+    public T? MinOrDefault()
+        => MinOrDefault(null);
+
+    /// <inheritdoc />
+    public T? MaxOrDefault()
+        => MaxOrDefault(null);
+
+    /// <inheritdoc />
+    public T Min(IComparer<T>? comp)
+        =>Iterator.TryGetMin(this,comp,out var min)?min!:ThrowHelper.ThrowInvalidOperationException<T>();
+
+    /// <inheritdoc />
+    public T Max(IComparer<T>? comp)
+        =>Iterator.TryGetMax(this,comp,out var min)?min!:ThrowHelper.ThrowInvalidOperationException<T>();
+
+    /// <inheritdoc />
+    public T? MinOrDefault(IComparer<T>? comp)
+    {
+        Iterator.TryGetMin(this,comp,out var min);
+        return min;
+    }
+
+    /// <inheritdoc />
+    public T? MaxOrDefault(IComparer<T>? comp)
+    {
+        Iterator.TryGetMax(this,comp,out var min);
+        return min;
+    }
+
+
+    public T MinBy<TKey>(Func<T, TKey> bySel) where TKey : IComparable<TKey> => Min(Equality.CompareBy(bySel));
+
+    /// <inheritdoc />
+    public T MaxBy<TKey>(Func<T, TKey> bySel) where TKey : IComparable<TKey> => Max(Equality.CompareBy(bySel));
+
+    /// <inheritdoc />
+    public T? MinOrDefaultBy<TKey>(Func<T, TKey> bySel) where TKey : IComparable<TKey>
+        => MinOrDefault(Equality.CompareBy(bySel));
+
+    /// <inheritdoc />
+    public T? MaxOrDefaultBy<T1>(Func<T, T1> bySel) where T1 : IComparable<T1> => MaxOrDefault(Equality.CompareBy(bySel));
 }

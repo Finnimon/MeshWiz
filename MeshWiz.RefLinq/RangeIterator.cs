@@ -332,4 +332,57 @@ public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter
         => new(prepend,this);
 
     public static RangeIterator<TIter, TItem> Empty() => new(TIter.Empty(), Range.All, 0);
+    
+    
+    /// <inheritdoc />
+    public TItem Min()
+        => Min(null);
+
+    /// <inheritdoc />
+    public TItem Max()
+        => Max(null);
+
+    /// <inheritdoc />
+    public TItem? MinOrDefault()
+        => MinOrDefault(null);
+
+    /// <inheritdoc />
+    public TItem? MaxOrDefault()
+        => MaxOrDefault(null);
+
+    /// <inheritdoc />
+    public TItem Min(IComparer<TItem>? comp)
+        =>Iterator.TryGetMin(this,comp,out var min)?min!:ThrowHelper.ThrowInvalidOperationException<TItem>();
+
+    /// <inheritdoc />
+    public TItem Max(IComparer<TItem>? comp)
+        =>Iterator.TryGetMax(this,comp,out var min)?min!:ThrowHelper.ThrowInvalidOperationException<TItem>();
+
+    /// <inheritdoc />
+    public TItem? MinOrDefault(IComparer<TItem>? comp)
+    {
+        Iterator.TryGetMin(this,comp,out var min);
+        return min;
+    }
+
+    /// <inheritdoc />
+    public TItem? MaxOrDefault(IComparer<TItem>? comp)
+    {
+        Iterator.TryGetMax(this,comp,out var min);
+        return min;
+    }
+
+    /// <inheritdoc />
+    public TItem MinBy<TKey>(Func<TItem, TKey> bySel) where TKey : IComparable<TKey> => Min(Equality.CompareBy(bySel));
+
+    /// <inheritdoc />
+    public TItem MaxBy<TKey>(Func<TItem, TKey> bySel) where TKey : IComparable<TKey> => Max(Equality.CompareBy(bySel));
+
+    /// <inheritdoc />
+    public TItem? MinOrDefaultBy<TKey>(Func<TItem, TKey> bySel) where TKey : IComparable<TKey>
+        => MinOrDefault(Equality.CompareBy(bySel));
+
+    /// <inheritdoc />
+    public TItem? MaxOrDefaultBy<TKey>(Func<TItem, TKey> bySel) where TKey : IComparable<TKey>
+        => MaxOrDefault(Equality.CompareBy(bySel));
 }

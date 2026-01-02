@@ -36,19 +36,25 @@ public sealed class BoundedVolumeHierarchy<TNum>
 
     BoundedVolume<TNum> IReadOnlyList<BoundedVolume<TNum>>.this[int index] => this[index];
 
-    public ref readonly BoundedVolume<TNum> this[int index]
+    public BoundedVolume<TNum> this[int index]
     {
         get
         {
             if (Count <= (uint)index)
                 IndexThrowHelper.Throw();
-            return ref _nodes[index];
+            return _nodes[index];
+        }
+        set
+        {
+            if (Count <= (uint)index)
+                IndexThrowHelper.Throw();
+            _nodes[index] = value;
         }
     }
 
     public BoundedVolume<TNum>[] GetUnsafeAccess() => _nodes;
 
-    internal ref BoundedVolume<TNum> GetWritable(int index) => ref _nodes[index];
+    public ref BoundedVolume<TNum> GetWritable(int index) => ref _nodes[index];
 
     public IEnumerator<BoundedVolume<TNum>> GetEnumerator()
     {

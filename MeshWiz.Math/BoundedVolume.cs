@@ -43,6 +43,7 @@ public struct BoundedVolume<TNum>
 
     public TNum Cost => Bounds.Size.SquaredLength * TNum.CreateTruncating(Length);
     public int End => Start + Length;
+    public Range LeafRange => Start..End;
 
     public static TNum NodeCost(AABB<Vec3<TNum>> bounds, int triCount)
         => bounds.Size.SquaredLength * TNum.CreateTruncating(triCount);

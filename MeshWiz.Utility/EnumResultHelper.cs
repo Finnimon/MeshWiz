@@ -16,7 +16,7 @@ public static class EnumResultHelper<TInfo>
 
     static EnumResultHelper()
     {
-        var invalidType = false;
+        bool invalidType;
         var type = typeof(TInfo);
         try
         {
@@ -38,11 +38,10 @@ public static class EnumResultHelper<TInfo>
             invalidType = true;
         }
 
-        if (!invalidType)
-            return;
+        if (!invalidType) return;
         ThrowHelper.ThrowNotSupportedException(GetBadTypeMessage());
     }
 
     private static string GetBadTypeMessage()
-        => $"The type {typeof(TInfo)} is not supported. byte must be explicitly convertible to {nameof(TInfo)} and 1 must be defined for enums.";
+        => $"The type {typeof(TInfo)} is not supported. Int32 must be explicitly convertible to {nameof(TInfo)} and 1 must be defined for enums.";
 }

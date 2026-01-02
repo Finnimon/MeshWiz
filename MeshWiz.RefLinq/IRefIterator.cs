@@ -104,4 +104,19 @@ public interface IRefIterator<TSelf, TItem> : IEnumerator<TItem>
     ConcatIterator<TSelf, ItemIterator<TItem>, TItem> Append(TItem append);
     ConcatIterator<ItemIterator<TItem>, TSelf, TItem> Prepend(TItem prepend);
     static abstract TSelf Empty();
+
+    TItem Min();
+    TItem Max();
+    TItem? MinOrDefault();
+    TItem? MaxOrDefault();
+    
+    TItem Min(IComparer<TItem>? comp);
+    TItem Max(IComparer<TItem>? comp);
+    TItem? MinOrDefault(IComparer<TItem>? comp);
+    TItem? MaxOrDefault(IComparer<TItem>? comp);
+    
+    TItem MinBy<T>(Func<TItem,T> bySel) where T:IComparable<T>;
+    TItem MaxBy<T>(Func<TItem,T> bySel) where T:IComparable<T>;
+    TItem? MinOrDefaultBy<T>(Func<TItem,T> bySel) where T:IComparable<T>;
+    TItem? MaxOrDefaultBy<T>(Func<TItem,T> bySel) where T:IComparable<T>;
 }

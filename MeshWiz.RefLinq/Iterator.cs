@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -102,12 +103,12 @@ public static class Iterator
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static List<TItem> ToList<TIter, TItem>(TIter iter)
-        where TIter : IRefIterator<TIter, TItem>, allows ref struct 
+        where TIter : IRefIterator<TIter, TItem>, allows ref struct
         => AddToArrBuilderThen<TIter, TItem, List<TItem>>(iter, x => x.ToList());
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static T AddToArrBuilderThen<TIter, TItem, T>(TIter iter, Func<SegmentedArrayBuilder<TItem>, T> then)
-    where TIter:IRefIterator<TIter,TItem>,allows ref struct
+        where TIter : IRefIterator<TIter, TItem>, allows ref struct
     {
         Unsafe.SkipInit(out InlineArray8<TItem> scratchMem);
         Span<TItem> scratch = scratchMem;
@@ -213,5 +214,38 @@ public static class Iterator
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(count, 0);
         return new ItemIterator<T>(item, count);
+    }
+
+    public static bool TryGetMin<TIter, TItem>(TIter iter, IComparer<TItem>? comp,
+        [NotNullWhen(returnValue: true)] out TItem? min)
+        where TIter : IRefIterator<TIter, TItem>, allows ref struct
+    {
+        var comparer = comp ?? Comparer<TItem>.Default;
+        var first = Bool.Once();
+        min = default;
+        while (iter.MoveNext())
+        {
+            var cur = iter.Current;
+            if (first || comparer.Compare(min, cur) > 0) min = cur;
+        }
+
+        return !first;
+    }
+
+    public static bool TryGetMax<TIter, TItem>(TIter iter, IComparer<TItem>? comp,
+        [NotNullWhen(returnValue: true)] out TItem? min)
+        where TIter : IRefIterator<TIter, TItem>, allows ref struct
+    {
+        iter.Reset();
+        var comparer = comp ?? Comparer<TItem>.Default;
+        var first = Bool.Once();
+        min = default;
+        while (iter.MoveNext())
+        {
+            var cur = iter.Current;
+            if (first || comparer.Compare(min, cur) > 0) min = cur;
+        }
+
+        return !first;
     }
 }

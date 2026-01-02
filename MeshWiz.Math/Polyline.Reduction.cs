@@ -8,12 +8,13 @@ public static partial class Polyline
 {
     public static class Reduction
     {
-        public static Polyline<TVec, TNum> DouglasPeucker<TVec, TNum>(Polyline<TVec, TNum> polyline, TNum? eps=null)
+        public static Polyline<TVec, TNum> DouglasPeucker<TVec, TNum>(Polyline<TVec, TNum> polyline, TNum eps=default)
             where TVec : unmanaged, IVec<TVec, TNum>
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
-            eps ??= Numbers<TNum>.ZeroEpsilon;
-            var epsilon = TNum.Abs(eps.Value);
+            if (eps == default)
+                eps = Numbers<TNum>.ZeroEpsilon;
+            var epsilon = TNum.Abs(eps);
             if (epsilon < TNum.Epsilon) return polyline;
 
             var ptSpan = polyline.Points;

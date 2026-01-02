@@ -7,12 +7,20 @@
 
     <ItemGroup>
       <ProjectReference Include="..\MeshWiz.Math.Benchmark\MeshWiz.Math.Benchmark.csproj" />
+      <ProjectReference Include="..\MeshWiz.Math.OpenCL\MeshWiz.Math.OpenCL.csproj" />
       <ProjectReference Include="..\MeshWiz.Math\MeshWiz.Math.csproj" />
       <ProjectReference Include="..\MeshWiz.OpenCL\MeshWiz.OpenCL.csproj" />
+      <ProjectReference Include="..\MeshWiz.RefLinq\MeshWiz.RefLinq.csproj" />
     </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="bvh.sah.cl">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
 </Project>

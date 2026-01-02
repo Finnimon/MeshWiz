@@ -203,4 +203,45 @@ public struct ItemIterator<T> : IRefIterator<ItemIterator<T>, T>
 
     /// <inheritdoc />
     public static ItemIterator<T> Empty() => new(default, 0);
+
+
+    /// <inheritdoc />
+    public T Min() => First();
+
+    /// <inheritdoc />
+    public T Max() => First();
+
+    /// <inheritdoc />
+    public T? MinOrDefault() => FirstOrDefault();
+
+    /// <inheritdoc />
+    public T? MaxOrDefault()
+        => FirstOrDefault();
+    /// <inheritdoc />
+    public T Min(IComparer<T>? comp)
+        => First();
+    /// <inheritdoc />
+    public T Max(IComparer<T>? comp)
+        => First();
+    /// <inheritdoc />
+    public T? MinOrDefault(IComparer<T>? comp)
+        => FirstOrDefault();
+
+    /// <inheritdoc />
+    public T? MaxOrDefault(IComparer<T>? comp)
+        => FirstOrDefault();
+
+    /// <inheritdoc />
+    public T MinBy<TKey>(Func<T, TKey> bySel) where TKey : IComparable<TKey> => First();
+
+    /// <inheritdoc />
+    public T MaxBy<TKey>(Func<T, TKey> bySel) where TKey : IComparable<TKey> => First();
+
+    /// <inheritdoc />
+    public T? MinOrDefaultBy<TKey>(Func<T, TKey> bySel) where TKey : IComparable<TKey>
+        => FirstOrDefault();
+
+    /// <inheritdoc />
+    public T? MaxOrDefaultBy<T1>(Func<T, T1> bySel) where T1 : IComparable<T1>
+        => FirstOrDefault();
 }

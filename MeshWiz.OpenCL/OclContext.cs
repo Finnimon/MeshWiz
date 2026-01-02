@@ -6,7 +6,7 @@ using OpenTK.Compute.OpenCL;
 
 namespace MeshWiz.OpenCL;
 
-public readonly record struct OclContext(IntPtr Handle) : IDisposable
+public readonly record struct OclContext(nint Handle) : IDisposable
 {
     public static implicit operator OclContext(CLContext lowLevel) => new(lowLevel.Handle);
 
@@ -15,38 +15,38 @@ public readonly record struct OclContext(IntPtr Handle) : IDisposable
     public static OclContext Create(CLContext lowLevel) => lowLevel;
 
 
-    public Result<CLResultCode,IntPtr[]> Properties => GetProperties(this);
+    public Result<CLResultCode,nint[]> Properties => GetProperties(this);
     public OclDevice[] Devices => GetDevices(this);
     public int DeviceCount => GetDeviceCount(this);
     public bool IsMultiDevice => DeviceCount != 1;
     public int ReferenceCount => GetReferenceCount(this);
     
-    public static OclContext FromDevices(params OclDevice[] devices)
+    public static Result<CLResultCode,OclContext> Create(params ReadOnlySpan<OclDevice> devices)
     {
-        ArgumentOutOfRangeException.ThrowIfEqual(devices.Length, 0, nameof(devices));
-        OclContext context = CL.CreateContext(IntPtr.Zero, devices.As
-                <OclDevice, CLDevice>().ToArray(),
-            IntPtr.Zero, IntPtr.Zero, out var resultCode);
-        resultCode.ThrowOnError();
-        return context;
+        if(devices.Length==0)
+            return Result<CLResultCode, OclContext>.DefaultFailure;
+        return CL.CreateContext(nint.Zero,
+            devices.As<OclDevice, CLDevice>().ToArray(),
+            0,
+            0,
+            out var resultCode)
+            .AsResult(resultCode)
+            .Select(Create);
     }
 
     public static Result<CLResultCode, byte[]> GetInfo(CLContext context, ContextInfo info)
         => CL.GetContextInfo(context, info, out var bytes).AsResult(bytes);
 
-    public static OclContext FromDevice(OclDevice obj)
-        => FromDevices(obj);
 
-    public static OclContext FromDeviceType(DeviceType type)
+    public static Result<CLResultCode,OclContext> Create(DeviceType type)
     {
-        var context = CL.CreateContextFromType(IntPtr.Zero, type,IntPtr.Zero ,IntPtr.Zero, out var result);
-        result.ThrowOnError();
-        return context;
+        return CL.CreateContextFromType(nint.Zero, type, nint.Zero, nint.Zero, out var code)
+            .AsResult(code).Select(Create);
     }
 
     public static bool TryDeviceType(DeviceType type, out OclContext context, bool log = true)
     {
-        context = CL.CreateContextFromType(IntPtr.Zero, type,IntPtr.Zero,IntPtr.Zero, out var result);
+        context = CL.CreateContextFromType(0, type,0,0, out var result);
         if (log) result.LogError();
         return result is CLResultCode.Success;
     }
@@ -61,22 +61,22 @@ public readonly record struct OclContext(IntPtr Handle) : IDisposable
     public static Result<CLResultCode,int> GetDeviceCount(CLContext context)
         => GetInfo(context, ContextInfo.NumberOfDevices).Select(b => BitConverter.ToInt32(b));
 
-    public static IntPtr[] GetProperties(CLContext context)
-        => GetInfo(context, ContextInfo.Properties).Select(x => x.As<byte, IntPtr>().ToArray());
+    public static nint[] GetProperties(CLContext context)
+        => GetInfo(context, ContextInfo.Properties).Select(x => x.As<byte, nint>().ToArray());
 
-    public Result<CLResultCode,OclBuffer> CreateBuffer<T>(MemoryFlags flags, Span<T> data) where T : unmanaged 
-        => CL.CreateBuffer(this, flags, data, out var code).AsResult(code)
+    public Result<CLResultCode, OclBuffer<T>> CreateBuffer<T>(MemoryFlags flags, int count) where T : unmanaged
+        => OclBuffer<T>.Create(this, flags, count);
+
+    public Result<CLResultCode,OclBuffer> CreateBuffer(MemoryFlags flags, nuint size) => CL.CreateBuffer(this, flags, size,0, out var code).AsResult(code)
             .Select(OclBuffer.Create);
 
-    public bool TryCreateBuffer<T>(MemoryFlags flags, Span<T> data, out OclBuffer buffer)
-        where T : unmanaged
-        => CreateBuffer(flags, data).TryGetValue(out buffer);
-
-    public bool TryCreateCommandQueue(OclDevice device,IntPtr properties, out OclCommandQueue commandQueue, bool log=true)
+    public Result<CLResultCode, OclCommandQueue> CreateCommandQueue(OclDevice device = default, nint properties = 0)
     {
-        commandQueue= CL.CreateCommandQueueWithProperties(this, device.Handle, properties, out var code);
-        if (log) code.LogError();
-        return code is CLResultCode.Success;
+        if (device == default)
+            device = this.Devices[0];
+        return CL.CreateCommandQueueWithProperties(this, device, properties, out var code)
+            .AsResult(code)
+            .Select(OclCommandQueue.Create);
     }
     
     
@@ -84,4 +84,12 @@ public readonly record struct OclContext(IntPtr Handle) : IDisposable
     /// <inheritdoc />
     public void Dispose() => CL.ReleaseContext(this);
     public Result<CLResultCode> Retain() => CL.RetainContext(this);
+
+
+    public Result<CLResultCode, OclProgram> CreateProgramFromSource(string source)
+    {
+        return CL.CreateProgramWithSource(this, source, out var res)
+            .AsResult(res)
+            .Select(OclProgram.Create);
+    }
 }

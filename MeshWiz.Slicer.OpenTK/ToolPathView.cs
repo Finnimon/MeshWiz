@@ -7,7 +7,6 @@ namespace MeshWiz.Slicer.OpenTK;
 
 public sealed class ToolPathView 
 {
-    /// <inheritdoc />
     public bool Show { get; set; }
 
     public required ICamera Camera { get; set; }
@@ -18,7 +17,6 @@ public sealed class ToolPathView
         set => field = float.Max(value, 1f);
     }
 
-    /// <inheritdoc />
     public bool GLInitialized { get; private set; }
 
     private bool _newGeometry;

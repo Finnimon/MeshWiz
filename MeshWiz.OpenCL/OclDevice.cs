@@ -9,10 +9,11 @@ namespace MeshWiz.OpenCL;
 /// Abstraction Layer for <see cref="CLDevice"/>
 /// </summary>
 /// <param name="Handle">Handle to the hardware device</param>
-public readonly record struct OclDevice(IntPtr Handle) : IDisposable
+public readonly record struct OclDevice(nint Handle) : IDisposable
 {
     public static implicit operator CLDevice(OclDevice oclDevice) => Unsafe.As<OclDevice, CLDevice>(ref oclDevice);
     public static implicit operator OclDevice(CLDevice device) => Unsafe.As<CLDevice, OclDevice>(ref device);
+    public static implicit operator nint(OclDevice dev) => dev.Handle;
 
     public static OclDevice Create(CLDevice lowLevel) => lowLevel;
     public Result<CLResultCode,int> MaxComputeUnits => GetMaxComputeUnits(this);
@@ -23,10 +24,10 @@ public readonly record struct OclDevice(IntPtr Handle) : IDisposable
     public Result<CLResultCode,string> OclVersion => GetOclCVersion(this);
 
     public static Result<CLResultCode,string> GetOclCVersion(CLDevice device)
-        =>GetInfo(device,DeviceInfo.OpenClCVersion).Select(Encoding.ASCII.GetString);
+        =>GetInfo(device,DeviceInfo.OpenClCVersion).Select(OclHelper.GetCLString);
 
     public static Result<CLResultCode,string> GetVersion(CLDevice obj)
-        =>GetInfo(obj,DeviceInfo.Version).Select(Encoding.ASCII.GetString);
+        =>GetInfo(obj,DeviceInfo.Version).Select(OclHelper.GetCLString);
 
 
     public static Result<CLResultCode,DeviceType> GetDeviceType(CLDevice obj)
@@ -41,7 +42,7 @@ public readonly record struct OclDevice(IntPtr Handle) : IDisposable
 
 
     public static Result<CLResultCode,string> GetName(CLDevice obj)
-    =>GetInfo(obj,DeviceInfo.Name).Select(Encoding.ASCII.GetString);
+    =>GetInfo(obj,DeviceInfo.Name).Select(OclHelper.GetCLString);
 
     public static Result<CLResultCode, byte[]> GetInfo(CLDevice obj, DeviceInfo target)
         => CL.GetDeviceInfo(obj, target, out var dat).AsResult(dat);

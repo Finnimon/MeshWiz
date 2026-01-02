@@ -106,8 +106,11 @@ public ref struct SelectIterator<TIter, TIn,TOut>(TIter source, Func<TIn, TOut> 
         Func<TOut, IEnumerable<TMany>> flattener) => new(this, Func.Combine(flattener,Iterator.Adapt));
 
     /// <inheritdoc />
-    public SelectIterator<SelectIterator<TIter, TIn, TOut>, TOut, TOut1> Select<TOut1>(Func<TOut, TOut1> selector) 
+    SelectIterator<SelectIterator<TIter, TIn, TOut>, TOut, TOut1> IRefIterator<SelectIterator<TIter, TIn, TOut>, TOut>.Select<TOut1>(Func<TOut, TOut1> selector) 
         => new(this, selector);
+
+    public SelectIterator<TIter, TIn, TOut2> Select<TOut2>(Func<TOut, TOut2> sel)
+        => new(_source, Func.Combine(_sel, sel));
     
     public SelectManyIterator<SelectIterator<TIter,TIn,TOut>, SpanIterator<TOut2>, TOut, TOut2> SelectMany<TOut2>(
         Func<TOut, SpanIterator<TOut2>> flattener)
@@ -227,4 +230,58 @@ public ref struct SelectIterator<TIter, TIn,TOut>(TIter source, Func<TIn, TOut> 
         => new(prepend,GetEnumerator());
 
     public static SelectIterator<TIter, TIn, TOut> Empty() => new(TIter.Empty(), x => (TOut)(object)x!);//sel can never be called anyway
+    
+    
+    
+    /// <inheritdoc />
+    public TOut Min()
+        => Min(null);
+
+    /// <inheritdoc />
+    public TOut Max()
+        => Max(null);
+
+    /// <inheritdoc />
+    public TOut? MinOrDefault()
+        => MinOrDefault(null);
+
+    /// <inheritdoc />
+    public TOut? MaxOrDefault()
+        => MaxOrDefault(null);
+
+    /// <inheritdoc />
+    public TOut Min(IComparer<TOut>? comp)
+        =>Iterator.TryGetMin(this,comp,out var min)?min!:ThrowHelper.ThrowInvalidOperationException<TOut>();
+
+    /// <inheritdoc />
+    public TOut Max(IComparer<TOut>? comp)
+        =>Iterator.TryGetMax(this,comp,out var min)?min!:ThrowHelper.ThrowInvalidOperationException<TOut>();
+
+    /// <inheritdoc />
+    public TOut? MinOrDefault(IComparer<TOut>? comp)
+    {
+        Iterator.TryGetMin(this,comp,out var min);
+        return min;
+    }
+
+    /// <inheritdoc />
+    public TOut? MaxOrDefault(IComparer<TOut>? comp)
+    {
+        Iterator.TryGetMax(this,comp,out var min);
+        return min;
+    }
+
+    /// <inheritdoc />
+    public TOut MinBy<TKey>(Func<TOut, TKey> bySel) where TKey : IComparable<TKey> => Min(Equality.CompareBy(bySel));
+
+    /// <inheritdoc />
+    public TOut MaxBy<TKey>(Func<TOut, TKey> bySel) where TKey : IComparable<TKey> => Max(Equality.CompareBy(bySel));
+
+    /// <inheritdoc />
+    public TOut? MinOrDefaultBy<TKey>(Func<TOut, TKey> bySel) where TKey : IComparable<TKey>
+        => MinOrDefault(Equality.CompareBy(bySel));
+
+    /// <inheritdoc />
+    public TOut? MaxOrDefaultBy<TKey>(Func<TOut, TKey> bySel) where TKey : IComparable<TKey>
+        => MaxOrDefault(Equality.CompareBy(bySel));
 }

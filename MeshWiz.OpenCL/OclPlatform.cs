@@ -20,7 +20,7 @@ public readonly record struct OclPlatform(IntPtr Handle) : IDisposable
 
     public static Result<CLResultCode,string> GetName(CLPlatform platform) =>
         GetInfo(platform, PlatformInfo.Name)
-            .Select(Encoding.ASCII.GetString);
+            .Select(OclHelper.GetCLString);
 
     public static Result<CLResultCode, byte[]> GetInfo(CLPlatform platform, PlatformInfo info)
         => CL.GetPlatformInfo(platform, info, out var data).AsResult(data);
