@@ -9,27 +9,29 @@ namespace MeshWiz.OpenCL;
 
 public static class OclHelper
 {
-    public static CLResultCode LogError(this CLResultCode clResultCode, [CallerMemberName] string caller = "")
+    public static OclResultCode LogError(this CLResultCode clCode, [CallerMemberName] string caller = "")
     {
-        if (clResultCode is CLResultCode.Success) return clResultCode;
+        var clResultCode=(OclResultCode)clCode;
+        if (clResultCode is OclResultCode.Success) return clResultCode;
         Console.WriteLine(ClErrorMessage(clResultCode, caller));
         return clResultCode;
     }
 
-    public static CLResultCode ThrowOnError(this CLResultCode clResultCode, [CallerMemberName] string caller = "",
-        params CLResultCode[] ignore)
+    public static OclResultCode ThrowOnError(this CLResultCode clCode, [CallerMemberName] string caller = "",
+        params OclResultCode[] ignore)
     {
-        if (clResultCode is CLResultCode.Success || ignore.Contains(clResultCode)) return clResultCode;
+        var clResultCode=(OclResultCode)clCode;
+        if (clResultCode is OclResultCode.Success || ignore.Contains(clResultCode)) return clResultCode;
         throw new InvalidOperationException(ClErrorMessage(clResultCode, caller));
     }
 
-    public static Result<CLResultCode, T> AsResult<T>(this CLResultCode code, T? value)
-        => code is CLResultCode.Success ? value! : code;
+    public static Result<OclResultCode, T> AsResult<T>(this CLResultCode code, T? value)
+        => code is CLResultCode.Success ? value! : (OclResultCode)code;
 
-    public static Result<CLResultCode, T> AsResult<T>(this T? value,CLResultCode code)
+    public static Result<OclResultCode, T> AsResult<T>(this T? value,CLResultCode code)
         => code.AsResult(value);
 
-    private static string ClErrorMessage(CLResultCode clResultCode, string caller) =>
+    private static string ClErrorMessage(OclResultCode clResultCode, string caller) =>
         $"OpenCL Error: {clResultCode} in {caller}";
 
     

@@ -12,7 +12,7 @@ public readonly record struct OclBuffer(IntPtr Handle) : IDisposable
     public static OclBuffer Create(CLBuffer obj) => obj;
 
     public void Dispose() => CL.ReleaseMemoryObject(this);
-    public Result<CLResultCode> Retain() => CL.RetainMemoryObject(this);
+    public Result<OclResultCode> Retain() =>(OclResultCode) CL.RetainMemoryObject(this);
 }
 
 public sealed record OclBuffer<T>(MemoryFlags MemFlags, OclBuffer Underlying, int Count)
@@ -25,22 +25,22 @@ public sealed record OclBuffer<T>(MemoryFlags MemFlags, OclBuffer Underlying, in
     public bool HostCanRead => IsAlive && MemFlags.HasAnyFlags(HostReadFlags());
     public bool HostCanWrite => IsAlive && MemFlags.HasAnyFlags(HostWriteFlags());
 
-    public static Result<CLResultCode, OclBuffer<T>> Create(OclContext context, MemoryFlags flags, int count) =>
+    public static Result<OclResultCode, OclBuffer<T>> Create(OclContext context, MemoryFlags flags, int count) =>
         context.CreateBuffer(flags, GetByteSize(count))
             .Select(buf => new OclBuffer<T>(flags, buf, count));
 
-    public Result<CLResultCode, OclEvent> EnqueueRead(OclCommandQueue queue, T[] into, bool blocking,
+    public Result<OclResultCode, OclEvent> EnqueueRead(OclCommandQueue queue, T[] into, bool blocking,
         nuint byteOffset,
         OclEvent[]? waitlist)
     {
         if (!HostCanRead)
-            return Result<CLResultCode, OclEvent>.DefaultFailure;
+            return Result<OclResultCode, OclEvent>.DefaultFailure;
         var waitFor = waitlist?.As<OclEvent, CLEvent>().ToArray();
         return CL.EnqueueReadBuffer(queue, Underlying, blocking, byteOffset, into, waitFor, out var eventHandle)
             .AsResult<OclEvent>(eventHandle);
     }
 
-    public Result<CLResultCode, T[]> ReadBlocking(OclCommandQueue queue, T[]? into = null,uint itemOffset=0, OclEvent[]? waitlist = null)
+    public Result<OclResultCode, T[]> ReadBlocking(OclCommandQueue queue, T[]? into = null,uint itemOffset=0, OclEvent[]? waitlist = null)
     {
         var targetCount = Count - itemOffset;
         var hostBuffer = into ?? new T[targetCount];
@@ -49,10 +49,10 @@ public sealed record OclBuffer<T>(MemoryFlags MemFlags, OclBuffer Underlying, in
             .Select(_ => hostBuffer);
     }
 
-    public Result<CLResultCode, OclEvent> ReadNonBlocking(OclCommandQueue queue, T[] into,uint itemOffset=0, OclEvent[]? waitlist = null) 
+    public Result<OclResultCode, OclEvent> ReadNonBlocking(OclCommandQueue queue, T[] into,uint itemOffset=0, OclEvent[]? waitlist = null) 
         => EnqueueRead(queue, into, false,GetByteSize((int)itemOffset), waitlist);
 
-    public Task<Result<CLResultCode, T[]>> ReadAsync(OclCommandQueue queue,Range r=default, T[]? into = null,
+    public Task<Result<OclResultCode, T[]>> ReadAsync(OclCommandQueue queue,Range r=default, T[]? into = null,
         OclEvent[]? waitlist = null)
     {
         if(r.Equals(default))
@@ -61,45 +61,45 @@ public sealed record OclBuffer<T>(MemoryFlags MemFlags, OclBuffer Underlying, in
         var hostBuffer=into is null||into.Length!=targetCount?new T[targetCount]:into;
         var res = ReadNonBlocking(queue, hostBuffer,(uint)itemOffset, waitlist);
         return !res.TryGetValue(out var ev)
-            ? Task.FromResult(Result<CLResultCode, T[]>.Failure(res.Info))
+            ? Task.FromResult(Result<OclResultCode, T[]>.Failure(res.Info))
             : ev.MakeAwaitable()
-                .ContinueWith(a => Result<CLResultCode, T[]>.Success(hostBuffer)
+                .ContinueWith(a => Result<OclResultCode, T[]>.Success(hostBuffer)
                     .When(a is { Status: TaskStatus.RanToCompletion, Result: CommandExecutionStatus.Complete }));
     }
 
 
-    public Result<CLResultCode, OclEvent> EnqueueWrite(OclCommandQueue queue, nuint byteOffset, Span<T> data,
+    public Result<OclResultCode, OclEvent> EnqueueWrite(OclCommandQueue queue, nuint byteOffset, Span<T> data,
         bool blocking,
         OclEvent[]? waitlist)
     {
         if (!HostCanWrite)
-            return Result<CLResultCode, OclEvent>.Failure();
+            return Result<OclResultCode, OclEvent>.Failure();
         var waitFor = waitlist?.As<OclEvent, CLEvent>().ToArray();
 
         return CL.EnqueueWriteBuffer(queue, Underlying, blocking, byteOffset, data, waitFor, out var eventHandle)
             .AsResult<OclEvent>(eventHandle);
     }
 
-    public Result<CLResultCode> WriteBlocking(OclCommandQueue queue, Span<T> data, uint itemOffset = 0,
+    public Result<OclResultCode> WriteBlocking(OclCommandQueue queue, Span<T> data, uint itemOffset = 0,
         OclEvent[]? waitlist = null)
         => EnqueueWrite(queue, GetByteSize((int)itemOffset), data, true, waitlist).Info;
 
-    public Task<Result<CLResultCode>> WriteAsync(OclCommandQueue queue, Span<T> data, uint itemOffset = 0,
+    public Task<Result<OclResultCode>> WriteAsync(OclCommandQueue queue, Span<T> data, uint itemOffset = 0,
         OclEvent[]? waitlist = null)
     {
         var res = WriteNonBlocking(queue, data, itemOffset,waitlist);
         return !res.TryGetValue(out var ev)
-            ? Task.FromResult(Result<CLResultCode>.Failure(res.Info))
+            ? Task.FromResult(Result<OclResultCode>.Failure(res.Info))
             : ev.MakeAwaitable()
                 .ContinueWith(a =>
                     a is { Status: TaskStatus.RanToCompletion, Result: CommandExecutionStatus.Complete }
-                        ? Result<CLResultCode>.Success()
-                        : Result<CLResultCode>.Failure());
+                        ? Result<OclResultCode>.Success()
+                        : Result<OclResultCode>.Failure());
         ;
     }
 
 
-    public Result<CLResultCode, OclEvent> WriteNonBlocking(OclCommandQueue queue, Span<T> data, uint itemOffset = 0,
+    public Result<OclResultCode, OclEvent> WriteNonBlocking(OclCommandQueue queue, Span<T> data, uint itemOffset = 0,
         OclEvent[]? waitlist = null) =>
         EnqueueWrite(queue, GetByteSize((int)itemOffset), data, false, waitlist);
 
@@ -110,7 +110,7 @@ public sealed record OclBuffer<T>(MemoryFlags MemFlags, OclBuffer Underlying, in
         MemoryFlags.ReadWrite | MemoryFlags.HostReadOnly | MemoryFlags.ReadOnly|MemoryFlags.WriteOnly;
 
     public static nuint GetByteSize(int count) => (nuint)(count * Unsafe.SizeOf<T>());
-    public Result<CLResultCode> Retain() => _alive.ReadValue() ? Underlying.Retain() : Result<CLResultCode>.Failure();
+    public Result<OclResultCode> Retain() => _alive.ReadValue() ? Underlying.Retain() : Result<OclResultCode>.Failure();
 
     /// <inheritdoc />
     public void Dispose()

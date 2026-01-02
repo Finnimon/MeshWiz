@@ -12,13 +12,13 @@ public readonly partial record struct OclKernel(nint Handle) : IDisposable
     public static implicit operator CLKernel(OclKernel obj) => new(obj.Handle);
     public static implicit operator OclKernel(CLKernel obj) => new(obj.Handle);
 
-    public Result<CLResultCode, int> ReferenceCount => GetRefCount(this);
-    public Result<CLResultCode, int> ArgumentCount => GetNumArgs(this);
-    public Result<CLResultCode, int> MaxSubGroupCount => GetMaxNumSubGroups(this);
-    public Result<CLResultCode, int> CompileSubGroupCount => GetCompileNumSubGroups(this);
-    public Result<CLResultCode, string> FunctionName => GetFunctionName(this);
-    public Result<CLResultCode, OclContext> Context => GetContext(this);
-    public Result<CLResultCode, OclProgram> Program => GetProgram(this);
+    public Result<OclResultCode, int> ReferenceCount => GetRefCount(this);
+    public Result<OclResultCode, int> ArgumentCount => GetNumArgs(this);
+    public Result<OclResultCode, int> MaxSubGroupCount => GetMaxNumSubGroups(this);
+    public Result<OclResultCode, int> CompileSubGroupCount => GetCompileNumSubGroups(this);
+    public Result<OclResultCode, string> FunctionName => GetFunctionName(this);
+    public Result<OclResultCode, OclContext> Context => GetContext(this);
+    public Result<OclResultCode, OclProgram> Program => GetProgram(this);
     public Arg[] Arguments => GetArguments(this);
     public Arg GetArgument(uint index) => GetArgument(this, index);
     public Dictionary<string, Arg> ArgMap => EnumerateArgs().ToDictionary(arg => arg.Name.Value,StringComparer.Ordinal);
@@ -31,43 +31,43 @@ public readonly partial record struct OclKernel(nint Handle) : IDisposable
     public void Retain() => CL.RetainKernel(this);
     public void Dispose() => CL.ReleaseKernel(this);
 
-    public static Result<CLResultCode, byte[]> GetInfo(CLKernel kernel, KernelInfo target)
+    public static Result<OclResultCode, byte[]> GetInfo(CLKernel kernel, KernelInfo target)
         => CL.GetKernelInfo(kernel, target, out var bytes).AsResult(bytes);
 
-    public static Result<CLResultCode, int> GetNumArgs(CLKernel kernel)
+    public static Result<OclResultCode, int> GetNumArgs(CLKernel kernel)
         => GetInfo(kernel, KernelInfo.NumberOfArguments)
             .Select(x => BitConverter.ToInt32(x));
 
-    public static Result<CLResultCode, int> GetRefCount(CLKernel kernel)
+    public static Result<OclResultCode, int> GetRefCount(CLKernel kernel)
         => GetInfo(kernel, KernelInfo.ReferenceCount)
             .Select(x => BitConverter.ToInt32(x));
 
-    public static Result<CLResultCode, int> GetMaxNumSubGroups(CLKernel kernel)
+    public static Result<OclResultCode, int> GetMaxNumSubGroups(CLKernel kernel)
         => GetInfo(kernel, KernelInfo.MaxNumberOfSubGroups)
             .Select(x => BitConverter.ToInt32(x));
 
-    public static Result<CLResultCode, int> GetCompileNumSubGroups(CLKernel kernel)
+    public static Result<OclResultCode, int> GetCompileNumSubGroups(CLKernel kernel)
         => GetInfo(kernel, KernelInfo.CompileNumberOfSubGroups)
             .Select(x => BitConverter.ToInt32(x));
 
-    public static Result<CLResultCode, OclContext> GetContext(CLKernel kernel)
+    public static Result<OclResultCode, OclContext> GetContext(CLKernel kernel)
         => GetInfo(kernel, KernelInfo.Context)
             .Select(x => Unsafe.ReadUnaligned<CLContext>(in x[0]))
             .Select(OclContext.Create);
 
-    public static Result<CLResultCode, OclProgram> GetProgram(CLKernel kernel)
+    public static Result<OclResultCode, OclProgram> GetProgram(CLKernel kernel)
         => GetInfo(kernel, KernelInfo.Program)
             .Select(x => Unsafe.ReadUnaligned<CLProgram>(in x[0]))
             .Select(OclProgram.Create);
 
-    public static Result<CLResultCode, string> GetFunctionName(CLKernel kernel)
+    public static Result<OclResultCode, string> GetFunctionName(CLKernel kernel)
         => GetInfo(kernel, KernelInfo.FunctionName)
             .Select(OclHelper.GetCLString);
 
-    internal static Result<CLResultCode, byte[]> GetArgInfo(CLKernel kernel, uint index, KernelArgInfo target)
+    internal static Result<OclResultCode, byte[]> GetArgInfo(CLKernel kernel, uint index, KernelArgInfo target)
         => CL.GetKernelArgInfo(kernel, index, target, out var bytes).AsResult(bytes);
 
-    internal static Result<CLResultCode, string> GetArgInfoString(CLKernel kernel, uint index, KernelArgInfo target) =>
+    internal static Result<OclResultCode, string> GetArgInfoString(CLKernel kernel, uint index, KernelArgInfo target) =>
         GetArgInfo(kernel, index, target).Select(OclHelper.GetCLString);
 
     public static Arg GetArgument(CLKernel kernel, uint index) => new(kernel, index);
@@ -79,10 +79,10 @@ public readonly partial record struct OclKernel(nint Handle) : IDisposable
                 .Select(i => new Arg(kernel, i))
                 .ToArray();
 
-    public static Result<CLResultCode, byte[]> GetInfo(CLKernel kernel, CLDevice device, KernelWorkGroupInfo target)
+    public static Result<OclResultCode, byte[]> GetInfo(CLKernel kernel, CLDevice device, KernelWorkGroupInfo target)
         => CL.GetKernelWorkGroupInfo(kernel, device, target, out var bytes).AsResult(bytes);
 
-    public Result<CLResultCode, OclEvent> Run(OclCommandQueue queue,
+    public Result<OclResultCode, OclEvent> Run(OclCommandQueue queue,
         nuint[] workSizes,
         nuint[]? globalWorkOffsets = null,
         nuint[]? localWorkSizes = null,
@@ -103,7 +103,7 @@ public readonly partial record struct OclKernel(nint Handle) : IDisposable
     }
     
 
-    public Task<Result<CLResultCode>> RunAsync(OclCommandQueue queue,
+    public Task<Result<OclResultCode>> RunAsync(OclCommandQueue queue,
         nuint[] workSizes,
         nuint[]? globalWorkOffsets = null,
         nuint[]? localWorkSizes = null,
@@ -111,27 +111,27 @@ public readonly partial record struct OclKernel(nint Handle) : IDisposable
     {
         var res= Run(queue,workSizes, globalWorkOffsets, localWorkSizes, waitList);
         return !res.TryGetValue(out var ev)
-            ? Task.FromResult(Result<CLResultCode>.Failure(res.Info))
+            ? Task.FromResult(Result<OclResultCode>.Failure(res.Info))
             : ev.MakeAwaitable()
                 .ContinueWith(a =>
                     a is { Status: TaskStatus.RanToCompletion, Result: CommandExecutionStatus.Complete }
-                        ? Result<CLResultCode>.Success()
-                        : Result<CLResultCode>.Failure());
+                        ? Result<OclResultCode>.Success()
+                        : Result<OclResultCode>.Failure());
     }
     
-    public Task<Result<CLResultCode>> RunAsync(OclCommandQueue queue,
+    public Task<Result<OclResultCode>> RunAsync(OclCommandQueue queue,
         nuint workSize,
         OclEvent[]? waitList = null)
     {
         var res= Run(queue,workSize ,waitList:waitList);
         return !res.TryGetValue(out var ev)
-            ? Task.FromResult(Result<CLResultCode>.Failure(res.Info))
+            ? Task.FromResult(Result<OclResultCode>.Failure(res.Info))
             : ev.MakeAwaitable()
                 .ContinueWith(a =>
                     a is { Status: TaskStatus.RanToCompletion, Result: CommandExecutionStatus.Complete }
-                        ? Result<CLResultCode>.Success()
-                        : Result<CLResultCode>.Failure());
+                        ? Result<OclResultCode>.Success()
+                        : Result<OclResultCode>.Failure());
     }
 
-    public Result<CLResultCode, OclEvent> Run(OclCommandQueue queue, nuint workSizes, OclEvent[]? waitList=null) => Run(queue, [workSizes], waitList: waitList);
+    public Result<OclResultCode, OclEvent> Run(OclCommandQueue queue, nuint workSizes, OclEvent[]? waitList=null) => Run(queue, [workSizes], waitList: waitList);
 }

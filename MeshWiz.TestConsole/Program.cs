@@ -1,11 +1,13 @@
 ﻿using System.Diagnostics;
+using System.Text;
 using MeshWiz.Math;
 using MeshWiz.Math.OpenCL;
 using MeshWiz.OpenCL;
+using MeshWiz.RefLinq;
 using OpenTK.Compute.OpenCL;
 
-var mesh = AABB.From(Vec3<float>.NegativeOne,Vec3<float>.One).Tessellate();
-
+var mesh = new Sphere<float>(default,1).Tessellate(4096,4096);
+var sw=Stopwatch.StartNew();
 using OclContext context=OclContext.Create(DeviceType.Gpu);
 Programs.AABB.ProgramContainer prog= Programs.AABB.Create<Triangle3<float>,Vec3<float>,float>(context);
 using var clProg=prog.Program;
@@ -13,30 +15,13 @@ using OclKernel indexedKernel=prog.CreateIndexed();
 using OclBuffer<Vec3<float>> verts = context.CreateBuffer<Vec3<float>>(MemoryFlags.ReadOnly,mesh.Vertices.Length);
 using OclBuffer<TriangleIndexer> indices = context.CreateBuffer<TriangleIndexer>(MemoryFlags.ReadOnly,mesh.Indices.Length);
 using OclBuffer<AABB<Vec3<float>>> result=context.CreateBuffer<AABB<Vec3<float>>>(MemoryFlags.WriteOnly|MemoryFlags.HostReadOnly,mesh.Count);
-var buildSw = new Stopwatch();
-var kargs = indexedKernel.Arguments;
-kargs[0].Set(0);
-kargs[1].Set(0);
-kargs[2].Set(0);
-buildSw.Restart();
-kargs = indexedKernel.Arguments;
-kargs[0].Set(indices);
-kargs[1].Set(verts);
-kargs[2].Set(result);
-Console.WriteLine(buildSw.Elapsed);
-kargs[0].Set(0);
-kargs[1].Set(0);
-kargs[2].Set(0);
-buildSw = Stopwatch.StartNew();
 var argMap = indexedKernel.ArgMap;
-argMap[nameof(indices)].Set(indices).Info.ThrowOnError();
-argMap[nameof(verts)].Set(verts).Info.ThrowOnError();
-argMap[nameof(result)].Set(result).Info.ThrowOnError();
-Console.WriteLine(buildSw.Elapsed);
+argMap[nameof(indices)].Set(indices);
+argMap[nameof(verts)].Set(verts);
+argMap[nameof(result)].Set(result);
 using OclCommandQueue queue=context.CreateCommandQueue();
 await verts.WriteAsync(queue,mesh.Vertices);
 await indices.WriteAsync(queue,mesh.Indices);
-var sw=Stopwatch.StartNew();
 var execRes=await indexedKernel.RunAsync(queue,[(nuint)mesh.Count]);
 var res=await result.ReadAsync(queue);
 var clTime = sw.Elapsed;
@@ -47,5 +32,13 @@ var cpuTime = sw.Elapsed;
 Console.WriteLine($"{cpuTime} --> {clTime}");
 Console.WriteLine(clBounds.SequenceEqual(cpuBounds));
 
-
-// Console.WriteLine(string.Join("\n",clBounds.Zip(cpuBounds).Select((a,b)=>$"{b}  CLMAX{a.First.Max} CPUMAX{a.Second.Max} - CLMIN{a.First.Min} CPUMIN{a.Second.Min}")));
+//
+// var underlying= Enum.GetValues<CLResultCode>();
+// var sb=new StringBuilder();
+// sb.AppendLine("public enum OclResultCode\n{");
+// foreach (var clResultCode in underlying.OrderDescending())
+// {
+//     sb.AppendLine($"{clResultCode} = {(int)clResultCode},");
+// }
+// sb.AppendLine("}");
+// Console.WriteLine(sb.ToString());
