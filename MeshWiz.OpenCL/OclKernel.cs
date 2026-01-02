@@ -21,7 +21,7 @@ public readonly partial record struct OclKernel(nint Handle) : IDisposable
     public Result<CLResultCode, OclProgram> Program => GetProgram(this);
     public Arg[] Arguments => GetArguments(this);
     public Arg GetArgument(uint index) => GetArgument(this, index);
-    public Arg this[string name] => EnumerateArgs().First(a=> a.Name.Equals(name));
+    public Dictionary<string, Arg> ArgMap => EnumerateArgs().ToDictionary(arg => arg.Name.Value,StringComparer.Ordinal);
 
     private IEnumerable<Arg> EnumerateArgs() => Enumerable.Sequence(0u,(uint)ArgumentCount.Select(i=>i-1).OrElse(0),1u).Select(GetArgument);
 

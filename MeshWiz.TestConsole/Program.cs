@@ -4,20 +4,35 @@ using MeshWiz.Math.OpenCL;
 using MeshWiz.OpenCL;
 using OpenTK.Compute.OpenCL;
 
-var mesh = new Sphere<float>(Vec3<float>.Zero, 1).Tessellate(256,256);
+var mesh = AABB.From(Vec3<float>.NegativeOne,Vec3<float>.One).Tessellate();
 
 using OclContext context=OclContext.Create(DeviceType.Gpu);
-Programs.AABB.ProgramContainer prog= Programs.AABB.Create<float>(context,3,3);
+Programs.AABB.ProgramContainer prog= Programs.AABB.Create<Triangle3<float>,Vec3<float>,float>(context);
 using var clProg=prog.Program;
-
 using OclKernel indexedKernel=prog.CreateIndexed();
 using OclBuffer<Vec3<float>> verts = context.CreateBuffer<Vec3<float>>(MemoryFlags.ReadOnly,mesh.Vertices.Length);
 using OclBuffer<TriangleIndexer> indices = context.CreateBuffer<TriangleIndexer>(MemoryFlags.ReadOnly,mesh.Indices.Length);
 using OclBuffer<AABB<Vec3<float>>> result=context.CreateBuffer<AABB<Vec3<float>>>(MemoryFlags.WriteOnly|MemoryFlags.HostReadOnly,mesh.Count);
-var kArgs = indexedKernel.Arguments;
-indexedKernel[nameof(indices)].Set(indices).Info.ThrowOnError();
-indexedKernel[nameof(verts)].Set(verts).Info.ThrowOnError();
-indexedKernel[nameof(result)].Set(result).Info.ThrowOnError();
+var buildSw = new Stopwatch();
+var kargs = indexedKernel.Arguments;
+kargs[0].Set(0);
+kargs[1].Set(0);
+kargs[2].Set(0);
+buildSw.Restart();
+kargs = indexedKernel.Arguments;
+kargs[0].Set(indices);
+kargs[1].Set(verts);
+kargs[2].Set(result);
+Console.WriteLine(buildSw.Elapsed);
+kargs[0].Set(0);
+kargs[1].Set(0);
+kargs[2].Set(0);
+buildSw = Stopwatch.StartNew();
+var argMap = indexedKernel.ArgMap;
+argMap[nameof(indices)].Set(indices).Info.ThrowOnError();
+argMap[nameof(verts)].Set(verts).Info.ThrowOnError();
+argMap[nameof(result)].Set(result).Info.ThrowOnError();
+Console.WriteLine(buildSw.Elapsed);
 using OclCommandQueue queue=context.CreateCommandQueue();
 await verts.WriteAsync(queue,mesh.Vertices);
 await indices.WriteAsync(queue,mesh.Indices);
@@ -30,7 +45,7 @@ sw.Restart();
 var cpuBounds = mesh.Select(t => t.BBox).ToArray();
 var cpuTime = sw.Elapsed;
 Console.WriteLine($"{cpuTime} --> {clTime}");
-// Console.WriteLine(clBounds.SequenceEqual(cpuBounds));
+Console.WriteLine(clBounds.SequenceEqual(cpuBounds));
 
 
 // Console.WriteLine(string.Join("\n",clBounds.Zip(cpuBounds).Select((a,b)=>$"{b}  CLMAX{a.First.Max} CPUMAX{a.Second.Max} - CLMIN{a.First.Min} CPUMIN{a.Second.Min}")));

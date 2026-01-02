@@ -1,5 +1,7 @@
 using System.Numerics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using MeshWiz.Contracts;
 using MeshWiz.OpenCL;
 using MeshWiz.Utility;
 using OpenTK.Compute.OpenCL;
@@ -17,8 +19,23 @@ public static partial class Programs
             public Result<CLResultCode, OclKernel> CreatePacked() =>
                 Program.CreateKernel($"aabb_packed");
         }
+
+        public static Result<CLResultCode, ProgramContainer> Create<TPointBased, TVec, TNum>(OclContext context)
+            where TPointBased:unmanaged
+            where TVec:unmanaged,IVec<TVec,TNum>
+            where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        {
+            var containerSize = Unsafe.SizeOf<TPointBased>();
+            var dims = TVec.Dimensions;
+            var numSize = Unsafe.SizeOf<TNum>();
+            var vecSize = dims * numSize;
+            if(containerSize%vecSize!=0)
+                return Result<CLResultCode, ProgramContainer>.DefaultFailure;
+            var pCount = containerSize / vecSize;
+            return Create<TNum>(context,(uint)dims,(uint)pCount);
+        }
         public static Result<CLResultCode,ProgramContainer> Create<TNum>(OclContext context,uint dims, uint pts)
-            where TNum : unmanaged, IFloatingPoint<TNum>
+            where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             var source = ForceReadEmbeddedRes("aabb.cl");
             var numName = TNum.Zero switch
@@ -33,6 +50,10 @@ public static partial class Programs
             var defPacked = $"DEFINE_PACKED_AABB_KERNEL({numName}, {dims}, {pts})\n";
             var defIndexed = $"DEFINE_INDEXED_AABB_KERNEL({numName}, {dims}, {pts})\n";
             source = $"{source}{defIndexed}{defPacked}";
+
+            if (numName is "half") source = $"#pragma OPENCL EXTENSION cl_khr_fp16 : enable\n{source}";
+            else if (numName is "double") source = $"#pragma OPENCL EXTENSION cl_khr_fp64 : enable\n{source}";
+            
             var progRes= context.CreateProgramFromSource(source);
             if (!progRes.TryGetValue(out var program))
                 return progRes.Info;
