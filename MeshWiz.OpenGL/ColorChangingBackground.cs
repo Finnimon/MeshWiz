@@ -3,7 +3,7 @@ using MeshWiz.Math;
 using MeshWiz.UpToDate;
 using OpenTK.Mathematics;
 
-namespace MeshWiz.OpenTK;
+namespace MeshWiz.OpenGL;
 
 public class ColorChangingBackground : IOpenGLControl
 {

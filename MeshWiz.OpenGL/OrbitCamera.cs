@@ -3,7 +3,7 @@ using MeshWiz.Math;
 using MeshWiz.Utility.Extensions;
 using OpenTK.Mathematics;
 
-namespace MeshWiz.OpenTK;
+namespace MeshWiz.OpenGL;
 
 public class OrbitCamera(float fovRad, Vec3<float> orbitAround, float distance, float azimuthRad, float pitchRad) : ICamera
 {

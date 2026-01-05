@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Metadata;
-using MeshWiz.OpenTK;
+using MeshWiz.OpenGL;
 
 namespace MeshWiz.Avalonia;
 

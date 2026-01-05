@@ -2,7 +2,7 @@ using System.Drawing;
 using MeshWiz.Math;
 using OpenTK.Mathematics;
 
-namespace MeshWiz.OpenTK;
+namespace MeshWiz.OpenGL;
 
 public class IndexedLineView : IOpenGLControl
 {

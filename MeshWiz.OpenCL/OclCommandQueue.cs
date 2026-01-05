@@ -4,7 +4,7 @@ using OpenTK.Compute.OpenCL;
 
 namespace MeshWiz.OpenCL;
 
-public readonly record struct OclCommandQueue(IntPtr Handle)
+public readonly record struct OclCommandQueue(nint Handle)
     : IDisposable
 {
     public static implicit operator CLCommandQueue(OclCommandQueue obj) =>
@@ -16,7 +16,7 @@ public readonly record struct OclCommandQueue(IntPtr Handle)
     public static OclCommandQueue Create(CLCommandQueue obj) => obj;
 
 
-    public Result<CLResultCode> Retain() => CL.RetainCommandQueue(this);
+    public Result<OclResultCode> Retain() =>(OclResultCode) CL.RetainCommandQueue(this);
     public void Dispose() => CL.ReleaseCommandQueue(this);
-
+    public Result<OclResultCode> Finish() => (OclResultCode)CL.Finish(this);
 }

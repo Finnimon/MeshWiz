@@ -19,6 +19,8 @@ public static class SpanExt
         where TIn : unmanaged
         where TOut : unmanaged
     {
+        if (span.IsEmpty)
+            return ReadOnlySpan<TOut>.Empty;
         var sourceByteCount = span.Length + sizeof(TIn);
         Debug.Assert(sizeof(TIn) % sizeof(TOut) == 0 || sizeof(TOut) % sizeof(TIn) == 0);
         var resultCount = sourceByteCount / sizeof(TOut);

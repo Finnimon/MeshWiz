@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using MeshWiz.Contracts;
 
-namespace MeshWiz.OpenTK;
+namespace MeshWiz.OpenGL;
 
 public static class OpenGLHelper
 {

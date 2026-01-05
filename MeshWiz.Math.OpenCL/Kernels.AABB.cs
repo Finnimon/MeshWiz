@@ -9,7 +9,7 @@ using OpenTK.Compute.OpenCL;
 
 namespace MeshWiz.Math.OpenCL;
 
-public static partial class Programs
+public static partial class MathPrograms
 {
     public static class AABB
     {
@@ -81,7 +81,7 @@ public static partial class Programs
 
     internal static string? ReadEmbeddedRes(string fileName)
     {
-        var type = typeof(Programs);
+        var type = typeof(MathPrograms);
         var assy = Assembly.GetAssembly(type);
         if (assy is null)
             return null;

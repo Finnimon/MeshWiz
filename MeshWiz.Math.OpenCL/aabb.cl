@@ -9,6 +9,7 @@ __kernel void aabb_packed( \
     T##N minv = vload##N(base_idx + 0, verts); \
     T##N maxv = minv; \
     \
+    __attribute__((opencl_unroll_hint)) \
     for (int offset = 1; offset < PTS; offset++) { \
         T##N cur = vload##N(base_idx + offset, verts); \
         minv = fmin(minv, cur); \
@@ -32,6 +33,7 @@ __kernel void aabb_indexed( \
     T##N minv = vload##N(indices[base_idx], verts); \
     T##N maxv = minv; \
     \
+    __attribute__((opencl_unroll_hint)) \
     for (int offset = 1; offset < PTS; offset++) { \
         T##N cur = vload##N(indices[base_idx + offset], verts); \
         minv = fmin(minv, cur); \

@@ -1,6 +1,6 @@
 using OpenTK.Mathematics;
 
-namespace MeshWiz.OpenTK;
+namespace MeshWiz.OpenGL;
 
 public class SolidBackground : IOpenGLControl
 {

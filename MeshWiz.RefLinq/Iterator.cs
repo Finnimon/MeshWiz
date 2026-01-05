@@ -75,7 +75,7 @@ public static class Iterator
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryConvertToSpanIter<TIter, TItem>(this TIter iter, out SpanIterator<TItem> span)
+    internal static bool TryConvertToSpanIter<TIter, TItem>(this TIter iter, out SpanIterator<TItem> span)
         where TIter : allows ref struct
     {
         span = default;

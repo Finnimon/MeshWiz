@@ -5,7 +5,7 @@ using Vector4 = OpenTK.Mathematics.Vector4;
 using Vector3 = OpenTK.Mathematics.Vector3;
 using Vector2 = OpenTK.Mathematics.Vector2;
 
-namespace MeshWiz.OpenTK;
+namespace MeshWiz.OpenGL;
 
 public static class MathExt
 {

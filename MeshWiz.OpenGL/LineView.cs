@@ -2,7 +2,7 @@ using MeshWiz.Math;
 using MeshWiz.UpToDate;
 using OpenTK.Mathematics;
 using SysColor=System.Drawing.Color;
-namespace MeshWiz.OpenTK;
+namespace MeshWiz.OpenGL;
 
 public class LineView : IOpenGLControl
 {

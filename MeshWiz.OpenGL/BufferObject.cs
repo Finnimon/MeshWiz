@@ -1,7 +1,4 @@
-using System.Runtime.CompilerServices;
-using OpenTK.Mathematics;
-
-namespace MeshWiz.OpenTK;
+namespace MeshWiz.OpenGL;
 
 public sealed record BufferObject(int Handle, BufferTarget Target)
 {

@@ -133,5 +133,20 @@ public readonly partial record struct OclKernel(nint Handle) : IDisposable
                         : Result<OclResultCode>.Failure());
     }
 
-    public Result<OclResultCode, OclEvent> Run(OclCommandQueue queue, nuint workSizes, OclEvent[]? waitList=null) => Run(queue, [workSizes], waitList: waitList);
+    public Result<OclResultCode, OclEvent> Run(OclCommandQueue queue, nuint workSizes, OclEvent[]? waitList=null) 
+        => Run(queue, [workSizes], waitList: waitList);
+
+    public Result<OclResultCode, OclEvent> Run(OclQueueManager queue,
+        nuint[] workSizes,
+        nuint[]? globalWorkOffsets = null,
+        nuint[]? localWorkSizes = null)
+    {
+        var res=Run(queue.Underlying,workSizes,globalWorkOffsets,localWorkSizes,waitList:queue.WaitList);
+        if(res.TryGetValue(out var ev)) 
+            queue.Enqueue(ev);
+        return res;
+    }
+
+    public Result<OclResultCode, OclEvent> Run(OclQueueManager queue, nuint workSizes)
+        => Run(queue, [workSizes]);
 }

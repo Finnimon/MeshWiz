@@ -1,11 +1,12 @@
 using System.Runtime.CompilerServices;
+using MeshWiz.RefLinq;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 using OpenTK.Compute.OpenCL;
 
 namespace MeshWiz.OpenCL;
 
-public readonly record struct OclBuffer(IntPtr Handle) : IDisposable
+public readonly record struct OclBuffer(nint Handle) : IDisposable
 {
     public static implicit operator CLBuffer(OclBuffer obj) => Unsafe.As<OclBuffer, CLBuffer>(ref obj);
     public static implicit operator OclBuffer(CLBuffer obj) => Unsafe.As<CLBuffer, OclBuffer>(ref obj);
@@ -51,6 +52,16 @@ public sealed record OclBuffer<T>(MemoryFlags MemFlags, OclBuffer Underlying, in
 
     public Result<OclResultCode, OclEvent> ReadNonBlocking(OclCommandQueue queue, T[] into,uint itemOffset=0, OclEvent[]? waitlist = null) 
         => EnqueueRead(queue, into, false,GetByteSize((int)itemOffset), waitlist);
+    public Result<OclResultCode, OclEvent> ReadNonBlocking(OclQueueManager queue, T[] into,uint itemOffset=0) 
+        => EnqueueRead(queue, into, false,GetByteSize((int)itemOffset), queue.WaitList)
+            .Select(ev =>
+            {
+                queue.Enqueue(ev);
+                return ev;
+            });
+    public Result<OclResultCode, OclEvent> ReadNonBlocking(OclQueueManager queue, out T[] into)
+    =>ReadNonBlocking(queue,(into=new T[Count]));
+
 
     public Task<Result<OclResultCode, T[]>> ReadAsync(OclCommandQueue queue,Range r=default, T[]? into = null,
         OclEvent[]? waitlist = null)
@@ -74,7 +85,7 @@ public sealed record OclBuffer<T>(MemoryFlags MemFlags, OclBuffer Underlying, in
     {
         if (!HostCanWrite)
             return Result<OclResultCode, OclEvent>.Failure();
-        var waitFor = waitlist?.As<OclEvent, CLEvent>().ToArray();
+        var waitFor = waitlist?.Iterate().Select<CLEvent>(ev=>ev).ToArray();
 
         return CL.EnqueueWriteBuffer(queue, Underlying, blocking, byteOffset, data, waitFor, out var eventHandle)
             .AsResult<OclEvent>(eventHandle);
@@ -102,6 +113,14 @@ public sealed record OclBuffer<T>(MemoryFlags MemFlags, OclBuffer Underlying, in
     public Result<OclResultCode, OclEvent> WriteNonBlocking(OclCommandQueue queue, Span<T> data, uint itemOffset = 0,
         OclEvent[]? waitlist = null) =>
         EnqueueWrite(queue, GetByteSize((int)itemOffset), data, false, waitlist);
+    
+    public Result<OclResultCode, OclEvent> WriteNonBlocking(OclQueueManager queue, Span<T> data, uint itemOffset = 0)
+    {
+        var res= EnqueueWrite(queue, GetByteSize((int)itemOffset), data, false, queue.WaitList);
+        if(res.TryGetValue(out var ev))
+            queue.Enqueue(ev);
+        return res;
+    }
 
     private static MemoryFlags HostWriteFlags() =>
         MemoryFlags.ReadWrite | MemoryFlags.HostWriteOnly | MemoryFlags.ReadOnly|MemoryFlags.WriteOnly;

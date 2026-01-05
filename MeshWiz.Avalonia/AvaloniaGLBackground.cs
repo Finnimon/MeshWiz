@@ -1,5 +1,5 @@
 using Avalonia.Media;
-using MeshWiz.OpenTK;
+using MeshWiz.OpenGL;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 

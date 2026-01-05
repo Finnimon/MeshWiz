@@ -8,7 +8,7 @@ using Avalonia.OpenGL;
 using Avalonia.OpenGL.Controls;
 using Avalonia.Threading;
 using MeshWiz.Math;
-using MeshWiz.OpenTK;
+using MeshWiz.OpenGL;
 using MeshWiz.Utility.Extensions;
 using OpenTK.Graphics.OpenGL;
 

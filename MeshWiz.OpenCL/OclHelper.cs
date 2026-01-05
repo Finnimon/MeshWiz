@@ -53,4 +53,6 @@ public static class OclHelper
     // ReSharper disable once InconsistentNaming
     public static string[] GetCLStrings(ReadOnlySpan<byte> nullTerminatedAsciiStrings)
         => GetCLString(nullTerminatedAsciiStrings).Split(';');
+
+    public static OclQueueManager Managed(this OclCommandQueue queue) => new(queue);
 }
