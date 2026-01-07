@@ -13,7 +13,7 @@ public class VectorByRefBench<TNum> where TNum : unmanaged, IFloatingPointIeee75
         _vectors=new  Vec3<TNum>[20];
         var rand=new Random();
         for (int i = 0; i < _vectors.Length; i++)
-            _vectors[i] = new(
+            _vectors[i] = Vec3<TNum>.Create(
                 TNum.CreateTruncating(rand.NextDouble()),
                 TNum.CreateTruncating(rand.NextDouble()),
                 TNum.CreateTruncating(rand.NextDouble())

@@ -34,7 +34,7 @@ public readonly record struct Sphere<TNum>(Vec3<TNum> Centroid, TNum Radius)
                 var sinPhi = TNum.Sin(phi);
                 var cosPhi = TNum.Cos(phi);
 
-                vertices[i * (slices + 1) + j] = Centroid + new Vec3<TNum>(
+                vertices[i * (slices + 1) + j] = Centroid + Vec3<TNum>.Create(
                     Radius * sinTheta * cosPhi,
                     Radius * cosTheta,
                     Radius * sinTheta * sinPhi

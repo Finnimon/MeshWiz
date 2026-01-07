@@ -1,11 +1,9 @@
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using MeshWiz.Contracts;
 using MeshWiz.OpenCL;
 using MeshWiz.RefLinq;
 using MeshWiz.Utility;
-using OpenTK.Compute.OpenCL;
 
 namespace MeshWiz.Math.OpenCL;
 

@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Text;
 using MeshWiz.Math;
 using MeshWiz.Math.OpenCL;
 using MeshWiz.OpenCL;
@@ -8,6 +7,7 @@ using MeshWiz.Utility;
 using OpenTK.Compute.OpenCL;
 
 var mesh = new Sphere<float>(default, 1).Tessellate(4096, 4096);
+var trisPacked = mesh.ToArray();
 using OclContext context = OclContext.Create(DeviceType.Gpu);
 MathPrograms.AABB.ProgramContainer prog = MathPrograms.AABB.Create<Triangle3<float>, Vec3<float>, float>(context);
 using var clProg = prog.Program;
@@ -25,36 +25,31 @@ argMap[nameof(result)].Set(result);
 using OclQueueManager queue= context.CreateCommandQueue().Select(OclHelper.Managed);
 
 var sw = Stopwatch.StartNew();
-// OclEvent res=verts.WriteNonBlocking(queue,mesh.Vertices);
-// OclEvent indRes =indices.WriteNonBlocking(queue,mesh.Indices);
 await verts.WriteAsync(queue, mesh.Vertices);
 await indices.WriteAsync(queue, mesh.Indices);
 
-// OclEvent execRes = indexedKernel.Run(queue, (nuint)mesh.Count);
 var execRes = await indexedKernel.RunAsync(queue, (nuint)mesh.Count);
 
 AABB<Vec3<float>>[] clBounds = await result.ReadAsync(queue);
-// OclEvent resRead=result.ReadNonBlocking(queue, out var clBounds);
-// var finRes=queue.Finish();
-// if (!finRes)
-//     throw new Exception(finRes.Info.ToString());
 var clTime = sw.Elapsed;
-
+using OclKernel packed = prog.CreatePacked();
+using OclBuffer<Triangle3<float>> packedBuf =
+    context.CreateBuffer<Triangle3<float>>(MemoryFlags.ReadOnly | MemoryFlags.HostWriteOnly, mesh.Count);
+argMap = packed.ArgMap;
+argMap[nameof(verts)].Set(packedBuf);
+argMap[nameof(result)].Set(result);
 sw.Restart();
-var cpuBounds = mesh.Select(t => t.BBox).ToArray();
+await packedBuf.WriteAsync(queue, trisPacked);
+var res=await packed.RunAsync(queue, (nuint)mesh.Count);
+if (!res)
+    throw new Exception();
+AABB<Vec3<float>>[] clBounds2 = await result.ReadAsync(queue);
+var clTime2=sw.Elapsed;
+sw.Restart();
+var cpuBounds = trisPacked.Iterate().Select(t => t.BBox).ToArray();
 var cpuTime = sw.Elapsed;
 var totalBytes = indices.ByteSize + verts.ByteSize + result.ByteSize;
 Console.WriteLine($"GPU GiBYTE Size: {((uint)totalBytes)/1024f/1024f/1024f}");
-Console.WriteLine($"CPUTIME {cpuTime} --> GPUTIME {clTime}");
+Console.WriteLine($"CPUTIME {cpuTime} --> GPUTIME {clTime} --> GPUTIME2 {clTime2}");
 Console.WriteLine($"Success: {clBounds.SequenceEqual(cpuBounds)}");
 
-//
-// var underlying= Enum.GetValues<CLResultCode>();
-// var sb=new StringBuilder();
-// sb.AppendLine("public enum OclResultCode\n{");
-// foreach (var clResultCode in underlying.OrderDescending())
-// {
-//     sb.AppendLine($"{clResultCode} = {(int)clResultCode},");
-// }
-// sb.AppendLine("}");
-// Console.WriteLine(sb.ToString());

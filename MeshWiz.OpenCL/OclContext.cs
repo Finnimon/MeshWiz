@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using MeshWiz.RefLinq;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;

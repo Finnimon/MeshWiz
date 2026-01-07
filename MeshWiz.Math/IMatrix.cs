@@ -28,7 +28,7 @@ public interface IMatrix<TSelf, out TRow, out TCol, TNum>
     public TNum Det { get; }
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public TNum this[int row, int column] { get; }
+    public TNum this[int row, int col] { get; }
 
     public TNum[,] ToArrayFast();
 

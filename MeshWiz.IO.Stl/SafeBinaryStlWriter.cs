@@ -24,13 +24,13 @@ public sealed class SafeBinaryStlWriter<TNum>
             for (var i = 0; i < mesh.Count; i++)
             {
                 var facet = mesh[i];
-                var n = FromOtherNumType(facet.Normal);
+                Vec3<float> n = (facet.Normal);
                 stream.Write(n.ToByteSpan());
-                var vec = FromOtherNumType(facet.A);
+                Vec3<float> vec = (facet.A);
                 stream.Write(vec.ToByteSpan());
-                vec = FromOtherNumType(facet.B);
+                vec = (facet.B);
                 stream.Write(vec.ToByteSpan());
-                vec = FromOtherNumType(facet.C);
+                vec = (facet.C);
                 stream.Write(vec.ToByteSpan());
                 stream.Write(AttribByteCount);
             }
@@ -41,6 +41,4 @@ public sealed class SafeBinaryStlWriter<TNum>
         }
     }
 
-    private static Vec3<float> FromOtherNumType(in Vec3<TNum> vec)
-        =>new(float.CreateTruncating(vec.X), float.CreateTruncating(vec.Y), float.CreateTruncating(vec.Z));
 }

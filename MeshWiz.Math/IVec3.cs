@@ -1,4 +1,3 @@
-using System.Diagnostics.Contracts;
 using System.Numerics;
 
 namespace MeshWiz.Math;

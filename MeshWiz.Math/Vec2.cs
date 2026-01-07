@@ -88,17 +88,17 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
     }
 
     /// <inheritdoc />
-    public static Vec2<TNum> FromValue(TNum value)
+    public static Vec2<TNum> Create(TNum value)
         => new(value);
 
     /// <inheritdoc />
-    public static Vec2<TNum> FromValue<TOtherNum>(TOtherNum other) where TOtherNum : INumberBase<TOtherNum>
+    public static Vec2<TNum> Create<TOtherNum>(TOtherNum other) where TOtherNum : INumberBase<TOtherNum>
         => new(TNum.CreateTruncating(other));
 
     public Vec2(TNum s) : this(s, s) { }
 
 
-    [Pure] public static uint Dimensions => 2;
+    [Pure] public static int Dimensions => 2;
     [Pure] public TNum Length => TNum.Sqrt(SquaredLength);
 
     [Pure]
@@ -259,9 +259,8 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            if (1 < (uint)index)
-                IndexThrowHelper.Throw(index, Count);
-            return Unsafe.AddByteOffset(ref Unsafe.AsRef(in X),Unsafe.SizeOf<TNum>() * index);
+            if (1 < (uint)index) IndexThrowHelper.Throw(index, Dimensions);
+            return Vec<TNum>.GetElement(in this, index);
         }
     }
 
@@ -281,7 +280,7 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
     #endregion
 
     public static explicit operator Vec3<TNum>(Vec2<TNum> vec)
-        => new(vec.X, vec.Y, TNum.Zero);
+        => Vec3<TNum>.Create(vec.X, vec.Y, TNum.Zero);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Deconstruct(out TNum x, out TNum y)
@@ -865,8 +864,7 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
         if(1u<(uint)index)
             IndexThrowHelper.Throw();
         var copy = this;
-        ref var xRef=ref Unsafe.AsRef(in copy.X);
-        Unsafe.AddByteOffset(ref xRef, Unsafe.SizeOf<TNum>() * index) = elem;
+        Vec<TNum>.SetElement(in copy, index,elem);
         return copy;
     }
 }

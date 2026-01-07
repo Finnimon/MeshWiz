@@ -17,7 +17,7 @@ public interface IVec<TSelf, TNum>
     {
         if (value is TNum)
         {
-            result = TSelf.FromValue(value);
+            result = TSelf.Create(value);
             return true;
         }
 
@@ -30,7 +30,7 @@ public interface IVec<TSelf, TNum>
         var valueIsPrimitive = IsBasicNumberType(value);
         if (valueIsPrimitive)
         {
-            result = TSelf.FromValue(value);
+            result = TSelf.Create(value);
             return true;
         }
 
@@ -69,7 +69,7 @@ public interface IVec<TSelf, TNum>
     {
         if (value is TNum)
         {
-            result = TSelf.FromValue(value);
+            result = TSelf.Create(value);
             return true;
         }
 
@@ -82,7 +82,7 @@ public interface IVec<TSelf, TNum>
         var valueIsPrimitive = IsBasicNumberType(value);
         if (valueIsPrimitive)
         {
-            result = TSelf.FromValue(value);
+            result = TSelf.Create(value);
             return true;
         }
 
@@ -121,7 +121,7 @@ public interface IVec<TSelf, TNum>
     {
         if (value is TNum)
         {
-            result = TSelf.FromValue(value);
+            result = TSelf.Create(value);
             return true;
         }
 
@@ -134,7 +134,7 @@ public interface IVec<TSelf, TNum>
         var valueIsPrimitive = IsBasicNumberType(value);
         if (valueIsPrimitive)
         {
-            result = TSelf.FromValue(value);
+            result = TSelf.Create(value);
             return true;
         }
 

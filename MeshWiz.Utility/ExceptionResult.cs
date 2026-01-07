@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
-using CommunityToolkit.Diagnostics;
 
 namespace MeshWiz.Utility;
 

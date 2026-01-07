@@ -4,12 +4,10 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
-using MeshWiz.Collections;
 using MeshWiz.IO.Stl;
 using MeshWiz.Math;
 using MeshWiz.OpenGL;
 using MeshWiz.Utility;
-using MeshWiz.Utility.Extensions;
 using OpenTK.Mathematics;
 
 namespace MeshWiz.UI.Avalonia;
@@ -83,7 +81,7 @@ public partial class MainWindow : Window
         // Console.WriteLine($"Par: {el} Seq: {elapsed}");
         sw.Restart(); //0x139
         var start = surface.SweepCurve.Traverse(0.5);
-        var dir = new Vec3<double>(0.8, 0.5, 0);
+        var dir = Vec3<double>.Create(0.8, 0.5, 0);
         
         var period = surface.TracePeriod(start,
             dir);
@@ -123,7 +121,7 @@ public partial class MainWindow : Window
         var distance = mesh.BBox.Min.DistanceTo(mesh.BBox.Max) * 2;
         camera.Distance = 0.5f;
         var pC = poses[^1].EndPose.Position.To<float>();
-        var d = new Vec3<float>(0, 0, pC.Z);
+        var d = Vec3<float>.Create(0, 0, pC.Z);
         Console.WriteLine($"{d} {pC} {d.DistanceTo(pC)} {surface.Axis.Direction}");
         var circ = new Circle3<float>(d, surface.Axis.Direction.To<float>(), d.DistanceTo(pC));
         camera.LookAt = mesh.VertexCentroid;

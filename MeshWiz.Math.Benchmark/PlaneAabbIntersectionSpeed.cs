@@ -13,7 +13,7 @@ public class PlaneAabbIntersectionSpeed
     public void Setup()
     {
         Box = AABB<Vec3<float>>.Around(Vec3<float>.Zero, Vec3<float>.One * BoxSize);
-        Plane = new Plane3<float>(new Vec3<float>(0, 0, 1),D);
+        Plane = new Plane3<float>(Vec3<float>.Create(0, 0, 1),D);
     }
 
     [Benchmark(Baseline = true)]

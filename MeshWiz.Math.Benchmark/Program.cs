@@ -1,5 +1,7 @@
 ﻿using BenchmarkDotNet.Running;
 using MeshWiz.Math.Benchmark;
 
-
-BenchmarkRunner.Run<GeodesicBench<double>>();
+// VecMathBench<float> b = new();
+// b.Setup();
+// Console.WriteLine(b.MulOld()==b.VecMul());
+BenchmarkRunner.Run<VecMathBench>();

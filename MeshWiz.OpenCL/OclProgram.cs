@@ -1,8 +1,6 @@
 using System.Runtime.CompilerServices;
-using System.Text;
 using MeshWiz.RefLinq;
 using MeshWiz.Utility;
-using MeshWiz.Utility.Extensions;
 using OpenTK.Compute.OpenCL;
 
 namespace MeshWiz.OpenCL;

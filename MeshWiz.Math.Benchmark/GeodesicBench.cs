@@ -2,7 +2,6 @@ using System.Numerics;
 using BenchmarkDotNet.Attributes;
 using MeshWiz.IO.Stl;
 using MeshWiz.Utility;
-using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math.Benchmark;
 
@@ -19,7 +18,7 @@ where TNum:unmanaged,IFloatingPointIeee754<TNum>
     {
         Surface = GetSurface();
         Start = Surface.SweepCurve.Traverse(Numbers<TNum>.Half);
-        Dir = new Vec3<double>(0.8, 0.5, 0).To<TNum>();
+        Dir = Vec3<double>.Create(0.8, 0.5, 0).To<TNum>();
         _periodicalInfo = TracePeriod();
     }
     private static RotationalSurface<TNum> GetSurface()

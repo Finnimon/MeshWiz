@@ -96,13 +96,13 @@ public sealed class BBoxView : IOpenGLControl
 
         Vec3<float>[] verts = [
             min,
-            new(max.X, min.Y, min.Z),
-            new(max.X, max.Y, min.Z),
-            new(min.X, max.Y, min.Z),
-            new(min.X, min.Y, max.Z),
-            new(max.X, min.Y, max.Z),
+            Vec3<float>.Create(max.X, min.Y, min.Z),
+            Vec3<float>.Create(max.X, max.Y, min.Z),
+            Vec3<float>.Create(min.X, max.Y, min.Z),
+            Vec3<float>.Create(min.X, min.Y, max.Z),
+            Vec3<float>.Create(max.X, min.Y, max.Z),
             max,
-            new(min.X, max.Y, max.Z)
+            Vec3<float>.Create(min.X, max.Y, max.Z)
         ];
         _vbo.BindAnd().BufferData(verts,BufferUsageHint.StaticDraw);
         var posLoc = _shaderProgram!.GetAttribLoc("position");

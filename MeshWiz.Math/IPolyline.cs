@@ -1,8 +1,6 @@
 using System.Numerics;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Collections;
-using MeshWiz.Utility;
-using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 

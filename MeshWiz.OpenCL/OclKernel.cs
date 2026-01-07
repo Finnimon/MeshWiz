@@ -1,8 +1,5 @@
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices.Marshalling;
-using System.Text;
 using MeshWiz.Utility;
-using MeshWiz.Utility.Extensions;
 using OpenTK.Compute.OpenCL;
 
 namespace MeshWiz.OpenCL;

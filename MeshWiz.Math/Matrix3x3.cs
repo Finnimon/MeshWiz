@@ -16,12 +16,12 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
 {
     /// <inheritdoc />
     public Vec3<TNum> GetCol(int column)
-        => new(X[column], Y[column], Z[column]);
+        => Mat<TNum>.GetCol<Matrix3x3<TNum>, Vec3<TNum>, Vec3<TNum>>(in this, column);
 
 
     /// <inheritdoc />
     public Vec3<TNum> GetRow(int row)
-        => Unsafe.AddByteOffset(ref Unsafe.AsRef(in X), Vec3<TNum>.ByteSize * row);
+        => Mat<TNum>.GetRow<Matrix3x3<TNum>, Vec3<TNum>, Vec3<TNum>>(in this, row);
 
     [Pure]
     public static Matrix3x3<TNum> CreateRotation(Vec3<TNum> axis, TNum angle)
@@ -36,11 +36,12 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
         var y = axis.Y * tAxis;
         var z = axis.Z * tAxis;
         var (sinX, sinY, sinZ) = sin * axis;
-        x += new Vec3<TNum>(cos, -sinZ, sinY);
-        y += new Vec3<TNum>(sinZ, cos, -sinX);
-        z += new Vec3<TNum>(-sinY, sinX, cos);
-        return FromRows(x, y, z);
+        x += Vec3<TNum>.Create(cos, -sinZ, sinY);
+        y += Vec3<TNum>.Create(sinZ, cos, -sinX);
+        z += Vec3<TNum>.Create(-sinY, sinX, cos);
+        return Create(x, y, z);
     }
+
     public static int RowCount => 3;
     public static int ColCount => 3;
 
@@ -80,9 +81,9 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
         TNum m10, TNum m11, TNum m12,
         TNum m20, TNum m21, TNum m22)
     {
-        X = new Vec3<TNum>(m00, m01, m02);
-        Y = new Vec3<TNum>(m10, m11, m12);
-        Z = new Vec3<TNum>(m20, m21, m22);
+        X = Vec3<TNum>.Create(m00, m01, m02);
+        Y = Vec3<TNum>.Create(m10, m11, m12);
+        Z = Vec3<TNum>.Create(m20, m21, m22);
     }
 
     public Matrix3x3(Vec3<TNum> x, Vec3<TNum> y, Vec3<TNum> z)
@@ -94,7 +95,7 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
 
     public Matrix3x3(TNum value)
     {
-        X = new Vec3<TNum>(value);
+        X = Vec3<TNum>.Create(value);
         Y = X;
         Z = Y;
     }
@@ -115,22 +116,31 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
             components[3], components[4], components[5],
             components[6], components[7], components[8]);
 
-    public static Matrix3x3<TNum> FromRows(Vec3<TNum> x, Vec3<TNum> y, Vec3<TNum> z)
-        => new(x, y, z);
+    [MethodImpl(MethodImplOptions.AggressiveInlining),Pure]
+    public static Matrix3x3<TNum> Create(Vec3<TNum> x, Vec3<TNum> y, Vec3<TNum> z)
+    {
+        Unsafe.SkipInit<Matrix3x3<TNum>>(out var m);
+        Mat<TNum>.SetRow<Matrix3x3<TNum>, Vec3<TNum>, Vec3<TNum>>(in m, 0, x);
+        Mat<TNum>.SetRow<Matrix3x3<TNum>, Vec3<TNum>, Vec3<TNum>>(in m, 1, y);
+        Mat<TNum>.SetRow<Matrix3x3<TNum>, Vec3<TNum>, Vec3<TNum>>(in m, 2, z);
+        return m;
+    }
 
     public static Matrix3x3<TNum> FromColumns(Vec3<TNum> c0, Vec3<TNum> c1, Vec3<TNum> c2)
-        => new(c0.X, c1.X, c2.X,
-            c0.Y, c1.Y, c2.Y,
-            c0.Z, c1.Z, c2.Z);
+    {
+        Unsafe.SkipInit<Matrix3x3<TNum>>(out var m);
+        Mat<TNum>.SetCol<Matrix3x3<TNum>, Vec3<TNum>, Vec3<TNum>>(in m, 0, c0);
+        Mat<TNum>.SetCol<Matrix3x3<TNum>, Vec3<TNum>, Vec3<TNum>>(in m, 1, c1);
+        Mat<TNum>.SetCol<Matrix3x3<TNum>, Vec3<TNum>, Vec3<TNum>>(in m, 2, c2);
+        return m;
+    }
 
-    public  TNum this[int row, int column]
+    public TNum this[int row, int col]
     {
         get
         {
-            if (RowCount <= (uint)row || ColCount <= (uint)column)
-                IndexThrowHelper.Throw();
-            var numSize = Unsafe.SizeOf<TNum>();
-            return Unsafe.AddByteOffset(ref Unsafe.AsRef(in X.X), numSize * ColCount * row + column * numSize);
+            if (RowCount <= (uint)row || ColCount <= (uint)col) IndexThrowHelper.Throw();
+            return Mat<TNum>.GetElement<Matrix3x3<TNum>, Vec3<TNum>, Vec3<TNum>>(in this, row, col);
         }
     }
 
@@ -162,21 +172,21 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
             ThrowHelper.ThrowInvalidOperationException("Matrix is singular and cannot solve.");
 
         // Cramer's rule
-        TNum d0 = b.X * (M11 * M22 - M12 * M21)
-                  - M01 * (b.Y * M22 - M12 * b.Z)
-                  + M02 * (b.Y * M21 - M11 * b.Z);
+        var d0 = b.X * (M11 * M22 - M12 * M21)
+                 - M01 * (b.Y * M22 - M12 * b.Z)
+                 + M02 * (b.Y * M21 - M11 * b.Z);
 
-        TNum d1 =
+        var d1 =
             M00 * (b.Y * M22 - M12 * b.Z)
             - b.X * (M10 * M22 - M12 * M20)
             + M02 * (M10 * b.Z - b.Y * M20);
 
-        TNum d2 =
+        var d2 =
             M00 * (M11 * b.Z - b.Y * M21)
             - M01 * (M10 * b.Z - b.Y * M20)
             + b.X * (M10 * M21 - M11 * M20);
 
-        return new Vec3<TNum>(d0 / det, d1 / det, d2 / det);
+        return Vec3<TNum>.Create(d0 / det, d1 / det, d2 / det);
     }
 
     public Matrix3x3<TNum> Transpose()
@@ -236,7 +246,7 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
     }
 
     public Vec3<TNum> Multiply(Vec3<TNum> v)
-        => new(X.Dot(v), Y.Dot(v), Z.Dot(v));
+        => Vec3<TNum>.Create(X.Dot(v), Y.Dot(v), Z.Dot(v));
 
     public static Vec3<TNum> operator *(Matrix3x3<TNum> m, Vec3<TNum> v) => m.Multiply(v);
 
@@ -261,7 +271,7 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
         => new(-mat.X, -mat.Y, -mat.Z);
 
     /// <inheritdoc />
-    public unsafe ReadOnlySpan<TNum> AsSpan() => new(Unsafe.AsPointer(in this),ColCount*RowCount);
+    public unsafe ReadOnlySpan<TNum> AsSpan() => new(Unsafe.AsPointer(in this), ColCount * RowCount);
 
     public override bool Equals(object? obj)
         => obj is Matrix3x3<TNum> m && this == m;

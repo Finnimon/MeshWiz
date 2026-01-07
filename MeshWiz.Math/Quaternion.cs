@@ -2,8 +2,6 @@ using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
-using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
@@ -16,7 +14,7 @@ public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
 {
     public static Quaternion<TNum> Identity => Vec4<TNum>.UnitW;
     public readonly TNum X, Y, Z, W;
-    public Vec3<TNum> Xyz => new(X, Y, Z);
+    public Vec3<TNum> Xyz => Vec3<TNum>.Create(X, Y, Z);
 
     public Quaternion(Vec3<TNum> xyz, TNum w)
     {
@@ -54,7 +52,7 @@ public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
     public static Quaternion<TNum> CreateFromAxisAngle(Vec3<TNum> axis, TNum angle)
     {
         var (sin, num) = TNum.SinCos(angle * Numbers<TNum>.Half);
-        return new Vec4<TNum>(axis, TNum.One) * new Vec4<TNum>(Vec3<TNum>.FromValue(sin), num);
+        return new Vec4<TNum>(axis, TNum.One) * new Vec4<TNum>(Vec3<TNum>.Create(sin), num);
     }
     public (Vec3<TNum> Y, Vec3<TNum> Z) Yz()
     {

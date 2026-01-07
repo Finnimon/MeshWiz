@@ -23,7 +23,7 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
     public TNum Sum => X + Y + Z + W;
 
     /// <inheritdoc />
-    public static Vec4<TNum> FromValue<TOtherNum>(TOtherNum other) where TOtherNum : INumberBase<TOtherNum>
+    public static Vec4<TNum> Create<TOtherNum>(TOtherNum other) where TOtherNum : INumberBase<TOtherNum>
         => new(TNum.CreateTruncating(other));
 
     public Vec4<TNum> Normalized() => this / Length;
@@ -95,7 +95,7 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
         };
 
     /// <inheritdoc />
-    public static Vec4<TNum> FromValue(TNum value)
+    public static Vec4<TNum> Create(TNum value)
         => new(value);
 
 
@@ -257,26 +257,16 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
     public override int GetHashCode() => HashCode.Combine(X, Y, Z, W);
 
     [Pure]
-    public unsafe TNum this[int index]
+    public TNum this[int index]
     {
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
             if (Dimensions <= (uint)index) IndexThrowHelper.Throw(index, Count);
-            fixed (TNum* ptr = &X)
-                return ptr[index];
+            return Vec<TNum>.GetElement(in this, index);
         }
     }
 
-    [Pure]
-    internal unsafe TNum this[uint index]
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            fixed (TNum* ptr = &X) return ptr[index];
-        }
-    }
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public IEnumerator<TNum> GetEnumerator()
@@ -824,8 +814,7 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
         if(3u<(uint)index)
             IndexThrowHelper.Throw();
         var copy = this;
-        ref var xRef=ref Unsafe.AsRef(in copy.X);
-        Unsafe.AddByteOffset(ref xRef, Unsafe.SizeOf<TNum>() * index) = elem;
+        Vec<TNum>.SetElement(in copy, index,elem);
         return copy;
     }
 }

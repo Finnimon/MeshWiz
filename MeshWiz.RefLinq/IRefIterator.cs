@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using MeshWiz.Utility;
 
 namespace MeshWiz.RefLinq;
 

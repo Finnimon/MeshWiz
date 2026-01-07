@@ -120,12 +120,12 @@ public interface IVecBase<TSelf, TNum>
     static abstract TSelf FromComponentsConstrained<TList>(TList components) where TList : IReadOnlyList<TNum>;
 
     [Pure]
-    static abstract TSelf FromValue(TNum value);
+    static abstract TSelf Create(TNum value);
 
     [Pure]
-    static virtual TSelf FromValue<TOtherNum>(TOtherNum other)
+    static virtual TSelf Create<TOtherNum>(TOtherNum other)
         where TOtherNum : SysNum.INumberBase<TOtherNum>
-        => TSelf.FromValue(TNum.CreateTruncating(other));
+        => TSelf.Create(TNum.CreateTruncating(other));
 
     /// <inheritdoc />
     TSelf IPosition<TSelf, TSelf, TNum>.Position => (TSelf)this;

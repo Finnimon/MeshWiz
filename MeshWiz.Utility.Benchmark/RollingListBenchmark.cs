@@ -20,8 +20,8 @@ public class RollingListBenchmark
         var rand = new Random();
         for (int i = 0; i < Size; i++)
         {
-            _prepend[i] = new Vec3<double>(rand.NextDouble(), rand.NextDouble(), rand.NextDouble());
-            _append[i] = new Vec3<double>(rand.NextDouble(), rand.NextDouble(), rand.NextDouble());
+            _prepend[i] = Vec3<double>.Create(rand.NextDouble(), rand.NextDouble(), rand.NextDouble());
+            _append[i] = Vec3<double>.Create(rand.NextDouble(), rand.NextDouble(), rand.NextDouble());
         }
     }
 

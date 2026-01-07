@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using System.Text;
 using MeshWiz.Utility;
 using OpenTK.Compute.OpenCL;
 

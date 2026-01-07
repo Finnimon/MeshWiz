@@ -431,12 +431,12 @@ public static class AABB
         where TNum : unmanaged, IFloatingPointIeee754<TNum> =>
     [
         box.Min, // 000
-        new(box.Min.X, box.Min.Y, box.Max.Z), // 001
-        new(box.Min.X, box.Max.Y, box.Min.Z), // 010
-        new(box.Min.X, box.Max.Y, box.Max.Z), // 011
-        new(box.Max.X, box.Min.Y, box.Min.Z), // 100
-        new(box.Max.X, box.Min.Y, box.Max.Z), // 101
-        new(box.Max.X, box.Max.Y, box.Min.Z), // 110
+        Vec3<TNum>.Create(box.Min.X, box.Min.Y, box.Max.Z), // 001
+        Vec3<TNum>.Create(box.Min.X, box.Max.Y, box.Min.Z), // 010
+        Vec3<TNum>.Create(box.Min.X, box.Max.Y, box.Max.Z), // 011
+        Vec3<TNum>.Create(box.Max.X, box.Min.Y, box.Min.Z), // 100
+        Vec3<TNum>.Create(box.Max.X, box.Min.Y, box.Max.Z), // 101
+        Vec3<TNum>.Create(box.Max.X, box.Max.Y, box.Min.Z), // 110
         box.Max // 111
     ];
 }

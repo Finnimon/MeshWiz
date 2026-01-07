@@ -201,13 +201,13 @@ public readonly struct Plane3<TNum>
         var boxMin = box.Min;
         var boxMax = box.Max;
         var d0 = DistanceSign(boxMin);
-        var d1 = DistanceSign(new Vec3<TNum>(boxMax.X, boxMin.Y, boxMin.Z));
-        var d2 = DistanceSign(new Vec3<TNum>(boxMax.X, boxMax.Y, boxMin.Z));
-        var d3 = DistanceSign(new Vec3<TNum>(boxMin.X, boxMax.Y, boxMin.Z));
-        var d4 = DistanceSign(new Vec3<TNum>(boxMin.X, boxMin.Y, boxMax.Z));
-        var d5 = DistanceSign(new Vec3<TNum>(boxMax.X, boxMin.Y, boxMax.Z));
+        var d1 = DistanceSign(Vec3<TNum>.Create(boxMax.X, boxMin.Y, boxMin.Z));
+        var d2 = DistanceSign(Vec3<TNum>.Create(boxMax.X, boxMax.Y, boxMin.Z));
+        var d3 = DistanceSign(Vec3<TNum>.Create(boxMin.X, boxMax.Y, boxMin.Z));
+        var d4 = DistanceSign(Vec3<TNum>.Create(boxMin.X, boxMin.Y, boxMax.Z));
+        var d5 = DistanceSign(Vec3<TNum>.Create(boxMax.X, boxMin.Y, boxMax.Z));
         var d6 = DistanceSign(boxMax);
-        var d7 = DistanceSign(new Vec3<TNum>(boxMin.X, boxMax.Y, boxMax.Z));
+        var d7 = DistanceSign(Vec3<TNum>.Create(boxMin.X, boxMax.Y, boxMax.Z));
 
         // Track whether we saw both sides of the plane
         return d0 != d1 || d1 != d2 || d2 != d3 || d3 != d4 || d4 != d5 || d5 != d6 || d6 != d7;
@@ -222,14 +222,14 @@ public readonly struct Plane3<TNum>
         // 1) Build the 8 corners
         var min = box.Min;
         var max = box.Max;
-        var v0 = new Vec3<TNum>(min.X, min.Y, min.Z);
-        var v1 = new Vec3<TNum>(max.X, min.Y, min.Z);
-        var v2 = new Vec3<TNum>(max.X, max.Y, min.Z);
-        var v3 = new Vec3<TNum>(min.X, max.Y, min.Z);
-        var v4 = new Vec3<TNum>(min.X, min.Y, max.Z);
-        var v5 = new Vec3<TNum>(max.X, min.Y, max.Z);
-        var v6 = new Vec3<TNum>(max.X, max.Y, max.Z);
-        var v7 = new Vec3<TNum>(min.X, max.Y, max.Z);
+        var v0 = Vec3<TNum>.Create(min.X, min.Y, min.Z);
+        var v1 = Vec3<TNum>.Create(max.X, min.Y, min.Z);
+        var v2 = Vec3<TNum>.Create(max.X, max.Y, min.Z);
+        var v3 = Vec3<TNum>.Create(min.X, max.Y, min.Z);
+        var v4 = Vec3<TNum>.Create(min.X, min.Y, max.Z);
+        var v5 = Vec3<TNum>.Create(max.X, min.Y, max.Z);
+        var v6 = Vec3<TNum>.Create(max.X, max.Y, max.Z);
+        var v7 = Vec3<TNum>.Create(min.X, max.Y, max.Z);
 
         // 2) The 12 edges as Line segments
         var edges = new[]
@@ -269,7 +269,7 @@ public readonly struct Plane3<TNum>
             : 2;
 
         // 6) Compute centroid
-        var c = new Vec3<TNum>(
+        var c = Vec3<TNum>.Create(
             pts.Aggregate(TNum.Zero, (s, v) => s + v.X) / TNum.CreateTruncating(pts.Count),
             pts.Aggregate(TNum.Zero, (s, v) => s + v.Y) / TNum.CreateTruncating(pts.Count),
             pts.Aggregate(TNum.Zero, (s, v) => s + v.Z) / TNum.CreateTruncating(pts.Count)
@@ -447,8 +447,8 @@ public readonly struct Plane3<TNum>
         var sign = TNum.CopySign(TNum.One, n.Z);
         var a = -TNum.One / (sign + n.Z);
         var b = n.X * n.Y * a;
-        var u = new Vec3<TNum>(TNum.One + sign * n.X * n.X * a, sign * b, -sign * n.X);
-        var v = new Vec3<TNum>(b, sign + n.Y * n.Y * a, -n.Y);
+        var u = Vec3<TNum>.Create(TNum.One + sign * n.X * n.X * a, sign * b, -sign * n.X);
+        var v = Vec3<TNum>.Create(b, sign + n.Y * n.Y * a, -n.Y);
         return (u, v);
     }
 

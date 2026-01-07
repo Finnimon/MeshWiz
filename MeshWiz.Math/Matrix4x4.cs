@@ -107,13 +107,13 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Ve
     }
 
     private static readonly int NumSize = Unsafe.SizeOf<TNum>();
-    public  TNum this[int row, int column]
+    public  TNum this[int row, int col]
     {
         get
         {
-            if (RowCount <= (uint)row || ColCount <= (uint)column)
+            if (RowCount <= (uint)row || ColCount <= (uint)col)
                 IndexThrowHelper.Throw();
-            return Unsafe.AddByteOffset(ref Unsafe.AsRef(in X.X), NumSize * ColCount * row + column * NumSize);
+            return Unsafe.AddByteOffset(ref Unsafe.AsRef(in X.X), NumSize * ColCount * row + col * NumSize);
         }
     }
 
@@ -158,7 +158,7 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Ve
 
     [Pure]
     public Vec3<TNum> MultiplyDirection(Vec3<TNum> v)
-        => new(X.XYZ.Dot(v), Y.XYZ.Dot(v), Z.XYZ.Dot(v));
+        => Vec3<TNum>.Create(X.XYZ.Dot(v), Y.XYZ.Dot(v), Z.XYZ.Dot(v));
 
     [Pure]
     public Vec4<TNum> Multiply(Vec4<TNum> v)
@@ -193,10 +193,10 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Ve
 
     // Homogeneous utilities
     public static Vec3<TNum> Homogenize(Vec4<TNum> v)
-        => new(v.X / v.W, v.Y / v.W, v.Z / v.W);
+        => Vec3<TNum>.Create(v.X / v.W, v.Y / v.W, v.Z / v.W);
 
     public static Vec4<TNum> Dehomogenize(Vec3<TNum> v, TNum w)
-        => new(v.X, v.Y, v.Z, w);
+        => Vec4<TNum>.Create(v.X, v.Y, v.Z, w);
 
     [Pure]
     public static Matrix4x4<TNum> Lerp(Matrix4x4<TNum> from, Matrix4x4<TNum> to, TNum t)
@@ -229,9 +229,9 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Ve
         var y = axis.YYY * tAxis;
         var z = axis.ZZZ * tAxis;
         var (sinX, sinY, sinZ) = sin * axis;
-        x += new Vec3<TNum>(cos, -sinZ, sinY);
-        y += new Vec3<TNum>(sinZ, cos, -sinX);
-        z += new Vec3<TNum>(-sinY, sinX, cos);
+        x += Vec3<TNum>.Create(cos, -sinZ, sinY);
+        y += Vec3<TNum>.Create(sinZ, cos, -sinX);
+        z += Vec3<TNum>.Create(-sinY, sinX, cos);
         return FromRows(x, y, z, Vec4<TNum>.UnitW);
     }
 

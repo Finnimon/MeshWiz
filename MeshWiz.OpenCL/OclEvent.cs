@@ -1,7 +1,5 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.JavaScript;
-using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 using OpenTK.Compute.OpenCL;
 

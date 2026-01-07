@@ -8,6 +8,10 @@ namespace MeshWiz.OpenCL;
 
 public readonly record struct OclBuffer(nint Handle) : IDisposable
 {
+    public Result<OclResultCode, MemoryFlags> MemoryFlags => Handle.MemObjectFlags();
+    public Result<OclResultCode, int> RefCount => Handle.MemObjectRefCount();
+    public Result<OclResultCode, OclContext> Context => Handle.MemObjectContext();
+    public MemoryObjectType MemoryObjectType => MemoryObjectType.Buffer;
     public static implicit operator CLBuffer(OclBuffer obj) => Unsafe.As<OclBuffer, CLBuffer>(ref obj);
     public static implicit operator OclBuffer(CLBuffer obj) => Unsafe.As<CLBuffer, OclBuffer>(ref obj);
     public static OclBuffer Create(CLBuffer obj) => obj;
@@ -16,11 +20,14 @@ public readonly record struct OclBuffer(nint Handle) : IDisposable
     public Result<OclResultCode> Retain() =>(OclResultCode) CL.RetainMemoryObject(this);
 }
 
-public sealed record OclBuffer<T>(MemoryFlags MemFlags, OclBuffer Underlying, int Count)
+public sealed record OclBuffer<T>(OclBuffer Underlying, int Count)
     : IDisposable
     where T : unmanaged
 {
     private readonly Once _alive = Bool.Once();
+    public Result<OclResultCode, OclContext> Context => Underlying.Context;
+    public Result<OclResultCode, int> RefCount => Underlying.RefCount;
+    public MemoryFlags MemFlags => Underlying.MemoryFlags.OrElse((MemoryFlags)0);
     public bool IsAlive => _alive.ReadValue();
     public nuint ByteSize => GetByteSize(Count);
     public bool HostCanRead => IsAlive && MemFlags.HasAnyFlags(HostReadFlags());
@@ -28,7 +35,7 @@ public sealed record OclBuffer<T>(MemoryFlags MemFlags, OclBuffer Underlying, in
 
     public static Result<OclResultCode, OclBuffer<T>> Create(OclContext context, MemoryFlags flags, int count) =>
         context.CreateBuffer(flags, GetByteSize(count))
-            .Select(buf => new OclBuffer<T>(flags, buf, count));
+            .Select(buf => new OclBuffer<T>(buf, count));
 
     public Result<OclResultCode, OclEvent> EnqueueRead(OclCommandQueue queue, T[] into, bool blocking,
         nuint byteOffset,

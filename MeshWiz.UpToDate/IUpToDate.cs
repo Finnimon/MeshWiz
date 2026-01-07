@@ -1,5 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
-
 namespace MeshWiz.UpToDate;
 
 public interface IUpToDate

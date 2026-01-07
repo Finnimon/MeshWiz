@@ -14,7 +14,7 @@ public class ArrayCopyBench
         _array = new Vec3<float>[ArraySize];
         var rand = new Random();
         for (var i = 0; i < _array.Length; i++)
-            _array[i] = new(rand.NextSingle(), rand.NextSingle(), rand.NextSingle());
+            _array[i] = Vec3<float>.Create(rand.NextSingle(), rand.NextSingle(), rand.NextSingle());
     }
 
     private Vec3<float>[] ArrayNotNull() => _array!;

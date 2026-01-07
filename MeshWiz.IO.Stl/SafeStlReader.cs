@@ -65,9 +65,9 @@ public sealed class SafeStlReader<TNum> : IMeshReader<TNum>
                 facetFloats[vertex, floatIndex] = TNum.CreateTruncating(binary.ReadSingle());
 
             facets[facet] = new Triangle3<TNum>(
-                new Vec3<TNum>(facetFloats[0, 0], facetFloats[0, 1], facetFloats[0, 2]),
-                new Vec3<TNum>(facetFloats[1, 0], facetFloats[1, 1], facetFloats[1, 2]),
-                new Vec3<TNum>(facetFloats[2, 0], facetFloats[2, 1], facetFloats[2, 2])
+                Vec3<TNum>.Create(facetFloats[0, 0], facetFloats[0, 1], facetFloats[0, 2]),
+                Vec3<TNum>.Create(facetFloats[1, 0], facetFloats[1, 1], facetFloats[1, 2]),
+                Vec3<TNum>.Create(facetFloats[2, 0], facetFloats[2, 1], facetFloats[2, 2])
             );
 
             stream.Seek(2, SeekOrigin.Current);
@@ -122,7 +122,7 @@ public sealed class SafeStlReader<TNum> : IMeshReader<TNum>
         var x = TNum.Parse(split[1], NumberStyles.Float, CultureInfo.InvariantCulture);
         var y = TNum.Parse(split[2], NumberStyles.Float, CultureInfo.InvariantCulture);
         var z = TNum.Parse(split[3], NumberStyles.Float, CultureInfo.InvariantCulture);
-        return new Vec3<TNum>(x, y, z);
+        return Vec3<TNum>.Create(x, y, z);
     }
 
 }
