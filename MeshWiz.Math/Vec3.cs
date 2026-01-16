@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
@@ -16,11 +17,10 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly TNum X, Y, Z;
-    public TNum Sum => X + Y + Z;
-    
+    public TNum ComponentSum => Sum(this);
+
     public static int ByteSize => Unsafe.SizeOf<TNum>() * Dimensions;
 
-    public int Count => 3;
 
     [Pure]
     public Vec3<TNum> Normalized() => this / Length;
@@ -29,8 +29,11 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
     public static Vec3<TNum> Create<TOtherNum>(TOtherNum other) where TOtherNum : INumberBase<TOtherNum>
         => Create(TNum.CreateTruncating(other));
 
-    [Pure] public static int Dimensions => 3;
-    [Pure] public TNum Length => TNum.Sqrt(SquaredLength);
+    static int IVecBase<Vec3<TNum>, TNum>.Dimensions => Dimensions;
+    public const int Dimensions = 3;
+    int IReadOnlyCollection<TNum>.Count => Dimensions;
+    public const int Count = Dimensions;
+    [Pure] public TNum Length => TNum.Sqrt(X * X + Y * Y + Z * Z);
 
     [Pure]
     public TNum SquaredLength
@@ -39,17 +42,18 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
     public TNum AlignedCuboidVolume => TNum.Abs(X * Y * Z);
 
     [Obsolete]
-    public Vec3(TNum value) => this = Create(value,value,value);
+    public Vec3(TNum value) => this = Create(value, value, value);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec3<TNum> Create(TNum x, TNum y, TNum z)
     {
         Unsafe.SkipInit(out Vec3<TNum> v);
-        Vec<TNum>.SetElement(in v, 0,x);
-        Vec<TNum>.SetElement(in v, 1,y);
-        Vec<TNum>.SetElement(in v, 2,z);
+        Unsafe.AsRef(in v.X) = x;
+        Unsafe.AsRef(in v.Y) = y;
+        Unsafe.AsRef(in v.Z) = z;
         return v;
     }
+
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec3<TNum> FromComponents<TList>(TList components)
@@ -60,7 +64,13 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
     /// <inheritdoc />
     public static Vec3<TNum> FromComponentsConstrained<TList, TOtherNum>(TList components)
         where TList : IReadOnlyList<TOtherNum> where TOtherNum : INumberBase<TOtherNum>
-        => FromComponentsConstrained(components.Select(TNum.CreateTruncating).ToArray());
+        => components.Count switch
+        {
+            0 => Zero,
+            1 => Create(TNum.CreateTruncating(components[0]), TNum.Zero, TNum.Zero),
+            2 => Create(TNum.CreateTruncating(components[0]), TNum.CreateTruncating(components[1]), TNum.Zero),
+            _ => Create(TNum.CreateTruncating(components[0]), TNum.CreateTruncating(components[1]), TNum.CreateTruncating(components[2]))
+        };
 
     /// <inheritdoc />
     public static Vec3<TNum> FromComponentsConstrained<TList>(TList components) where TList : IReadOnlyList<TNum>
@@ -77,7 +87,7 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
 
     /// <inheritdoc />
     public static Vec3<TNum> Create(TNum value)
-        => Create(value,value,value);
+        => Create(value, value, value);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec3<TNum> FromComponents<TList, TOtherNum>(TList components)
@@ -100,7 +110,7 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
     public Vec3<TNum> YYY => Create(Y);
     public Vec3<TNum> ZZZ => Create(Z);
 
-    public static Vec3<TNum> Zero => Create(TNum.Zero, TNum.Zero, TNum.Zero);
+    public static Vec3<TNum> Zero => default;
 
 
     public static Vec3<TNum> One => Create(TNum.One, TNum.One, TNum.One);
@@ -138,8 +148,8 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
     public static implicit operator Vec3<float>(Vec3<TNum> v) => v.To<float>();
     public static implicit operator Vec3<double>(Vec3<TNum> v) => v.To<double>();
     public static implicit operator Vec3<Half>(Vec3<TNum> v) => v.To<Half>();
-    
-    
+
+
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec3<TNum> operator +(Vec3<TNum> left, Vec3<TNum> right)
         => Create(left.X + right.X, left.Y + right.Y, left.Z + right.Z);
@@ -184,7 +194,7 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vec3<TNum> Add(Vec3<TNum> other)
-        => this+other;
+        => this + other;
 
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -202,10 +212,14 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TNum Dot(Vec3<TNum> other)
-        => Dot(this,other);
+        => Dot(this, other);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TNum Dot(Vec3<TNum> a, Vec3<TNum> b) => a.X * b.X + a.Y * b.Y + a.Z * b.Z;
+    public static TNum Dot(Vec3<TNum> a, Vec3<TNum> b) => Sum(a * b);
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TNum Sum(Vec3<TNum> v) => v.X + v.Y + v.Z;
+
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TNum DistanceTo(Vec3<TNum> other) => Distance(this, other);
@@ -239,11 +253,14 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsParallelTo(Vec3<TNum> other, TNum tolerance)
-        => tolerance >= TNum.Abs(TNum.Abs(Normalized().Dot(other.Normalized())) - TNum.One);
+        => (TNum.Abs(Dot(Normalized(), other.Normalized()))).IsApprox(TNum.One, tolerance);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsParallelTo(Vec3<TNum> other)
-        => IsParallelTo(other, TNum.Epsilon);
+    {
+        var dot = TNum.Abs(Dot(this.Normalized(), other.Normalized())) - TNum.One;
+        return dot.IsApproxZero();
+    }
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(Vec3<TNum> other)
@@ -254,7 +271,7 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
         => SquaredLength.CompareTo(other.SquaredLength);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public unsafe ReadOnlySpan<TNum> AsSpan() => new(Unsafe.AsPointer(in X), Dimensions);
+    public ReadOnlySpan<TNum> AsSpan() => MemoryMarshal.CreateReadOnlySpan(in X, Dimensions);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override bool Equals(object? other)
@@ -264,18 +281,15 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
     public override int GetHashCode() => HashCode.Combine(X, Y, Z);
 
     [Pure]
-    public unsafe TNum this[int index]
+    public TNum this[int index]
     {
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            if (Dimensions <= (uint)index) IndexThrowHelper.Throw(index, Count);
+            if (Dimensions <= (uint)index) IndexThrowHelper.Throw(index, Dimensions);
             return Vec<TNum>.GetElement(in this, index);
         }
     }
-
-    public TNum this[CoordinateAxis axis]
-        => this[(int)axis];
 
     public IEnumerator<TNum> GetEnumerator()
     {
@@ -410,31 +424,31 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
 
     /// <inheritdoc />
     public static bool IsCanonical(Vec3<TNum> value)
-        => TNum.IsCanonical(value.Sum);
+        => TNum.IsCanonical(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsComplexNumber(Vec3<TNum> v)
-        => TNum.IsComplexNumber(v.Sum);
+        => TNum.IsComplexNumber(v.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsEvenInteger(Vec3<TNum> v)
-        => TNum.IsEvenInteger(v.Sum);
+        => TNum.IsEvenInteger(v.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsFinite(Vec3<TNum> v)
-        => TNum.IsFinite(v.Sum);
+        => TNum.IsFinite(v.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsImaginaryNumber(Vec3<TNum> value)
-        => TNum.IsImaginaryNumber(value.Sum);
+        => TNum.IsImaginaryNumber(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsInfinity(Vec3<TNum> value)
-        => TNum.IsInfinity(value.Sum);
+        => TNum.IsInfinity(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsInteger(Vec3<TNum> value)
-        => TNum.IsInteger(value.Sum);
+        => TNum.IsInteger(value.ComponentSum);
 
     /// <inheritdoc />
     public static Vec3<TNum> AdditiveIdentity => Zero;
@@ -634,11 +648,11 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
 
     /// <inheritdoc />
     public static bool IsNegative(Vec3<TNum> value)
-        => TNum.IsNegative(value.Sum);
+        => TNum.IsNegative(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsNegativeInfinity(Vec3<TNum> value)
-        => TNum.IsNegativeInfinity(value.Sum);
+        => TNum.IsNegativeInfinity(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsNormal(Vec3<TNum> value)
@@ -648,15 +662,15 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
 
     /// <inheritdoc />
     public static bool IsOddInteger(Vec3<TNum> value)
-        => TNum.IsOddInteger(value.Sum);
+        => TNum.IsOddInteger(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsPositive(Vec3<TNum> value)
-        => TNum.IsPositive(value.Sum);
+        => TNum.IsPositive(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsPositiveInfinity(Vec3<TNum> value)
-        => TNum.IsPositiveInfinity(value.Sum);
+        => TNum.IsPositiveInfinity(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsRealNumber(Vec3<TNum> value)
@@ -746,7 +760,7 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
 
     /// <inheritdoc />
     public static int ILogB(Vec3<TNum> x)
-        => TNum.ILogB(x.Sum);
+        => TNum.ILogB(x.ComponentSum);
 
     /// <inheritdoc />
     public static Vec3<TNum> ScaleB(Vec3<TNum> x, int n)
@@ -836,7 +850,7 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
     [Pure]
     public static TNum SignedAngleBetween(Vec3<TNum> a, Vec3<TNum> b, Vec3<TNum> about)
     {
-        var plane = new Plane3<TNum>(about, TNum.Zero);
+        var plane = new Plane<TNum>(about, TNum.Zero);
         var a2D = plane.ProjectIntoLocal(a).Normalized();
         var b2D = plane.ProjectIntoLocal(b).Normalized();
 
@@ -863,7 +877,7 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
         if (2u < (uint)index)
             IndexThrowHelper.Throw();
         var copy = this;
-        Vec<TNum>.SetElement(in copy, index,elem);
+        Vec<TNum>.SetElement(in copy, index, elem);
         return copy;
     }
 }

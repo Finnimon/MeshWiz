@@ -7,7 +7,7 @@ using MeshWiz.Utility;
 
 namespace MeshWiz.RefLinq;
 
-public static class Iterator
+public static partial class Iterator
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static TItem First<TIter, TItem>(TIter source)
@@ -85,8 +85,9 @@ public static class Iterator
         return correctType;
     }
 
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TItem[] ToArray<TIter, TItem>(TIter iter)
+    internal static TItem[] ToArray<TIter, TItem>(TIter iter)
         where TIter : IRefIterator<TIter, TItem>, allows ref struct
     {
         if (iter.TryGetNonEnumeratedCount(out var fastCount))

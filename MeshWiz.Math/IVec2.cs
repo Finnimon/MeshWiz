@@ -12,7 +12,6 @@ public interface IVec2<TSelf, TNum> : IVec<TSelf, TNum>
     [Pure]TNum Cross(TSelf r);
     [Pure]int CrossSign(TSelf other)=>TNum.Sign(Cross(other));
     [Pure]TNum AlignedSquareVolume=>this[0] * this[1];
-    static abstract TSelf FromXY(TNum x, TNum y);
-    [Pure] TSelf YX => TSelf.FromXY(this[1], this[0]);
-    
+    [Pure] TSelf YX { get; }
+
 }

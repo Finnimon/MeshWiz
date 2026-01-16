@@ -336,4 +336,9 @@ public readonly struct ConeGeodesic<TNum> : IDiscretePoseCurve<Pose3<TNum>, Vec3
         var endPt = Vec2<TNum>.PolarLerp(PolarStart, PolarEnd, end);
         return new ConeGeodesic<TNum>(Surface, startPt, endPt);
     }
+    
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ConeGeodesic<TOther> To<TOther>()
+        where TOther : unmanaged, IFloatingPointIeee754<TOther>
+        => new(Surface.To<TOther>(), PolarStart.To<TOther>(), PolarEnd.To<TOther>());
 }

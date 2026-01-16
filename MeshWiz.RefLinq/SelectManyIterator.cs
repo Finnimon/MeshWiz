@@ -261,19 +261,28 @@ public ref struct SelectManyIterator<TIter, TInner, TIn, TOut>(TIter source, Fun
     {
         if (_source.TryGetNonEnumeratedCount(out var count) && count == 0)
             return @default();
-        var spanner = this;
-        spanner.Reset();
+        var copy = this;
+        copy.Reset();
         // using var scratch = RentedArray<TOut>.Rent(spanner.EstimateCount());
         Unsafe.SkipInit(out InlineArray8<TOut> scratchMem);
-        var size = spanner.EstimateCount();
+        var size = copy.EstimateCount();
         var rentScratch = size > 8;
         using var rented = rentScratch ? RentedArray<TOut>.Rent(size) : RentedArray<TOut>.Empty();
         Span<TOut> scratch = rentScratch ? rented.GetCompleteArray() : scratchMem;
         using SegmentedArrayBuilder<TOut> builder = new(scratch);
-        while (spanner._source.MoveNext())
+        if (IsSpanner)
         {
-            var curChild = spanner._flattener(spanner._source.Current);
-            builder.AddNonICollectionRangeInlined(curChild);
+            var asSpanner = AsSpanner();
+            while (asSpanner._source.MoveNext()) 
+                builder.AddRange(asSpanner._flattener(asSpanner._source.Current).OriginalSource);
+        }
+        else
+        {
+            while (copy._source.MoveNext())
+            {
+                var curChild = copy._flattener(copy._source.Current);
+                builder.AddNonICollectionRangeInlined(curChild);
+            }
         }
 
         return andThen(builder);

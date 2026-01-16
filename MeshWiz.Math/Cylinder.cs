@@ -1,5 +1,6 @@
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using MeshWiz.Utility;
 
@@ -103,4 +104,9 @@ public readonly struct Cylinder<TNum> : IBody<TNum>, IRotationalSurface<TNum>, I
     {
         return !left.Equals(right);
     }
+    
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Cylinder<TOther> To<TOther>()
+        where TOther : unmanaged, IFloatingPointIeee754<TOther>
+        => new(Axis.To<Vec3<TOther>, TOther>(), TOther.CreateTruncating(Radius));
 }

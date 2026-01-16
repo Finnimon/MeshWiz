@@ -150,7 +150,7 @@ internal ref struct SegmentedArrayBuilder<T>
     /// </remarks>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void AddNonICollectionRange<TIter>(TIter source)
-        where TIter : IEnumerator<T>, allows ref struct
+        where TIter : IRefIterator<TIter,T>, allows ref struct
         => AddNonICollectionRangeInlined(source);
 
     /// <summary>Adds a collection of items into the builder.</summary>
@@ -160,30 +160,45 @@ internal ref struct SegmentedArrayBuilder<T>
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void AddNonICollectionRangeInlined<TIter>(TIter source)
-        where TIter : IEnumerator<T>, allows ref struct
+        where TIter : IRefIterator<TIter,T>, allows ref struct
     {
-        if (source.TryConvertToSpanIter<TIter, T>(out var spanIterator))
-        {
-            AddRange(spanIterator.OriginalSource);
-            return;
-        }
         var currentSegment = _currentSegment;
         var countInCurrentSegment = _countInCurrentSegment;
-        
-        while (source.MoveNext())
-        {
-            var item = source.Current;
-            if ((uint)countInCurrentSegment < (uint)currentSegment.Length)
+        var couldCount = source.TryGetNonEnumeratedCount(out var addCount);
+        if(!couldCount)
+            while (source.MoveNext())
             {
-                currentSegment[countInCurrentSegment] = item;
-                countInCurrentSegment++;
+                var item = source.Current;
+                if ((uint)countInCurrentSegment < (uint)currentSegment.Length)
+                {
+                    currentSegment[countInCurrentSegment] = item;
+                    countInCurrentSegment++;
+                }
+                else
+                {
+                    Expand();
+                    currentSegment = _currentSegment;
+                    currentSegment[0] = item;
+                    countInCurrentSegment = 1;
+                }
             }
-            else
+        else
+        {
+            Expand(Count+addCount);
+            while (source.MoveNext())
             {
-                Expand();
-                currentSegment = _currentSegment;
-                currentSegment[0] = item;
-                countInCurrentSegment = 1;
+                var item = source.Current;
+                if ((uint)countInCurrentSegment < (uint)currentSegment.Length)
+                {
+                    currentSegment[countInCurrentSegment] = item;
+                    countInCurrentSegment++;
+                }
+                else
+                {
+                    currentSegment = _currentSegment;
+                    currentSegment[0] = item;
+                    countInCurrentSegment = 1;
+                }
             }
         }
 

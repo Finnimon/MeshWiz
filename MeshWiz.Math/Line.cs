@@ -164,6 +164,10 @@ public readonly record struct Line<TVec, TNum>(TVec Start, TVec End)
     /// <inheritdoc />
     public AABB<TVec> BBox => AABB.From(Start, End);
 
+    public Line<TOtherVec, TOther> To<TOtherVec, TOther>() 
+        where TOtherVec:unmanaged,IVec<TOtherVec,TOther>
+        where TOther : unmanaged, IFloatingPointIeee754<TOther> =>
+        new(TOtherVec.FromComponentsConstrained<TVec, TNum>(Start), TOtherVec.FromComponentsConstrained<TVec, TNum>(Start));
 }
 
 public static class Line

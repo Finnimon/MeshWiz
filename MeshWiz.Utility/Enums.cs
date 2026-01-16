@@ -33,7 +33,7 @@ public static class Enums
     /// When types are known at compile time prefer direct comparisons
     /// </summary>
     [Pure]
-    public static unsafe bool AreEqual<T>(T a, T b)
+    public static bool AreEqual<T>(T a, T b)
         where T : unmanaged, Enum =>
         Unsafe.SizeOf<T>() switch
         {
@@ -48,7 +48,7 @@ public static class Enums
         };
 
     [Pure]
-    private static unsafe bool UnsafeEqual<TSource, TTarget>(ref TSource a, ref TSource b)
+    private static bool UnsafeEqual<TSource, TTarget>(ref TSource a, ref TSource b)
         where TTarget : unmanaged, IEqualityOperators<TTarget, TTarget, bool> where TSource : unmanaged =>
         Unsafe.As<TSource, TTarget>(ref a) == Unsafe.As<TSource, TTarget>(ref b);
 

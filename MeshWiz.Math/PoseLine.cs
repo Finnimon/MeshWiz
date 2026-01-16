@@ -6,7 +6,7 @@ using MeshWiz.Utility;
 namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-[SuppressMessage("ReSharper", "ConvertToAutoPropertyWhenPossible",Justification = "Pose Copy Cost")]
+[SuppressMessage("ReSharper", "ConvertToAutoPropertyWhenPossible",Justification = "Pose Copy LeafCost")]
 public readonly struct PoseLine<TPose, TVec, TNum>(TPose start, TPose end) : ILine<TVec, TNum>,IDiscretePoseCurve<TPose,TVec,TNum>,
     IEquatable<PoseLine<TPose,TVec,TNum>>
     where TVec : unmanaged, IVec<TVec, TNum>

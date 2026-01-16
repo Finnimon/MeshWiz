@@ -23,7 +23,7 @@ public static partial class Surface
 
             var angleStep = Numbers<TNum>.TwoPi / TNum.CreateTruncating(ribCount);
             
-            var plane = new Plane3<TNum>(axis.Direction, axis.Origin);
+            var plane = new Plane<TNum>(axis.Direction, axis.Origin);
             var u = plane.Basis.U;
             if (!parallel)
                 for (var rib = 0; rib < ribCount; rib++)

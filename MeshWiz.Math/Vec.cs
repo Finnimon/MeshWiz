@@ -30,7 +30,7 @@ public static class Vec<TNum>
         => Unsafe.Add(ref Unsafe.As<TVec, TNum>(ref Unsafe.AsRef(in a)), index) = value;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
-    internal static ref TNum GetPinnable<TVec>(in TVec v)
+    internal static ref TNum Pin<TVec>(in TVec v)
         => ref Unsafe.As<TVec, TNum>(ref Unsafe.AsRef(in v));
 }
 
@@ -50,6 +50,11 @@ public static class Mat<TNum>
         where TRow : unmanaged, IVec<TRow, TNum>
         where TCol : unmanaged, IVec<TCol, TNum>
         => Unsafe.Add(ref Unsafe.As<TMat, TNum>(ref Unsafe.AsRef(in a)), row * TRow.Dimensions + col) = v;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void SetElement<TMat, TVec>(in TMat a, int row, int col, TNum v)
+        where TMat : unmanaged, IMatrix<TMat, TVec, TVec, TNum>
+        where TVec : unmanaged, IVec<TVec, TNum>
+        => Unsafe.Add(ref Unsafe.As<TMat, TNum>(ref Unsafe.AsRef(in a)), row * TVec.Dimensions + col) = v;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void SetRow<TMat, TRow, TCol>(in TMat a, int row, TRow v)

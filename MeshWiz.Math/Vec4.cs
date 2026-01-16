@@ -19,8 +19,11 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
 
     public static int ByteSize { get; } = Unsafe.SizeOf<TNum>() * 4;
 
-    public int Count => 4;
-    public TNum Sum => X + Y + Z + W;
+    [Pure] static int IVecBase<Vec4<TNum>, TNum>.Dimensions => Dimensions;
+    int IReadOnlyCollection<TNum>.Count => Dimensions;
+    public const int Dimensions = 4;
+    public const int Count = Dimensions;
+    public TNum ComponentSum => X + Y + Z + W;
 
     /// <inheritdoc />
     public static Vec4<TNum> Create<TOtherNum>(TOtherNum other) where TOtherNum : INumberBase<TOtherNum>
@@ -28,23 +31,15 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
 
     public Vec4<TNum> Normalized() => this / Length;
 
-    [Pure] public static int Dimensions => 4;
     [Pure] public TNum Length => TNum.Sqrt(SquaredLength);
 
     [Pure]
     public TNum SquaredLength
         => X * X + Y * Y + Z * Z + W * W;
 
-    public Vec3<TNum> XYZ => Unsafe.As<Vec4<TNum>, Vec3<TNum>>(ref Unsafe.AsRef(in this));
-
-
-    public Vec4(TNum x, TNum y, TNum z, TNum w)
-    {
-        X = x;
-        Y = y;
-        Z = z;
-        W = w;
-    }
+    public Vec3<TNum> XYZ => this;
+    public static implicit operator Vec3<TNum>(Vec4<TNum> v)=>Unsafe.As<Vec4<TNum>,Vec3<TNum>>(ref v);
+    public Vec4(TNum x, TNum y, TNum z, TNum w) => this = Create(x, y, z, w);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vec4(Vec3<TNum> xyz, TNum w) => ((X, Y, Z), W) = (xyz, w);
@@ -57,15 +52,35 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
         W = TNum.Zero;
     }
 
-    public Vec4(TNum value) : this(value, value, value, value) { }
+    public Vec4(TNum value) => this = Create(value);
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vec4<TNum> Create(Vec3<TNum> xyz, TNum w)
+    {
+        Unsafe.SkipInit(out Vec4<TNum> v);
+        Unsafe.As<Vec4<TNum>,Vec3<TNum>>(ref v) = xyz;
+        Unsafe.AsRef(in v.W) = w;
+        return v;
+    }
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vec4<TNum> Create(Vec3<TNum> xyz)
+        => Create(xyz, TNum.Zero);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec4<TNum> Create(TNum x, TNum y, TNum z, TNum w)
-        => new(x, y, z, w);
+    {
+        Unsafe.SkipInit(out Vec4<TNum> v);
+        Unsafe.AsRef(in v.X) = x;
+        Unsafe.AsRef(in v.Y) = y;
+        Unsafe.AsRef(in v.Z) = z;
+        Unsafe.AsRef(in v.W) = w;
+        return v;
+    }
 
     public Vec4<TOtherNum> To<TOtherNum>()
         where TOtherNum : unmanaged, IFloatingPointIeee754<TOtherNum>
-        => new(
+        => Vec4<TOtherNum>.Create(
             TOtherNum.CreateTruncating(X),
             TOtherNum.CreateTruncating(Y),
             TOtherNum.CreateTruncating(Z),
@@ -75,13 +90,20 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec4<TNum> FromComponents<TList>(TList components)
         where TList : IReadOnlyList<TNum>
-        => new(components[0], components[1], components[2], components[3]);
+        => Create(components[0], components[1], components[2], components[3]);
 
 
     /// <inheritdoc />
     public static Vec4<TNum> FromComponentsConstrained<TList, TOtherNum>(TList components)
         where TList : IReadOnlyList<TOtherNum> where TOtherNum : INumberBase<TOtherNum>
-        => FromComponentsConstrained(components.Select(TNum.CreateTruncating).ToArray());
+    =>components.Count switch
+    {
+        0 => Zero,
+        1 => Create(TNum.CreateTruncating(components[0]), TNum.Zero, TNum.Zero,TNum.Zero),
+        2 => Create(TNum.CreateTruncating(components[0]), TNum.CreateTruncating(components[1]), TNum.Zero,TNum.Zero),
+        3 => Create(TNum.CreateTruncating(components[0]), TNum.CreateTruncating(components[1]), TNum.CreateTruncating(components[2]),TNum.Zero),
+        _ => Create(TNum.CreateTruncating(components[0]), TNum.CreateTruncating(components[1]), TNum.CreateTruncating(components[2]),TNum.CreateTruncating(components[3]))
+    };
 
     /// <inheritdoc />
     public static Vec4<TNum> FromComponentsConstrained<TList>(TList components) where TList : IReadOnlyList<TNum>
@@ -109,57 +131,57 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
             TNum.CreateTruncating(components[3]));
 
 
-    public static Vec4<TNum> Zero => new(TNum.Zero, TNum.Zero, TNum.Zero, TNum.Zero);
+    public static Vec4<TNum> Zero => Create(TNum.Zero, TNum.Zero, TNum.Zero, TNum.Zero);
 
 
-    public static Vec4<TNum> One => new(TNum.One);
-
-    /// <inheritdoc />
-    public static Vec4<TNum> Epsilon => new(TNum.Epsilon);
-
-    public static Vec4<TNum> NaN => new(TNum.NaN);
+    public static Vec4<TNum> One => Create(TNum.One);
 
     /// <inheritdoc />
-    public static Vec4<TNum> NegativeInfinity => new(TNum.NegativeInfinity);
+    public static Vec4<TNum> Epsilon => Create(TNum.Epsilon);
+
+    public static Vec4<TNum> NaN => Create(TNum.NaN);
 
     /// <inheritdoc />
-    public static Vec4<TNum> NegativeZero => new(TNum.NegativeZero);
+    public static Vec4<TNum> NegativeInfinity => Create(TNum.NegativeInfinity);
 
     /// <inheritdoc />
-    public static Vec4<TNum> PositiveInfinity => new(TNum.PositiveInfinity);
+    public static Vec4<TNum> NegativeZero => Create(TNum.NegativeZero);
 
-    public static Vec4<TNum> UnitX => new(TNum.One, TNum.Zero, TNum.Zero, TNum.Zero);
+    /// <inheritdoc />
+    public static Vec4<TNum> PositiveInfinity => Create(TNum.PositiveInfinity);
 
-    public static Vec4<TNum> UnitY => new(TNum.Zero, TNum.One, TNum.Zero, TNum.Zero);
+    public static Vec4<TNum> UnitX => Create(TNum.One, TNum.Zero, TNum.Zero, TNum.Zero);
 
-    public static Vec4<TNum> UnitZ => new(TNum.Zero, TNum.Zero, TNum.One, TNum.Zero);
+    public static Vec4<TNum> UnitY => Create(TNum.Zero, TNum.One, TNum.Zero, TNum.Zero);
 
-    public static Vec4<TNum> UnitW => new(TNum.Zero, TNum.Zero, TNum.Zero, TNum.One);
+    public static Vec4<TNum> UnitZ => Create(TNum.Zero, TNum.Zero, TNum.One, TNum.Zero);
+
+    public static Vec4<TNum> UnitW => Create(TNum.Zero, TNum.Zero, TNum.Zero, TNum.One);
 
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec4<TNum> operator +(Vec4<TNum> left, Vec4<TNum> right)
-        => new(left.X + right.X, left.Y + right.Y, left.Z + right.Z, left.W + right.W);
+        => Create(left.X + right.X, left.Y + right.Y, left.Z + right.Z, left.W + right.W);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec4<TNum> operator -(Vec4<TNum> left, Vec4<TNum> right)
-        => new(left.X - right.X, left.Y - right.Y, left.Z - right.Z, left.W - right.W);
+        => Create(left.X - right.X, left.Y - right.Y, left.Z - right.Z, left.W - right.W);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec4<TNum> operator -(Vec4<TNum> vec) => new(-vec.X, -vec.Y, -vec.Z, -vec.W);
+    public static Vec4<TNum> operator -(Vec4<TNum> vec) => Create(-vec.X, -vec.Y, -vec.Z, -vec.W);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec4<TNum> operator *(Vec4<TNum> left, Vec4<TNum> right)
-        => new(left.X * right.X, left.Y * right.Y, left.Z * right.Z, right.W * right.W);
+        => Create(left.X * right.X, left.Y * right.Y, left.Z * right.Z, right.W * right.W);
 
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec4<TNum> operator *(Vec4<TNum> vec, TNum scalar)
-        => new(x: vec.X * scalar, y: vec.Y * scalar, z: vec.Z * scalar, vec.W * scalar);
+        => Create(x: vec.X * scalar, y: vec.Y * scalar, z: vec.Z * scalar, vec.W * scalar);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec4<TNum> operator *(TNum scalar, Vec4<TNum> vec)
-        => new(vec.X * scalar, vec.Y * scalar, vec.Z * scalar, vec.W * scalar);
+        => Create(vec.X * scalar, vec.Y * scalar, vec.Z * scalar, vec.W * scalar);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec4<TNum> operator /(Vec4<TNum> vec, TNum divisor)
@@ -244,10 +266,8 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
         => SquaredLength.CompareTo(other.SquaredLength);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public unsafe ReadOnlySpan<TNum> AsSpan()
-    {
-        fixed (TNum* ptr = &X) return new ReadOnlySpan<TNum>(ptr, 4);
-    }
+    public ReadOnlySpan<TNum> AsSpan()
+        => MemoryMarshal.CreateReadOnlySpan(in X, Dimensions);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override bool Equals(object? other)
@@ -262,7 +282,7 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            if (Dimensions <= (uint)index) IndexThrowHelper.Throw(index, Count);
+            if (Dimensions <= (uint)index) IndexThrowHelper.Throw(index, Dimensions);
             return Vec<TNum>.GetElement(in this, index);
         }
     }
@@ -335,7 +355,7 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
     public Line<Vec4<TNum>, TNum> LineTo(Vec4<TNum> end) => new(this, end);
 
     public static implicit operator Vec4<TNum>(Vec3<TNum> xyz)
-        => new(xyz);
+        => Create(xyz);
 
     public static implicit operator Vec4<TNum>(Vec4<float> v) => v.To<TNum>();
     public static implicit operator Vec4<TNum>(Vec4<double> v) => v.To<TNum>();
@@ -346,48 +366,48 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
 
     /// <inheritdoc />
     public static Vec4<TNum> operator %(Vec4<TNum> l, Vec4<TNum> r)
-        => new(l.X % r.X, l.Y % r.Y, l.Z % r.Z, l.W % r.W);
+        => Create(l.X % r.X, l.Y % r.Y, l.Z % r.Z, l.W % r.W);
 
     /// <inheritdoc />
     public static Vec4<TNum> operator +(Vec4<TNum> v)
-        => new(+v.X, +v.Y, +v.Z, +v.W);
+        => Create(+v.X, +v.Y, +v.Z, +v.W);
 
     /// <inheritdoc />
     public static Vec4<TNum> Pow(Vec4<TNum> x, Vec4<TNum> y)
-        => new(TNum.Pow(x.X, y.X), TNum.Pow(x.Y, y.Y), TNum.Pow(x.Z, y.Z), TNum.Pow(x.W, y.W));
+        => Create(TNum.Pow(x.X, y.X), TNum.Pow(x.Y, y.Y), TNum.Pow(x.Z, y.Z), TNum.Pow(x.W, y.W));
 
     /// <inheritdoc />
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec4<TNum> Abs(Vec4<TNum> v)
-        => new(TNum.Abs(v.X), TNum.Abs(v.Y), TNum.Abs(v.Z), TNum.Abs(v.W));
+        => Create(TNum.Abs(v.X), TNum.Abs(v.Y), TNum.Abs(v.Z), TNum.Abs(v.W));
 
     /// <inheritdoc />
     public static bool IsCanonical(Vec4<TNum> value)
-        => TNum.IsCanonical(value.Sum);
+        => TNum.IsCanonical(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsComplexNumber(Vec4<TNum> v)
-        => TNum.IsComplexNumber(v.Sum);
+        => TNum.IsComplexNumber(v.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsEvenInteger(Vec4<TNum> v)
-        => TNum.IsEvenInteger(v.Sum);
+        => TNum.IsEvenInteger(v.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsFinite(Vec4<TNum> v)
-        => TNum.IsFinite(v.Sum);
+        => TNum.IsFinite(v.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsImaginaryNumber(Vec4<TNum> value)
-        => TNum.IsImaginaryNumber(value.Sum);
+        => TNum.IsImaginaryNumber(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsInfinity(Vec4<TNum> value)
-        => TNum.IsInfinity(value.Sum);
+        => TNum.IsInfinity(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsInteger(Vec4<TNum> value)
-        => TNum.IsInteger(value.Sum);
+        => TNum.IsInteger(value.ComponentSum);
 
     /// <inheritdoc />
     public static Vec4<TNum> AdditiveIdentity => Zero;
@@ -418,7 +438,7 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
 
     /// <inheritdoc />
     public static Vec4<TNum> operator /(Vec4<TNum> l, Vec4<TNum> r)
-        => new(l.X / r.X, l.Y / r.Y, l.Z / r.Z, l.W / r.W);
+        => Create(l.X / r.X, l.Y / r.Y, l.Z / r.Z, l.W / r.W);
 
     /// <inheritdoc />
     public static Vec4<TNum> operator ++(Vec4<TNum> v)
@@ -428,34 +448,34 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
     public static Vec4<TNum> MultiplicativeIdentity => One;
 
     /// <inheritdoc />
-    public static Vec4<TNum> E => new(TNum.E);
+    public static Vec4<TNum> E => Create(TNum.E);
 
     /// <inheritdoc />
-    public static Vec4<TNum> Pi => new(TNum.Pi);
+    public static Vec4<TNum> Pi => Create(TNum.Pi);
 
     /// <inheritdoc />
-    public static Vec4<TNum> Tau => new(TNum.Tau);
+    public static Vec4<TNum> Tau => Create(TNum.Tau);
 
     /// <inheritdoc />
     public static Vec4<TNum> Exp(Vec4<TNum> v)
-        => new(TNum.Exp(v.X), TNum.Exp(v.Y), TNum.Exp(v.Z), TNum.Exp(v.W));
+        => Create(TNum.Exp(v.X), TNum.Exp(v.Y), TNum.Exp(v.Z), TNum.Exp(v.W));
 
     /// <inheritdoc />
     public static Vec4<TNum> Exp10(Vec4<TNum> v)
-        => new(TNum.Exp10(v.X), TNum.Exp10(v.Y), TNum.Exp10(v.Z), TNum.Exp10(v.W));
+        => Create(TNum.Exp10(v.X), TNum.Exp10(v.Y), TNum.Exp10(v.Z), TNum.Exp10(v.W));
 
     /// <inheritdoc />
     public static Vec4<TNum> Exp2(Vec4<TNum> v)
-        => new(TNum.Exp2(v.X), TNum.Exp2(v.Y), TNum.Exp2(v.Z), TNum.Exp2(v.W));
+        => Create(TNum.Exp2(v.X), TNum.Exp2(v.Y), TNum.Exp2(v.Z), TNum.Exp2(v.W));
 
 
     /// <inheritdoc />
-    public static Vec4<TNum> NegativeOne => new(TNum.NegativeOne);
+    public static Vec4<TNum> NegativeOne => Create(TNum.NegativeOne);
 
 
     /// <inheritdoc />
     public static Vec4<TNum> Round(Vec4<TNum> vec, int digits, MidpointRounding mode)
-        => new(TNum.Round(vec.X, digits, mode),
+        => Create(TNum.Round(vec.X, digits, mode),
             TNum.Round(vec.Y, digits, mode),
             TNum.Round(vec.Z, digits, mode),
             TNum.Round(vec.W, digits, mode));
@@ -463,110 +483,110 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
 
     /// <inheritdoc />
     public static Vec4<TNum> Acosh(Vec4<TNum> vec)
-        => new(TNum.Acosh(vec.X), TNum.Acosh(vec.Y), TNum.Acosh(vec.Z), TNum.Acosh(vec.W));
+        => Create(TNum.Acosh(vec.X), TNum.Acosh(vec.Y), TNum.Acosh(vec.Z), TNum.Acosh(vec.W));
 
     /// <inheritdoc />
     public static Vec4<TNum> Asinh(Vec4<TNum> vec)
-        => new(TNum.Asinh(vec.X), TNum.Asinh(vec.Y), TNum.Asinh(vec.Z), TNum.Asinh(vec.W));
+        => Create(TNum.Asinh(vec.X), TNum.Asinh(vec.Y), TNum.Asinh(vec.Z), TNum.Asinh(vec.W));
 
     /// <inheritdoc />
     public static Vec4<TNum> Atanh(Vec4<TNum> vec)
-        => new(TNum.Atanh(vec.X), TNum.Atanh(vec.Y), TNum.Atanh(vec.Z), TNum.Atanh(vec.W));
+        => Create(TNum.Atanh(vec.X), TNum.Atanh(vec.Y), TNum.Atanh(vec.Z), TNum.Atanh(vec.W));
 
     /// <inheritdoc />
     public static Vec4<TNum> Cosh(Vec4<TNum> vec)
-        => new(TNum.Cosh(vec.X), TNum.Cosh(vec.Y), TNum.Cosh(vec.Z), TNum.Cosh(vec.W));
+        => Create(TNum.Cosh(vec.X), TNum.Cosh(vec.Y), TNum.Cosh(vec.Z), TNum.Cosh(vec.W));
 
 
     /// <inheritdoc />
     public static Vec4<TNum> Sinh(Vec4<TNum> vec)
-        => new(TNum.Sinh(vec.X), TNum.Sinh(vec.Y), TNum.Sinh(vec.Z), TNum.Sinh(vec.W));
+        => Create(TNum.Sinh(vec.X), TNum.Sinh(vec.Y), TNum.Sinh(vec.Z), TNum.Sinh(vec.W));
 
 
     /// <inheritdoc />
     public static Vec4<TNum> Tanh(Vec4<TNum> vec)
-        => new(TNum.Tanh(vec.X), TNum.Tanh(vec.Y), TNum.Tanh(vec.Z), TNum.Tanh(vec.W));
+        => Create(TNum.Tanh(vec.X), TNum.Tanh(vec.Y), TNum.Tanh(vec.Z), TNum.Tanh(vec.W));
 
     /// <inheritdoc />
     public static Vec4<TNum> Log(Vec4<TNum> vec)
-        => new(TNum.Log(vec.X), TNum.Log(vec.Y), TNum.Log(vec.Z), TNum.Log(vec.W));
+        => Create(TNum.Log(vec.X), TNum.Log(vec.Y), TNum.Log(vec.Z), TNum.Log(vec.W));
 
     /// <inheritdoc />
     public static Vec4<TNum> Log(Vec4<TNum> vec, Vec4<TNum> newBase)
-        => new(TNum.Log(vec.X, newBase.X),
+        => Create(TNum.Log(vec.X, newBase.X),
             TNum.Log(vec.Y, newBase.Y),
             TNum.Log(vec.Z, newBase.Z),
             TNum.Log(vec.W, newBase.W));
 
     /// <inheritdoc />
     public static Vec4<TNum> Log10(Vec4<TNum> vec)
-        => new(TNum.Log10(vec.X), TNum.Log10(vec.Y), TNum.Log10(vec.Z), TNum.Log10(vec.W));
+        => Create(TNum.Log10(vec.X), TNum.Log10(vec.Y), TNum.Log10(vec.Z), TNum.Log10(vec.W));
 
     /// <inheritdoc />
     public static Vec4<TNum> Log2(Vec4<TNum> vec)
-        => new(TNum.Log2(vec.X), TNum.Log2(vec.Y), TNum.Log2(vec.Z), TNum.Log2(vec.W));
+        => Create(TNum.Log2(vec.X), TNum.Log2(vec.Y), TNum.Log2(vec.Z), TNum.Log2(vec.W));
 
 
     /// <inheritdoc />
     public static Vec4<TNum> Cbrt(Vec4<TNum> vec)
-        => new(TNum.Cbrt(vec.X), TNum.Cbrt(vec.Y), TNum.Cbrt(vec.Z), TNum.Cbrt(vec.W));
+        => Create(TNum.Cbrt(vec.X), TNum.Cbrt(vec.Y), TNum.Cbrt(vec.Z), TNum.Cbrt(vec.W));
 
     /// <inheritdoc />
     public static Vec4<TNum> Hypot(Vec4<TNum> x, Vec4<TNum> y)
-        => new(TNum.Hypot(x.X, y.X), TNum.Hypot(x.Y, y.Y), TNum.Hypot(x.Z, y.Z), TNum.Hypot(x.W, y.W));
+        => Create(TNum.Hypot(x.X, y.X), TNum.Hypot(x.Y, y.Y), TNum.Hypot(x.Z, y.Z), TNum.Hypot(x.W, y.W));
 
 
     /// <inheritdoc />
     public static Vec4<TNum> RootN(Vec4<TNum> vec, int n)
-        => new(TNum.RootN(vec.X, n), TNum.RootN(vec.Y, n), TNum.RootN(vec.Z, n),
+        => Create(TNum.RootN(vec.X, n), TNum.RootN(vec.Y, n), TNum.RootN(vec.Z, n),
             TNum.RootN(vec.W, n));
 
 
     /// <inheritdoc />
     public static Vec4<TNum> Sqrt(Vec4<TNum> vec)
-        => new(TNum.Sqrt(vec.X), TNum.Sqrt(vec.Y), TNum.Sqrt(vec.Z), TNum.Sqrt(vec.W));
+        => Create(TNum.Sqrt(vec.X), TNum.Sqrt(vec.Y), TNum.Sqrt(vec.Z), TNum.Sqrt(vec.W));
 
 
     /// <inheritdoc />
     public static Vec4<TNum> Acos(Vec4<TNum> vec)
-        => new(TNum.Acos(vec.X), TNum.Acos(vec.Y), TNum.Acos(vec.Z), TNum.Acos(vec.W));
+        => Create(TNum.Acos(vec.X), TNum.Acos(vec.Y), TNum.Acos(vec.Z), TNum.Acos(vec.W));
 
     /// <inheritdoc />
     public static Vec4<TNum> AcosPi(Vec4<TNum> vec)
-        => new(TNum.AcosPi(vec.X), TNum.AcosPi(vec.Y), TNum.AcosPi(vec.Z), TNum.AcosPi(vec.W));
+        => Create(TNum.AcosPi(vec.X), TNum.AcosPi(vec.Y), TNum.AcosPi(vec.Z), TNum.AcosPi(vec.W));
 
 
     /// <inheritdoc />
     public static Vec4<TNum> Asin(Vec4<TNum> vec)
-        => new(TNum.Asin(vec.X), TNum.Asin(vec.Y), TNum.Asin(vec.Z), TNum.Asin(vec.W));
+        => Create(TNum.Asin(vec.X), TNum.Asin(vec.Y), TNum.Asin(vec.Z), TNum.Asin(vec.W));
 
 
     /// <inheritdoc />
     public static Vec4<TNum> AsinPi(Vec4<TNum> vec)
-        => new(TNum.AsinPi(vec.X), TNum.AsinPi(vec.Y), TNum.AsinPi(vec.Z), TNum.AsinPi(vec.W));
+        => Create(TNum.AsinPi(vec.X), TNum.AsinPi(vec.Y), TNum.AsinPi(vec.Z), TNum.AsinPi(vec.W));
 
 
     /// <inheritdoc />
     public static Vec4<TNum> Atan(Vec4<TNum> vec)
-        => new(TNum.Atan(vec.X), TNum.Atan(vec.Y), TNum.Atan(vec.Z), TNum.Atan(vec.W));
+        => Create(TNum.Atan(vec.X), TNum.Atan(vec.Y), TNum.Atan(vec.Z), TNum.Atan(vec.W));
 
 
     /// <inheritdoc />
     public static Vec4<TNum> AtanPi(Vec4<TNum> vec)
-        => new(TNum.AtanPi(vec.X), TNum.AtanPi(vec.Y), TNum.AtanPi(vec.Z), TNum.AtanPi(vec.W));
+        => Create(TNum.AtanPi(vec.X), TNum.AtanPi(vec.Y), TNum.AtanPi(vec.Z), TNum.AtanPi(vec.W));
 
 
     /// <inheritdoc />
     public static Vec4<TNum> Cos(Vec4<TNum> vec)
-        => new(TNum.Cos(vec.X), TNum.Cos(vec.Y), TNum.Cos(vec.Z), TNum.Cos(vec.W));
+        => Create(TNum.Cos(vec.X), TNum.Cos(vec.Y), TNum.Cos(vec.Z), TNum.Cos(vec.W));
 
     /// <inheritdoc />
     public static Vec4<TNum> CosPi(Vec4<TNum> vec)
-        => new(TNum.CosPi(vec.X), TNum.CosPi(vec.Y), TNum.CosPi(vec.Z), TNum.CosPi(vec.W));
+        => Create(TNum.CosPi(vec.X), TNum.CosPi(vec.Y), TNum.CosPi(vec.Z), TNum.CosPi(vec.W));
 
     /// <inheritdoc />
     public static Vec4<TNum> Sin(Vec4<TNum> vec)
-        => new(TNum.Sin(vec.X), TNum.Sin(vec.Y), TNum.Sin(vec.Z), TNum.Sin(vec.W));
+        => Create(TNum.Sin(vec.X), TNum.Sin(vec.Y), TNum.Sin(vec.Z), TNum.Sin(vec.W));
 
     /// <inheritdoc />
     public static (Vec4<TNum> Sin, Vec4<TNum> Cos) SinCos(Vec4<TNum> vec)
@@ -578,47 +598,47 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
 
     /// <inheritdoc />
     public static Vec4<TNum> SinPi(Vec4<TNum> vec)
-        => new(TNum.SinPi(vec.X), TNum.SinPi(vec.Y), TNum.SinPi(vec.Z), TNum.SinPi(vec.W));
+        => Create(TNum.SinPi(vec.X), TNum.SinPi(vec.Y), TNum.SinPi(vec.Z), TNum.SinPi(vec.W));
 
     /// <inheritdoc />
     public static Vec4<TNum> Tan(Vec4<TNum> vec)
-        => new(TNum.Tan(vec.X), TNum.Tan(vec.Y), TNum.Tan(vec.Z), TNum.Tan(vec.W));
+        => Create(TNum.Tan(vec.X), TNum.Tan(vec.Y), TNum.Tan(vec.Z), TNum.Tan(vec.W));
 
     /// <inheritdoc />
     public static Vec4<TNum> TanPi(Vec4<TNum> vec)
-        => new(TNum.TanPi(vec.X), TNum.TanPi(vec.Y), TNum.TanPi(vec.Z), TNum.TanPi(vec.W));
+        => Create(TNum.TanPi(vec.X), TNum.TanPi(vec.Y), TNum.TanPi(vec.Z), TNum.TanPi(vec.W));
 
     /// <inheritdoc />
     public static bool IsNegative(Vec4<TNum> value)
-        => TNum.IsNegative(value.Sum);
+        => TNum.IsNegative(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsNegativeInfinity(Vec4<TNum> value)
-        => TNum.IsNegativeInfinity(value.Sum);
+        => TNum.IsNegativeInfinity(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsNormal(Vec4<TNum> value)
-        => value.Sum <= TNum.One;
+        => value.ComponentSum <= TNum.One;
 
     /// <inheritdoc />
     public static bool IsOddInteger(Vec4<TNum> value)
-        => TNum.IsOddInteger(value.Sum);
+        => TNum.IsOddInteger(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsPositive(Vec4<TNum> value)
-        => TNum.IsPositive(value.Sum);
+        => TNum.IsPositive(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsPositiveInfinity(Vec4<TNum> value)
-        => TNum.IsPositiveInfinity(value.Sum);
+        => TNum.IsPositiveInfinity(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsRealNumber(Vec4<TNum> value)
-        => TNum.IsRealNumber(value.Sum);
+        => TNum.IsRealNumber(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsSubnormal(Vec4<TNum> value)
-        => TNum.IsSubnormal(value.Sum);
+        => TNum.IsSubnormal(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsZero(Vec4<TNum> value)
@@ -630,52 +650,52 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
 
     /// <inheritdoc />
     public static Vec4<TNum> Atan2(Vec4<TNum> y, Vec4<TNum> x)
-        => new(TNum.Atan2(y.X, x.X), TNum.Atan2(y.Y, x.Y), TNum.Atan2(y.Z, x.Z), TNum.Atan2(y.W, x.W));
+        => Create(TNum.Atan2(y.X, x.X), TNum.Atan2(y.Y, x.Y), TNum.Atan2(y.Z, x.Z), TNum.Atan2(y.W, x.W));
 
     /// <inheritdoc />
     public static Vec4<TNum> Atan2Pi(Vec4<TNum> y, Vec4<TNum> x)
-        => new(TNum.Atan2Pi(y.X, x.X), TNum.Atan2Pi(y.Y, x.Y), TNum.Atan2Pi(y.Z, x.Z), TNum.Atan2Pi(y.W, x.W));
+        => Create(TNum.Atan2Pi(y.X, x.X), TNum.Atan2Pi(y.Y, x.Y), TNum.Atan2Pi(y.Z, x.Z), TNum.Atan2Pi(y.W, x.W));
 
 
     /// <inheritdoc />
     public static Vec4<TNum> BitDecrement(Vec4<TNum> x)
-        => new(TNum.BitDecrement(x.X), TNum.BitDecrement(x.Y), TNum.BitDecrement(x.Z), TNum.BitDecrement(x.W));
+        => Create(TNum.BitDecrement(x.X), TNum.BitDecrement(x.Y), TNum.BitDecrement(x.Z), TNum.BitDecrement(x.W));
 
     /// <inheritdoc />
     public static Vec4<TNum> BitIncrement(Vec4<TNum> x)
-        => new(TNum.BitIncrement(x.X), TNum.BitIncrement(x.Y), TNum.BitIncrement(x.Z), TNum.BitIncrement(x.W));
+        => Create(TNum.BitIncrement(x.X), TNum.BitIncrement(x.Y), TNum.BitIncrement(x.Z), TNum.BitIncrement(x.W));
 
     /// <inheritdoc />
     public static Vec4<TNum> FusedMultiplyAdd(Vec4<TNum> l, Vec4<TNum> r, Vec4<TNum> addend)
-        => new(TNum.FusedMultiplyAdd(l.X, r.X, addend.X),
+        => Create(TNum.FusedMultiplyAdd(l.X, r.X, addend.X),
             TNum.FusedMultiplyAdd(l.Y, r.Y, addend.Y),
             TNum.FusedMultiplyAdd(l.Z, r.Z, addend.Z),
             TNum.FusedMultiplyAdd(l.W, r.W, addend.W));
 
     /// <inheritdoc />
     public static Vec4<TNum> Ieee754Remainder(Vec4<TNum> left, Vec4<TNum> right)
-        => new(TNum.Ieee754Remainder(left.X, right.X),
+        => Create(TNum.Ieee754Remainder(left.X, right.X),
             TNum.Ieee754Remainder(left.Y, right.Y),
             TNum.Ieee754Remainder(left.Z, right.Z),
             TNum.Ieee754Remainder(left.W, right.W));
 
     /// <inheritdoc />
     public static int ILogB(Vec4<TNum> x)
-        => TNum.ILogB(x.Sum);
+        => TNum.ILogB(x.ComponentSum);
 
     /// <inheritdoc />
     public static Vec4<TNum> ScaleB(Vec4<TNum> x, int n)
-        => new(TNum.ScaleB(x.X, n), TNum.ScaleB(x.Y, n), TNum.ScaleB(x.Z, n), TNum.ScaleB(x.W, n));
+        => Create(TNum.ScaleB(x.X, n), TNum.ScaleB(x.Y, n), TNum.ScaleB(x.Z, n), TNum.ScaleB(x.W, n));
 
 
     public static Vec4<TNum> Min(Vec4<TNum> l, Vec4<TNum> r)
-        => new(TNum.Min(l.X, r.X), TNum.Min(l.Y, r.Y), TNum.Min(l.Z, r.Z), TNum.Min(l.W, r.W));
+        => Create(TNum.Min(l.X, r.X), TNum.Min(l.Y, r.Y), TNum.Min(l.Z, r.Z), TNum.Min(l.W, r.W));
 
     public static Vec4<TNum> Max(Vec4<TNum> l, Vec4<TNum> r)
-        => new(TNum.Max(l.X, r.X), TNum.Max(l.Y, r.Y), TNum.Max(l.Z, r.Z), TNum.Max(l.W, r.W));
+        => Create(TNum.Max(l.X, r.X), TNum.Max(l.Y, r.Y), TNum.Max(l.Z, r.Z), TNum.Max(l.W, r.W));
 
     public static Vec4<TNum> Clamp(Vec4<TNum> vec, Vec4<TNum> min, Vec4<TNum> max)
-        => new(TNum.Clamp(vec.X, min.X, max.X),
+        => Create(TNum.Clamp(vec.X, min.X, max.X),
             TNum.Clamp(vec.Y, min.Y, max.Y),
             TNum.Clamp(vec.Z, min.Z, max.Z),
             TNum.Clamp(vec.W, min.W, max.W));

@@ -49,7 +49,7 @@ sw.Restart();
 var cpuBounds = trisPacked.Iterate().Select(t => t.BBox).ToArray();
 var cpuTime = sw.Elapsed;
 var totalBytes = indices.ByteSize + verts.ByteSize + result.ByteSize;
-Console.WriteLine($"GPU GiBYTE Size: {((uint)totalBytes)/1024f/1024f/1024f}");
+Console.WriteLine($"GPU GiBYTE Size: {((uint)totalBytes)/1024f/1024f/1024f:N4}");
 Console.WriteLine($"CPUTIME {cpuTime} --> GPUTIME {clTime} --> GPUTIME2 {clTime2}");
 Console.WriteLine($"Success: {clBounds.SequenceEqual(cpuBounds)}");
 

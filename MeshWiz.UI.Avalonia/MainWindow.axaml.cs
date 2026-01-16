@@ -67,16 +67,16 @@ public partial class MainWindow : Window
         //     childSurfaceCount:1200);
         // var sum = ParallelEnumerable.Range(1, 1000).Select(z => surface.TracePeriod(
         //     new Vec3<double>(1, 0, surface.SweepCurve.Traverse(0.5f).Z),
-        //     new Vec3<double>(0, 1, -1 - z * 0.1)).FinalizedPath).Where(p => p).Sum(p => p.Value.Count);
+        //     new Vec3<double>(0, 1, -1 - z * 0.1)).FinalizedPath).Where(p => p).ComponentSum(p => p.Value.Count);
         var sw = Stopwatch.StartNew();
         // sum = ParallelEnumerable.Range(1, 1000).Select(z => surface.TracePeriod(
         //     new Vec3<double>(1, 0, surface.SweepCurve.Traverse(0.5f).Z),
-        //     new Vec3<double>(0, 1, 1 + z * 0.1)).FinalizedPath).Where(p => p).Sum(p => p.Value.Count);
+        //     new Vec3<double>(0, 1, 1 + z * 0.1)).FinalizedPath).Where(p => p).ComponentSum(p => p.Value.Count);
         // var el = sw.Elapsed;
         // sw.Restart();
         // sum = Enumerable.Range(1, 1000).Select(z => surface.TracePeriod(
         //     new Vec3<double>(1, 0, surface.SweepCurve.Traverse(0.5f).Z),
-        //     new Vec3<double>(0, 1, 1 + z * 0.1)).FinalizedPath).Where(p => p).Sum(p => p.Value.Count);
+        //     new Vec3<double>(0, 1, 1 + z * 0.1)).FinalizedPath).Where(p => p).ComponentSum(p => p.Value.Count);
         var elapsed = sw.Elapsed;
         // Console.WriteLine($"Par: {el} Seq: {elapsed}");
         sw.Restart(); //0x139
@@ -89,7 +89,7 @@ public partial class MainWindow : Window
         period = context.info;
         var traces = period.TraceResult.Value;
         var lastCurve = traces[^1];
-        var plane = new Plane3<double>(surface.Axis.Direction, traces[0].Start);
+        var plane = new Plane<double>(surface.Axis.Direction, traces[0].Start);
         // var solve = Curve.Solver.IntersectionNewton(lastCurve, plane,AABB.From(0d,1d));
         // Console.WriteLine(solve.ToString());
         // var trace = sw.Elapsed;

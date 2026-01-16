@@ -35,7 +35,7 @@ public sealed partial record RotationalSurface<TNum>
 
 
         [Pure]
-        private static List<int> GetIntersectingSegments(Plane3<TNum> plane,
+        private static List<int> GetIntersectingSegments(Plane<TNum> plane,
             PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum> polyline)
         {
             List<int> intersections = [];
@@ -322,7 +322,7 @@ public sealed partial record RotationalSurface<TNum>
                 return Result<PeriodicalGeodesics, Ray3<TNum>>.DefaultFailure;
             var firstCurve = trace[0];
             var lastCurve = trace[^1];
-            Plane3<TNum> startPlane = new(Axis.Direction, firstCurve.Start);
+            Plane<TNum> startPlane = new(Axis.Direction, firstCurve.Start);
 
             var param = lastCurve.SolveIntersection(startPlane);
             

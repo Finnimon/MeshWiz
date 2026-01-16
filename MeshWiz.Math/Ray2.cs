@@ -135,4 +135,8 @@ public readonly struct Ray2<TNum>
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TNum DistanceTo(Vec2<TNum> p) => ClosestPoint(p).DistanceTo(p);
 
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Ray2<TOther> To<TOther>()
+        where TOther : unmanaged, IFloatingPointIeee754<TOther>
+        => new(Origin.To<TOther>(), Direction.To<TOther>());
 }

@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace MeshWiz.Math;
@@ -51,6 +52,10 @@ public struct BoundedVolume<TNum>
     public static TNum NodeCost(Vec3<TNum> boundsSize, int triCount)
         => boundsSize.SquaredLength * TNum.CreateTruncating(triCount);
 
+    [System.Diagnostics.Contracts.Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public BoundedVolume<TOther> To<TOther>()
+        where TOther : unmanaged, IFloatingPointIeee754<TOther>
+        => new(Bounds.To<Vec3<TOther>>(), _first, _second);
 
     public static implicit operator Range(in BoundedVolume<TNum> bV) => new(bV.Start, bV.End);
 }

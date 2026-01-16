@@ -47,7 +47,7 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
     public static Vec2<TNum> operator /(TNum l, Vec2<TNum> r)
         => new(l / r.X, l / r.Y);
 
-    public TNum Sum => X + Y;
+    public TNum ComponentSum => X + Y;
 
     public Vec2<TOther> To<TOther>() where TOther : unmanaged, IFloatingPointIeee754<TOther>
         => new(TOther.CreateTruncating(X), TOther.CreateTruncating(Y));
@@ -57,7 +57,6 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
     public int Count => 2;
     public Vec2<TNum> Normalized() => this / Length;
     public TNum AlignedSquareVolume => X * Y;
-    public static Vec2<TNum> FromXY(TNum x, TNum y) => new(x, y);
 
     public static Vec2<TNum> FromComponents<TList>(TList components)
         where TList : IReadOnlyList<TNum>
@@ -72,12 +71,13 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
     /// <inheritdoc />
     public static Vec2<TNum> FromComponentsConstrained<TList, TOtherNum>(TList components)
         where TList : IReadOnlyList<TOtherNum>
-        where TOtherNum : INumberBase<TOtherNum>
-    {
-        var x = components.Count > 0 ? TNum.CreateTruncating(components[0]) : TNum.Zero;
-        var y = components.Count > 1 ? TNum.CreateTruncating(components[1]) : TNum.Zero;
-        return new(x, y);
-    }
+        where TOtherNum : INumberBase<TOtherNum> =>
+        components.Count switch
+        {
+            0 => Zero,
+            1 => Create(TNum.CreateTruncating(components[0]), TNum.Zero),
+            _ => Create(TNum.CreateTruncating(components[0]), TNum.CreateTruncating(components[1]))
+        };
 
     /// <inheritdoc />
     public static Vec2<TNum> FromComponentsConstrained<TList>(TList components) where TList : IReadOnlyList<TNum>
@@ -91,6 +91,15 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
     public static Vec2<TNum> Create(TNum value)
         => new(value);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining),Pure]
+    public static Vec2<TNum> Create(TNum x, TNum y)
+    {
+        Unsafe.SkipInit(out Vec2<TNum> res);
+        Unsafe.AsRef(in res.X) = x;
+        Unsafe.AsRef(in res.Y) = y;
+        return res;
+    }
+
     /// <inheritdoc />
     public static Vec2<TNum> Create<TOtherNum>(TOtherNum other) where TOtherNum : INumberBase<TOtherNum>
         => new(TNum.CreateTruncating(other));
@@ -98,7 +107,8 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
     public Vec2(TNum s) : this(s, s) { }
 
 
-    [Pure] public static int Dimensions => 2;
+    [Pure] static int IVecBase<Vec2<TNum>, TNum>.Dimensions => Dimensions;
+    public const int Dimensions = 2;
     [Pure] public TNum Length => TNum.Sqrt(SquaredLength);
 
     [Pure]
@@ -235,10 +245,8 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
         => SquaredLength.CompareTo(other.SquaredLength);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public unsafe ReadOnlySpan<TNum> AsSpan()
-    {
-        fixed (TNum* ptr = &X) return new ReadOnlySpan<TNum>(ptr, 2);
-    }
+    public ReadOnlySpan<TNum> AsSpan()
+        => MemoryMarshal.CreateReadOnlySpan(in X, Dimensions);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override bool Equals(object? other)
@@ -254,7 +262,7 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
     #region IReadOnlyList
 
     [Pure]
-    public unsafe TNum this[int index]
+    public TNum this[int index]
     {
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
@@ -342,27 +350,27 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
 
     /// <inheritdoc />
     public static bool IsCanonical(Vec2<TNum> value)
-        => TNum.IsCanonical(value.Sum);
+        => TNum.IsCanonical(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsComplexNumber(Vec2<TNum> v)
-        => TNum.IsComplexNumber(v.Sum);
+        => true;
 
     /// <inheritdoc />
     public static bool IsEvenInteger(Vec2<TNum> v)
-        => TNum.IsEvenInteger(v.Sum);
+        => false;
 
     /// <inheritdoc />
     public static bool IsFinite(Vec2<TNum> v)
-        => TNum.IsFinite(v.Sum);
+        => TNum.IsFinite(v.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsImaginaryNumber(Vec2<TNum> value)
-        => TNum.IsImaginaryNumber(value.Sum);
+        => false;
 
     /// <inheritdoc />
     public static bool IsInfinity(Vec2<TNum> value)
-        => TNum.IsInfinity(value.Sum);
+        => TNum.IsInfinity(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsInteger(Vec2<TNum> value)
@@ -566,35 +574,35 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
 
     /// <inheritdoc />
     public static bool IsNegative(Vec2<TNum> value)
-        => TNum.IsNegative(value.Sum);
+        => TNum.IsNegative(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsNegativeInfinity(Vec2<TNum> value)
-        => TNum.IsNegativeInfinity(value.Sum);
+        => TNum.IsNegativeInfinity(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsNormal(Vec2<TNum> value)
-        => value.Sum <= TNum.One;
+        => value.ComponentSum <= TNum.One;
 
     /// <inheritdoc />
     public static bool IsOddInteger(Vec2<TNum> value)
-        => TNum.IsOddInteger(value.Sum);
+        => TNum.IsOddInteger(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsPositive(Vec2<TNum> value)
-        => TNum.IsPositive(value.Sum);
+        => TNum.IsPositive(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsPositiveInfinity(Vec2<TNum> value)
-        => TNum.IsPositiveInfinity(value.Sum);
+        => TNum.IsPositiveInfinity(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsRealNumber(Vec2<TNum> value)
-        => TNum.IsRealNumber(value.Sum);
+        => TNum.IsRealNumber(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsSubnormal(Vec2<TNum> value)
-        => TNum.IsSubnormal(value.Sum);
+        => TNum.IsSubnormal(value.ComponentSum);
 
     /// <inheritdoc />
     public static bool IsZero(Vec2<TNum> value)
@@ -671,7 +679,7 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
 
     /// <inheritdoc />
     public static int ILogB(Vec2<TNum> x)
-        => TNum.ILogB(x.Sum);
+        => TNum.ILogB(x.ComponentSum);
 
     /// <inheritdoc />
     public static Vec2<TNum> ScaleB(Vec2<TNum> x, int n)

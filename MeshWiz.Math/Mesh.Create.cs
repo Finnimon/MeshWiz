@@ -178,7 +178,7 @@ public static partial class Mesh
                     if (!normal.SquaredLength.IsApprox(TNum.One, Numbers<TNum>.Eps5)) normal = n2;
                 }
 
-                Plane3<TNum> projector = new(normal, origin);
+                Plane<TNum> projector = new(normal, origin);
                 var planeOrigin = projector.Origin;
                 var current = projector.ProjectIntoWorld(basePoints2D);
                 var shift = origin - planeOrigin;

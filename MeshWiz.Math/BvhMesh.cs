@@ -196,7 +196,7 @@ public class BvhMesh<TNum> : IIndexedMesh<TNum>
     private int[] HitTestStack() => new int[GetDepthFirstStackSize()];
 
 
-    public Polyline<Vec2<TNum>, TNum>[] IntersectRolling(Plane3<TNum> plane)
+    public Polyline<Vec2<TNum>, TNum>[] IntersectRolling(Plane<TNum> plane)
     {
         RollingList<int> nodeToTest = new(capacity: GetDepthFirstStackSize()) { 0 };
         RollingList<Line<Vec2<TNum>, TNum>> intersections = [];
@@ -224,7 +224,7 @@ public class BvhMesh<TNum> : IIndexedMesh<TNum>
         return Polyline.Creation.UnifyNonReversing(intersections);
     }
     
-    public RollingList<Line<Vec2<TNum>, TNum>> IntersectAll(Plane3<TNum> plane)
+    public RollingList<Line<Vec2<TNum>, TNum>> IntersectAll(Plane<TNum> plane)
     {
         RollingList<int> nodeToTest = new(capacity: GetDepthFirstStackSize()) { 0 };
         RollingList<Line<Vec2<TNum>, TNum>> intersections = [];

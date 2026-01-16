@@ -207,4 +207,9 @@ public readonly struct Cone<TNum> : IBody<TNum>,
     /// <inheritdoc />
     public ConeGeodesic<TNum> GetGeodesicFromEntry(Vec3<TNum> entryPoint, Vec3<TNum> direction)
         => ConeGeodesic<TNum>.FromDirection(in this, entryPoint, direction);
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Cone<TOther> To<TOther>()
+        where TOther : unmanaged, IFloatingPointIeee754<TOther>
+        => new(Axis.To<Vec3<TOther>, TOther>(), TOther.CreateTruncating(Radius));
 }

@@ -7,6 +7,7 @@ using CommunityToolkit.Diagnostics;
 using MeshWiz.Collections;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
+using MeshWiz.RefLinq;
 
 namespace MeshWiz.Math;
 
@@ -19,7 +20,7 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vec2<TNum>
     private TNum? _height;
     public TNum Height => _height ??= AABB.From(Positions).Size.Y;
     private Vec3<TNum>? _basisU;
-    private Vec3<TNum> BasisU => _basisU ??= new Plane3<TNum>(Axis.Direction, Axis.Origin).Basis.U;
+    private Vec3<TNum> BasisU => _basisU ??= new Plane<TNum>(Axis.Direction, Axis.Origin).Basis.U;
     public int Count => int.Max(Positions.Length - 1, 0);
     private Vec3<TNum>? _centroid;
 
@@ -143,11 +144,7 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vec2<TNum>
 
     /// <inheritdoc />
     [field: AllowNull, MaybeNull]
-    public IDiscreteCurve<Vec3<TNum>, TNum> SweepCurve
-    {
-        get => field ??= CreateSweepCurve(this);
-        private init;
-    }
+    public IDiscreteCurve<Vec3<TNum>, TNum> SweepCurve => field ??= CreateSweepCurve(this);
 
     private static Polyline<Vec3<TNum>, TNum> CreateSweepCurve(RotationalSurface<TNum> surf)
     {
@@ -184,7 +181,7 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vec2<TNum>
             positions[i] = new Vec2<TNum>(along, radius);
         }
 
-        return new RotationalSurface<TNum>(axisLine, positions);//do not contorted { SweepCurve = sweepCurve };
+        return new RotationalSurface<TNum>(axisLine, positions);
     }
 
     /// <inheritdoc />
@@ -257,7 +254,7 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vec2<TNum>
 
     public Line<Vec3<TNum>, TNum> AxisLine => SweepAxis.LineSection(TNum.Zero, Height);
     private AABB<TNum>? _radiusRange;
-    public AABB<TNum> RadiusRange => _radiusRange ??= AABB<TNum>.From(this.Positions.Select(p => TNum.Abs(p.Y)));
+    public AABB<TNum> RadiusRange => _radiusRange ??= this.Positions.Select(p => TNum.Abs(p.Y)).Aggregate(AABB<TNum>.Combine,AABB<TNum>.Empty);
 
     public IEnumerable<ChildGeodesic> TraceGeodesics(Vec3<TNum> p,
         Vec3<TNum> dir,
@@ -496,16 +493,14 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vec2<TNum>
     public PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum> TraceGeodesicCycles(Vec3<TNum> p, Vec3<TNum> dir,
         int childSurfaceCount)
     {
-        var vertices = new List<Vec3<TNum>>();
         var segments = TraceGeodesics(p, dir, i => i < childSurfaceCount)
             .ToArray(); //execute entirely to improve function caching
         if (segments.Length == 0)
-            return new();
+            return new PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum>();
         if (segments.Length == 1)
             return segments[0].ToPosePolyline();
-        var first = Bool.Once();
         return PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum>.CreateCulled(
-            Polyline.ForceConcat(segments.Select(s => s.ToPosePolyline())));
+            Polyline.ForceConcat(segments.Select(s => s.ToPosePolyline()).ToArray()));
     }
 
     /// <inheritdoc />
@@ -518,4 +513,9 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vec2<TNum>
     public PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum> GetGeodesicFromEntry(Vec3<TNum> entryPoint,
         Vec3<TNum> direction)
         => TraceGeodesicCycles(entryPoint, direction, 1000);
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public RotationalSurface<TOther> To<TOther>()
+        where TOther : unmanaged, IFloatingPointIeee754<TOther>
+        => new(Axis.To<TOther>(), Positions.Select(p => p.To<TOther>()).ToArray());
 }

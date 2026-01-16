@@ -18,7 +18,7 @@ public sealed class Polyline<TVec, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember]
-    private TVec? _vertexCentroid;
+    internal TVec? _vertexCentroid;
 
     private readonly TVec[] _points;
     public ReadOnlySpan<TVec> Points => _points;
@@ -41,7 +41,7 @@ public sealed class Polyline<TVec, TNum>
     /// <inheritdoc />
     public void CopyTo(Line<TVec, TNum>[] array, int arrayIndex)
     {
-        for (var i = 0; i < this.Count; i++) array[arrayIndex + i] = this[i];
+        for (var i = 0; i < Count; i++) array[arrayIndex + i] = GetLineUnsafe(i);
     }
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
@@ -73,9 +73,12 @@ public sealed class Polyline<TVec, TNum>
         get
         {
             if (Count <= (uint)index) IndexThrowHelper.Throw(index, Count);
-            return Unsafe.As<TVec, Line<TVec, TNum>>(ref _points[index]);
+            return GetLineUnsafe(index);
         }
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private Line<TVec, TNum> GetLineUnsafe(int index) => Unsafe.As<TVec, Line<TVec, TNum>>(ref _points[index]);
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public TVec VertexCentroid => _vertexCentroid ??= GetVertexCentroid();
@@ -117,7 +120,7 @@ public sealed class Polyline<TVec, TNum>
 
     [field:AllowNull,MaybeNull]
     // ReSharper disable once InconsistentNaming
-    private TNum[] _cumulativeDistances =>
+    internal TNum[] _cumulativeDistances =>
         field ??= Polyline.CalculateCumulativeDistances<TVec, TNum>(verts: _points);
 
     public ReadOnlySpan<TNum> CumulativeDistances =>_cumulativeDistances;

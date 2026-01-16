@@ -101,7 +101,7 @@ public readonly struct AABB<TNum>
 
     [Pure]
     public static AABB<TNum> Combine(AABB<TNum> a, AABB<TNum> b)
-        => a.CombineWith(b);
+        => new(TNum.Min(a.Min,b.Min),TNum.Max(a.Max,b.Max));
 
     [Pure]
     public static AABB<TNum> Combine(AABB<TNum> a, AABB<TNum> b, AABB<TNum> c)
@@ -122,6 +122,22 @@ public readonly struct AABB<TNum>
     [Pure]
     public static AABB<TNum> Combine(AABB<TNum> a, TNum p1, TNum p2, TNum p3, TNum p4)
         => a.CombineWith(p1, p2, p3, p4);
+
+    [Pure]
+    public static AABB<TNum> Combine(params ReadOnlySpan<AABB<TNum>> pts)
+    {
+        if(pts.Length==0)
+            return Empty;
+        var (min,max) = pts[0];
+        for (var i = 1; i < pts.Length; i++)
+        {
+            ref readonly var cur=ref pts[i];
+            min = TNum.Min(min, cur.Min);
+            max = TNum.Max(max, cur.Max);
+        }
+
+        return new AABB<TNum>(min, max);
+    }
 
 
     [Pure]
@@ -261,15 +277,13 @@ public readonly struct AABB<TNum>
         return minDiff < maxDiff ? minDiff : maxDiff;
     }
 
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [Pure]
     public AABB<TNum> Clamp(AABB<TNum> value) => new(Clamp(value.Min),Clamp(value.Max));
 
-    public AABB<TOther> To<TOther>() where TOther : unmanaged, IFloatingPointIeee754<TOther>
-    {
-        return new AABB<TOther>(TOther.CreateTruncating(Min), TOther.CreateTruncating(Max));
-    }
+    public AABB<TOther> To<TOther>() where TOther : unmanaged, IFloatingPointIeee754<TOther> 
+        => new(TOther.CreateTruncating(Min), TOther.CreateTruncating(Max));
 
     public static AABB<TNum> Combine(IEnumerable<AABB<TNum>> select)
     {
@@ -407,6 +421,11 @@ public static class AABB
             ? size.YZX.Dot(size) * Numbers<TNum>.Two
             : TNum.NaN;
     }
+
+    [Pure]
+    public static AABB<TNum> Combine<TNum>(params ReadOnlySpan<AABB<TNum>> src)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        => AABB<TNum>.Combine(src);
 
     [Pure]
     public static IndexedMesh<TNum> Tessellate<TNum>(this AABB<Vec3<TNum>> box)

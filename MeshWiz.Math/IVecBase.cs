@@ -36,7 +36,7 @@ public interface IVecBase<TSelf, TNum>
     TNum Length { get; }
     TNum SquaredLength => TSelf.Dot((TSelf)this, (TSelf)this);
 
-    [Pure] public TNum Sum => this.Sum();
+    [Pure] public TNum ComponentSum => this.Sum();
 
 
     [Pure]

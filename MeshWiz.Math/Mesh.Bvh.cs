@@ -127,7 +127,8 @@ public static partial class Mesh
             return (bestSplitAxis, bestLevel, bestCost, leftBounds, rightBounds);
         }
 
-        private static (TNum cost, AABB<Vec3<TNum>> boundsLeft, AABB<Vec3<TNum>> boundsRight) EvalSplit<TNum>(
+        private static (TNum cost, AABB<Vec3<TNum>> boundsLeft, AABB<Vec3<TNum>> boundsRight) 
+            EvalSplit<TNum>(
             int parentStart,
             int parentEnd,
             int axis,

@@ -135,11 +135,8 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>
         => !(left == right);
     
     /// <inheritdoc />
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(Rotation, Origin);
-    }
+    public override int GetHashCode() => HashCode.Combine(Rotation, Origin);
 
     public static Ray3<TNum> FrontRay(Pose3<TNum> arg) => new(arg.Origin, arg.Front);
     public static Ray3<TNum> UpRay(Pose3<TNum> arg) => new(arg.Origin, arg.Up);
-}
+    }

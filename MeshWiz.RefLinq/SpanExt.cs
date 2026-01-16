@@ -38,13 +38,24 @@ public static class SpanExt
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static SpanIterator<T> Iterate<T>(this ReadOnlySpan<T> span) => span;
-    
+
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static SpanIterator<T> Iterate<T>(this Span<T> span) => span;
+
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static SmartSelectIterator<TIn,TOut> Select<TIn,TOut>(this ReadOnlySpan<TIn> span,Func<TIn,TOut> sel)
     => new(span, sel);
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static SmartSelectIterator<TIn,TOut> Select<TIn,TOut>(this Span<TIn> span,Func<TIn,TOut> sel)
+        => new(span, sel);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static WhereIterator<SpanIterator<T>,T> Where<T>(this ReadOnlySpan<T> span,Func<T,bool> predicate)
+        => new(span, predicate);
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static WhereIterator<SpanIterator<T>,T> Where<T>(this Span<T> span,Func<T,bool> predicate)
         => new(span, predicate);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -55,6 +66,9 @@ public static class SpanExt
     internal static unsafe Span<T> AsSpan<TInline, T>(this ref TInline array,int size)
         where TInline : struct =>
         new(Unsafe.AsPointer(ref array), size);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Swap<T>(this Span<T> span, int left, int right) => (span[left], span[right]) = (span[right], span[left]);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static Span<T> AsSpan<TInline, T>(this ref TInline array)

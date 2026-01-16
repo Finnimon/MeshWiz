@@ -9,13 +9,13 @@ namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct Angle<TNum>
-where TNum: unmanaged, IFloatingPointIeee754<TNum>
+    where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly TNum Radians;
     public TNum Degrees => Radians * Numbers<TNum>.RadiansToDegree;
-    private Angle(TNum rad)=>Radians = rad;
+    private Angle(TNum rad) => Radians = rad;
     public static implicit operator TNum(Angle<TNum> angle) => angle.Radians;
-    public static implicit operator Angle<TNum>(TNum radians)=>Unsafe.As<TNum, Angle<TNum>>(ref radians);
+    public static implicit operator Angle<TNum>(TNum radians) => Unsafe.As<TNum, Angle<TNum>>(ref radians);
     public static Angle<TNum> operator -(Angle<TNum> a) => -a.Radians;
     public static Angle<TNum> FromRadians(TNum radians) => new(radians);
     public static Angle<TNum> FromDegrees(TNum degrees) => new(Numbers<TNum>.DegreeToRadians * degrees);
@@ -38,7 +38,7 @@ where TNum: unmanaged, IFloatingPointIeee754<TNum>
         if (boundary.IsNegativeSpace) return false;
         var twoPi = Numbers<TNum>.TwoPi;
         if (boundary.Size.IsApproxGreaterOrEqual(twoPi)) return true;
-        var directCheck= boundary.Contains(this);
+        var directCheck = boundary.Contains(this);
         if (directCheck) return true;
         TNum angle = this;
         var diff = boundary.Min - angle;
@@ -47,4 +47,9 @@ where TNum: unmanaged, IFloatingPointIeee754<TNum>
         angle += totalRotationsDiff * twoPi;
         return boundary.Contains(angle);
     }
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Angle<TOther> To<TOther>()
+        where TOther : unmanaged, IFloatingPointIeee754<TOther>
+        => Angle<TOther>.FromRadians(TOther.CreateTruncating(Radians));
 }

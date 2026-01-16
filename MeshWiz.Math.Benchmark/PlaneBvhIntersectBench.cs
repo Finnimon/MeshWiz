@@ -7,7 +7,7 @@ namespace MeshWiz.Math.Benchmark;
 public class PlaneBvhIntersectBench
 {
     private BvhMesh<float>? _mesh;
-    private Plane3<float> _plane;
+    private Plane<float> _plane;
     [GlobalSetup]
     public void Setup()
     {
@@ -18,7 +18,7 @@ public class PlaneBvhIntersectBench
         ];
         tris = MeshIO.ReadFile<FastStlReader, float>("/home/finnimon/source/repos/TestFiles/drag.stl").ToArray();
         _mesh = BvhMesh<float>.SurfaceAreaHeuristic(tris);
-        _plane = new Plane3<float>(Vec3<float>.UnitZ, _mesh.VolumeCentroid);
+        _plane = new Plane<float>(Vec3<float>.UnitZ, _mesh.VolumeCentroid);
             
     }
     [Benchmark]

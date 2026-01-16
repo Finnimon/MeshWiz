@@ -7,6 +7,7 @@ using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using System.Xml.Serialization;
 using CommunityToolkit.Diagnostics;
+using MeshWiz.RefLinq;
 using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
@@ -16,8 +17,10 @@ namespace MeshWiz.Math;
 public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Vec4<TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    public static int RowCount => 4;
-    public static int ColCount => 4;
+    static int IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Vec4<TNum>, TNum>.RowCount => RowCount;
+    static int IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Vec4<TNum>, TNum>.ColCount => ColCount;
+    public const int ColCount = 4;
+    public const int RowCount = 4;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public static Matrix4x4<TNum> Identity
@@ -75,7 +78,7 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Ve
 
 
     /// <inheritdoc />
-    public unsafe ReadOnlySpan<TNum> AsSpan() => new(Unsafe.AsPointer(in this), ColCount * RowCount);
+    public ReadOnlySpan<TNum> AsSpan() => MemoryMarshal.CreateReadOnlySpan(in X.X, ColCount * RowCount);
 
     public Matrix4x4(
         TNum m00, TNum m01, TNum m02, TNum m03,
@@ -83,10 +86,10 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Ve
         TNum m20, TNum m21, TNum m22, TNum m23,
         TNum m30, TNum m31, TNum m32, TNum m33)
     {
-        X = new(m00, m01, m02, m03);
-        Y = new(m10, m11, m12, m13);
-        Z = new(m20, m21, m22, m23);
-        W = new(m30, m31, m32, m33);
+        X = Vec4<TNum>.Create(m00, m01, m02, m03);
+        Y = Vec4<TNum>.Create(m10, m11, m12, m13);
+        Z = Vec4<TNum>.Create(m20, m21, m22, m23);
+        W = Vec4<TNum>.Create(m30, m31, m32, m33);
     }
 
     public Matrix4x4(TNum value)
@@ -392,5 +395,17 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Ve
         var success = Vec4<Vec4<TNum>>.TryParse(s, provider, out var n);
         result = n;
         return success;
+    }
+    
+    
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Matrix4x4<TOther> To<TOther>()
+        where TOther : unmanaged, IFloatingPointIeee754<TOther>
+    {
+        Unsafe.SkipInit(out Matrix4x4<TOther> res);
+        var newNums = AsSpan().Select(TOther.CreateTruncating);
+        var resSpan = MemoryMarshal.CreateSpan(ref Unsafe.AsRef(in res.X.X),ColCount*RowCount);
+        newNums.CopyTo(resSpan);
+        return res;
     }
 }

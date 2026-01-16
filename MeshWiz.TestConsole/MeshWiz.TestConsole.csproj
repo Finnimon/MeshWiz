@@ -17,10 +17,4 @@
       <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
     </ItemGroup>
 
-    <ItemGroup>
-      <None Update="bvh.sah.cl">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
-    </ItemGroup>
-
 </Project>

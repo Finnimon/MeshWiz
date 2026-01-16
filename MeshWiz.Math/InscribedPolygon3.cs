@@ -1,4 +1,6 @@
+using System.Diagnostics.Contracts;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 
@@ -18,7 +20,7 @@ public readonly struct InscribedPolygon3<TNum>(int edgeCount, Circle3<TNum> boun
     public Vec3<TNum> Normal => Boundary.Normal;
 
     /// <inheritdoc />
-    public Plane3<TNum> Plane => Boundary.Plane;
+    public Plane<TNum> Plane => Boundary.Plane;
 
     /// <inheritdoc />
     public Vec3<TNum> Centroid => Boundary.Centroid;
@@ -62,4 +64,10 @@ public readonly struct InscribedPolygon3<TNum>(int edgeCount, Circle3<TNum> boun
             return new Triangle3<TNum>(c, p1, p2).SurfaceArea * TNum.CreateTruncating(EdgeCount);
         }
     }
+    
+    
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public InscribedPolygon3<TOther> To<TOther>()
+        where TOther : unmanaged, IFloatingPointIeee754<TOther>
+        => new(EdgeCount,Boundary.To<TOther>());
 }

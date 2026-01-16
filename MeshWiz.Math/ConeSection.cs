@@ -1,5 +1,6 @@
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
@@ -306,4 +307,9 @@ public readonly struct ConeSection<TNum>
     {
         return !left.Equals(right);
     }
+    
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ConeSection<TOther> To<TOther>()
+        where TOther : unmanaged, IFloatingPointIeee754<TOther>
+        => new(Axis.To<Vec3<TOther>, TOther>(), TOther.CreateTruncating(BaseRadius),TOther.CreateTruncating(TopRadius));
 }

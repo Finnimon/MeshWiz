@@ -6,12 +6,12 @@ namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
 
-public readonly struct Triangle3<TNum>:ISurface<Vec3<TNum>, TNum>, IFlat<TNum>, IByteSize
+public readonly struct Triangle3<TNum>:ISurface<Vec3<TNum>, TNum>, IFlat<TNum>, IByteSize, IBounded<Vec3<TNum>>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly Vec3<TNum> A,B,C;
     public Vec3<TNum> Normal => ((B - A).Cross(C-A)).Normalized();
-    public Plane3<TNum> Plane => new(in this);
+    public Plane<TNum> Plane => new(in this);
     public Triangle3(Vec3<TNum> a,Vec3<TNum> b,Vec3<TNum> c)
     {
         A = a;

@@ -1,7 +1,6 @@
-﻿using BenchmarkDotNet.Running;
+﻿using System.Runtime.Intrinsics;
+using BenchmarkDotNet.Running;
+using MeshWiz.Math;
 using MeshWiz.Math.Benchmark;
 
-// VecMathBench<float> b = new();
-// b.Setup();
-// Console.WriteLine(b.MulOld()==b.VecMul());
-BenchmarkRunner.Run<VecMathBench>();
+BenchmarkRunner.Run<BvhAlgoBench<float>>();

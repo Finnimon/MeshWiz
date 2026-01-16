@@ -1,7 +1,7 @@
 namespace MeshWiz.Math;
 
 
-public static class IndexerUtilities
+internal static class IndexerUtilities
 {
     public static int GetIndex<TElement>(TElement vec,
         Dictionary<TElement, int> unified,

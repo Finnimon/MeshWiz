@@ -1,5 +1,6 @@
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
@@ -27,7 +28,7 @@ public readonly struct Arc3<TNum>(Circle3<TNum> underlying, TNum startAngle, TNu
     public TNum Length => AngleRange / Numbers<TNum>.TwoPi * Underlying.Length;
 
     /// <inheritdoc />
-    public Plane3<TNum> Plane => Underlying.Plane;
+    public Plane<TNum> Plane => Underlying.Plane;
 
     /// <inheritdoc />
     public Vec3<TNum> Normal => Underlying.Normal;
@@ -115,4 +116,9 @@ public readonly struct Arc3<TNum>(Circle3<TNum> underlying, TNum startAngle, TNu
 
     /// <inheritdoc />
     public Vec3<TNum> ExitDirection => GetTangentAtAngle(EndAngle);
+    
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Arc3<TOther> To<TOther>()
+        where TOther : unmanaged, IFloatingPointIeee754<TOther>
+    =>new(Underlying.To<TOther>(), TOther.CreateTruncating(StartAngle),TOther.CreateTruncating(EndAngle));
 }

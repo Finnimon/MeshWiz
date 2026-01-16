@@ -1,5 +1,6 @@
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
@@ -80,7 +81,7 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
     }
 
     public TNum Diameter => Radius * Numbers<TNum>.Two;
-    public Plane3<TNum> Plane => Plane3<TNum>.CreateUnsafe(N, Center);
+    public Plane<TNum> Plane => Plane<TNum>.CreateUnsafe(N, Center);
     public TNum SurfaceArea => Radius * Radius * TNum.Pi;
     public (Vec3<TNum> U, Vec3<TNum> V) Basis => Plane.Basis;
 
@@ -276,4 +277,9 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
     {
         return !left.Equals(right);
     }
+    
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Circle3<TOther> To<TOther>()
+        where TOther : unmanaged, IFloatingPointIeee754<TOther>
+        =>new(Center.To<TOther>(),Normal.To<TOther>(),TOther.CreateTruncating(Radius));
 }

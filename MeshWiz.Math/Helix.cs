@@ -1,5 +1,6 @@
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
@@ -11,10 +12,10 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vec3<TNum>, 
     IEquatable<Helix<TNum>> 
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    public readonly Cylinder<TNum> Cylinder;
+    public readonly Cylinder<TNum> Surface;
     public readonly Line<Vec2<TNum>, TNum> Line;
     public TNum Length => Line.Length;
-    public Vec3<TNum> Start => Project(in Cylinder, Line.Start);
+    public Vec3<TNum> Start => Project(in Surface, Line.Start);
 
     /// <inheritdoc />
     public Pose3<TNum> EndPose => GetPose(TNum.Zero);
@@ -22,14 +23,14 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vec3<TNum>, 
     /// <inheritdoc />
     public Pose3<TNum> StartPose => GetPose(TNum.Zero);
 
-    public Vec3<TNum> End => Project(in Cylinder, Line.End);
+    public Vec3<TNum> End => Project(in Surface, Line.End);
     public Vec3<TNum> EntryDirection => GetTangent(TNum.Zero);
     public Vec3<TNum> ExitDirection => GetTangent(TNum.One);
 
 
-    public Helix(Cylinder<TNum> cylinder, Line<Vec2<TNum>, TNum> line)
+    public Helix(Cylinder<TNum> surface, Line<Vec2<TNum>, TNum> line)
     {
-        Cylinder = cylinder;
+        Surface = surface;
         Line = line;
     }
 
@@ -148,9 +149,9 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vec3<TNum>, 
     public Pose3<TNum> GetPose(TNum t)
     {
         var p2 = Line.Traverse(t);
-        var pos = Project(in Cylinder, p2);
-        var front = ProjectDirection(in Cylinder, pos, Line.AxisVector);
-        var cylAxis = Cylinder.Axis;
+        var pos = Project(in Surface, p2);
+        var front = ProjectDirection(in Surface, pos, Line.AxisVector);
+        var cylAxis = Surface.Axis;
         var normal = pos - cylAxis.Start;
         var axisDir = cylAxis.Direction;
         normal -= axisDir * Vec3<TNum>.Dot(normal, axisDir);
@@ -159,7 +160,7 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vec3<TNum>, 
 
     /// <inheritdoc />
     public Vec3<TNum> Traverse(TNum t)
-        => Project(in Cylinder, Line.Traverse(t));
+        => Project(in Surface, Line.Traverse(t));
 
     /// <inheritdoc />
     public Polyline<Vec3<TNum>, TNum> ToPolyline() =>
@@ -198,7 +199,7 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vec3<TNum>, 
     {
         var diff = Line.AxisVector.X;
         var horizontalLength = TNum.Abs(diff);
-        var relative = horizontalLength / Cylinder.Circumference;
+        var relative = horizontalLength / Surface.Circumference;
         return relative * Numbers<TNum>.TwoPi;
     }
 
@@ -249,23 +250,28 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vec3<TNum>, 
 
     [Pure]
     public Vec3<TNum> GetTangent(TNum t)
-        => ProjectDirection(in Cylinder, Line.Traverse(t), Line.AxisVector);
+        => ProjectDirection(in Surface, Line.Traverse(t), Line.AxisVector);
 
     /// <inheritdoc />
-    public bool Equals(Helix<TNum> other) => Cylinder.Equals(other.Cylinder) && Line.Equals(other.Line);
+    public bool Equals(Helix<TNum> other) => Surface.Equals(other.Surface) && Line.Equals(other.Line);
 
     /// <inheritdoc />
     public override bool Equals(object? obj) => obj is Helix<TNum> other && Equals(other);
 
     /// <inheritdoc />
-    public override int GetHashCode() => HashCode.Combine(Cylinder, Line);
+    public override int GetHashCode() => HashCode.Combine(Surface, Line);
 
     public static bool operator ==(Helix<TNum> left, Helix<TNum> right) => left.Equals(right);
 
     public static bool operator !=(Helix<TNum> left, Helix<TNum> right) => !left.Equals(right);
 
-    public Ray3<TNum> GetRay(TNum t) => ProjectDirectionComplete(Cylinder, Line.Traverse(t), Line.Direction);
+    public Ray3<TNum> GetRay(TNum t) => ProjectDirectionComplete(Surface, Line.Traverse(t), Line.Direction);
 
     public Helix<TNum> Section(TNum start, TNum end)
-        => new(Cylinder, Line.Section(start, end));
+        => new(Surface, Line.Section(start, end));
+    
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Helix<TOther> To<TOther>()
+        where TOther : unmanaged, IFloatingPointIeee754<TOther>
+        => new(Surface.To<TOther>(), Line.To<Vec2<TOther>,TOther>());
 }

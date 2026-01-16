@@ -8,7 +8,7 @@ namespace MeshWiz.Math;
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct Ray3<TNum>
     : IIntersecter<Triangle3<TNum>, TNum>,
-        IIntersecter<Plane3<TNum>, TNum>,
+        IIntersecter<Plane<TNum>, TNum>,
         IIntersecter<AABB<Vec3<TNum>>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
@@ -42,13 +42,13 @@ public readonly struct Ray3<TNum>
     public static Vec3<TNum> operator *(TNum distance, in Ray3<TNum> ray) => ray.Traverse(distance);
 
 
-    public bool DoIntersect(Plane3<TNum> plane)
+    public bool DoIntersect(Plane<TNum> plane)
     {
         var dot = plane.Normal.Dot(Direction);
         return dot > TNum.Epsilon;
     }
 
-    public bool Intersect(Plane3<TNum> plane, out TNum t)
+    public bool Intersect(Plane<TNum> plane, out TNum t)
     {
         var denominator = plane.Normal.Dot(Direction);
 
@@ -164,4 +164,10 @@ public readonly struct Ray3<TNum>
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Ray3<TNum> CreateUnsafe(Vec3<TNum> origin, Vec3<TNum> direction) =>
         new(origin, direction, true);
+    
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Ray3<TOther> To<TOther>()
+    where TOther:unmanaged,IFloatingPointIeee754<TOther>
+    =>Ray3<TOther>.CreateUnsafe(Origin.To<TOther>(), Direction.To<TOther>());
+    
 }

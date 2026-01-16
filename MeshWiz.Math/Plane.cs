@@ -10,16 +10,16 @@ using MeshWiz.Utility.Extensions;
 namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-public readonly struct Plane3<TNum>
+public readonly struct Plane<TNum>
     : IIntersecter<Line<Vec3<TNum>, TNum>, Vec3<TNum>>,
         IIntersecter<Ray3<TNum>, Vec3<TNum>>,
         IIntersecter<Triangle3<TNum>, Line<Vec3<TNum>, TNum>>,
         IIntersecter<AABB<Vec3<TNum>>, Quad3<TNum>>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    public static Plane3<TNum> XY => new(Vec3<TNum>.UnitZ, TNum.Zero);
-    public static Plane3<TNum> YZ => new(Vec3<TNum>.UnitX, TNum.Zero);
-    public static Plane3<TNum> ZX => new(Vec3<TNum>.UnitY, TNum.Zero);
+    public static Plane<TNum> XY => new(Vec3<TNum>.UnitZ, TNum.Zero);
+    public static Plane<TNum> YZ => new(Vec3<TNum>.UnitX, TNum.Zero);
+    public static Plane<TNum> ZX => new(Vec3<TNum>.UnitY, TNum.Zero);
 
     public readonly TNum D;
     public readonly Vec3<TNum> Normal;
@@ -27,38 +27,38 @@ public readonly struct Plane3<TNum>
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public Vec4<TNum> AsVec4 => new(Normal, D);
 
-    public Plane3(in Triangle3<TNum> triangleOnPlane) : this(triangleOnPlane.Normal, triangleOnPlane.A) { }
+    public Plane(in Triangle3<TNum> triangleOnPlane) : this(triangleOnPlane.Normal, triangleOnPlane.A) { }
 
-    public Plane3(Vec3<TNum> normal, Vec3<TNum> pointOnPlane)
+    public Plane(Vec3<TNum> normal, Vec3<TNum> pointOnPlane)
     {
         Normal = normal.Normalized();
         D = -(Normal.Dot(pointOnPlane));
     }
 
-    private Plane3(Vec3<TNum> normal, TNum d, bool _)
+    private Plane(Vec3<TNum> normal, TNum d, bool _)
     {
         Normal = normal;
         D = d;
     }
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Plane3<TNum> CreateUnsafe(Vec3<TNum> normal, Vec3<TNum> pointOnPlane)
+    public static Plane<TNum> CreateUnsafe(Vec3<TNum> normal, Vec3<TNum> pointOnPlane)
         => new(normal, -(normal.Dot(pointOnPlane)), true);
     
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Plane3<TNum> CreateUnsafe(Vec3<TNum> normal, TNum d)
+    public static Plane<TNum> CreateUnsafe(Vec3<TNum> normal, TNum d)
         => new(normal, d, true);
 
-    public Plane3(Vec3<TNum> a, Vec3<TNum> b, Vec3<TNum> c)
+    public Plane(Vec3<TNum> a, Vec3<TNum> b, Vec3<TNum> c)
     {
         Normal = Vec3<TNum>.Cross((a - b), (c - a));
         Normal = Normal.Normalized();
         D = -(Normal.Dot(a));
     }
 
-    public Plane3(Vec4<TNum> asVec4) : this(asVec4.XYZ, asVec4.W) { }
+    public Plane(Vec4<TNum> asVec4) : this(asVec4.XYZ, asVec4.W) { }
 
-    public Plane3(Vec3<TNum> normal, TNum d)
+    public Plane(Vec3<TNum> normal, TNum d)
     {
         Normal = normal.Normalized();
         D = d;
@@ -306,7 +306,7 @@ public readonly struct Plane3<TNum>
     }
 
     public Vec3<TNum> Origin => Normal * -D;
-    public TNum DistanceTo(Plane3<TNum> other) => TNum.Abs(D - other.D);
+    public TNum DistanceTo(Plane<TNum> other) => TNum.Abs(D - other.D);
     public TNum DistanceTo(Vec3<TNum> p) => TNum.Abs(SignedDistance(p));
 
     public Vec2<TNum> ProjectIntoLocal(Vec3<TNum> world)
@@ -472,4 +472,8 @@ public readonly struct Plane3<TNum>
         return new Line<Vec2<TNum>, TNum>(localStart, localEnd);
     }
 
+    [Pure, MethodImpl]
+    public Plane<TOther> To<TOther>()
+        where TOther : unmanaged, IFloatingPointIeee754<TOther>
+        => Plane<TOther>.CreateUnsafe(Normal.To<TOther>(), TOther.CreateTruncating(D));
 }

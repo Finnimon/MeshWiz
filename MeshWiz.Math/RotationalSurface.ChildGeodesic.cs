@@ -300,7 +300,7 @@ public sealed partial record RotationalSurface<TNum>
         public static ChildGeodesic CreateDead(int index = -1) => new(ChildSurfaceType.Dead, index);
 
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Result<Arithmetics, TNum> SolveIntersection(Plane3<TNum> plane)
+        public Result<Arithmetics, TNum> SolveIntersection(Plane<TNum> plane)
             => Type switch
             {
                 ChildSurfaceType.Cylinder => Curve.Solver.IntersectionNewton(Helix, plane),
@@ -312,7 +312,7 @@ public sealed partial record RotationalSurface<TNum>
             };
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Result<Arithmetics, TNum> LineIntersect(Plane3<TNum> plane) =>
+        private Result<Arithmetics, TNum> LineIntersect(Plane<TNum> plane) =>
             plane.IntersectParameter(Line, out var t)
                 ? t
                 : Result<Arithmetics, TNum>.DefaultFailure;

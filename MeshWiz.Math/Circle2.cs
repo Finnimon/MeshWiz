@@ -1,4 +1,6 @@
+using System.Diagnostics.Contracts;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using MeshWiz.Utility;
 
@@ -95,4 +97,9 @@ public readonly struct Circle2<TNum> : ISurface<Vec2<TNum>, TNum>,IContiguousDis
 
     /// <inheritdoc />
     public Vec2<TNum> ExitDirection => V;
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Circle2<TOther> To<TOther>()
+        where TOther : unmanaged, IFloatingPointIeee754<TOther>
+        =>new(Center.To<TOther>(),TOther.CreateTruncating(Radius));
+
 }

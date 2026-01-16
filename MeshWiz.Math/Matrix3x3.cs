@@ -4,6 +4,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.Diagnostics;
+using MeshWiz.RefLinq;
 using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
@@ -42,8 +43,10 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
         return Create(x, y, z);
     }
 
-    public static int RowCount => 3;
-    public static int ColCount => 3;
+    public const int ColCount = 3;
+    public const int RowCount = 3;
+    static int IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Vec3<TNum>, TNum>.RowCount => RowCount;
+    static int IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Vec3<TNum>, TNum>.ColCount => ColCount;
 
     public static Matrix3x3<TNum> Identity
     {
@@ -105,7 +108,7 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
             ? Unsafe.As<TNum, Matrix3x3<TNum>>(ref components[0])
             : ThrowHelper.ThrowArgumentException<Matrix3x3<TNum>>("Components must be of length 9");
 
-    public static unsafe Matrix3x3<TNum> FromComponents(TNum[,] components) =>
+    public static Matrix3x3<TNum> FromComponents(TNum[,] components) =>
         components is { Length: 9, Rank: 2 }
             ? Unsafe.As<TNum, Matrix3x3<TNum>>(ref components[0, 0])
             : ThrowHelper.ThrowArgumentException<Matrix3x3<TNum>>("Components must be of length 9");
@@ -116,7 +119,7 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
             components[3], components[4], components[5],
             components[6], components[7], components[8]);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining),Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
     public static Matrix3x3<TNum> Create(Vec3<TNum> x, Vec3<TNum> y, Vec3<TNum> z)
     {
         Unsafe.SkipInit<Matrix3x3<TNum>>(out var m);
@@ -271,7 +274,7 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
         => new(-mat.X, -mat.Y, -mat.Z);
 
     /// <inheritdoc />
-    public unsafe ReadOnlySpan<TNum> AsSpan() => new(Unsafe.AsPointer(in this), ColCount * RowCount);
+    public ReadOnlySpan<TNum> AsSpan() => MemoryMarshal.CreateReadOnlySpan(in X.X,ColCount*RowCount);
 
     public override bool Equals(object? obj)
         => obj is Matrix3x3<TNum> m && this == m;
@@ -333,5 +336,16 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
         var success = Vec3<Vec3<TNum>>.TryParse(s, provider, out var n);
         result = n;
         return success;
+    }
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Matrix3x3<TOther> To<TOther>()
+        where TOther : unmanaged, IFloatingPointIeee754<TOther>
+    {
+        Unsafe.SkipInit(out Matrix3x3<TOther> res);
+        var newNums = AsSpan().Select(TOther.CreateTruncating);
+        var resSpan = MemoryMarshal.CreateSpan( ref Unsafe.AsRef(in res.X.X),ColCount*RowCount);
+        newNums.CopyTo(resSpan);
+        return res;
     }
 }

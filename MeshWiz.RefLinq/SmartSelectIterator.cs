@@ -179,11 +179,40 @@ public ref struct SmartSelectIterator<TIn, TOut>(ReadOnlySpan<TIn> source,Func<T
 
     /// <inheritdoc />
     public TOut Aggregate(Func<TOut, TOut, TOut> aggregator)
-        => Iterator.Aggregate(this, aggregator);
+    {
+        switch (Length)
+        {
+            case 0:
+                return ThrowHelper.ThrowInvalidOperationException<TOut>();
+            case 1:
+                return this[0];
+            case 2:
+                return aggregator(this[0], this[1]);
+            default:
+                var seed = this[0];
+                for (var i = 1; i < Length; i++)
+                    seed = aggregator(seed, this[i]);
+                return seed;
+        }
+    }
 
     /// <inheritdoc />
     public TOther Aggregate<TOther>(Func<TOther, TOut, TOther> aggregator, TOther seed)
-        => Iterator.Aggregate(this, aggregator,seed);
+    {
+        switch (Length)
+        {
+            case 0:
+                return seed;
+            case 1:
+                return aggregator(seed, this[0]);
+            case 2:
+                return aggregator(aggregator(seed, this[0]), this[1]);
+            default:
+                for (var i=0;i<Length;i++)
+                    seed = aggregator(seed, this[i]);
+                return seed;
+        }
+    }
 
     /// <inheritdoc />
     public Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(Func<TOut, TKey> keyGen, Func<TOut, TValue> valGen)

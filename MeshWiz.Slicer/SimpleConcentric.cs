@@ -89,7 +89,7 @@ public class SimpleConcentric
         }
     }
 
-    public static SlicedLayer<TNum> GenLayer<TNum>(Plane3<TNum> plane,
+    public static SlicedLayer<TNum> GenLayer<TNum>(Plane<TNum> plane,
         BvhMesh<TNum> mesh, TNum pathWidth)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {

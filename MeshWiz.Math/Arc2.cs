@@ -1,7 +1,9 @@
+using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.Diagnostics;
+using JetBrains.Annotations;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
@@ -109,4 +111,10 @@ public readonly struct Arc2<TNum> : IContiguousDiscreteCurve<Vec2<TNum>, TNum>
 
     /// <inheritdoc />
     public Vec2<TNum> ExitDirection => GetTangent(TNum.One);
+
+    [System.Diagnostics.Contracts.Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Arc2<TOther> To<TOther>()
+        where TOther : unmanaged, IFloatingPointIeee754<TOther>
+        => new(CircumCenter.To<TOther>(), TOther.CreateTruncating(Radius), TOther.CreateTruncating(StartAngle),
+            TOther.CreateTruncating(EndAngle));
 }

@@ -4,12 +4,13 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
+using MeshWiz.RefLinq;
 
 namespace MeshWiz.Math;
 
-public sealed class PosePolyline<TPose, TVec, TNum> : IDiscretePoseCurve<TPose,TVec, TNum>,
+public sealed class PosePolyline<TPose, TVec, TNum> : IDiscretePoseCurve<TPose, TVec, TNum>,
     IReadOnlyList<PoseLine<TPose, TVec, TNum>>,
-    IBounded<TVec> 
+    IBounded<TVec>
     where TVec : unmanaged, IVec<TVec, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
     where TPose : IPose<TPose, TVec, TNum>
@@ -19,6 +20,7 @@ public sealed class PosePolyline<TPose, TVec, TNum> : IDiscretePoseCurve<TPose,T
     public PosePolyline(params ReadOnlySpan<TPose> poses) => _poses = poses.ToArray();
     private PosePolyline(TPose[] poses) => _poses = poses;
     internal static PosePolyline<TPose, TVec, TNum> CreateNonCopying(TPose[] poses) => new(poses);
+
     public static PosePolyline<TPose, TVec, TNum> CreateCulled(params ReadOnlySpan<TPose> poses)
     {
         if (poses.Length is 0 or 1)
@@ -61,7 +63,8 @@ public sealed class PosePolyline<TPose, TVec, TNum> : IDiscretePoseCurve<TPose,T
         return new PosePolyline<TPose, TVec, TNum>(verts);
     }
 
-    public static PosePolyline<TPose, TVec, TNum> CreateCulled(IEnumerable<TPose> poses) => CreateCulledNonCopying(poses.ToArray());
+    public static PosePolyline<TPose, TVec, TNum> CreateCulled(IEnumerable<TPose> poses) =>
+        CreateCulledNonCopying(poses.ToArray());
 
     public ReadOnlySpan<TPose> Poses => _poses;
     public int Count => int.Max(0, _poses.Length - 1);
@@ -84,6 +87,7 @@ public sealed class PosePolyline<TPose, TVec, TNum> : IDiscretePoseCurve<TPose,T
 
     public TPose StartPose => _poses[0];
     public TPose EndPose => _poses[^1];
+
     public TPose TraverseOnCurve(TNum t)
         => Polyline.TraverseOnCurve(t, _cumulativeDistances, IsClosed, _poses);
 
@@ -101,8 +105,8 @@ public sealed class PosePolyline<TPose, TVec, TNum> : IDiscretePoseCurve<TPose,T
 
     /// <inheritdoc />
     Polyline<TVec, TNum> IDiscreteCurve<TVec, TNum>.ToPolyline(
-        PolylineTessellationParameter<TNum> tessellationParameter)
-        => new Polyline<TVec, TNum>(_poses.Select(p => p.Position)).CullDeadSegments();
+        PolylineTessellationParameter<TNum> tessellationParameter) =>
+        Polyline<TVec, TNum>.CreateNonCopying(Poses.Select(p => p.Position).ToArray());
 
     public TPose GetPose(TNum t)
         => Polyline.Traverse(t, _cumulativeDistances, IsClosed, _poses);
@@ -127,7 +131,8 @@ public sealed class PosePolyline<TPose, TVec, TNum> : IDiscretePoseCurve<TPose,T
     public PosePolyline<TPose, TVec, TNum> ToPosePolyline() => this;
 
     /// <inheritdoc />
-    public PosePolyline<TPose, TVec, TNum> ToPosePolyline(PolylineTessellationParameter<TNum> tessellationParameter) => this;
+    public PosePolyline<TPose, TVec, TNum> ToPosePolyline(PolylineTessellationParameter<TNum> tessellationParameter) =>
+        this;
 
     /// <inheritdoc />
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
@@ -145,12 +150,24 @@ public sealed class PosePolyline<TPose, TVec, TNum> : IDiscretePoseCurve<TPose,T
 
     public PosePolyline<TPose, TVec, TNum> ExactSection(TNum start, TNum end)
     {
-        var section = Polyline.ExactSection(start, end,_poses,IsClosed,_cumulativeDistances);
+        var section = Polyline.ExactSection(start, end, _poses, IsClosed, _cumulativeDistances);
         return new PosePolyline<TPose, TVec, TNum>(section);
     }
 
     private AABB<TVec>? _bbox;
-    /// <inheritdoc />
-    public AABB<TVec> BBox => _bbox ??= AABB.From<TPose,TVec,TNum>(Poses);
 
+    /// <inheritdoc />
+    public AABB<TVec> BBox => _bbox ??= AABB.From<TPose, TVec, TNum>(Poses);
+}
+
+public static class PosePolyline
+{
+    public static PosePolyline<Pose3<TOther>, Vec3<TOther>, TOther> To<TNum, TOther>(
+        this PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum> source)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        where TOther : unmanaged, IFloatingPointIeee754<TOther>
+    {
+        var newPoses = source.Poses.Select(pose => pose.To<TOther>()).ToArray();
+        return PosePolyline<Pose3<TOther>, Vec3<TOther>, TOther>.CreateNonCopying(newPoses);
+    }
 }

@@ -1,91 +1,74 @@
 using System.Collections;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 
 namespace MeshWiz.RefLinq;
 
-public record AdapterIterator<T>(IEnumerable<T> Source) : IRefIterator<AdapterIterator<T>,T>
+public readonly partial struct AdapterIterator<T> : IRefIterator<AdapterIterator<T>,T>
 {
-    private IEnumerator<T>? _enumerator;
+    internal readonly Imp.IImp _imp;
+    public AdapterIterator(IEnumerable<T> source) => _imp = Imp.Create(source);
+    internal AdapterIterator(Imp.IImp imp) => _imp = imp;
 
     /// <inheritdoc />
-    public bool MoveNext()
-    {
-        _enumerator ??= Source.GetEnumerator();
-        return _enumerator.MoveNext();
-    }
+    public bool MoveNext() => _imp.MoveNext();
 
     /// <inheritdoc />
-    public void Reset()
-    {
-        _enumerator?.Dispose();
-        _enumerator = null;
-    }
+    public void Reset() => _imp.Reset();
 
     /// <inheritdoc />
-    public T Current => _enumerator!.Current;
+    public T Current => _imp.Current;
 
     /// <inheritdoc />
-    object? IEnumerator.Current => Current;
+    object? IEnumerator.Current => _imp.Current;
 
     /// <inheritdoc />
-    public void Dispose()
-    {
-        Reset();
-        if (Source is not IDisposable d) return;
-        d.Dispose();
-    }
+    public void Dispose() => _imp.Dispose();
 
     /// <inheritdoc />
-    public T First() => Source.First();
+    public T First() => Iterator.First<AdapterIterator<T>, T>(this);
 
     /// <inheritdoc />
     public T? FirstOrDefault()
-        => Source.FirstOrDefault();
+    {
+        TryGetFirst(out var first);
+        return first;
+    }
 
     /// <inheritdoc />
     public bool TryGetFirst(out T? item)
-    {
-        using var enumerator = Source.GetEnumerator();
-        var result = enumerator.MoveNext();
-        item = result ? enumerator.Current : default;
-        return result;
-    }
+        => _imp.TryGetFirst(out item);
 
     /// <inheritdoc />
     public T Last()
-        => Source.Last();
+        => TryGetLast(out var last)? last!: ThrowHelper.ThrowInvalidOperationException<T>();
 
     /// <inheritdoc />
     public T? LastOrDefault()
-        => Source.LastOrDefault();
+    {
+        TryGetLast(out var last);
+        return last;
+    }
 
     /// <inheritdoc />
-    public bool TryGetLast(out T? item)
-        => Func.Try(Enumerable.Last, Source).TryGetValue<ExceptionResult<T>, Exception, T>(out item);
+    public bool TryGetLast(out T? item) => _imp.TryGetLast(out item);
 
     /// <inheritdoc />
     public int Count()
-        => Source.Count();
+        => _imp.Count();
 
     /// <inheritdoc />
-    public bool TryGetNonEnumeratedCount(out int count) => Source.TryGetNonEnumeratedCount(out count);
+    public bool TryGetNonEnumeratedCount(out int count) => _imp.TryGetNonEnumeratedCount(out count);
 
     /// <inheritdoc />
-    public void CopyTo(Span<T> destination)
-    {
-        using var enumerator = Source.GetEnumerator();
-        var i = -1;
-        while (enumerator.MoveNext())
-            destination[++i] = enumerator.Current;
-    }
+    public void CopyTo(Span<T> destination) => _imp.CopyTo(destination);
 
     /// <inheritdoc />
     public AdapterIterator<T> GetEnumerator()
     {
-        var copy = this;
-        copy.Reset();
-        return copy;
+        Reset();
+        return this;
     }
 
     /// <inheritdoc />
@@ -109,12 +92,13 @@ public record AdapterIterator<T>(IEnumerable<T> Source) : IRefIterator<AdapterIt
         => Take(num..);
 
     /// <inheritdoc />
-    public T[] ToArray()
-        => Source.ToArray();
+    public T[] ToArray() => Iterator.ToArray<AdapterIterator<T>, T>(this);
+
+    public bool TryGetSpan(out ReadOnlySpan<T> span) => _imp.TryGetSpan(out span);
 
     /// <inheritdoc />
     public List<T> ToList()
-        => Source.ToList();
+        => Iterator.ToList<AdapterIterator<T>, T>(this);
 
     /// <inheritdoc />
     public HashSet<T> ToHashSet()
@@ -122,10 +106,10 @@ public record AdapterIterator<T>(IEnumerable<T> Source) : IRefIterator<AdapterIt
 
     /// <inheritdoc />
     public HashSet<T> ToHashSet(IEqualityComparer<T>? comp)
-        => Source.ToHashSet(comp);
+        => Iterator.ToHashSet(this, comp);
 
     /// <inheritdoc />
-    public int EstimateCount() => TryGetNonEnumeratedCount(out var count) ? count : 64;
+    public int EstimateCount() => TryGetNonEnumeratedCount(out var count) ? count : 8;
 
     /// <inheritdoc />
     public OfTypeIterator<AdapterIterator<T>, T, TOther> OfType<TOther>()
@@ -133,16 +117,16 @@ public record AdapterIterator<T>(IEnumerable<T> Source) : IRefIterator<AdapterIt
 
     /// <inheritdoc />
     public T Aggregate(Func<T, T, T> aggregator)
-        => Source.Aggregate(aggregator);
+        => Iterator.Aggregate(this, aggregator);
 
     /// <inheritdoc />
     public TOther Aggregate<TOther>(Func<TOther, T, TOther> aggregator, TOther seed)
-        => Source.Aggregate(seed,aggregator);
+        => Iterator.Aggregate(this, aggregator,seed);
 
     /// <inheritdoc />
     public Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(Func<T, TKey> keyGen, Func<T, TValue> valGen,
         IEqualityComparer<TKey>? comp) where TKey : notnull
-        => Source.ToDictionary(keyGen, valGen, comp);
+        => Iterator.ToDictionary(this,comp,keyGen, valGen);
 
     /// <inheritdoc />
     public SelectManyIterator<AdapterIterator<T>, TInner, T, TOut> SelectMany<TInner, TOut>(Func<T, TInner> flattener) where TInner : IRefIterator<TInner,TOut>, allows ref struct => new(this, flattener);
@@ -162,8 +146,12 @@ public record AdapterIterator<T>(IEnumerable<T> Source) : IRefIterator<AdapterIt
     /// <inheritdoc />
     public bool TryTakeRange(Range r, out AdapterIterator<T> result)
     {
-        var range = Source.Take(r);
-        result = new AdapterIterator<T>(range);
+        if (!_imp.TryTakeRange(r, out var newImp))
+        {
+            Unsafe.SkipInit(out result);
+            return false;
+        }
+        result = new AdapterIterator<T>(newImp!);
         return true;
     }
     
@@ -203,11 +191,11 @@ public record AdapterIterator<T>(IEnumerable<T> Source) : IRefIterator<AdapterIt
 
     /// <inheritdoc />
     public T Min(IComparer<T>? comp)
-        =>Iterator.TryGetMin(this,comp,out var min)?min!:ThrowHelper.ThrowInvalidOperationException<T>();
+        =>Iterator.TryGetMin(this,comp,out var min)?min:ThrowHelper.ThrowInvalidOperationException<T>();
 
     /// <inheritdoc />
     public T Max(IComparer<T>? comp)
-        =>Iterator.TryGetMax(this,comp,out var min)?min!:ThrowHelper.ThrowInvalidOperationException<T>();
+        =>Iterator.TryGetMax(this,comp,out var min)?min:ThrowHelper.ThrowInvalidOperationException<T>();
 
     /// <inheritdoc />
     public T? MinOrDefault(IComparer<T>? comp)

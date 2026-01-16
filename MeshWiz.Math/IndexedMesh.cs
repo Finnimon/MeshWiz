@@ -1,4 +1,6 @@
+using System.Diagnostics.Contracts;
 using System.Numerics;
+using MeshWiz.RefLinq;
 
 namespace MeshWiz.Math;
 
@@ -77,12 +79,12 @@ public sealed class IndexedMesh<TNum> : IIndexedMesh<TNum>
     public IndexedMesh<TOther> To<TOther>() where TOther : unmanaged, IFloatingPointIeee754<TOther>
     {
         if (typeof(TOther) == typeof(TNum)) return (IndexedMesh<TOther>)(object) this;
-        return new(Vertices.Select(v => v.To<TOther>()).ToArray(), Indices);
+        return new IndexedMesh<TOther>(Vertices.Iterate().Select(v => v.To<TOther>()).ToArray(), Indices);
     }
 
     public IndexedMesh<TNum> Inverted()
     {
-        var indices=Indices.Select(tri => new TriangleIndexer(tri.A, tri.C, tri.B)).ToArray();
+        var indices=Enumerable.Select(Indices, tri => new TriangleIndexer(tri.A, tri.C, tri.B)).ToArray();
         return new(Vertices, indices);
     }
 }

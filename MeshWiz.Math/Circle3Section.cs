@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
@@ -32,7 +33,7 @@ public readonly struct Circle3Section<TNum> : IFlat<TNum>, IRotationalSurface<TN
         Normal = sign ? -normal.Normalized() : normal.Normalized();
     }
 
-    public Plane3<TNum> Plane => new(Normal, Centroid);
+    public Plane<TNum> Plane => new(Normal, Centroid);
     public TNum SurfaceArea => (MajorRadius * MajorRadius - MinorRadius * MinorRadius) * TNum.Pi;
 
 
@@ -210,4 +211,8 @@ public readonly struct Circle3Section<TNum> : IFlat<TNum>, IRotationalSurface<TN
     {
         return !left.Equals(right);
     }
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Circle3Section<TOther> To<TOther>()
+        where TOther : unmanaged, IFloatingPointIeee754<TOther>
+        =>new(Centroid.To<TOther>(),Normal.To<TOther>(),TOther.CreateTruncating(MinorRadius),TOther.CreateTruncating(MajorRadius));
 }

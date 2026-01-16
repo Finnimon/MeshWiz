@@ -11,7 +11,7 @@ public static partial class Curve
     {
         public static Result<Arithmetics, TNum> IntersectionNewton<TCurve, TNum>(
             TCurve curve,
-            Plane3<TNum> plane,
+            Plane<TNum> plane,
             AABB<TNum> search = default)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
             where TCurve : ICurve<Vec3<TNum>, TNum> 
@@ -21,7 +21,7 @@ public static partial class Curve
 
         public static Result<Arithmetics, TNum> Intersection<TCurve, TNum>(
             TCurve curve,
-            Plane3<TNum> plane,
+            Plane<TNum> plane,
             Func<ISignal<TNum, TNum>, AABB<TNum>, SignalDataPoint<TNum, TNum>> engine,
             AABB<TNum> search = default)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
@@ -36,7 +36,7 @@ public static partial class Curve
                 .When(intersect.OutPut.IsApproxZero());
         }
 
-        public static Result<Arithmetics, TNum> IntersectionBinary<TCurve, TNum>(TCurve curve, Plane3<TNum> plane,
+        public static Result<Arithmetics, TNum> IntersectionBinary<TCurve, TNum>(TCurve curve, Plane<TNum> plane,
             AABB<TNum> search = default)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
             where TCurve : ICurve<Vec3<TNum>, TNum>
