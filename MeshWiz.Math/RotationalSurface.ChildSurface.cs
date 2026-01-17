@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 
@@ -23,9 +24,10 @@ public sealed partial record RotationalSurface<TNum>
             var containerSize = Unsafe.SizeOf<InlineArray8<TNum>>();
             var valid = containerSize >= Unsafe.SizeOf<Cone<TNum>>()
                 && containerSize>=Unsafe.SizeOf<Circle3<TNum>>()
+                && containerSize>=Unsafe.SizeOf<Circle3<TNum>>()
                 && containerSize>=Unsafe.SizeOf<Circle3Section<TNum>>()
-                &&containerSize>=Unsafe.SizeOf<ConeSection<TNum>>()
-                &&containerSize>=Unsafe.SizeOf<Cylinder<TNum>>();
+                && containerSize>=Unsafe.SizeOf<ConeSection<TNum>>()
+                && containerSize>=Unsafe.SizeOf<Cylinder<TNum>>();
             if(valid) return;
             ThrowHelper.ThrowInvalidOperationException($"{nameof(ChildSurface)} data container is too small for union");
         }
@@ -276,5 +278,18 @@ public sealed partial record RotationalSurface<TNum>
 
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ChildSurface CreateDead(int index = -1) => new(ChildSurfaceType.Dead, index);
+
+
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public RotationalSurface<TOther>.ChildSurface To<TOther>()
+            where TOther : unmanaged, IFloatingPointIeee754<TOther>
+            => Type switch {
+                ChildSurfaceType.Cylinder => RotationalSurface<TOther>.ChildSurface.Create(Index,Cylinder.To<TOther>()),
+                ChildSurfaceType.Cone => RotationalSurface<TOther>.ChildSurface.Create(Index,Cone.To<TOther>()),
+                ChildSurfaceType.ConeSection => RotationalSurface<TOther>.ChildSurface.Create(Index,ConeSection.To<TOther>()),
+                ChildSurfaceType.Circle => RotationalSurface<TOther>.ChildSurface.Create(Index,Circle.To<TOther>()),
+                ChildSurfaceType.CircleSection => RotationalSurface<TOther>.ChildSurface.Create(Index,CircleSection.To<TOther>()),
+                _ => ThrowHelper.ThrowInvalidOperationException<RotationalSurface<TOther>.ChildSurface>()
+            };
     }
 }

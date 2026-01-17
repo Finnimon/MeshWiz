@@ -31,7 +31,7 @@ public static partial class Bvh
             where TVec : unmanaged, IVec<TVec, TNum>
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
-            maxDepth = int.Max(1,maxDepth);
+            maxDepth = int.Max(1, maxDepth);
             minNodeSize = int.Max(1, minNodeSize);
             var perItemBounds = source
                 .Select(item => item.BBox)
@@ -46,13 +46,11 @@ public static partial class Bvh
                 .Select(i => perItemBounds[i]);
             var shuffledPositions = shuffledIndexSpan
                 .Select(i => perItemPosition[i]);
-            var shuffledSource = shuffledIndexSpan
-                .Select(i => source[i]);
             var rootBox = AABB.Combine(perItemBounds);
             List<Node<TVec, TNum>> nodes = [Node<TVec, TNum>.MakeLeaf(rootBox, 0, n)];
             Stack<BvhStep> recursion = new(maxDepth * 2);
-            recursion.Push((0, 0));
-            var resultDepth = 0;
+            recursion.Push((0, 1));
+            var resultDepth = 1;
             while (recursion.TryPop(out var step))
             {
                 var (parentIndex, depth) = step;
@@ -98,15 +96,14 @@ public static partial class Bvh
                 nodes[parentIndex] = parent.WithChildren(leftIndex, rightIndex);
                 ++depth;
                 resultDepth = int.Max(depth, resultDepth);
-                
-                if(depth>maxDepth) continue;
+
+                if (depth >= maxDepth) continue;
                 recursion.Push((rightIndex, depth));
                 recursion.Push((leftIndex, depth)); //visit left first
             }
 
             return new Info<TVec, TNum>(nodes.ToArray(), indexShuffle, resultDepth);
         }
-
 
         public static Info<TVec, TNum> SahNonReordering<TBounded, TVec, TNum>(
             IReadOnlyList<TBounded> source,
@@ -128,8 +125,8 @@ public static partial class Bvh
             var rootBox = AABB.Combine(perItemBounds);
             List<Node<TVec, TNum>> nodes = [Node<TVec, TNum>.MakeLeaf(rootBox, 0, n)];
             Stack<BvhStep> recursion = new(maxDepth * 2);
-            recursion.Push((0, 0));
-            var resultDepth = 0;
+            recursion.Push((0, 1));
+            var resultDepth = 1;
             while (recursion.TryPop(out var step))
             {
                 var (parentIndex, depth) = step;
@@ -138,10 +135,11 @@ public static partial class Bvh
                 if (parent.Length <= minNodeSize)
                     continue;
                 var curBounds = boundsSpan[parent.Start..parent.End];
-                var (cost, bbLeft, bbRight, leftLength) = ChooseNonReorderedSplit<TVec, TNum>(parent.Bounds, curBounds, splitTests);
-                if(cost>=parent.LeafCost)
-                    continue;//do not split
-                
+                var (cost, bbLeft, bbRight, leftLength) =
+                    ChooseNonReorderedSplit<TVec, TNum>(parent.Bounds, curBounds, splitTests);
+                if (cost >= parent.LeafCost)
+                    continue; //do not split
+
                 var leftChild = Node<TVec, TNum>.MakeLeaf(bbLeft, parent.Start, leftLength);
                 var rightChild = Node<TVec, TNum>.MakeLeaf(bbRight, leftChild.End, parent.Length - leftLength);
                 var leftIndex = nodes.Count;
@@ -151,8 +149,8 @@ public static partial class Bvh
                 nodes[parentIndex] = parent.WithChildren(leftIndex, rightIndex);
                 ++depth;
                 resultDepth = int.Max(depth, resultDepth);
-                
-                if(depth>maxDepth) continue;
+
+                if (depth > maxDepth) continue;
                 recursion.Push((rightIndex, depth));
                 recursion.Push((leftIndex, depth)); //visit left first
             }

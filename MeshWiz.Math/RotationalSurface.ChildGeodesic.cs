@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
@@ -180,6 +181,7 @@ public sealed partial record RotationalSurface<TNum>
         };
 
         /// <inheritdoc />
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Polyline<Vec3<TNum>, TNum> ToPolyline() => Type switch
         {
             ChildSurfaceType.Cylinder => Helix.ToPolyline(),
@@ -191,6 +193,7 @@ public sealed partial record RotationalSurface<TNum>
         };
 
         /// <inheritdoc />
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Polyline<Vec3<TNum>, TNum> ToPolyline(PolylineTessellationParameter<TNum> tessellationParameter)
             => Type switch
             {
@@ -328,6 +331,7 @@ public sealed partial record RotationalSurface<TNum>
             _ => ThrowHelper.ThrowInvalidOperationException<Ray3<TNum>>()
         };
 
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ChildGeodesic Section(TNum start, TNum end)
             => Type switch
             {
@@ -335,8 +339,28 @@ public sealed partial record RotationalSurface<TNum>
                 ChildSurfaceType.Cone => CreateCone(Index,ConeGeodesic.Section(start,end)),
                 ChildSurfaceType.ConeSection => CreateCone(Index,ConeGeodesic.Section(start,end)),
                 ChildSurfaceType.Circle => CreateCircle(Index,Line.Section(start,end)),
-                ChildSurfaceType.CircleSection => CreateCircle(Index,Line.Section(start,end)),
+                ChildSurfaceType.CircleSection => CreateCircleSection(Index,Line.Section(start,end)),
                 _ => ThrowHelper.ThrowInvalidOperationException<ChildGeodesic>()
+            };
+
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public RotationalSurface<TOther>.ChildGeodesic To<TOther>()
+            where TOther : unmanaged, IFloatingPointIeee754<TOther>
+            => Type switch
+            {
+                ChildSurfaceType.Cylinder => RotationalSurface<TOther>.ChildGeodesic.CreateCylinder(Index,
+                    Helix.To<TOther>()),
+                ChildSurfaceType.Cone => RotationalSurface<TOther>.ChildGeodesic.CreateCone(Index,
+                    ConeGeodesic.To<TOther>()),
+                ChildSurfaceType.ConeSection => RotationalSurface<TOther>.ChildGeodesic.CreateCone(Index,
+                    ConeGeodesic.To<TOther>()),
+                ChildSurfaceType.Circle => RotationalSurface<TOther>.ChildGeodesic.CreateCircle(Index,
+                    new PoseLine<Pose3<TOther>, Vec3<TOther>, TOther>(Line.StartPose.To<TOther>(),
+                        Line.EndPose.To<TOther>())),
+                ChildSurfaceType.CircleSection => RotationalSurface<TOther>.ChildGeodesic.CreateCircleSection(Index,
+                    new PoseLine<Pose3<TOther>, Vec3<TOther>, TOther>(Line.StartPose.To<TOther>(),
+                        Line.EndPose.To<TOther>())),
+                _ => ThrowHelper.ThrowInvalidOperationException<RotationalSurface<TOther>.ChildGeodesic>()
             };
     }
 }

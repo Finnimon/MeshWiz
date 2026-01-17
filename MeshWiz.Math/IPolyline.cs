@@ -35,6 +35,8 @@ public interface IPolyline<out TSelf, TLine, TVert, TVec, TNum>
     void IList<TLine>.RemoveAt(int index)
         => ThrowHelper.ThrowNotSupportedException<bool>();
 
+    TVec ICurve<TVec, TNum>.Traverse(TNum t) => Polyline.Traverse(t, CumulativeLengths, IsClosed, Vertices).Position;
+
     static virtual TSelf Create(params ReadOnlySpan<TVert> vertices) => TSelf.CreateNonCopying(vertices.ToArray());
     static abstract TSelf CreateNonCopying(TVert[] vertices);
     static virtual TSelf Create(IEnumerable<TVert> verts) => TSelf.CreateNonCopying(verts.ToArray());

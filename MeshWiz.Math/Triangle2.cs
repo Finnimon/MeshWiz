@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace MeshWiz.Math;
@@ -10,7 +11,7 @@ public readonly struct Triangle2<TNum>:ISurface<Vec2<TNum>, TNum>
     public readonly Vec2<TNum> A,B,C;
     public int Up  => (B - A).CrossSign(C-A);
     
-    public Triangle2(in Vec2<TNum> a,in Vec2<TNum> b,in Vec2<TNum> c)
+    public Triangle2(Vec2<TNum> a,Vec2<TNum> b,Vec2<TNum> c)
     {
         A = a;
         B = b;
@@ -49,4 +50,10 @@ public readonly struct Triangle2<TNum>:ISurface<Vec2<TNum>, TNum>
         b = B;
         c = C;
     }
+    
+    
+    [System.Diagnostics.Contracts.Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Triangle2<TOther> To<TOther>()
+        where TOther : unmanaged, IFloatingPointIeee754<TOther>
+        => new(A.To<TOther>(),B.To<TOther>(),C.To<TOther>());
 }

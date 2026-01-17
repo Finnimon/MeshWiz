@@ -8,9 +8,10 @@ using MeshWiz.RefLinq;
 
 namespace MeshWiz.Math;
 
-public sealed class PosePolyline<TPose, TVec, TNum> : IDiscretePoseCurve<TPose, TVec, TNum>,
-    IReadOnlyList<PoseLine<TPose, TVec, TNum>>,
-    IBounded<TVec>
+public sealed class PosePolyline<TPose, TVec, TNum> 
+    : IDiscretePoseCurve<TPose, TVec, TNum>,
+        IReadOnlyList<PoseLine<TPose, TVec, TNum>>,
+        IBounded<TVec>
     where TVec : unmanaged, IVec<TVec, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
     where TPose : IPose<TPose, TVec, TNum>

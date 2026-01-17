@@ -1,8 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
-using System.Diagnostics.Contracts;
 using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using MeshWiz.RefLinq;
 using MeshWiz.Utility.Extensions;
 using BvhStep = (int ParentIndex, int Depth);
@@ -13,88 +9,87 @@ public static partial class Bvh
 {
     public static partial class Create
     {
-        public static Info<TVec, TNum> LongestAxisSplit<TBounded, TVec, TNum>(
-            IReadOnlyList<TBounded> source,
-            int maxDepth = 32,
-            int minNodeSize = 1
-        )
-            where TBounded : IBounded<TVec>, IPosition<TBounded, TVec, TNum>
-            where TVec : unmanaged, IVec<TVec, TNum>
-            where TNum : unmanaged, IFloatingPointIeee754<TNum>
-        {
-            minNodeSize = int.Max(1, minNodeSize);
-            var perItemBounds = source.Select(item => item.BBox).ToArray();
-            var n = perItemBounds.Length;
-            var indexShuffle = Enumerable.Range(0, n).ToArray();
-            var shuffledIndexSpan = indexShuffle.AsSpan();
-            var shuffledBounds = shuffledIndexSpan
-                .Select(i => perItemBounds[i]);
-            var shuffledPositions = shuffledIndexSpan
-                .Select(i => source[i].Position);
-            var shuffledSource = shuffledIndexSpan
-                .Select(i => source[i]);
-            var rootBox = AABB.Combine(perItemBounds);
-            List<Node<TVec, TNum>> nodes = [Node<TVec, TNum>.MakeLeaf(rootBox, 0, n)];
-            Stack<BvhStep> recursion = new(maxDepth * 2);
-            recursion.Push((0, 0));
-            var currentMaxDepth = 0;
-            while (recursion.TryPop(out var step))
-            {
-                var (parentIndex, depth) = step;
-                var parent = nodes[parentIndex];
-
-                if (parent.Length <= minNodeSize)
-                    continue;
-
-                var size = parent.Bounds.Size;
-                var axis = 0;
-                for (var dim = 1; dim < TVec.Dimensions; dim++)
-                {
-                    if (size[dim] < size[axis]) continue;
-                    axis = dim;
-                }
-
-                var level = size[axis];
-
-                var i = parent.Start;
-                var j = parent.End - 1;
-                while (i <= j)
-                {
-                    while (i <= j && shuffledPositions[i][axis] <= level) i++;
-                    while (i <= j && shuffledPositions[j][axis] > level) j--;
-                    if (i >= j) continue;
-                    shuffledIndexSpan.Swap(i, j);
-                    i++;
-                    j--;
-                }
-
-                var leftChildLength = i - parent.Start;
-
-                if (leftChildLength.OutsideInclusiveRange(0, parent.Length - 1)) continue;
-                var bboxLeft = shuffledBounds
-                    .Take(parent.Start..(parent.Start + leftChildLength))
-                    .Aggregate(AABB<TVec>.Combine);
-                var leftChild = Node<TVec, TNum>.MakeLeaf(bboxLeft, parent.Start, leftChildLength);
-                var bboxRight = shuffledBounds
-                    .Take(leftChild.End..parent.End)
-                    .Aggregate(AABB<TVec>.Combine);
-
-
-                var rightChild = Node<TVec, TNum>.MakeLeaf(bboxRight, leftChild.End, parent.Length - leftChildLength);
-                var leftIndex = nodes.Count;
-                nodes.Add(leftChild);
-                var rightIndex = nodes.Count;
-                nodes.Add(rightChild);
-
-                nodes[parentIndex] = parent.WithChildren(leftIndex, rightIndex);
-                ++depth;
-                currentMaxDepth = int.Max(depth, currentMaxDepth);
-                recursion.Push((leftIndex, depth));
-                recursion.Push((rightIndex, depth));
-            }
-
-            return new Info<TVec, TNum>(nodes.ToArray(), indexShuffle, currentMaxDepth);
-        }
+        // public static Info<TVec, TNum> LongestAxisSplit<TBounded, TVec, TNum>(
+        //     IReadOnlyList<TBounded> source,
+        //     int maxDepth = 32,
+        //     int minNodeSize = 1
+        // )
+        //     where TBounded : IBounded<TVec>, IPosition<TBounded, TVec, TNum>
+        //     where TVec : unmanaged, IVec<TVec, TNum>
+        //     where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        // {
+        //     minNodeSize = int.Max(1, minNodeSize);
+        //     var perItemBounds = source.Select(item => item.BBox).ToArray();
+        //     var n = perItemBounds.Length;
+        //     var indexShuffle = Enumerable.Range(0, n).ToArray();
+        //     var shuffledIndexSpan = indexShuffle.AsSpan();
+        //     var shuffledBounds = shuffledIndexSpan
+        //         .Select(i => perItemBounds[i]);
+        //     var shuffledPositions = shuffledIndexSpan
+        //         .Select(i => source[i].Position);
+        //     var rootBox = AABB.Combine(perItemBounds);
+        //     List<Node<TVec, TNum>> nodes = [Node<TVec, TNum>.MakeLeaf(rootBox, 0, n)];
+        //     Stack<BvhStep> recursion = new(maxDepth * 2);
+        //     recursion.Push((0, 1));
+        //     var currentMaxDepth = 1;
+        //     while (recursion.TryPop(out var step))
+        //     {
+        //         var (parentIndex, depth) = step;
+        //         var parent = nodes[parentIndex];
+        //
+        //         if (parent.Length <= minNodeSize)
+        //             continue;
+        //
+        //         var size = parent.Bounds.Size;
+        //         var axis = 0;
+        //         for (var dim = 1; dim < TVec.Dimensions; dim++)
+        //         {
+        //             if (size[dim] < size[axis]) continue;
+        //             axis = dim;
+        //         }
+        //
+        //         var level = size[axis];
+        //
+        //         var i = parent.Start;
+        //         var j = parent.End - 1;
+        //         while (i <= j)
+        //         {
+        //             while (i <= j && shuffledPositions[i][axis] <= level) i++;
+        //             while (i <= j && shuffledPositions[j][axis] > level) j--;
+        //             if (i >= j) continue;
+        //             shuffledIndexSpan.Swap(i, j);
+        //             i++;
+        //             j--;
+        //         }
+        //
+        //         var leftChildLength = i - parent.Start;
+        //
+        //         if (leftChildLength.OutsideInclusiveRange(0, parent.Length - 1)) continue;
+        //         var bboxLeft = shuffledBounds
+        //             .Take(parent.Start..(parent.Start + leftChildLength))
+        //             .Aggregate(AABB<TVec>.Combine);
+        //         var leftChild = Node<TVec, TNum>.MakeLeaf(bboxLeft, parent.Start, leftChildLength);
+        //         var bboxRight = shuffledBounds
+        //             .Take(leftChild.End..parent.End)
+        //             .Aggregate(AABB<TVec>.Combine);
+        //
+        //
+        //         var rightChild = Node<TVec, TNum>.MakeLeaf(bboxRight, leftChild.End, parent.Length - leftChildLength);
+        //         var leftIndex = nodes.Count;
+        //         nodes.Add(leftChild);
+        //         var rightIndex = nodes.Count;
+        //         nodes.Add(rightChild);
+        //
+        //         nodes[parentIndex] = parent.WithChildren(leftIndex, rightIndex);
+        //         ++depth;
+        //         currentMaxDepth = int.Max(depth, currentMaxDepth);
+        //         if(depth>=maxDepth) continue;
+        //         recursion.Push((leftIndex, depth));
+        //         recursion.Push((rightIndex, depth));
+        //     }
+        //
+        //     return new Info<TVec, TNum>(nodes.ToArray(), indexShuffle, currentMaxDepth);
+        // }
 
         /// <summary>
         /// Best use case are polylines
@@ -118,8 +113,8 @@ public static partial class Bvh
             var rootBox = AABB.Combine(perItemBounds);
             List<Node<TVec, TNum>> nodes = [Node<TVec, TNum>.MakeLeaf(rootBox, 0, n)];
             Stack<BvhStep> recursion = new(maxDepth * 2);
-            recursion.Push((0, 0));
-            var resultDepth = 0;
+            recursion.Push((0, 1));
+            var resultDepth = 1;
             while (recursion.TryPop(out var step))
             {
                 var (parentIndex, depth) = step;
@@ -146,7 +141,7 @@ public static partial class Bvh
                 nodes[parentIndex] = parent.WithChildren(leftIndex, rightIndex);
                 ++depth;
                 resultDepth = int.Max(depth, resultDepth);
-                if(depth>maxDepth)
+                if(depth>=maxDepth)
                     continue;
                 recursion.Push((rightIndex, depth));
                 recursion.Push((leftIndex, depth)); //visit left first

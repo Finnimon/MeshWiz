@@ -1,5 +1,8 @@
+using System.Diagnostics.Contracts;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
+using JetBrains.Annotations;
 using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
@@ -61,4 +64,9 @@ public readonly record struct Sphere<TNum>(Vec3<TNum> Centroid, TNum Radius)
     }
     
     public static Triangle3<TNum>[] GenerateTessellation(Vec3<TNum> center, TNum radius, int stacks, int slices) => new Sphere<TNum>(center, radius).Tessellate(stacks, slices).ToArray();
+
+    [System.Diagnostics.Contracts.Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Sphere<TOther> To<TOther>()
+        where TOther : unmanaged, IFloatingPointIeee754<TOther>
+        => new(Centroid.To<TOther>(), TOther.CreateTruncating(Radius));
 }

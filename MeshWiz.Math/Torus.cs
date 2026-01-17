@@ -1,5 +1,6 @@
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
@@ -149,7 +150,7 @@ public readonly struct Torus<TNum> : IBody<TNum>, IRotationalSurface<TNum>
         var (closestPos, onSegPos) = axis.GetClosestPositions(p);
         var onSeg = axis.Traverse(onSegPos);
         var closest = axis.Traverse(closestPos);
-        //vshift
+        
         p += onSeg - closest;
         var radii = GetRadiiAt(onSegPos);
         var radBox = AABB.From(radii.min, radii.max);
@@ -177,14 +178,14 @@ public readonly struct Torus<TNum> : IBody<TNum>, IRotationalSurface<TNum>
     public TNum CrossSectionRadius => (MajorRadius - MinorRadius) * Numbers<TNum>.Half;
 
     /// <inheritdoc />
-    public IPoseCurve<Pose3<TNum>,Vec3<TNum>,TNum> GetGeodesic(Vec3<TNum> p1, Vec3<TNum> p2)
-    {
-        throw new NotImplementedException();
-    }
+    public IPoseCurve<Pose3<TNum>,Vec3<TNum>,TNum> GetGeodesic(Vec3<TNum> p1, Vec3<TNum> p2) => throw new NotImplementedException();
 
     /// <inheritdoc />
-    public IPoseCurve<Pose3<TNum>,Vec3<TNum>,TNum> GetGeodesicFromEntry(Vec3<TNum> entryPoint, Vec3<TNum> direction)
-    {
-        throw new NotImplementedException();
-    }
+    public IPoseCurve<Pose3<TNum>,Vec3<TNum>,TNum> GetGeodesicFromEntry(Vec3<TNum> entryPoint, Vec3<TNum> direction) => throw new NotImplementedException();
+    
+    
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Torus<TOther> To<TOther>()
+        where TOther : unmanaged, IFloatingPointIeee754<TOther>
+        => new(Centroid.To<TOther>(),Normal.To<TOther>(),TOther.CreateTruncating(MinorRadius),TOther.CreateTruncating(MajorRadius));
 }

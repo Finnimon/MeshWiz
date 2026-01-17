@@ -12,8 +12,9 @@ using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
-public sealed class Polyline<TVec, TNum> 
-    : IPolyline<Polyline<TVec,TNum>,Line<TVec,TNum>,TVec,TVec,TNum>
+public sealed class Polyline<TVec, TNum>
+    : IPolyline<Polyline<TVec, TNum>, Line<TVec, TNum>, TVec, TVec, TNum>, 
+        IReadOnlyList<Line<TVec, TNum>>
     where TVec : unmanaged, IVec<TVec, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
@@ -51,7 +52,7 @@ public sealed class Polyline<TVec, TNum>
     public static Polyline<TVec, TNum> Empty { get; } = [];
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember]
-    private AABB<TVec>? _bbox;
+    internal AABB<TVec>? _bbox;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public AABB<TVec> BBox => _bbox ??= AABB<TVec>.From(_points);
@@ -118,12 +119,12 @@ public sealed class Polyline<TVec, TNum>
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public TNum Length => _points.Length > 1 ? CumulativeDistances[^1] : TNum.Zero;
 
-    [field:AllowNull,MaybeNull]
+    [field: AllowNull, MaybeNull]
     // ReSharper disable once InconsistentNaming
     internal TNum[] _cumulativeDistances =>
         field ??= Polyline.CalculateCumulativeDistances<TVec, TNum>(verts: _points);
 
-    public ReadOnlySpan<TNum> CumulativeDistances =>_cumulativeDistances;
+    public ReadOnlySpan<TNum> CumulativeDistances => _cumulativeDistances;
 
 
     public TVec Traverse(TNum t)
@@ -133,8 +134,8 @@ public sealed class Polyline<TVec, TNum>
         => Polyline.TraverseOnCurve(t, CumulativeDistances, IsClosed, _points);
 
 
-    [Pure]
-    public Polyline<TVec, TNum> this[TNum start, TNum end] => Section(start, end);
+    [Pure] public Polyline<TVec, TNum> this[TNum start, TNum end] => Section(start, end);
+
     [Pure]
     public Polyline<TVec, TNum> Section(TNum start, TNum end) => ExactSection(Length * start, Length * end);
 
@@ -336,6 +337,7 @@ public sealed class Polyline<TVec, TNum>
     {
         return poses.Length is 0 or 1 ? Empty : CreateCulledNonCopying(poses.ToArray());
     }
+
     public static Polyline<TVec, TNum> CreateCulledNonCopying(TVec[] verts)
     {
         if (verts.Length is 0 or 1)
@@ -379,19 +381,27 @@ public sealed class Polyline<TVec, TNum>
 
     /// <inheritdoc />
     public static Polyline<TVec, TNum> Create(IEnumerable<TVec> verts)
-    =>new(verts.ToArray());
+        => new(verts.ToArray());
 
     /// <inheritdoc />
     public static Polyline<TVec, TNum> Create(params ReadOnlySpan<TVec> vertices) => new(vertices);
 
     /// <inheritdoc />
-    public static Polyline<TVec, TNum> CreateCulled(IEnumerable<TVec> source) 
+    public static Polyline<TVec, TNum> CreateCulled(IEnumerable<TVec> source)
         => CreateNonCopying(Polyline.Cull<TVec, TNum>(source));
 }
 
 public static partial class Polyline
 {
     public static TLerp Traverse<TLerp, TNum>(TNum distance, ReadOnlySpan<TNum> cumulativeDistances, bool isClosed,
+        IReadOnlyList<TLerp> verts)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        where TLerp : ILerp<TLerp, TNum>
+        => (isClosed || (TNum.Zero <= distance && distance <= TNum.One))
+            ? TraverseOnCurve(distance, cumulativeDistances, isClosed, verts)
+            : TraverseFromEnds(distance, cumulativeDistances, verts);
+    
+    public static TLerp Traverse<TLerp, TNum>(TNum distance, IReadOnlyList<TNum> cumulativeDistances, bool isClosed,
         IReadOnlyList<TLerp> verts)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
         where TLerp : ILerp<TLerp, TNum>
@@ -426,7 +436,61 @@ public static partial class Polyline
 
         return TLerp.ExactLerp(p1, p2, distance);
     }
+    
+    private static TLerp TraverseFromEnds<TLerp, TNum>(TNum by, IReadOnlyList<TNum> cumulateDistances,
+        IReadOnlyList<TLerp> verts)
+        where TLerp : ILerp<TLerp, TNum> where TNum : unmanaged, IFloatingPointIeee754<TNum>
+    {
+        if (by == TNum.Zero) return verts[0];
+        if (by == TNum.One) return verts[^1];
+        var len = cumulateDistances[^1];
+        var distance = by * len;
+        var fromStart = by < TNum.Zero;
+        var fromEnd = by > TNum.One;
+        if (!fromStart && !fromEnd) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(by));
+        TLerp p1;
+        TLerp p2;
+        if (fromEnd)
+        {
+            distance = len - distance;
+            p1 = verts[^1];
+            p2 = verts[^2];
+        }
+        else
+        {
+            p1 = verts[0];
+            p2 = verts[^1];
+        }
 
+        return TLerp.ExactLerp(p1, p2, distance);
+    }
+
+    public static TLerp TraverseOnCurve<TLerp, TNum>(TNum t,
+        IReadOnlyList<TNum> cumulativeDistances,
+        bool isClosed,
+        IReadOnlyList<TLerp> verts)
+        where TLerp : ILerp<TLerp, TNum>
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+    {
+        t = isClosed
+            ? t.Wrap(TNum.Zero, TNum.One)
+            : TNum.Clamp(t, TNum.Zero, TNum.One);
+
+        // Edge cases
+        if (t <= TNum.Zero)
+            return verts[0];
+        if (t >= TNum.One)
+            return verts[^1];
+        var len = cumulativeDistances[^1] - cumulativeDistances[0];
+        var distance = t * len + cumulativeDistances[0];
+        var found = TryFindContainingSegmentExactly<TLerp, TNum>(isClosed, cumulativeDistances, distance,
+            out var segment,
+            out var remainder);
+        if (!found) ThrowHelper.ThrowInvalidOperationException();
+        var pStart = verts[segment];
+        var pEnd = verts[segment + 1];
+        return TLerp.ExactLerp(pStart, pEnd, remainder);
+    }
     public static TLerp TraverseOnCurve<TLerp, TNum>(TNum t,
         ReadOnlySpan<TNum> cumulativeDistances,
         bool isClosed,
@@ -495,6 +559,61 @@ public static partial class Polyline
 
         var len = cumulativeDistances[^1];
         var count = cumulativeDistances.Length - 1;
+        if (isClosed) distance = distance.Wrap(TNum.Zero, len);
+        // Edge cases
+        seg = -1;
+        remainder = default;
+        if (!AABB<TNum>.From(TNum.Zero, len).Contains(distance)) return false;
+        if (distance.IsApprox(TNum.Zero))
+        {
+            seg = 0;
+            remainder = TNum.Zero;
+        }
+        else if (distance.IsApprox(len))
+        {
+            seg = count - 1;
+            remainder = cumulativeDistances[seg + 1] - cumulativeDistances[seg];
+        }
+
+
+        var posBefore = 0;
+        var posAfter = count;
+
+        // binary search for last index where CumulativeDistances[i] <= distance
+        while (posAfter - posBefore > 1)
+        {
+            seg = (posBefore + posAfter) / 2;
+            var midValue = cumulativeDistances[seg];
+
+            if (midValue < distance)
+                posBefore = seg; // move lower bound up
+            else
+                posAfter = seg; // move upper bound down
+        }
+
+        // distance into the segment
+        remainder = distance - cumulativeDistances[posBefore];
+
+        seg = posBefore;
+        return true;
+    }
+    
+    [Pure]
+    public static bool TryFindContainingSegmentExactly<TPos, TNum>(bool isClosed,
+        IReadOnlyList<TNum> cumulativeDistances,
+        TNum distance, out int seg, out TNum remainder)
+        where TPos : IDistance<TPos, TNum>
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+    {
+        if (distance.IsApproxZero())
+        {
+            seg = 0;
+            remainder = TNum.Zero;
+            return true;
+        }
+
+        var len = cumulativeDistances[^1];
+        var count = cumulativeDistances.Count - 1;
         if (isClosed) distance = distance.Wrap(TNum.Zero, len);
         // Edge cases
         seg = -1;
@@ -613,13 +732,11 @@ public static partial class Polyline
         verts[^1] = TLerp.ExactLerp(verts[^2], verts[^1], atEndExactly);
     }
 
-    
 
     public static TLerp[] Cull<TLerp, TNum>(IEnumerable<TLerp> source)
         where TLerp : ILerp<TLerp, TNum>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
-        
         var verts = source.ToArray();
         if (verts.Length < 2)
             return [];
@@ -643,17 +760,16 @@ public static partial class Polyline
         }
 
         var count = tail + 1;
-        if(count != verts.Length)
+        if (count != verts.Length)
             Array.Resize(ref verts, count);
         return verts;
     }
-    
+
 
     public static TLerp[] Cull<TLerp, TNum>(ReadOnlySpan<TLerp> source)
         where TLerp : ILerp<TLerp, TNum>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
-        
         if (source.Length < 2)
             return [];
         var tail = 0;
@@ -669,8 +785,8 @@ public static partial class Polyline
             if (!cull)
             {
                 tail++;
-                previous = culledBefore 
-                    ? result![tail] = cur 
+                previous = culledBefore
+                    ? result![tail] = cur
                     : cur;
                 continue;
             }
@@ -680,14 +796,15 @@ public static partial class Polyline
                 culledBefore = true;
                 result = source.ToArray();
             }
+
             previous = result![tail] = TLerp.Lerp(previous, cur, half);
         }
 
         if (!culledBefore)
             return source.ToArray();
-        
+
         var count = tail + 1;
-        if(count != result!.Length)
+        if (count != result!.Length)
             Array.Resize(ref result, count);
         return result;
     }
@@ -761,9 +878,10 @@ public static partial class Polyline
         Array.Resize(ref result, count);
         return result;
     }
-    
-    
-    public static Result<Arithmetics, TVector[]> ForceConcat<TVector, TNum>(params IEnumerable<Polyline<TVector,TNum>> segs)
+
+
+    public static Result<Arithmetics, TVector[]> ForceConcat<TVector, TNum>(
+        params IEnumerable<Polyline<TVector, TNum>> segs)
         where TVector : unmanaged, IVec<TVector, TNum>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
@@ -781,9 +899,10 @@ public static partial class Polyline
 
         return result.ToArray();
     }
-    
-    
-    public static Result<Arithmetics, TPose[]> ForceConcat<TPose,TVector, TNum>(params IEnumerable<PosePolyline<TPose,TVector,TNum>> segs)
+
+
+    public static Result<Arithmetics, TPose[]> ForceConcat<TPose, TVector, TNum>(
+        params IEnumerable<PosePolyline<TPose, TVector, TNum>> segs)
         where TVector : unmanaged, IVec<TVector, TNum>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
         where TPose : IPose<TPose, TVector, TNum>
@@ -797,9 +916,10 @@ public static partial class Polyline
                 continue;
             if (result.Count != 0)
             {
-                result[^1]=TPose.Lerp(result[^1], curPts[0], half);
+                result[^1] = TPose.Lerp(result[^1], curPts[0], half);
                 curPts = curPts[1..];
             }
+
             result.AddRange(curPts);
         }
 
@@ -807,7 +927,7 @@ public static partial class Polyline
     }
 
     public static TNum GetLength<TNum>(IReadOnlyList<TNum> cumulativeLengths)
-    where TNum:INumber<TNum>
+        where TNum : INumber<TNum>
     {
         if (cumulativeLengths.Count < 2)
             return TNum.Zero;

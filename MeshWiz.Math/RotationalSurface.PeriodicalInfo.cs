@@ -1,7 +1,5 @@
 using System.Diagnostics.Contracts;
-using MeshWiz.Collections;
 using MeshWiz.Utility;
-using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
@@ -34,21 +32,6 @@ public sealed partial record RotationalSurface<TNum>
         }
 
 
-        [Pure]
-        private static List<int> GetIntersectingSegments(Plane<TNum> plane,
-            PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum> polyline)
-        {
-            List<int> intersections = [];
-            for (var i = 0; i < polyline.Count; i++)
-            {
-                var doIntersect = plane.DoIntersect(polyline[i]);
-                if (!doIntersect) continue;
-                intersections.Add(i);
-            }
-
-            return intersections;
-        }
-
         private Result<PeriodicalGeodesics, Polyline<Vec3<TNum>, TNum>>? _finalizedPath;
 
         public Result<PeriodicalGeodesics, Polyline<Vec3<TNum>, TNum>> FinalizedPath =>
@@ -61,17 +44,17 @@ public sealed partial record RotationalSurface<TNum>
             if (_finalizedPoses.TryGetValue(out var posesResult)
                 && posesResult.TryGetValue(out var poses))
                 return poses.ToPolyline();
-            if(!TraceResult.TryGetValue(out var trace))
+            if (!TraceResult.TryGetValue(out var trace))
                 return TraceResult.Info;
             if (!Exit)
                 return Exit.Info;
 
             var last = trace.Count - 1;
             var segments = trace
-                .Select((c, i) => 
-                    i != last 
-                    ? c.ToPolyline() 
-                    : c.Section(TNum.Zero, _exitParameter).ToPolyline());
+                .Select((c, i) =>
+                    i != last
+                        ? c.ToPolyline()
+                        : c.Section(TNum.Zero, _exitParameter).ToPolyline());
             var concat = Polyline.ForceConcat(segments);
 
             return concat
@@ -86,17 +69,16 @@ public sealed partial record RotationalSurface<TNum>
 
         private Result<PeriodicalGeodesics, PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum>> FinalizePoses()
         {
-            
-            if(!TraceResult.TryGetValue(out var trace))
+            if (!TraceResult.TryGetValue(out var trace))
                 return TraceResult.Info;
             if (!Exit)
                 return Exit.Info;
 
             var last = trace.Count - 1;
             var segments = trace
-                .Select((c, i) => 
-                    i != last 
-                        ? c.ToPosePolyline() 
+                .Select((c, i) =>
+                    i != last
+                        ? c.ToPosePolyline()
                         : c.Section(TNum.Zero, _exitParameter).ToPosePolyline());
             var poses = Polyline.ForceConcat(segments);
             return !poses
@@ -168,134 +150,17 @@ public sealed partial record RotationalSurface<TNum>
             return PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum>.CreateNonCopying(poses);
         }
 
-        public Result<PeriodicalGeodesics,(TNum Overlap,int Pattern)> CalculateOverlap(TNum width, int maxTries = 10_000)
+        public Result<PeriodicalGeodesics, (TNum Overlap, int Pattern)> CalculateOverlap(TNum width,
+            int maxTries = 10_000)
         {
-            if (!Phase.TryGetValue(out var phase))
-                return Phase.Info;
-            if (!EntryAngle.TryGetValue(out var entryAngle))
-                return EntryAngle.Info;
-            if (!Radius.TryGetValue(out var radius))
-                return Radius.Info;
-            if (width.IsApproxZero())
-                return (TNum.Zero,0);
-            var realWidth = GetRealWidth(width, entryAngle);
-            var relWidth = realWidth / (Numbers<TNum>.TwoPi * radius);
-            var phaseStep = (phase / Numbers<TNum>.TwoPi).WrapSaturating();
-            var widthBox = AABB.Around(TNum.Zero, relWidth);
-            var curStep = 0;
-            var half = Numbers<TNum>.Half;
-            while (++curStep < maxTries)
-            {
-                var d = TNum.Abs((phaseStep * TNum.CreateTruncating(curStep)).Wrap(-half,half));
-                if(!relWidth.IsApproxGreaterOrEqual(d))
-                    continue;
-                var absOverlap = relWidth - (d-relWidth*half);
-
-                var overlap = absOverlap/relWidth;
-                var pattern = ExpectedFullCoveragePattern(overlap,relWidth);
-                if(pattern<0)
-                    Console.WriteLine($"{curStep} {pattern} {overlap}");
-                return (overlap,pattern);
-            }
-            return Result<PeriodicalGeodesics, (TNum Overlap, int Pattern)>.DefaultFailure;
+            return Result<PeriodicalGeodesics, (TNum Overlap, int Pattern)>.DefaultFailure; //todo
         }
 
-        private static int ExpectedFullCoveragePattern(TNum overlap, TNum relWidth)
-        {
-            var realRelWidth = relWidth*(TNum.One - overlap);
-            return int.CreateTruncating(TNum.Ceiling(TNum.One / realRelWidth))/2;
-        }
         public Result<PeriodicalGeodesics, TNum> Radius => Entry.Select(e => e.Origin).Select(Axis.DistanceTo);
-        public Result<PeriodicalGeodesics, (TNum Covereage, TNum Overlap, int Pattern)>
-            CalculateCoverageAndOverlap(TNum width, TNum thickness = default, int pattern = -1)
-        {
-            if (!Phase.TryGetValue(out var phase))
-                return Phase.Info;
-            if (thickness == default) thickness = TNum.One;
-            var radius = Axis.DistanceTo(Entry.Value.Origin);
-            var circ = Numbers<TNum>.TwoPi * radius;
-            var relWidth = width / circ;
-            var res = int.CreateTruncating(TNum.One / relWidth) * 32;
-            var mapping = CreateThicknessMapping(res,
-                phase,
-                relWidth,
-                pattern == -1,
-                ref pattern,
-                thickness);
-            var coveredPixels = mapping.Where(v => v > thickness).ToArray();
-            var coverage = -TNum.CreateTruncating(mapping.Length-coveredPixels.Length) 
-                           / TNum.CreateTruncating(mapping.Length);
-            coverage += TNum.One;
-            Console.WriteLine(++ovl);
-            var overlap = Numbers<TNum>.AverageOf(coveredPixels) / thickness-TNum.One;
-            return (coverage, overlap, pattern);
-        }
-
-        private static int ovl = 0;
-
-        private static TNum[] CreateThicknessMapping(int resolution,
-            TNum phase,
-            TNum relWidth,
-            bool computeCoveringPattern,
-            ref int pattern,
-            TNum thickness = default)
-        {
-            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(resolution, 0, nameof(phase));
-            if (thickness == default)
-                thickness = Numbers<TNum>.Eps4;
-            var relShift = phase / Numbers<TNum>.TwoPi;
-            var mappingArr = new TNum[resolution];
-            var mappingSpan = mappingArr.AsSpan();
-            RollingSpan<TNum> mapping = mappingSpan;
-
-            var curPattern = 0;
-            DrawThicknessPosition(relWidth, mapping, TNum.Zero, thickness);
-            DrawThicknessPosition(relWidth, mapping, relShift, thickness);
-            curPattern++;
-            while (curPattern++ < pattern
-                   || computeCoveringPattern && mappingSpan.Contains(TNum.Zero))
-            {
-                var pos = TNum.CreateTruncating(curPattern) * relShift;
-                var wrappedAround = pos.IsApproxZero();
-                if(wrappedAround)
-                {
-                    curPattern--;
-                    break;
-                }
-                DrawThicknessPosition(relWidth,
-                    mapping,
-                    pos,
-                    thickness);
-            }
-            pattern = curPattern;
-            return mappingArr;
-        }
-
-        private static void DrawThicknessPosition(TNum relWidth,
-            RollingSpan<TNum> mapping,
-            TNum pos,
-            TNum thickness)
-        {
-            pos = pos.WrapSaturating();
-            var lengthNum = TNum.CreateTruncating(mapping.Length);
-            var width = relWidth * lengthNum;
-            var pixels = int.CreateTruncating(TNum.Ceiling(width));
-            var targetPixel = pos * lengthNum;
-            var subPixelShift = targetPixel.WrapSaturating();
-            var targetPixelIndex = int.CreateTruncating(TNum.Floor(targetPixel));
-            var postPixelSmoothed = thickness * subPixelShift;
-            var prePixelSmoothed = TNum.One - postPixelSmoothed;
-            var firstPixel = targetPixelIndex - pixels / 2;
-            mapping[firstPixel - 1] += prePixelSmoothed;
-
-            for (var i = 0; i < pixels; i++)
-                mapping[i + firstPixel] += thickness;
-            mapping[firstPixel + pixels + 1] += postPixelSmoothed;
-        }
 
 
         [Pure]
-        private TNum GetRealWidth(TNum width,Angle<TNum> entry) => TNum.Abs(width / TNum.Cos(entry));
+        private static TNum CalculateCircumferentialWidth(TNum width, Angle<TNum> entry) => TNum.Abs(width / TNum.Cos(entry));
 
         private Result<PeriodicalGeodesics, Angle<TNum>> CalculateEntryAngle()
         {
@@ -311,8 +176,6 @@ public sealed partial record RotationalSurface<TNum>
             return result;
         }
 
-        public Result<PeriodicalGeodesics, TNum> CalculateCoverage(TNum width) => throw new NotImplementedException();
-
         public Result<PeriodicalGeodesics, Ray3<TNum>> CreateExit()
         {
             if (!TraceResult)
@@ -325,12 +188,11 @@ public sealed partial record RotationalSurface<TNum>
             Plane<TNum> startPlane = new(Axis.Direction, firstCurve.Start);
 
             var param = lastCurve.SolveIntersection(startPlane);
-            
+
             if (!param)
                 return Result<PeriodicalGeodesics, Ray3<TNum>>.DefaultFailure;
             _exitParameter = param;
             return lastCurve.GetRay(param);
         }
-
     }
 }

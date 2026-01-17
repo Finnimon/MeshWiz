@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using MeshWiz.Collections;
+using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
 

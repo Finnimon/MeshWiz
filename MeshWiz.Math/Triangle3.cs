@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using MeshWiz.Contracts;
 
@@ -54,6 +55,7 @@ public readonly struct Triangle3<TNum>:ISurface<Vec3<TNum>, TNum>, IFlat<TNum>, 
     }
     public AABB<Vec3<TNum>> BBox=>AABB<Vec3<TNum>>.From(A,B,C);
 
+    [System.Diagnostics.Contracts.Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Triangle3<TOtherNum> To<TOtherNum>() 
         where TOtherNum : unmanaged, IFloatingPointIeee754<TOtherNum> =>
         new(A.To<TOtherNum>(), B.To<TOtherNum>(), C.To<TOtherNum>());
