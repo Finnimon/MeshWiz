@@ -81,7 +81,6 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vec2<TNum>
     }
 
 
-
     private ChildSurface CreateConical2(int index)
     {
         var (start, end) = Sweep[index];

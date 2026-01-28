@@ -11,10 +11,9 @@ namespace MeshWiz.Math;
 public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-
     public static Pose3<TNum> Identity => new();
     public readonly Quaternion<TNum> Rotation;
-    public readonly Vec3<TNum> Origin;//quaternion first for better layout ie 32*4+32*3
+    public readonly Vec3<TNum> Origin; //quaternion first for better layout ie 32*4+32*3
     public Vec3<TNum> Position => Origin;
     public Vec3<TNum> Front => Rotation.UnitY();
     public Vec3<TNum> Up => Rotation.UnitZ();
@@ -33,7 +32,6 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>
         }
     }
 
-    
 
     public Pose3()
     {
@@ -46,6 +44,7 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>
         Rotation = rotation;
         Origin = origin;
     }
+
 
     [Pure]
     public static Result<Arithmetics, Pose3<TNum>> CreateFromOrientation(Vec3<TNum> origin, Vec3<TNum> front,
@@ -66,6 +65,10 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>
         return new Pose3<TNum>(rot, origin);
     }
 
+    ///<summary></summary>
+    /// <param name="origin"></param>
+    /// <param name="front">Y</param>
+    /// <param name="up">Z</param>
     [Pure]
     public static Pose3<TNum> CreateUnsafe(Vec3<TNum> origin, Vec3<TNum> front, Vec3<TNum> up)
     {
@@ -74,6 +77,14 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>
         z -= y.Dot(z) * y;
         z = z.Normalized();
         var x = Vec3<TNum>.Cross(y, z).Normalized();
+        Matrix3x3<TNum> mat = new(x, y, z);
+        var rot = Quaternion<TNum>.CreateUnsafe(in mat);
+        return new Pose3<TNum>(rot, origin);
+    }
+
+    [Pure]
+    public static Pose3<TNum> CreateUnsafe(Vec3<TNum> origin, Vec3<TNum> x, Vec3<TNum> y, Vec3<TNum> z)
+    {
         Matrix3x3<TNum> mat = new(x, y, z);
         var rot = Quaternion<TNum>.CreateUnsafe(in mat);
         return new Pose3<TNum>(rot, origin);
@@ -113,11 +124,12 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>
         return Rotation.Rotate(translated);
     }
 
-    public Pose3<TOtherNum> To<TOtherNum>() 
+
+    public Pose3<TOtherNum> To<TOtherNum>()
         where TOtherNum : unmanaged, IFloatingPointIeee754<TOtherNum>
     {
         if (typeof(TOtherNum) == typeof(TNum))
-            return (Pose3<TOtherNum>)(object) this;
+            return (Pose3<TOtherNum>)(object)this;
         return new Pose3<TOtherNum>(Rotation.To<TOtherNum>(), Origin.To<TOtherNum>());
     }
 
@@ -128,15 +140,32 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>
     public bool Equals(Pose3<TNum> other) => this == other;
 
     /// <inheritdoc />
-    public static bool operator ==(Pose3<TNum> left, Pose3<TNum> right) => left.Origin==right.Origin&&left.Rotation==right.Rotation;
+    public static bool operator ==(Pose3<TNum> left, Pose3<TNum> right) =>
+        left.Origin == right.Origin && left.Rotation == right.Rotation;
 
     /// <inheritdoc />
     public static bool operator !=(Pose3<TNum> left, Pose3<TNum> right)
         => !(left == right);
-    
+
     /// <inheritdoc />
     public override int GetHashCode() => HashCode.Combine(Rotation, Origin);
 
     public static Ray3<TNum> FrontRay(Pose3<TNum> arg) => new(arg.Origin, arg.Front);
     public static Ray3<TNum> UpRay(Pose3<TNum> arg) => new(arg.Origin, arg.Up);
+    
+    public PosedPlane<TNum> ToPosedPlane()=>PosedPlane<TNum>.Create(this);
+
+    public Plane<TNum> Xy() => Plane<TNum>.CreateUnsafe(Rotation.UnitZ(),Origin);
+
+    public Matrix4x4<TNum> ToMatrix4x4()
+    {
+        var rot= Rotation.AsMatrix3x3();
+        return Matrix4x4<TNum>.Create(
+            Vec4<TNum>.Create(rot.X,Origin.X),
+            Vec4<TNum>.Create(rot.Y,Origin.Y),
+            Vec4<TNum>.Create(rot.Z,Origin.Z),
+            Vec4<TNum>.UnitW
+        );
     }
+    
+}

@@ -3,6 +3,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
 using MeshWiz.RefLinq;
+using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 using BvhStep = (int ParentIndex, int Depth);
 
@@ -11,6 +12,7 @@ namespace MeshWiz.Math;
 
 public static partial class Bvh
 {
+    
     public static partial class Create
     {
         private readonly record struct Split<TVec, TNum>(
@@ -36,7 +38,7 @@ public static partial class Bvh
             var perItemBounds = source
                 .Select(item => item.BBox)
                 .ToArray();
-            var perItemPosition = perItemBounds.AsSpan()
+            var perItemPosition = perItemBounds
                 .Select(b => b.Center)
                 .ToArray();
             var n = perItemBounds.Length;
@@ -48,12 +50,14 @@ public static partial class Bvh
                 .Select(i => perItemPosition[i]);
             var rootBox = AABB.Combine(perItemBounds);
             List<Node<TVec, TNum>> nodes = [Node<TVec, TNum>.MakeLeaf(rootBox, 0, n)];
-            Stack<BvhStep> recursion = new(maxDepth * 2);
-            recursion.Push((0, 1));
+            using var rentSpace = RentedArray<BvhStep>.Rent(maxDepth);
+            Span<BvhStep> stack = rentSpace.GetCompleteArray();
+            var stackSize = 0;
+            stack[stackSize++] = (0, 1);
             var resultDepth = 1;
-            while (recursion.TryPop(out var step))
+            while (0<stackSize)
             {
-                var (parentIndex, depth) = step;
+                var (parentIndex, depth) = stack[--stackSize];
                 var parent = nodes[parentIndex];
 
                 if (parent.Length <= minNodeSize)
@@ -98,8 +102,8 @@ public static partial class Bvh
                 resultDepth = int.Max(depth, resultDepth);
 
                 if (depth >= maxDepth) continue;
-                recursion.Push((rightIndex, depth));
-                recursion.Push((leftIndex, depth)); //visit left first
+                stack[stackSize++] = (rightIndex,depth);
+                stack[stackSize++] = (leftIndex,depth);
             }
 
             return new Info<TVec, TNum>(nodes.ToArray(), indexShuffle, resultDepth);
@@ -124,12 +128,14 @@ public static partial class Bvh
             var n = perItemBounds.Length;
             var rootBox = AABB.Combine(perItemBounds);
             List<Node<TVec, TNum>> nodes = [Node<TVec, TNum>.MakeLeaf(rootBox, 0, n)];
-            Stack<BvhStep> recursion = new(maxDepth * 2);
-            recursion.Push((0, 1));
+            using var rentSpace = RentedArray<BvhStep>.Rent(maxDepth);
+            Span<BvhStep> stack = rentSpace.GetCompleteArray();
+            var stackSize = 0;
+            stack[stackSize++] = (0, 1);
             var resultDepth = 1;
-            while (recursion.TryPop(out var step))
+            while (0<stackSize)
             {
-                var (parentIndex, depth) = step;
+                var (parentIndex, depth) = stack[--stackSize];
                 var parent = nodes[parentIndex];
 
                 if (parent.Length <= minNodeSize)
@@ -151,13 +157,68 @@ public static partial class Bvh
                 resultDepth = int.Max(depth, resultDepth);
 
                 if (depth > maxDepth) continue;
-                recursion.Push((rightIndex, depth));
-                recursion.Push((leftIndex, depth)); //visit left first
+                stack[stackSize++] = (rightIndex,depth);
+                stack[stackSize++] = (leftIndex,depth);
             }
 
             return new Info<TVec, TNum>(nodes.ToArray(), null, resultDepth);
         }
+        
+public static Info<TVec, TNum> BinaryBalancedNonReordering<TBounded, TVec, TNum>(
+            IReadOnlyList<TBounded> source,
+            int maxDepth = 32,
+            int minNodeSize = 1
+        )
+            where TBounded : IBounded<TVec>
+            where TVec : unmanaged, IVec<TVec, TNum>
+            where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        {
+            minNodeSize = int.Max(1, minNodeSize);
+            var perItemBounds = source
+                .Select(item => item.BBox)
+                .ToArray();
+            var boundsSpan = perItemBounds.AsSpan();
 
+            var n = perItemBounds.Length;
+            var rootBox = AABB.Combine(perItemBounds);
+            List<Node<TVec, TNum>> nodes = [Node<TVec, TNum>.MakeLeaf(rootBox, 0, n)];
+            using var rentSpace = RentedArray<BvhStep>.Rent(maxDepth);
+            Span<BvhStep> stack = rentSpace.GetCompleteArray();
+            var stackSize = 0;
+            stack[stackSize++] = (0, 1);
+            var resultDepth = 1;
+            while (0<stackSize)
+            {
+                var (parentIndex, depth) = stack[--stackSize];
+                var parent = nodes[parentIndex];
+
+                if (parent.Length <= minNodeSize)
+                    continue;
+                var curBounds = boundsSpan[parent.Start..parent.End];
+                var leftLength = curBounds.Length / 2 + (curBounds.Length % 2);
+                var bbLeft = AABB.Combine(curBounds[..leftLength]);
+                var bbRight = AABB.Combine(curBounds[leftLength..]);
+                var cost = SahLeafCost<TVec, TNum>(bbLeft.Size, leftLength)+SahLeafCost<TVec, TNum>(bbRight.Size, parent.Length-leftLength);
+                if (cost >= parent.LeafCost)
+                    continue; //do not split
+
+                var leftChild = Node<TVec, TNum>.MakeLeaf(bbLeft, parent.Start, leftLength);
+                var rightChild = Node<TVec, TNum>.MakeLeaf(bbRight, leftChild.End, parent.Length - leftLength);
+                var leftIndex = nodes.Count;
+                nodes.Add(leftChild);
+                var rightIndex = leftIndex + 1;
+                nodes.Add(rightChild);
+                nodes[parentIndex] = parent.WithChildren(leftIndex, rightIndex);
+                ++depth;
+                resultDepth = int.Max(depth, resultDepth);
+
+                if (depth > maxDepth) continue;
+                stack[stackSize++] = (rightIndex,depth);
+                stack[stackSize++] = (leftIndex,depth);
+            }
+
+            return new Info<TVec, TNum>(nodes.ToArray(), null, resultDepth);
+        }
         private static (TNum cost, AABB<TVec> bbLeft, AABB<TVec> bbRight, int leftLength) ChooseNonReorderedSplit<TVec,
             TNum>(
             AABB<TVec> outer,
@@ -192,6 +253,7 @@ public static partial class Bvh
                 leftBounds = curLeftBounds;
                 rightBounds = curRightBounds;
                 bestLeftLength = leftLength;
+                bestCost = curTotalCost;
             }
 
             return (bestCost, leftBounds, rightBounds, bestLeftLength);

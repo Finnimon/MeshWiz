@@ -37,11 +37,24 @@ public static partial class Polyline
 
         public enum Level
         {
+            /// <summary>
+            /// Indicates the absence of self intersection
+            /// </summary>
             Simple,
+            /// <summary>
+            /// Indicates self intersection
+            /// </summary>
             Complex,
             Unknown
         }
-
+        [Pure]
+        public static Level MultiCheck<TPolyline,TNum>(TPolyline polygon)
+            where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        where TPolyline:IPolyline<TPolyline,Line<Vec2<TNum>,TNum>,Vec2<TNum>,Vec2<TNum>,TNum>
+        {
+            if (polygon.IsClosed && Evaluate.IsConvex<TPolyline,TNum>(polygon)) return Level.Simple;
+            return CompleteCheck<TPolyline,TNum>(polygon);
+        }
         /// <summary>
         /// Uses different methods to check the simplicity of a polygon
         /// </summary>
@@ -50,18 +63,11 @@ public static partial class Polyline
         /// <returns></returns>
         [Pure]
         public static Level MultiCheck<TNum>(Polyline<Vec2<TNum>, TNum> polygon)
-            where TNum : unmanaged, IFloatingPointIeee754<TNum>
-        {
-            if (polygon.IsClosed && Evaluate.IsConvex(polygon)) return Level.Simple;
-            return CompleteCheck(polygon);
-        }
+            where TNum : unmanaged, IFloatingPointIeee754<TNum> =>
+            MultiCheck<Polyline<Vec2<TNum>,TNum>,TNum>(polygon);
 
-
-        /// <summary>
-        /// Complete O(N^2) complexity check
-        /// </summary>
-        /// <remarks>Heals the ends if they are not properly touching</remarks>
-        public static Level CompleteCheck<TNum>(Polyline<Vec2<TNum>, TNum> polygon)
+        public static Level CompleteCheck<TPolyline,TNum>(TPolyline polygon)
+            where TPolyline:IPolyline<TPolyline,Line<Vec2<TNum>,TNum>,Vec2<TNum>,Vec2<TNum>,TNum>
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             for (var i = 0; i < polygon.Count - 2; i++)
@@ -81,6 +87,14 @@ public static partial class Polyline
 
             return Level.Simple;
         }
+
+        /// <summary>
+        /// Complete O(N^2) complexity check
+        /// </summary>
+        /// <remarks>Heals the ends if they are not properly touching</remarks>
+        public static Level CompleteCheck<TNum>(Polyline<Vec2<TNum>, TNum> polygon)
+            where TNum : unmanaged, IFloatingPointIeee754<TNum> =>
+            CompleteCheck<Polyline<Vec2<TNum>, TNum>, TNum>(polygon);
 
 
         public static Polyline<Vec2<TNum>, TNum>[] MakeSimple<TNum>(

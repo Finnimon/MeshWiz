@@ -16,7 +16,6 @@ namespace MeshWiz.Math;
 public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-
     public Vec2<TNum> Right => new(Y, -X);
     public Vec2<TNum> Left => new(-Y, X);
     public static Vec2<TNum> Zero => new(TNum.Zero, TNum.Zero);
@@ -40,7 +39,8 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
     public Vec2<TNum> YX => new(Y, X);
 
     private Vec2(TNum radius, Angle<TNum> angle) : this(radius, angle.Radians) { }
-    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec2<TNum> CreatePolar(TNum radius, Angle<TNum> angle) => new(radius, angle);
 
     /// <inheritdoc />
@@ -54,7 +54,6 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
 
     public readonly TNum X = x, Y = y;
     public static unsafe int ByteSize => sizeof(TNum) * 2;
-    public int Count => 2;
     public Vec2<TNum> Normalized() => this / Length;
     public TNum AlignedSquareVolume => X * Y;
 
@@ -91,7 +90,7 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
     public static Vec2<TNum> Create(TNum value)
         => new(value);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining),Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
     public static Vec2<TNum> Create(TNum x, TNum y)
     {
         Unsafe.SkipInit(out Vec2<TNum> res);
@@ -109,6 +108,7 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
 
     [Pure] static int IVecBase<Vec2<TNum>, TNum>.Dimensions => Dimensions;
     public const int Dimensions = 2;
+    public const int Count = 2;
     [Pure] public TNum Length => TNum.Sqrt(SquaredLength);
 
     [Pure]
@@ -181,13 +181,15 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
     public TNum Dot(Vec2<TNum> other) => X * other.X + Y * other.Y;
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TNum Dot(Vec2<TNum> a,Vec2<TNum> b) => a.X * b.X + a.Y * b.Y;
+    public static TNum Dot(Vec2<TNum> a, Vec2<TNum> b) => Sum(a * b);
+
+    private static TNum Sum(Vec2<TNum> v) => v.X + v.Y;
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public TNum DistanceTo(Vec2<TNum> other) => Distance(this,other);
+    public TNum DistanceTo(Vec2<TNum> other) => Distance(this, other);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public TNum SquaredDistanceTo(Vec2<TNum> other) => SquaredDistance(this,other);
+    public TNum SquaredDistanceTo(Vec2<TNum> other) => SquaredDistance(this, other);
 
     /// <inheritdoc />
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -197,16 +199,16 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TNum SquaredDistance(Vec2<TNum> a, Vec2<TNum> b)
     {
-        var x = a.X - b.X;
-        var y = a.Y - b.Y;
-        return x * x + y * y;
+        var v = b - a;
+        return Dot(v, v);
     }
-    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public TNum Cross(Vec2<TNum> r) => X * r.Y - Y * r.X;
-    
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TNum Cross(Vec2<TNum> l,Vec2<TNum> r) => l.X * r.Y - l.Y * r.X;
+    public TNum Cross(Vec2<TNum> r) => X * r.Y - Y * r.X;
+
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TNum Cross(Vec2<TNum> l, Vec2<TNum> r) => l.X * r.Y - l.Y * r.X;
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int CrossSign(Vec2<TNum> other) => Cross(other).EpsilonTruncatingSign();
@@ -221,7 +223,7 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
     public static Vec2<TNum> ExactLerp(Vec2<TNum> from, Vec2<TNum> toward, TNum exactDistance)
     {
         var dist = Distance(from, toward);
-        return Lerp(from,toward,exactDistance/dist);
+        return Lerp(from, toward, exactDistance / dist);
     }
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -326,7 +328,7 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
     public bool IsApprox(Vec2<TNum> other, TNum squareTolerance) => SquaredDistanceTo(other) < squareTolerance;
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool IsApprox(Vec2<TNum> other) => SquaredDistanceTo(other) <= TNum.Epsilon;
+    public bool IsApprox(Vec2<TNum> other) => SquaredDistanceTo(other).IsApproxZero();
 
     public Line<Vec2<TNum>, TNum> LineTo(Vec2<TNum> end) => new(this, end);
 
@@ -374,7 +376,7 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
 
     /// <inheritdoc />
     public static bool IsInteger(Vec2<TNum> value)
-        => TNum.IsInteger(value.X)&&TNum.IsInteger(value.Y);
+        => TNum.IsInteger(value.X) && TNum.IsInteger(value.Y);
 
     /// <inheritdoc />
     public static Vec2<TNum> AdditiveIdentity => Zero;
@@ -683,18 +685,18 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
 
     /// <inheritdoc />
     public static Vec2<TNum> ScaleB(Vec2<TNum> x, int n)
-        => new(TNum.ScaleB(x.X, n), TNum.ScaleB(x.Y, n));
+        => Create(TNum.ScaleB(x.X, n), TNum.ScaleB(x.Y, n));
 
 
     /// <inheritdoc />
     public static Vec2<TNum> operator *(Vec2<TNum> left, Vec2<TNum> right)
-        => new(left.X * right.X, left.Y * right.Y);
+        => Create(left.X * right.X, left.Y * right.Y);
 
     public static Vec2<TNum> Min(Vec2<TNum> l, Vec2<TNum> r)
-        => new(TNum.Min(l.X, r.X), TNum.Min(l.Y, r.Y));
+        => Create(TNum.Min(l.X, r.X), TNum.Min(l.Y, r.Y));
 
     public static Vec2<TNum> Max(Vec2<TNum> l, Vec2<TNum> r)
-        => new(TNum.Max(l.X, r.X), TNum.Max(l.Y, r.Y));
+        => Create(TNum.Max(l.X, r.X), TNum.Max(l.Y, r.Y));
 
     public static Vec2<TNum> Clamp(Vec2<TNum> value, Vec2<TNum> min, Vec2<TNum> max)
         => Min(max, Max(min, value));
@@ -705,6 +707,7 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
     public static implicit operator Vec2<float>(Vec2<TNum> v) => v.To<float>();
     public static implicit operator Vec2<double>(Vec2<TNum> v) => v.To<double>();
     public static implicit operator Vec2<Half>(Vec2<TNum> v) => v.To<Half>();
+
     /// <inheritdoc />
     public static bool TryParse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider,
         out Vec2<TNum> result)
@@ -740,7 +743,9 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
 
     /// <inheritdoc />
     public static Vec2<TNum> Parse(string s, IFormatProvider? provider = null)
-        => TryParse(s, NumberStyles.Any, provider, out var result) ? result : ThrowHelper.ThrowFormatException<Vec2<TNum>>();
+        => TryParse(s, NumberStyles.Any, provider, out var result)
+            ? result
+            : ThrowHelper.ThrowFormatException<Vec2<TNum>>();
 
 
     /// <inheritdoc />
@@ -750,7 +755,9 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
 
     /// <inheritdoc />
     public static Vec2<TNum> Parse(ReadOnlySpan<char> s, IFormatProvider? provider = null)
-        => TryParse(s, NumberStyles.Any, provider, out var result) ? result : ThrowHelper.ThrowFormatException<Vec2<TNum>>();
+        => TryParse(s, NumberStyles.Any, provider, out var result)
+            ? result
+            : ThrowHelper.ThrowFormatException<Vec2<TNum>>();
 
 
     /// <inheritdoc />
@@ -837,14 +844,14 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
         polarStart.PolarToCartesian().DistanceTo(polarEnd.PolarToCartesian());
 
     [Pure]
-    public static Vec2<TNum> PolarLerp(Vec2<TNum>a, Vec2<TNum>b, TNum t)
+    public static Vec2<TNum> PolarLerp(Vec2<TNum> a, Vec2<TNum> b, TNum t)
     {
         // Convert polar -> cartesian
         var aCart = a.PolarToCartesian();
         var bCart = b.PolarToCartesian();
 
         // Cartesian lerp (straight line, supports t outside [0,1])
-        var l=Lerp(aCart,bCart,t);
+        var l = Lerp(aCart, bCart, t);
         var lPolar = l.CartesianToPolar();
         var r = lPolar.PolarRadius;
 
@@ -863,16 +870,16 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
 
         var thetaFinal = thetaAtan + k * twoPi;
 
-        return new(r, thetaFinal);
+        return new Vec2<TNum>(r, thetaFinal);
     }
 
     [Pure]
     public Vec2<TNum> WithElement(int index, TNum elem)
     {
-        if(1u<(uint)index)
+        if (Count < (uint)index)
             IndexThrowHelper.Throw();
         var copy = this;
-        Vec<TNum>.SetElement(in copy, index,elem);
+        Vec<TNum>.SetElement(in copy, index, elem);
         return copy;
     }
 }

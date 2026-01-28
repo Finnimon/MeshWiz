@@ -22,7 +22,7 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
 
 
     [Pure]
-    public Vec3<TNum> Normalized() => this / Length;
+    public Vec3<TNum> Normalized() => this / TNum.Sqrt(Dot(this,this));
 
     /// <inheritdoc />
     public static Vec3<TNum> Create<TOtherNum>(TOtherNum other) where TOtherNum : INumberBase<TOtherNum>
@@ -32,11 +32,11 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
     public const int Dimensions = 3;
     int IReadOnlyCollection<TNum>.Count => Dimensions;
     public const int Count = Dimensions;
-    [Pure] public TNum Length => TNum.Sqrt(X * X + Y * Y + Z * Z);
+    [Pure] public TNum Length => TNum.Sqrt(Dot(this,this));
 
     [Pure]
     public TNum SquaredLength
-        => X * X + Y * Y + Z * Z;
+        => Dot(this,this);
 
     public TNum AlignedCuboidVolume => TNum.Abs(X * Y * Z);
 
@@ -49,6 +49,15 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
         Unsafe.SkipInit(out Vec3<TNum> v);
         Unsafe.AsRef(in v.X) = x;
         Unsafe.AsRef(in v.Y) = y;
+        Unsafe.AsRef(in v.Z) = z;
+        return v;
+    }
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vec3<TNum> Create(Vec2<TNum> xy, TNum z)
+    {
+        Unsafe.SkipInit(out Vec3<TNum> v);
+        Unsafe.As<Vec3<TNum>,Vec2<TNum>>(ref v) = xy;
         Unsafe.AsRef(in v.Z) = z;
         return v;
     }
@@ -658,7 +667,9 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
         => value.SquaredLength <= TNum.One;
 
     public bool IsNormalized => this.SquaredLength.IsApprox(TNum.One, Numbers<TNum>.ZeroEpsilon);
-
+    public unsafe Vec2<TNum> XY => Unsafe.ReadUnaligned<Vec2<TNum>>(Unsafe.AsPointer(in X));
+    public unsafe Vec2<TNum> YZ => Unsafe.ReadUnaligned<Vec2<TNum>>(Unsafe.AsPointer(in Y));
+    
     /// <inheritdoc />
     public static bool IsOddInteger(Vec3<TNum> value)
         => TNum.IsOddInteger(value.ComponentSum);

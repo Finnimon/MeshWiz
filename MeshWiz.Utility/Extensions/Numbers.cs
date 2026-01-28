@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using CommunityToolkit.Diagnostics;
 
 namespace MeshWiz.Utility.Extensions;
 
@@ -79,7 +80,9 @@ public static class Numbers
     public static TNum WrapZeroBound<TNum>(this TNum value, TNum max)
         where TNum : INumber<TNum>
     {
-        Debug.Assert(max > TNum.Zero);
+#if DEBUG
+        ArgumentOutOfRangeException.ThrowIfLessThan(max, TNum.Zero, nameof(max));
+#endif
         return (value % max + max) % max;
     }
 

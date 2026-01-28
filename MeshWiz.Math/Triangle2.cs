@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
 
@@ -21,7 +22,7 @@ public readonly struct Triangle2<TNum>:ISurface<Vec2<TNum>, TNum>
     public ICurve<Vec2<TNum>, TNum> Bounds => new Polyline<Vec2<TNum>, TNum>([A, B, C]);
 
 
-    public Vec2<TNum> Centroid => (A + B + C) /TNum.CreateTruncating(2);
+    public Vec2<TNum> Centroid => (A + B + C) * Numbers<TNum>.Third;
     public TNum SurfaceArea 
     {
         get
@@ -29,7 +30,7 @@ public readonly struct Triangle2<TNum>:ISurface<Vec2<TNum>, TNum>
             var ab = B - A;
             var ac = C - A;
             var abAcDot= ab.Dot(ac);
-            return TNum.Sqrt((ab.Dot(ab)) * (ac.Dot(ac))-abAcDot*abAcDot)/TNum.CreateTruncating(2);
+            return TNum.Sqrt((ab.Dot(ab)) * (ac.Dot(ac))-abAcDot*abAcDot) * Numbers<TNum>.Half;
         }
     }
     

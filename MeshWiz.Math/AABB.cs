@@ -131,7 +131,7 @@ public readonly struct AABB<TNum>
         var (min,max) = pts[0];
         for (var i = 1; i < pts.Length; i++)
         {
-            ref readonly var cur=ref pts[i];
+            var cur = pts[i];
             min = TNum.Min(min, cur.Min);
             max = TNum.Max(max, cur.Max);
         }
@@ -218,8 +218,8 @@ public readonly struct AABB<TNum>
 
         for (var i = 1; i < pts.Length; i++)
         {
-            min = TNum.Min(min, min);
-            max = TNum.Max(max, max);
+            min = TNum.Min(min, pts[i]);
+            max = TNum.Max(max, pts[i]);
         }
 
         return new AABB<TNum>(min, max);
@@ -321,6 +321,15 @@ public readonly struct AABB<TNum>
     }
 
     public static AABB<TNum> Saturate => new(TNum.Zero, TNum.One);
+
+    public static AABB<TNum> Combine<TBounded>(IReadOnlyList<TBounded> select) 
+        where TBounded:IBounded<TNum>
+    {
+        if (select.Count == 0)
+            return Empty;
+        var first = select[0].BBox;
+        return select.Aggregate(first, (current, bounded) => Combine(current, bounded.BBox));
+    }
 }
 
 public static class AABB
@@ -391,6 +400,7 @@ public static class AABB
     public static AABB<TNum> Combine<TNum>(IEnumerable<AABB<TNum>> select) 
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     =>AABB<TNum>.Combine(select);
+    
 
     [Pure]
     public static TNum GetArea<TNum>(this AABB<Vec2<TNum>> aabb)
@@ -426,6 +436,14 @@ public static class AABB
     public static AABB<TNum> Combine<TNum>(params ReadOnlySpan<AABB<TNum>> src)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
         => AABB<TNum>.Combine(src);
+    
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static AABB<TNum> Combine<TNum>(AABB<TNum> a, TNum p1, TNum p2, TNum p3) 
+        where TNum : unmanaged, IFloatingPointIeee754<TNum> => a.CombineWith(p1, p2, p3);
+    
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static AABB<TNum> Combine<TNum>(AABB<TNum> a, TNum p1, TNum p2, TNum p3, TNum p4) 
+        where TNum : unmanaged, IFloatingPointIeee754<TNum> => a.CombineWith(p1, p2, p3, p4);
 
     [Pure]
     public static IndexedMesh<TNum> Tessellate<TNum>(this AABB<Vec3<TNum>> box)
@@ -458,4 +476,19 @@ public static class AABB
         Vec3<TNum>.Create(box.Max.X, box.Max.Y, box.Min.Z), // 110
         box.Max // 111
     ];
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
+    public static Line<Vec2<TNum>, TNum> SizeLine<TNum>(AABB<Vec2<TNum>> bbox)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum> =>
+        new(bbox.Min, bbox.Max);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
+    public static Vec2<TNum> LowerRight<TNum>(AABB<Vec2<TNum>> bbox)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum> =>
+        bbox.Min.WithElement(1, bbox.Max[1]);
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
+    public static Vec2<TNum> UpperLeft<TNum>(AABB<Vec2<TNum>> bbox)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum> =>
+        bbox.Min.WithElement(0, bbox.Max[0]);
 }

@@ -195,7 +195,12 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
     public Matrix3x3<TNum> Transpose()
         => FromColumns(X, Y, Z);
 
-
+    public void Deconstruct(out Vec3<TNum> x, out Vec3<TNum> y, out Vec3<TNum> z)
+    {
+        x = X;
+        y = Y;
+        z = Z;
+    }
     public static Matrix3x3<TNum> Transpose(Matrix3x3<TNum> m) => m.Transpose();
 
     public Matrix3x3<TNum> Inverse()
@@ -274,7 +279,7 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
         => new(-mat.X, -mat.Y, -mat.Z);
 
     /// <inheritdoc />
-    public ReadOnlySpan<TNum> AsSpan() => MemoryMarshal.CreateReadOnlySpan(in X.X,ColCount*RowCount);
+    public ReadOnlySpan<TNum> AsSpan() => MemoryMarshal.CreateReadOnlySpan(in X.X, ColCount * RowCount);
 
     public override bool Equals(object? obj)
         => obj is Matrix3x3<TNum> m && this == m;
@@ -344,7 +349,7 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
     {
         Unsafe.SkipInit(out Matrix3x3<TOther> res);
         var newNums = AsSpan().Select(TOther.CreateTruncating);
-        var resSpan = MemoryMarshal.CreateSpan( ref Unsafe.AsRef(in res.X.X),ColCount*RowCount);
+        var resSpan = MemoryMarshal.CreateSpan(ref Unsafe.AsRef(in res.X.X), ColCount * RowCount);
         newNums.CopyTo(resSpan);
         return res;
     }

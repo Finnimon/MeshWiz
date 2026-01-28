@@ -117,13 +117,7 @@ public static partial class Mesh
         }
 
         public static AABB<Vec3<TNum>> BBox<TNum>(IReadOnlyList<Triangle3<TNum>> mesh)
-            where TNum : unmanaged, IFloatingPointIeee754<TNum>
-        {
-            var bbox = AABB<Vec3<TNum>>.Empty;
-            foreach (var tri in mesh)
-                bbox = bbox.CombineWith(tri.A,tri.B,tri.C);
-
-            return bbox;
-        }
+            where TNum : unmanaged, IFloatingPointIeee754<TNum> =>
+            AABB<Vec3<TNum>>.Combine(mesh);
     }
 }

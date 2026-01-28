@@ -7,6 +7,7 @@ using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using System.Xml.Serialization;
 using CommunityToolkit.Diagnostics;
+using MeshWiz.Collections;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
@@ -66,7 +67,6 @@ public sealed class Polyline<TVec, TNum>
         return i == count ? -1 : i;
     }
 
-    /// <inheritdoc />
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public Line<TVec, TNum> this[int index]
     {
@@ -145,7 +145,7 @@ public sealed class Polyline<TVec, TNum>
 
 
     /// <inheritdoc />
-    public int Version { get; }
+    int IVersionedList<Line<TVec, TNum>>.Version => 0;
 
     /// <inheritdoc />
     public IEnumerator<Line<TVec, TNum>> GetEnumerator()
@@ -885,7 +885,6 @@ public static partial class Polyline
         where TVector : unmanaged, IVec<TVector, TNum>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
-        var half = Numbers<TNum>.Half;
         List<TVector> result = [];
         foreach (var polyline in segs)
         {

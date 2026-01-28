@@ -11,24 +11,8 @@ public readonly partial struct AdapterIterator<T>
     internal static class Imp
     {
         
-        public static bool TryGetSpan(IImp imp,out ReadOnlySpan<T> data)
-        {
-            if (imp.Underlying is T[] arr)
-            {
-                data = arr;
-                return true;
-            }
+        public static bool TryGetSpan(IImp imp,out ReadOnlySpan<T> data) => imp.Underlying.TryGetSpan(out data);
 
-            if (imp.Underlying is List<T> l)
-            {
-                data = CollectionsMarshal.AsSpan(l);
-                return true;
-            }
-
-            data = ReadOnlySpan<T>.Empty;
-            var emptyCorrect=imp.TryGetNonEnumeratedCount(out var count) && count == 0;
-            return emptyCorrect;
-        }
         internal interface IImp : IEnumerator<T>
         {
             public IEnumerable<T> Underlying { get; }

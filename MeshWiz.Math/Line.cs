@@ -1,5 +1,6 @@
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
@@ -9,11 +10,19 @@ using MeshWiz.Utility;
 namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-public readonly record struct Line<TVec, TNum>(TVec Start, TVec End)
-    : ILine<TVec, TNum>,IBounded<TVec>
+public readonly struct Line<TVec, TNum>(TVec start, TVec end)
+    : ILine<TVec, TNum>, IBounded<TVec>, IEquatable<Line<TVec, TNum>>
     where TVec : unmanaged, IVec<TVec, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
+    public readonly TVec Start = start, End = end;
+
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
+    TVec IDiscreteCurve<TVec, TNum>.Start => Start;
+
+    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
+    TVec IDiscreteCurve<TVec, TNum>.End => End;
+
     public Line<TVec, TNum> Normalized() => FromAxisVector(Start, Direction);
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
@@ -43,59 +52,66 @@ public readonly record struct Line<TVec, TNum>(TVec Start, TVec End)
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public AABB<TVec> Bounds => AABB<TVec>.From(Start, End);
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Line<TVec, TNum> FromAxisVector(TVec start, TVec direction)
-        => new(start, start+direction);
+        => new(start, start + direction);
 
-    [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Deconstruct(out TVec start, out TVec end)
+    {
+        start = Start;
+        end = End;
+    }
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Line<TVec, TNum> FromAxisVector(TVec direction)
         => new(TVec.Zero, direction);
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TVec Traverse(TNum t)
-        => TVec.Lerp(Start,End,t);
+        => TVec.Lerp(Start, End, t);
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TVec TraverseOnCurve(TNum t)
         => Traverse(TNum.Clamp(t, TNum.Zero, TNum.One));
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Line<TVec, TNum> operator +(Line<TVec, TNum> l, Line<TVec, TNum> r)
         => FromAxisVector(l.Start + r.Start, l.AxisVector + r.AxisVector);
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Line<TVec, TNum> operator +(Line<TVec, TNum> l, TVec r)
         => new(l.Start + r, l.End + r);
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Line<TVec, TNum> operator +(TVec l, Line<TVec, TNum> r)
         => r + l;
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Line<TVec, TNum> operator -(Line<TVec, TNum> l, Line<TVec, TNum> r)
         => FromAxisVector(l.Start - r.Start, l.AxisVector - r.AxisVector);
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Line<TVec, TNum> operator *(Line<TVec, TNum> l, TNum r)
         => FromAxisVector(l.Start * r, l.AxisVector * r);
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TNum DistanceTo(TVec p)
         => ClosestPoint(p).DistanceTo(p);
-    
-    [Pure]
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TNum DistanceToSegment(TVec p)
         => ClosestPointOnSegment(p).DistanceTo(p);
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TNum SquaredDistanceTo(TVec p)
         => ClosestPoint(p).SquaredDistanceTo(p);
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TNum SquaredDistanceToSegment(TVec p)
         => ClosestPointOnSegment(p).SquaredDistanceTo(p);
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TVec ClosestPoint(TVec p)
     {
         var v = p - Start;
@@ -105,7 +121,7 @@ public readonly record struct Line<TVec, TNum>(TVec Start, TVec End)
         return Start + alongVector;
     }
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TVec ClosestPointOnSegment(TVec p)
     {
         var v = p - Start;
@@ -118,7 +134,7 @@ public readonly record struct Line<TVec, TNum>(TVec Start, TVec End)
         return Start + alongVector;
     }
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public (TVec closest, TVec onSeg) ClosestPoints(TVec p)
     {
         var v = p - Start;
@@ -132,7 +148,7 @@ public readonly record struct Line<TVec, TNum>(TVec Start, TVec End)
         return (closest, onSeg);
     }
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public (TNum closest, TNum onSeg) GetClosestPositions(TVec p)
     {
         var v = p - Start;
@@ -144,9 +160,9 @@ public readonly record struct Line<TVec, TNum>(TVec Start, TVec End)
         return (closest, onSeg);
     }
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Line<TVec, TNum> Section(TNum start, TNum end)
-        => new(Traverse(start),Traverse(end));
+        => new(Traverse(start), Traverse(end));
 
     public Polyline<TVec, TNum> ToPolyline() => new(Start, End);
     public Polyline<TVec, TNum> ToPolyline(PolylineTessellationParameter<TNum> _) => new(Start, End);
@@ -164,15 +180,31 @@ public readonly record struct Line<TVec, TNum>(TVec Start, TVec End)
     /// <inheritdoc />
     public AABB<TVec> BBox => AABB.From(Start, End);
 
-    public Line<TOtherVec, TOther> To<TOtherVec, TOther>() 
-        where TOtherVec:unmanaged,IVec<TOtherVec,TOther>
+    public Line<TOtherVec, TOther> To<TOtherVec, TOther>()
+        where TOtherVec : unmanaged, IVec<TOtherVec, TOther>
         where TOther : unmanaged, IFloatingPointIeee754<TOther> =>
-        new(TOtherVec.FromComponentsConstrained<TVec, TNum>(Start), TOtherVec.FromComponentsConstrained<TVec, TNum>(Start));
+        new(TOtherVec.FromComponentsConstrained<TVec, TNum>(Start),
+            TOtherVec.FromComponentsConstrained<TVec, TNum>(End));
+
+    /// <inheritdoc />
+    public bool Equals(Line<TVec, TNum> other) => this == other;
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => obj is Line<TVec, TNum> other && this == other;
+
+    /// <inheritdoc />
+    public override int GetHashCode() => HashCode.Combine(Start, End);
+
+    public static bool operator ==(Line<TVec, TNum> left, Line<TVec, TNum> right) =>
+        left.Start == right.Start && left.End == right.End;
+
+    public static bool operator !=(Line<TVec, TNum> left, Line<TVec, TNum> right) =>
+        left.Start != right.Start || left.End != right.End;
 }
 
 public static class Line
 {
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryIntersect<TNum>(
         in Line<Vec2<TNum>, TNum> a,
         in Line<Vec2<TNum>, TNum> b,
@@ -196,7 +228,7 @@ public static class Line
         return true;
     }
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryIntersectOnSegment<TNum>(
         in Line<Vec2<TNum>, TNum> a,
         in Line<Vec2<TNum>, TNum> b,
@@ -226,7 +258,7 @@ public static class Line
                && TNum.Clamp(t2, TNum.Zero, TNum.One) == t2;
     }
 
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryIntersectOnSegment<TNum>(
         in Line<Vec2<TNum>, TNum> a,
         in Line<Vec2<TNum>, TNum> b,
@@ -258,5 +290,4 @@ public static class Line
         return TNum.Clamp(t, TNum.Zero, TNum.One) == t
                && TNum.Clamp(t2, TNum.Zero, TNum.One) == t2;
     }
-
 }

@@ -52,7 +52,25 @@ public static partial class Polyline
 
             return intersections;
         }
+        public static TNum SignedArea<TPolyline,TNum>(TPolyline polyline)
+        
+            where TPolyline:IPolyline<TPolyline,Line<Vec2<TNum>,TNum>,Vec2<TNum>,Vec2<TNum>,TNum>
+            where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        {
+            if (!polyline.IsClosed) return TNum.Zero;
 
+            var points = polyline.Vertices;
+            var prev = points[0];
+            var area = TNum.Zero;
+            for (var i = 1; i < points.Count; i++)
+            {
+                var next = points[i];
+                area += prev.Cross(next);
+                prev = next;
+            }
+
+            return area / TNum.CreateTruncating(2);
+        }
 
         public static TNum SignedArea<TNum>(Polyline<Vec2<TNum>, TNum> polyline)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
@@ -115,6 +133,33 @@ public static partial class Polyline
                 _ => ThrowHelper.ThrowInvalidOperationException<WindingOrder>(nameof(Vec2<>.CrossSign))
             };
         }
+        
+        
+
+        [Pure]
+        public static bool IsConvex<TPolyline,TNum>(TPolyline closedPolyline)
+        where TPolyline:IPolyline<TPolyline,Line<Vec2<TNum>,TNum>,Vec2<TNum>,Vec2<TNum>,TNum>
+            where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        {
+            if (!closedPolyline.IsClosed)
+                ThrowHelper.ThrowArgumentException("Polyline must be closed", nameof(closedPolyline));
+
+            var prevSign = 0;
+            var prevDirection = closedPolyline[0].AxisVector;
+            for (var i = 1; i < closedPolyline.Count; i++)
+            {
+                var curDirection = closedPolyline[i].AxisVector;
+                var crossSign = prevDirection.CrossSign(curDirection);
+                if (prevSign == 0) prevSign = crossSign;
+
+                prevDirection = curDirection;
+                if (crossSign == 0) continue; //parallel lines are allowable
+                if (crossSign != prevSign) return false;
+            }
+
+            return true;
+        }
+
 
 
         [Pure]

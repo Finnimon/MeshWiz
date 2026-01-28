@@ -7,11 +7,11 @@ namespace MeshWiz.Math;
 public static partial class Bvh
 {
     public interface ITraverser<in TElement, TIntersection, TVec, TNum>
-        : IIntersecter<TElement, TIntersection>
         where TVec : unmanaged, IVec<TVec, TNum>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         bool DoIntersect(AABB<TVec> t);
+        bool Intersect(TElement element, out TIntersection intersection);
         HitReact AcceptHit(int index, TElement element, TIntersection hit);
     }
 
@@ -21,32 +21,22 @@ public static partial class Bvh
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         private readonly Func<AABB<TVec>, bool> _bBoxDoIntersect;
-        private readonly Func<TElement, (TIntersection, bool)> _elementIntersect;
+        private readonly Func<TElement, (TIntersection intersection, bool doIntersect)> _elementIntersect;
         private readonly Func<int, TElement, TIntersection, HitReact> _acceptHitReact;
-        private readonly Func<TElement, bool> _elementDoIntersect;
 
         /// <param name="bBoxDoIntersect"></param>
         /// <param name="elementIntersect"></param>
         /// <param name="acceptHitReact"></param>
-        /// <param name="elementDoIntersect">will be substituted with <paramref name="elementIntersect"/></param>
         public FTraverser(Func<AABB<TVec>, bool> bBoxDoIntersect,
             Func<TElement, (TIntersection, bool)> elementIntersect,
-            Func<int, TElement, TIntersection, HitReact> acceptHitReact,
-            Func<TElement, bool>? elementDoIntersect)
+            Func<int, TElement, TIntersection, HitReact> acceptHitReact)
         {
             _bBoxDoIntersect = bBoxDoIntersect;
             _elementIntersect = elementIntersect;
             _acceptHitReact = acceptHitReact;
-            _elementDoIntersect = elementDoIntersect ?? ElementDoIntersectRedirect;
         }
-
-        private bool ElementDoIntersectRedirect(TElement elem) => _elementIntersect(elem).Item2;
-
-
-        /// <inheritdoc />
-        public bool DoIntersect(TElement test)
-            => _elementDoIntersect(test);
-
+        
+        
         /// <inheritdoc />
         public bool Intersect(TElement test, out TIntersection result)
         {
@@ -74,8 +64,7 @@ public static partial class Bvh
         IHierarchy<TElement, TVec, TNum> hierarchy,
         Func<AABB<TVec>, bool> bBoxDoIntersect,
         Func<TElement, (TIntersection, bool)> elementIntersect,
-        Func<int, TElement, TIntersection, HitReact> acceptHitReact,
-        Func<TElement, bool>? elementDoIntersect = null
+        Func<int, TElement, TIntersection, HitReact> acceptHitReact
     )
         where TVec : unmanaged, IVec<TVec, TNum>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
@@ -84,8 +73,7 @@ public static partial class Bvh
             hierarchy.Depth,
             bBoxDoIntersect,
             elementIntersect,
-            acceptHitReact,
-            elementDoIntersect);
+            acceptHitReact);
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool Traverse<TElement, TIntersection, TVec, TNum>(
@@ -103,9 +91,7 @@ public static partial class Bvh
         FTraverser<TElement, TIntersection, TVec, TNum> traverser = new(
                 bBoxDoIntersect,
                 elementIntersect,
-                acceptHitReact,
-                elementDoIntersect
-            );
+                acceptHitReact);
         return Traverse<FTraverser<TElement, TIntersection, TVec, TNum>, TElement, TIntersection, TVec, TNum>(elements, nodes, traverser, depth);
     }
 

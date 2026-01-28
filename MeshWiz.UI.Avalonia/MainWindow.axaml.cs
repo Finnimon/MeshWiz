@@ -4,10 +4,12 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using MeshWiz.Collections;
 using MeshWiz.IO.Stl;
 using MeshWiz.Math;
 using MeshWiz.OpenGL;
 using MeshWiz.Utility;
+using MeshWiz.Utility.Extensions;
 using OpenTK.Mathematics;
 
 namespace MeshWiz.UI.Avalonia;
@@ -131,31 +133,58 @@ public partial class MainWindow : Window
         var range = maxY - minY;
         poses = new PosePolyline<Pose3<double>, Vec3<double>, double>(Polyline.Reduction.DouglasPeucker<Pose3<double>, Vec3<double>, double>(poses.Poses,
             surface.RadiusRange.Max * 0.001));
-        var floatPoses = poses.Poses.ToArray().Select(p => p.To<float>()).ToArray();
+        // var floatPoses = poses.Poses.ToArray().Select(p => p.To<float>()).ToArray();
         camera.UnitUp=Vec3<float>.UnitX;
-        var loft = Mesh.Create.Loft(floatPoses, 0.05f);
+        // var loft = Mesh.Create.Loft(floatPoses, 0.05f);
+        var circle = new Circle2<double>(Vec2<double>.Zero, surface.RadiusRange.Max).ToPolyline(new(){MaxAngularDeviation = double.Pi*0.01});
+        var bvhCircle = BvhPolyline<Vec2<double>, double>.Sah(circle);
+        var bounds = bvhCircle.BBox;
+        var line = bounds.Min.LineTo(AABB.UpperLeft(bounds));
+        var meanderDir = line.Direction.Left;
+        line=new(line.Start-meanderDir,line.End-meanderDir);
+        RollingList<double> buf = [];
+        var poly2 = Polygon2<Polyline<Vec2<double>, double>, double>.Create(circle).Value;
+        List<Vec3<float>> meanderInfill = [];
+        var sw1 = Stopwatch.StartNew();
+        // var countNow=100;
+        for (var i = 1; i < 100; i++)
+        {
+            var origin= line.Traverse(i / 101.0);
+            var ray=Ray2<double>.CreateUnsafe(origin, meanderDir);
+            poly2.Hits(ray, buf);
+            
+            var max=buf.Max();
+            var min = buf.Min();
+            buf.Clear();
+            var reverse = (i & 1) == 1;
+            var (curStart, curEnd) = reverse ? (max, min) : (min, max);
+            meanderInfill.Add(Vec3<float>.Create(ray.Traverse(curStart).To<float>(),0));
+            meanderInfill.Add(Vec3<float>.Create(ray.Traverse(curEnd).To<float>(),0));
+        }
+        Console.WriteLine(sw.Elapsed);
         GlParent.Children.AddRange(
             [
-                new SmoothMeshView()
-                {
-                    Mesh = loft,
-                    Camera = camera,
-                    RenderModeFlags = RenderMode.Solid,
-                    Show = true,
-                    SolidColor = new(1,0,0,0.1f),
-                    DepthOffset = 0.0005f
-                },
+                // new SmoothMeshView()
+                // {
+                //     Mesh = loft,
+                //     Camera = camera,
+                //     RenderModeFlags = RenderMode.Solid,
+                //     Show = true,
+                //     SolidColor = new(1,0,0,0.1f),
+                //     DepthOffset = 0.0005f
+                // },
                 new LineView()
                 {
-                    Polyline = poses.ToPolyline().To<Vec3<float>, float>(),
-                    Color=Color4.Pink,
+                    Polyline = new(meanderInfill),
+                    Color=Color4.Black,
+                    LineWidth = 3,
                     Camera = camera,
-                    DepthOffset = 0.0006f
+                    Show = true
                 }
             ]
         );
-        LineViewWrapper.Unwrap.Show = true;
-        LineViewWrapper.Show = true;
+        MeshViewWrap.Show = false;
+        LineViewWrapper.Show = false;
         MeshViewWrap.Unwrap.SolidColor = Color4.DarkViolet;
     }
 

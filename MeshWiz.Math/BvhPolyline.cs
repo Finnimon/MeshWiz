@@ -1,103 +1,191 @@
 using System.Diagnostics;
+using System.Diagnostics.Contracts;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using CommunityToolkit.Diagnostics;
+using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
-public sealed class BvhPolyline<TVec, TNum>
-    : IPolyline<BvhPolyline<TVec, TNum>, Line<TVec, TNum>, TVec, TVec, TNum>,
-        IReadOnlyList<Line<TVec, TNum>>, Bvh.IHierarchy<Line<TVec, TNum>, TVec, TNum>
-    where TVec : unmanaged, IVec<TVec, TNum>
-    where TNum : unmanaged, IFloatingPointIeee754<TNum>
+public static partial class BvhPolyline
 {
-    public readonly Polyline<TVec, TNum> Underlying;
-    private readonly Bvh.Node<TVec, TNum>[] _nodes;
-    IReadOnlyList<Line<TVec, TNum>> Bvh.IHierarchy<Line<TVec, TNum>, TVec, TNum>.Elements => Underlying;
-    public ReadOnlySpan<Bvh.Node<TVec, TNum>> Nodes => _nodes.AsSpan();
-    public int Depth { get; }
-
-
-    private BvhPolyline(Polyline<TVec, TNum> underlying, Bvh.Node<TVec, TNum>[] nodes, int depth)
+    public readonly ref struct AnyHit<TNum> : Bvh.ITraverser<Line<Vec2<TNum>, TNum>, TNum, Vec2<TNum>, TNum>
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
-        _nodes = nodes;
-        Underlying = underlying;
-        Depth = depth;
+        private readonly Ray2<TNum> _ray;
+        private readonly ref TNum _hit;
+
+        public AnyHit(Ray2<TNum> ray, ref TNum hit)
+        {
+            _ray = ray;
+            _hit = ref hit;
+            _hit = TNum.PositiveInfinity;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
+        public bool Intersect(Line<Vec2<TNum>, TNum> test, out TNum result) =>
+            _ray.Intersect(test, out result);
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
+        public bool DoIntersect(AABB<Vec2<TNum>> t) => _ray.DoIntersect(t);
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Bvh.HitReact AcceptHit(int index, Line<Vec2<TNum>, TNum> element, TNum hit)
+        {
+            _hit = hit;
+            return Bvh.HitReact.BreakCompletely;
+        }
     }
 
-    public BvhPolyline(Polyline<TVec, TNum> underlying, IEnumerable<Bvh.Node<TVec, TNum>> nodes, int depth) : this(
-        underlying,
-        nodes.ToArray(), depth) { }
 
-    public static BvhPolyline<TVec, TNum> Sah(Polyline<TVec, TNum> underlying, int maxDepth, int splitTests)
+    public readonly ref struct AllHits<TCol, TNum> : Bvh.ITraverser<Line<Vec2<TNum>, TNum>, TNum, Vec2<TNum>, TNum>
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        where TCol : ICollection<TNum>, allows ref struct
     {
-        if (underlying.Count == 0)
-            return new BvhPolyline<TVec, TNum>(underlying, [], 0);
-        var info = Bvh.Create.SahNonReordering<Line<TVec, TNum>, TVec, TNum>(underlying, maxDepth, splitTests);
-        Debug.Assert(info.IndexShuffle is null);//index shuffle break compatibility
-        return new BvhPolyline<TVec, TNum>(underlying, info.Nodes, info.Depth);
+        private readonly Ray2<TNum> _ray;
+        public readonly TCol Hits;
+
+        public AllHits(Ray2<TNum> ray, TCol buffer)
+        {
+            _ray = ray;
+            Hits = buffer;
+            Debug.Assert(!Hits.IsReadOnly);
+        }
+
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
+        public bool Intersect(Line<Vec2<TNum>, TNum> test, out TNum result) =>
+            _ray.Intersect(test, out result);
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
+        public bool DoIntersect(AABB<Vec2<TNum>> t) => _ray.DoIntersect(t);
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Bvh.HitReact AcceptHit(int index, Line<Vec2<TNum>, TNum> element, TNum hit)
+        {
+            Hits.Add(hit);
+            return Bvh.HitReact.ContinueCurrentNode;
+        }
     }
 
-    /// <inheritdoc />
-    public TVec Traverse(TNum t) => Underlying.Traverse(t);
-
-    /// <inheritdoc />
-    public TVec GetTangent(TNum t) => Underlying.GetTangent(t);
-
-    /// <inheritdoc />
-    public TVec Start => Underlying.Start;
-
-    /// <inheritdoc />
-    public TVec End => Underlying.End;
-
-    /// <inheritdoc />
-    public TVec TraverseOnCurve(TNum t) => Underlying.TraverseOnCurve(t);
-
-    /// <inheritdoc />
-    public TNum Length => Underlying.Length;
-
-    /// <inheritdoc />
-    public Polyline<TVec, TNum> ToPolyline() => Underlying;
-
-    /// <inheritdoc />
-    public Polyline<TVec, TNum> ToPolyline(PolylineTessellationParameter<TNum> tessellationParameter) =>
-        Underlying.ToPolyline(tessellationParameter);
-
-    /// <inheritdoc />
-    public TVec EntryDirection => Underlying.EntryDirection;
-
-    /// <inheritdoc />
-    public TVec ExitDirection => Underlying.ExitDirection;
-
-    /// <inheritdoc />
-    public bool Contains(Line<TVec, TNum> item) => Underlying.Contains(item);
-
-    /// <inheritdoc />
-    public void CopyTo(Line<TVec, TNum>[] array, int arrayIndex) => Underlying.CopyTo(array, arrayIndex);
-
-    public int Count => Underlying.Count;
-
-    /// <inheritdoc />
-    public int IndexOf(Line<TVec, TNum> item) => Underlying.IndexOf(item);
-
-    /// <inheritdoc />
-    public int Version => Underlying.Version;
-
-    /// <inheritdoc />
-    public AABB<TVec> BBox => Underlying.BBox;
-
-    /// <inheritdoc />
-    public IReadOnlyList<TVec> Vertices => Underlying.Vertices;
-
-    /// <inheritdoc />
-    public IReadOnlyList<TNum> CumulativeLengths => Underlying.CumulativeLengths;
-
-    /// <inheritdoc />
-    public static BvhPolyline<TVec, TNum> CreateNonCopying(TVec[] vertices)
+    public readonly ref struct ClosestHit<TNum> : Bvh.ITraverser<Line<Vec2<TNum>, TNum>, TNum, Vec2<TNum>, TNum>
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
-        var rootNode = Bvh.Node<TVec, TNum>.MakeLeaf(AABB.From(vertices), 0, vertices.Length - 1);
-        var poly = Polyline<TVec, TNum>.CreateNonCopying(vertices);
-        poly._bbox = rootNode.Bounds;
-        return new BvhPolyline<TVec, TNum>(poly, [rootNode], 1);
+        private readonly Ray2<TNum> _ray;
+        private readonly ref TNum _hit;
+        private readonly ref int _hitTarget;
+
+        public ClosestHit(Ray2<TNum> ray, ref TNum hit, ref int hitTarget)
+        {
+            _ray = ray;
+            _hit = ref hit;
+            _hit = TNum.PositiveInfinity;
+            _hitTarget = ref hitTarget;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
+        public bool Intersect(Line<Vec2<TNum>, TNum> test, out TNum result) =>
+            _ray.Intersect(test, out result) && result < _hit;
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
+        public bool DoIntersect(AABB<Vec2<TNum>> t) =>
+            _ray.Intersect(t, out var hit) && hit < _hit; //can not be closer then
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Bvh.HitReact AcceptHit(int index, Line<Vec2<TNum>, TNum> element, TNum hit)
+        {
+            _hit = hit;
+            _hitTarget = index;
+            return Bvh.HitReact.ContinueCurrentNode;
+        }
     }
 
-    public Line<TVec, TNum> this[int index] => Underlying[index];
+    public readonly ref struct ContainsPoint<TNum> : Bvh.ITraverser<Line<Vec2<TNum>, TNum>, TNum, Vec2<TNum>, TNum>
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+    {
+        private readonly Ray2<TNum> _ray;
+        private readonly ref TNum _hit;
+        private readonly ref int _hitTarget;
+
+        public ContainsPoint(Vec2<TNum> p, ref TNum hit, ref int hitTarget)
+        {
+            _ray = Ray2<TNum>.CreateUnsafe(p, Vec2<TNum>.UnitX);
+            _hit = ref hit;
+            _hit = TNum.PositiveInfinity;
+            _hitTarget = ref hitTarget;
+            _hitTarget = -1;
+        }
+
+        public ContainsPoint(Ray2<TNum> ray, ref TNum hit, ref int hitTarget)
+        {
+            _ray = ray;
+            _hit = ref hit;
+            _hit = TNum.PositiveInfinity;
+            _hitTarget = ref hitTarget;
+            _hitTarget = -1;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
+        public bool Intersect(Line<Vec2<TNum>, TNum> test, out TNum result) =>
+            _ray.Intersect(test, out result) && result < _hit;
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
+        public bool DoIntersect(AABB<Vec2<TNum>> t) =>
+            _ray.Intersect(t, out var hit) && hit < _hit; //can not be closer then
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Bvh.HitReact AcceptHit(int index, Line<Vec2<TNum>, TNum> element, TNum hit)
+        {
+            _hit = hit;
+            _hitTarget = index;
+            return hit.IsApproxZero() ? Bvh.HitReact.BreakCompletely : Bvh.HitReact.ContinueCurrentNode;
+        }
+
+        public IntersectionLevel FinalEval<TList>(TList l, WindingOrder windingOrder)
+            where TList : IReadOnlyList<Line<Vec2<TNum>, TNum>>
+        {
+            if (_hitTarget == -1) return IntersectionLevel.None;
+            if (_hit.IsApproxZero()) return IntersectionLevel.Intersects;
+
+            var intersected = l[_hitTarget];
+            var outwards = intersected.AxisVector.Right;
+            var dotSignHit = windingOrder switch
+            {
+                WindingOrder.Clockwise => -1,
+                WindingOrder.CounterClockwise => 1,
+                _ => ThrowHelper.ThrowArgumentOutOfRangeException<int>(nameof(windingOrder))
+            };
+            var dotSign = TNum.Sign(Vec2<TNum>.Dot(_ray.Direction, outwards));
+
+            var mayContain = dotSign == dotSignHit;
+            if (!mayContain)
+                return IntersectionLevel.None;
+            var intersectionPt = _ray.Traverse(_hit);
+            int otherLineIndex;
+            var parameter = intersected.Start.DistanceTo(intersectionPt) / intersected.Length;
+            if (parameter.IsApproxZero())
+                otherLineIndex = -1;
+            else if (parameter.IsApprox(TNum.One))
+                otherLineIndex = +1;
+            else
+                return IntersectionLevel.Contains;
+
+            otherLineIndex = (_hitTarget + otherLineIndex).WrapZeroBound(l.Count);
+            var otherLine = l[otherLineIndex];
+            var isHit = TNum.Sign(Vec2<TNum>.Dot(otherLine.AxisVector.Right, _ray.Direction)) == dotSignHit;
+            return isHit ? IntersectionLevel.Contains : IntersectionLevel.None;
+        }
+    }
 }

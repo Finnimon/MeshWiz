@@ -18,7 +18,9 @@ public sealed class RollingList<T> : IVersionedList<T>, IReadOnlyList<T>
     private T[] _items;
     private int _headIndex;
     private int _postTailIndex;
-    public int Version { get; private set; }
+    private int _version;
+
+    int IVersionedList<T>.Version => _version;
 
     /// <inheritdoc />
     bool ICollection<T>.Remove(T item) => ThrowHelper.ThrowNotSupportedException<bool>();
@@ -86,7 +88,7 @@ public sealed class RollingList<T> : IVersionedList<T>, IReadOnlyList<T>
         get => _items[ValidatedIndex(index)];
         set
         {
-            ++Version;
+            ++_version;
             _items[ValidatedIndex(index)] = value;
         }
     }
@@ -106,7 +108,7 @@ public sealed class RollingList<T> : IVersionedList<T>, IReadOnlyList<T>
     public void PushFront(T item)
     {
         if (Capacity < Count + 1) Capacity *= 2;
-        Version++;
+        _version++;
         Count++;
         if (_headIndex <= 0) _headIndex = _items.Length;
         _headIndex--;
@@ -117,7 +119,7 @@ public sealed class RollingList<T> : IVersionedList<T>, IReadOnlyList<T>
 
     public void PushFront(ReadOnlySpan<T> newItems)
     {
-        Version++;
+        _version++;
         var capacity = Capacity;
         var newCount = Count + newItems.Length;
         var mustGrow = capacity < newCount;
@@ -153,7 +155,7 @@ public sealed class RollingList<T> : IVersionedList<T>, IReadOnlyList<T>
 
     public void PushBack(T item)
     {
-        Version++;
+        _version++;
         if (Capacity < Count + 1) Capacity *= 2;
         Count++;
         _postTailIndex++;
@@ -166,7 +168,7 @@ public sealed class RollingList<T> : IVersionedList<T>, IReadOnlyList<T>
 
     public void PushBack(ReadOnlySpan<T> newItems)
     {
-        Version++;
+        _version++;
         if (newItems.Length == 0) return;
         var capacity = Capacity;
         var newCount = Count + newItems.Length;
@@ -215,7 +217,7 @@ public sealed class RollingList<T> : IVersionedList<T>, IReadOnlyList<T>
 
     private T PopFrontUnchecked()
     {
-        Version++;
+        _version++;
         Count--;
         ref var head = ref _items[_headIndex];
         var front = head;
@@ -233,7 +235,7 @@ public sealed class RollingList<T> : IVersionedList<T>, IReadOnlyList<T>
 
     private T PopBackUnchecked()
     {
-        Version++;
+        _version++;
         Count--;
         _postTailIndex--;
         ref var tail = ref _items[_postTailIndex];
@@ -278,7 +280,7 @@ public sealed class RollingList<T> : IVersionedList<T>, IReadOnlyList<T>
 
     public void Clear()
     {
-        Version++;
+        _version++;
         if(!TypeOf<T>.Unmanaged)
             Array.Fill(_items, default!);
         _headIndex = 0;

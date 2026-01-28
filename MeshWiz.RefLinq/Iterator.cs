@@ -3,6 +3,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.Diagnostics;
+using JetBrains.Annotations;
 using MeshWiz.Utility;
 
 namespace MeshWiz.RefLinq;
@@ -248,5 +249,37 @@ public static partial class Iterator
         }
 
         return !first;
+    }
+
+    
+    public static bool TryGetSpan<T>([NoEnumeration] this IEnumerable<T> enumerable, out ReadOnlySpan<T> data)
+    {
+        if (enumerable is T[] arr)
+        {
+            data = arr;
+            return true;
+        }
+
+        if (enumerable is List<T> l)
+        {
+            data = CollectionsMarshal.AsSpan(l);
+            return true;
+        }
+
+        data = ReadOnlySpan<T>.Empty;
+        var emptyCorrect=enumerable.TryGetNonEnumeratedCount(out var count) && count == 0;
+        return emptyCorrect;
+    }
+
+    public static bool TryGetNonEnumeratedCount<T>([NoEnumeration] this IEnumerable<T> enumerable, out int count)
+    {
+        count = enumerable switch
+        {
+            ICollection<T> coll => coll.Count,
+            IReadOnlyCollection<T> coll => coll.Count,
+            _ => -1
+        };
+
+        return count!=-1;
     }
 }

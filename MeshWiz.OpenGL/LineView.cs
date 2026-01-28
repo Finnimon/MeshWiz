@@ -80,7 +80,6 @@ public class LineView : IOpenGLControl
     }
 
     public float DepthOffset { get; set; } = 0.0005f;
-
     private void UpdateShader(float aspect)
     {
         var (model, view, projection) = Camera.CreateRenderMatrices(aspect);

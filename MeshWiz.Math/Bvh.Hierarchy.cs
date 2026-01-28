@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace MeshWiz.Math;
 
@@ -14,5 +15,17 @@ public static partial class Bvh
         IReadOnlyList<TElement> Elements { get; }
         ReadOnlySpan<Node<TVec,TNum>> Nodes { get; }
         int Depth { get; }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        bool TraverseBvh<TTraverser, TIntersection>(TTraverser traverser) 
+            where TTraverser : ITraverser<TElement, TIntersection, TVec, TNum>, allows ref struct =>
+            Bvh.Traverse<TTraverser, TElement, TIntersection, TVec, TNum>(this, traverser);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        bool TraverseBvh<TIntersection>(
+            Func<AABB<TVec>, bool> bBoxDoIntersect,
+            Func<TElement, (TIntersection, bool)> elementIntersect,
+            Func<int, TElement, TIntersection, HitReact> acceptHitReact
+        ) => Bvh.Traverse(this, bBoxDoIntersect, elementIntersect, acceptHitReact);
     }
 }

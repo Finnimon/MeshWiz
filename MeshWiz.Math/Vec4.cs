@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
@@ -118,7 +119,7 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
 
     /// <inheritdoc />
     public static Vec4<TNum> Create(TNum value)
-        => new(value);
+        => Create(value, value, value, value);
 
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]

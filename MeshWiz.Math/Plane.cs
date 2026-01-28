@@ -14,7 +14,8 @@ public readonly struct Plane<TNum>
     : IIntersecter<Line<Vec3<TNum>, TNum>, Vec3<TNum>>,
         IIntersecter<Ray3<TNum>, Vec3<TNum>>,
         IIntersecter<Triangle3<TNum>, Line<Vec3<TNum>, TNum>>,
-        IIntersecter<AABB<Vec3<TNum>>, Quad3<TNum>>
+        IIntersecter<AABB<Vec3<TNum>>, Quad3<TNum>>,
+        IAnalyticSurface<TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public static Plane<TNum> XY => new(Vec3<TNum>.UnitZ, TNum.Zero);
@@ -44,7 +45,7 @@ public readonly struct Plane<TNum>
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Plane<TNum> CreateUnsafe(Vec3<TNum> normal, Vec3<TNum> pointOnPlane)
         => new(normal, -(normal.Dot(pointOnPlane)), true);
-    
+
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Plane<TNum> CreateUnsafe(Vec3<TNum> normal, TNum d)
         => new(normal, d, true);
@@ -86,32 +87,44 @@ public readonly struct Plane<TNum>
         result = test.Traverse(t);
         return t.IsApproxGreaterOrEqual(TNum.NegativeZero) && TNum.One.IsApproxGreaterOrEqual(t);
     }
+
     public bool IntersectParameter(Line<Vec3<TNum>, TNum> test, out TNum t)
     {
         var denominator = Normal.Dot(test.Direction);
-        // Check if ray is parallel to the plane
         if (TNum.Abs(denominator) < TNum.Epsilon)
         {
             t = default;
             return false;
         }
 
-        // Compute intersection distance along ray direction
         t = -(Normal.Dot(test.Start) + D) / denominator;
         var testLen = test.Length;
         t /= testLen;
         return t.IsApproxGreaterOrEqual(TNum.NegativeZero) && TNum.One.IsApproxGreaterOrEqual(t);
     }
 
+    public bool IntersectParameter(Ray3<TNum> test, out TNum t)
+    {
+        var denominator = Normal.Dot(test.Direction);
+        if ((denominator.IsApproxZero()))
+        {
+            t = default;
+            return false;
+        }
+
+        t = -SignedDistance(test.Origin) / denominator;
+        return t > TNum.Zero || t.IsApproxZero();
+    }
+
     public Vec3<TNum> ForceIntersect(Line<Vec3<TNum>, TNum> line)
     {
         var denominator = Normal.Dot(line.AxisVector);
         var t = -(Normal.Dot(line.Start) + D) / denominator;
-        return line.Traverse(t/line.Length);
+        return line.Traverse(t / line.Length);
     }
 
     public bool DoIntersect(Ray3<TNum> test)
-        => TNum.Abs(test.Direction.Dot(Normal)) >= TNum.Epsilon;
+        => !test.Direction.IsParallelTo(Normal);
 
     public bool Intersect(Ray3<TNum> test, out Vec3<TNum> result)
     {
@@ -306,7 +319,8 @@ public readonly struct Plane<TNum>
     }
 
     public Vec3<TNum> Origin => Normal * -D;
-    public TNum DistanceTo(Plane<TNum> other) => TNum.Abs(D - other.D);
+
+    // public TNum DistanceTo(Plane<TNum> other) => TNum.Abs(D - other.D);
     public TNum DistanceTo(Vec3<TNum> p) => TNum.Abs(SignedDistance(p));
 
     public Vec2<TNum> ProjectIntoLocal(Vec3<TNum> world)
@@ -330,7 +344,7 @@ public readonly struct Plane<TNum>
 
         return local;
     }
-    
+
     public Vec2<TNum>[] ProjectIntoLocal(ReadOnlySpan<Vec3<TNum>> world)
     {
         var (u, v) = Basis;
@@ -377,10 +391,19 @@ public readonly struct Plane<TNum>
 
     public Vec3<TNum> Clamp(Vec3<TNum> p)
     {
-        var d= SignedDistance(p);
+        var d = SignedDistance(p);
         p -= Normal * d;
         return p;
     }
+
+    /// <inheritdoc />
+    TNum IAnalyticSurface<TNum>.CurvatureAt(Vec3<TNum> _) => TNum.Zero;
+
+    /// <inheritdoc />
+    TNum IAnalyticSurface<TNum>.CurvatureAt(Vec2<TNum> _) => TNum.Zero;
+
+    /// <inheritdoc />
+    bool IAnalyticSurface<TNum>.HasCurvature => false;
 
 
     public Vec3<TNum>[] ProjectIntoWorld(IReadOnlyList<Vec2<TNum>> local)
@@ -397,6 +420,7 @@ public readonly struct Plane<TNum>
 
         return world;
     }
+
     public Vec3<TNum>[] ProjectIntoWorld(ReadOnlySpan<Vec2<TNum>> local)
     {
         var (u, v) = Basis;

@@ -94,29 +94,41 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Ve
 
     public Matrix4x4(TNum value)
     {
-        X = new(value);
-        Y = X;
-        Z = Y;
-        W = Z;
+        this = Create(value);
     }
 
 
     public Matrix4x4(Vec4<TNum> x, Vec4<TNum> y, Vec4<TNum> z, Vec4<TNum> w)
     {
-        X = x;
-        Y = y;
-        Z = z;
-        W = w;
+        this = Create(x, y, z, w);
     }
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Matrix4x4<TNum> Create(TNum v)
+    {
+        var vec = Vec4<TNum>.Create(v);
+        return Create(vec,vec,vec,vec);
+    }
+    
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Matrix4x4<TNum> Create(Vec4<TNum> x, Vec4<TNum> y, Vec4<TNum> z, Vec4<TNum> w)
+    {
+        Unsafe.SkipInit(out Matrix4x4<TNum> res);
+        Unsafe.AsRef(in res.X) = x;
+        Unsafe.AsRef(in res.Y) = y;
+        Unsafe.AsRef(in res.Z) = z;
+        Unsafe.AsRef(in res.W) = w;
+        return res;
+    }
+
 
     private static readonly int NumSize = Unsafe.SizeOf<TNum>();
     public  TNum this[int row, int col]
     {
         get
         {
-            if (RowCount <= (uint)row || ColCount <= (uint)col)
-                IndexThrowHelper.Throw();
-            return Unsafe.AddByteOffset(ref Unsafe.AsRef(in X.X), NumSize * ColCount * row + col * NumSize);
+            if (RowCount <= (uint)row || ColCount <= (uint)col) IndexThrowHelper.Throw();
+            return Unsafe.Add(ref Unsafe.AsRef(in X.X), ColCount * row + col);
         }
     }
 
@@ -134,7 +146,7 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Ve
     }
 
     public static unsafe ReadOnlySpan<TNum> AsSpan(in Matrix4x4<TNum> matrix) 
-        => new(Unsafe.AsPointer(in matrix), 16);
+        => MemoryMarshal.CreateReadOnlySpan(in matrix.X.X,ColCount*RowCount);
 
     public Matrix4x4<TNum> Transpose() => FromColumns(X, Y, Z, W);
 

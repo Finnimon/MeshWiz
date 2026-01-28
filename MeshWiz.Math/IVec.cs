@@ -13,6 +13,7 @@ public interface IVec<TSelf, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
     where TSelf : unmanaged, IVec<TSelf, TNum>
 {
+    int IReadOnlyCollection<TNum>.Count => TSelf.Dimensions;
     static bool INumberBase<TSelf>.TryConvertFromChecked<TOther>(TOther value, out TSelf result)
     {
         if (value is TNum)

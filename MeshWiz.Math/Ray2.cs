@@ -7,7 +7,7 @@ using MeshWiz.Utility.Extensions;
 namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-public readonly struct Ray2<TNum>
+public readonly struct Ray2<TNum> : IIntersecter<Line<Vec2<TNum>, TNum>, TNum>, IIntersecter<AABB<Vec2<TNum>>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly Vec2<TNum> Origin, Direction;
@@ -20,7 +20,7 @@ public readonly struct Ray2<TNum>
 
     [Pure]
     public Vec2<TNum> Traverse(TNum distance)
-        => Vec2<TNum>.FusedMultiplyAdd(Direction, new Vec2<TNum>(distance),Origin);
+        => Vec2<TNum>.FusedMultiplyAdd(Direction, new Vec2<TNum>(distance), Origin);
 
     public bool HitTest(in Ray2<TNum> ray, out TNum t)
     {
@@ -34,7 +34,7 @@ public readonly struct Ray2<TNum>
         if (TNum.Abs(rxs) < TNum.Epsilon)
             return false; // Parallel or colinear
 
-        var tNumerator = Vec2<TNum>.Cross(delta , s);
+        var tNumerator = Vec2<TNum>.Cross(delta, s);
         t = tNumerator / rxs;
 
         return t >= TNum.Zero;
@@ -42,6 +42,12 @@ public readonly struct Ray2<TNum>
 
 
     public static Ray2<TNum> operator -(Ray2<TNum> ray) => new(ray.Origin, -ray.Direction);
+
+    public static implicit operator Ray<Vec2<TNum>, TNum>(Ray2<TNum> ray) =>
+        Unsafe.As<Ray2<TNum>, Ray<Vec2<TNum>, TNum>>(ref ray);
+    
+    public static implicit operator Ray2<TNum>(Ray<Vec2<TNum>,TNum> ray) =>
+        Unsafe.As<Ray<Vec2<TNum>, TNum>,Ray2<TNum>>(ref ray);
 
     public static implicit operator Ray2<TNum>(in Line<Vec2<TNum>, TNum> line)
         => new(line.Start, line.AxisVector);
@@ -121,8 +127,8 @@ public readonly struct Ray2<TNum>
         t = TNum.Max(t, TNum.Zero);
         return true;
     }
-    
-    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vec2<TNum> ClosestPoint(Vec2<TNum> p)
     {
         var v = p - Origin;
@@ -132,11 +138,87 @@ public readonly struct Ray2<TNum>
         return Origin + alongVector;
     }
 
-    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TNum DistanceTo(Vec2<TNum> p) => ClosestPoint(p).DistanceTo(p);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Ray2<TOther> To<TOther>()
         where TOther : unmanaged, IFloatingPointIeee754<TOther>
-        => new(Origin.To<TOther>(), Direction.To<TOther>());
+        =>Ray2<TOther>.CreateUnsafe(Origin.To<TOther>(), Direction.To<TOther>());
+
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
+    public bool DoIntersect(Line<Vec2<TNum>, TNum> test) => Intersect(test, out _);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
+    public bool Intersect(Line<Vec2<TNum>, TNum> test, out TNum result)
+    {
+        Unsafe.SkipInit(out result);
+
+        var p = Origin;
+        var r = Direction;
+        var q = test.Start;
+        var s = test.AxisVector;
+        var pq = q - p;
+        var rxs = r.Cross(s);
+
+        var colinear = TNum.Abs(rxs) < TNum.CreateTruncating(1e-8);
+        if (colinear) return false;
+        var invRxs = TNum.One / rxs;
+        result = pq.Cross(s) * invRxs;
+        var t2 = pq.Cross(r) * invRxs;
+        return result.IsApproxGreaterOrEqual(TNum.Zero) && t2.InsideRange(TNum.Zero, TNum.One);
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
+    public bool DoIntersect(AABB<Vec2<TNum>> test) => Intersect(test, out _);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
+    public bool Intersect(AABB<Vec2<TNum>> test, out TNum result)
+    {
+        Unsafe.SkipInit(out result);
+        var tMin = TNum.NegativeInfinity;
+        var tMax = TNum.PositiveInfinity;
+        //not using generic Ray for better branch prediction
+        for (var axis = 0; axis < Vec2<TNum>.Dimensions; axis++)
+        {
+            var d = Direction[axis];
+            var origin = Origin[axis];
+            var min = test.Min[axis];
+            var max = test.Max[axis];
+            var axisZero = d.IsApproxZero();
+            if (axisZero && !origin.InsideRange(min,max)) return false;
+            if (axisZero) continue;
+            var invD = TNum.One / d;
+            var tx1 = (min - origin) * invD;
+            var tx2 = (max - origin) * invD;
+
+            if (tx1 > tx2) (tx1, tx2) = (tx2, tx1);
+
+            tMin = TNum.Max(tMin, tx1);
+            tMax = TNum.Min(tMax, tx2);
+        }
+
+        if (tMax < TNum.Max(tMin, TNum.Zero))
+            return false;
+
+        result = tMin.IsApproxGreaterOrEqual(TNum.Zero) ? tMin : tMax; // handles ray starting inside box
+        return true;
+    }
+
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Ray2<TNum> CreateUnsafe(Vec2<double> origin, Vec2<double> dir)
+    {
+        Unsafe.SkipInit(out Ray2<TNum> ray);
+        Unsafe.AsRef(in ray.Origin) = origin;
+        Unsafe.AsRef(in ray.Direction) = dir;
+        return ray;
+    }
+
+    public Line<Vec2<TNum>, TNum> LineSection(TNum a, TNum b)
+        => new(Traverse(a), Traverse(b));
 }

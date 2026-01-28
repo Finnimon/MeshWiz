@@ -2,6 +2,7 @@ using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using CommunityToolkit.Diagnostics;
 
 namespace MeshWiz.Math;
 
@@ -23,7 +24,7 @@ public readonly struct Ray3<TNum>
     private Ray3(Vec3<TNum> origin, Vec3<TNum> direction, bool _)
     {
 #if DEBUG
-        if(!direction.IsNormalized)
+        if (!direction.IsNormalized)
             ThrowHelper.ThrowArgumentException("Parameter direction must already be normal for unsafe creation");
 #endif
         Origin = origin;
@@ -44,31 +45,17 @@ public readonly struct Ray3<TNum>
 
     public bool DoIntersect(Plane<TNum> plane)
     {
-        var dot = plane.Normal.Dot(Direction);
-        return dot > TNum.Epsilon;
+        return plane.DoIntersect(this);
     }
 
-    public bool Intersect(Plane<TNum> plane, out TNum t)
+    public bool Intersect(Plane<TNum> plane, out TNum result)
     {
-        var denominator = plane.Normal.Dot(Direction);
-
-        // Check if ray is parallel to the plane
-        if (TNum.Abs(denominator) < TNum.Epsilon)
-        {
-            t = TNum.NaN;
-            return false;
-        }
-
-        // Compute intersection distance along ray direction
-        t = -(plane.Normal.Dot(Origin) + plane.D) / denominator;
-
-        // If t < 0, the intersection point is behind the ray's origin
-        return t >= TNum.Zero;
+        return plane.IntersectParameter(this, out result);
     }
 
-    public bool Intersect(Triangle3<TNum> triangle, out TNum t)
+    public bool Intersect(Triangle3<TNum> triangle, out TNum result)
     {
-        t = TNum.NaN;
+        result = TNum.NaN;
 
         var edge1 = triangle.B - triangle.A;
         var edge2 = triangle.C - triangle.A;
@@ -91,9 +78,9 @@ public readonly struct Ray3<TNum>
         if (v < TNum.Zero || u + v > TNum.One)
             return false;
 
-        t = f * (edge2.Dot(q));
+        result = f * (edge2.Dot(q));
 
-        return t >= TNum.Zero; // Intersection in ray direction
+        return result >= TNum.Zero; // Intersection in ray direction
     }
 
     public bool HitTest(AABB<Vec3<TNum>> box, out TNum tNear, out TNum tFar)
@@ -164,10 +151,9 @@ public readonly struct Ray3<TNum>
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Ray3<TNum> CreateUnsafe(Vec3<TNum> origin, Vec3<TNum> direction) =>
         new(origin, direction, true);
-    
+
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Ray3<TOther> To<TOther>()
-    where TOther:unmanaged,IFloatingPointIeee754<TOther>
-    =>Ray3<TOther>.CreateUnsafe(Origin.To<TOther>(), Direction.To<TOther>());
-    
+        where TOther : unmanaged, IFloatingPointIeee754<TOther>
+        => Ray3<TOther>.CreateUnsafe(Origin.To<TOther>(), Direction.To<TOther>());
 }
