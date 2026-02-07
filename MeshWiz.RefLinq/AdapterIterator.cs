@@ -5,7 +5,7 @@ using MeshWiz.Utility;
 
 namespace MeshWiz.RefLinq;
 
-public readonly partial struct AdapterIterator<T> : IRefIterator<AdapterIterator<T>,T>
+public readonly partial struct AdapterIterator<T> : IRefIterator<AdapterIterator<T>,T>, IEnumerable<T>
 {
     internal readonly Imp.IImp _imp;
     public AdapterIterator(IEnumerable<T> source) => _imp = Imp.Create(source);
@@ -65,10 +65,14 @@ public readonly partial struct AdapterIterator<T> : IRefIterator<AdapterIterator
     public void CopyTo(Span<T> destination) => _imp.CopyTo(destination);
 
     /// <inheritdoc />
+    IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
+
+    /// <inheritdoc />
     public AdapterIterator<T> GetEnumerator()
     {
-        Reset();
-        return this;
+        var copy = this;
+        copy.Reset();
+        return copy;
     }
 
     /// <inheritdoc />
@@ -223,4 +227,7 @@ public readonly partial struct AdapterIterator<T> : IRefIterator<AdapterIterator
 
     /// <inheritdoc />
     public T? MaxOrDefaultBy<T1>(Func<T, T1> bySel) where T1 : IComparable<T1> => MaxOrDefault(Equality.CompareBy(bySel));
+
+    /// <inheritdoc />
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

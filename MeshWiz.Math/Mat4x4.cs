@@ -14,16 +14,16 @@ namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
 // ReSharper disable once InconsistentNaming
-public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Vec4<TNum>, TNum>
+public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    static int IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Vec4<TNum>, TNum>.RowCount => RowCount;
-    static int IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Vec4<TNum>, TNum>.ColCount => ColCount;
+    static int IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>, TNum>.RowCount => RowCount;
+    static int IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>, TNum>.ColCount => ColCount;
     public const int ColCount = 4;
     public const int RowCount = 4;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public static Matrix4x4<TNum> Identity
+    public static Mat4x4<TNum> Identity
     {
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get;
@@ -35,21 +35,21 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Ve
 
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public static Matrix4x4<TNum> Zero
+    public static Mat4x4<TNum> Zero
     {
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get;
     } = new(TNum.Zero);
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public static Matrix4x4<TNum> One
+    public static Mat4x4<TNum> One
     {
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get;
     } = new(TNum.One);
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public static Matrix4x4<TNum> NaN
+    public static Mat4x4<TNum> NaN
     {
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get;
@@ -65,7 +65,7 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Ve
     public TNum Trace => M00 + M11 + M22 + M33;
 
     [Pure]
-    public Matrix4x4<TNum> Normalized() => this / Det;
+    public Mat4x4<TNum> Normalized() => this / Det;
 
     public readonly Vec4<TNum> X, Y, Z, W;
 
@@ -80,7 +80,7 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Ve
     /// <inheritdoc />
     public ReadOnlySpan<TNum> AsSpan() => MemoryMarshal.CreateReadOnlySpan(in X.X, ColCount * RowCount);
 
-    public Matrix4x4(
+    public Mat4x4(
         TNum m00, TNum m01, TNum m02, TNum m03,
         TNum m10, TNum m11, TNum m12, TNum m13,
         TNum m20, TNum m21, TNum m22, TNum m23,
@@ -92,28 +92,28 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Ve
         W = Vec4<TNum>.Create(m30, m31, m32, m33);
     }
 
-    public Matrix4x4(TNum value)
+    public Mat4x4(TNum value)
     {
         this = Create(value);
     }
 
 
-    public Matrix4x4(Vec4<TNum> x, Vec4<TNum> y, Vec4<TNum> z, Vec4<TNum> w)
+    public Mat4x4(Vec4<TNum> x, Vec4<TNum> y, Vec4<TNum> z, Vec4<TNum> w)
     {
         this = Create(x, y, z, w);
     }
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4<TNum> Create(TNum v)
+    public static Mat4x4<TNum> Create(TNum v)
     {
         var vec = Vec4<TNum>.Create(v);
         return Create(vec,vec,vec,vec);
     }
     
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4<TNum> Create(Vec4<TNum> x, Vec4<TNum> y, Vec4<TNum> z, Vec4<TNum> w)
+    public static Mat4x4<TNum> Create(Vec4<TNum> x, Vec4<TNum> y, Vec4<TNum> z, Vec4<TNum> w)
     {
-        Unsafe.SkipInit(out Matrix4x4<TNum> res);
+        Unsafe.SkipInit(out Mat4x4<TNum> res);
         Unsafe.AsRef(in res.X) = x;
         Unsafe.AsRef(in res.Y) = y;
         Unsafe.AsRef(in res.Z) = z;
@@ -145,17 +145,17 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Ve
         return result;
     }
 
-    public static unsafe ReadOnlySpan<TNum> AsSpan(in Matrix4x4<TNum> matrix) 
+    public static unsafe ReadOnlySpan<TNum> AsSpan(in Mat4x4<TNum> matrix) 
         => MemoryMarshal.CreateReadOnlySpan(in matrix.X.X,ColCount*RowCount);
 
-    public Matrix4x4<TNum> Transpose() => FromColumns(X, Y, Z, W);
+    public Mat4x4<TNum> Transpose() => FromColumns(X, Y, Z, W);
 
-    public static Matrix4x4<TNum> Transpose(Matrix4x4<TNum> m) => m.Transpose();
+    public static Mat4x4<TNum> Transpose(Mat4x4<TNum> m) => m.Transpose();
 
-    public static Matrix4x4<TNum> operator *(Matrix4x4<TNum> a, Matrix4x4<TNum> b)
+    public static Mat4x4<TNum> operator *(Mat4x4<TNum> a, Mat4x4<TNum> b)
     {
         b = b.Transpose();
-        return new Matrix4x4<TNum>(
+        return new Mat4x4<TNum>(
             a.X.Dot(b.X), a.X.Dot(b.Y), a.X.Dot(b.Z), a.X.Dot(b.W),
             a.Y.Dot(b.X), a.Y.Dot(b.Y), a.Y.Dot(b.Z), a.Y.Dot(b.W),
             a.Z.Dot(b.X), a.Z.Dot(b.Y), a.Z.Dot(b.Z), a.Z.Dot(b.W),
@@ -179,21 +179,21 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Ve
     public Vec4<TNum> Multiply(Vec4<TNum> v)
         => new(X.Dot(v), Y.Dot(v), Z.Dot(v), W.Dot(v));
 
-    public static Vec4<TNum> operator *(Matrix4x4<TNum> m, Vec4<TNum> v) => m.Multiply(v);
-    public static Vec3<TNum> operator *(Matrix4x4<TNum> m, Vec3<TNum> v) => m.MultiplyPoint(v);
+    public static Vec4<TNum> operator *(Mat4x4<TNum> m, Vec4<TNum> v) => m.Multiply(v);
+    public static Vec3<TNum> operator *(Mat4x4<TNum> m, Vec3<TNum> v) => m.MultiplyPoint(v);
 
-    public static Matrix4x4<TNum> operator *(Matrix4x4<TNum> m, TNum scalar) =>
+    public static Mat4x4<TNum> operator *(Mat4x4<TNum> m, TNum scalar) =>
         new(m.X * scalar, m.Y * scalar, m.Z * scalar, m.W * scalar);
 
-    public static Matrix4x4<TNum> operator *(TNum scalar, Matrix4x4<TNum> m) => m * scalar;
-    public static Matrix4x4<TNum> operator /(Matrix4x4<TNum> m, TNum divisor) => m * (TNum.One / divisor);
+    public static Mat4x4<TNum> operator *(TNum scalar, Mat4x4<TNum> m) => m * scalar;
+    public static Mat4x4<TNum> operator /(Mat4x4<TNum> m, TNum divisor) => m * (TNum.One / divisor);
 
-    public static Matrix4x4<TNum> operator +(Matrix4x4<TNum> l, Matrix4x4<TNum> r) =>
+    public static Mat4x4<TNum> operator +(Mat4x4<TNum> l, Mat4x4<TNum> r) =>
         new(l.X + r.X, l.Y + r.Y, l.Z + r.Z, l.W + r.W);
 
-    public static Matrix4x4<TNum> operator -(Matrix4x4<TNum> m) => new(-m.X, -m.Y, -m.Z, -m.W);
+    public static Mat4x4<TNum> operator -(Mat4x4<TNum> m) => new(-m.X, -m.Y, -m.Z, -m.W);
 
-    public static Matrix4x4<TNum> operator -(Matrix4x4<TNum> l, Matrix4x4<TNum> r)
+    public static Mat4x4<TNum> operator -(Mat4x4<TNum> l, Mat4x4<TNum> r)
         => new(l.X - r.X, l.Y - r.Y, l.Z - r.Z, l.W - r.W);
 
 
@@ -214,7 +214,7 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Ve
         => Vec4<TNum>.Create(v.X, v.Y, v.Z, w);
 
     [Pure]
-    public static Matrix4x4<TNum> Lerp(Matrix4x4<TNum> from, Matrix4x4<TNum> to, TNum t)
+    public static Mat4x4<TNum> Lerp(Mat4x4<TNum> from, Mat4x4<TNum> to, TNum t)
         => FromRows(
             Vec4<TNum>.Lerp(from.X, to.X, t),
             Vec4<TNum>.Lerp(from.Y, to.Y, t),
@@ -223,7 +223,7 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Ve
         );
 
     [Pure]
-    public static Matrix4x4<TNum> CreateShear(
+    public static Mat4x4<TNum> CreateShear(
         TNum xy, TNum xz, TNum yx, TNum yz, TNum zx, TNum zy)
         => new(
             TNum.One, xy, xz, TNum.Zero,
@@ -232,7 +232,7 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Ve
             TNum.Zero, TNum.Zero, TNum.Zero, TNum.One);
 
     [Pure]
-    public static Matrix4x4<TNum> CreateRotation(Vec3<TNum> axis, TNum angle)
+    public static Mat4x4<TNum> CreateRotation(Vec3<TNum> axis, TNum angle)
     {
         axis = axis.Normalized();
 
@@ -250,25 +250,25 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Ve
         return FromRows(x, y, z, Vec4<TNum>.UnitW);
     }
 
-    public static Matrix4x4<TNum> CreateTranslation(Vec3<TNum> translation)
+    public static Mat4x4<TNum> CreateTranslation(Vec3<TNum> translation)
         => Identity + FromRows(Vec4<TNum>.Zero,
             Vec4<TNum>.Zero,
             Vec4<TNum>.Zero,
             translation);
 
-    public static Matrix4x4<TNum> CreateScale(TNum scalar)
+    public static Mat4x4<TNum> CreateScale(TNum scalar)
         => new(scalar, TNum.Zero, TNum.Zero, TNum.Zero,
             TNum.Zero, scalar, TNum.Zero, TNum.Zero,
             TNum.Zero, TNum.Zero, scalar, TNum.Zero,
             TNum.Zero, TNum.Zero, TNum.Zero, TNum.One);
 
-    public static Matrix4x4<TNum> CreateScale(Vec3<TNum> scalar)
+    public static Mat4x4<TNum> CreateScale(Vec3<TNum> scalar)
         => new(scalar.X, TNum.Zero, TNum.Zero, TNum.Zero,
             TNum.Zero, scalar.Y, TNum.Zero, TNum.Zero,
             TNum.Zero, TNum.Zero, scalar.Z, TNum.Zero,
             TNum.Zero, TNum.Zero, TNum.Zero, TNum.One);
 
-    public static Matrix4x4<TNum> CreateViewAt(Vec3<TNum> eye, Vec3<TNum> target, Vec3<TNum> up)
+    public static Mat4x4<TNum> CreateViewAt(Vec3<TNum> eye, Vec3<TNum> target, Vec3<TNum> up)
     {
         var z = (eye - target).Normalized();
         var x = Vec3<TNum>.Cross(up , z).Normalized();
@@ -286,40 +286,43 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Ve
     }
 
 
-    public static Matrix4x4<TNum> FromTopLeft(Matrix3x3<TNum> topleft)
+    public static Mat4x4<TNum> FromTopLeft(Mat3x3<TNum> topleft)
         => new(new Vec4<TNum>(topleft.X), new Vec4<TNum>(topleft.Y), new Vec4<TNum>(topleft.Z),
             new Vec4<TNum>(Vec3<TNum>.Zero, TNum.Zero));
 
-    public static Matrix4x4<TNum> FromRows(Vec4<TNum> x, Vec4<TNum> y, Vec4<TNum> z, Vec4<TNum> w)
+    public static Mat4x4<TNum> FromRows(Vec4<TNum> x, Vec4<TNum> y, Vec4<TNum> z, Vec4<TNum> w)
         => new(x, y, z, w);
 
-    public static Matrix4x4<TNum> FromColumns(Vec4<TNum> x, Vec4<TNum> y, Vec4<TNum> z, Vec4<TNum> w)
+    public static Mat4x4<TNum> FromColumns(Vec4<TNum> x, Vec4<TNum> y, Vec4<TNum> z, Vec4<TNum> w)
         => new(x.X, y.X, z.X, w.X,
             x.Y, y.Y, z.Y, w.Y,
             x.Z, y.Z, z.Z, w.Z,
             x.W, y.W, z.W, w.W);
 
-    public override bool Equals(object? obj) => obj is Matrix4x4<TNum> m && this == m;
+    public override bool Equals(object? obj) => obj is Mat4x4<TNum> m && this == m;
 
-    public static bool operator ==(Matrix4x4<TNum> a, Matrix4x4<TNum> b) =>
+    public static bool operator ==(Mat4x4<TNum> a, Mat4x4<TNum> b) =>
         a.M00 == b.M00 && a.M01 == b.M01 && a.M02 == b.M02 && a.M03 == b.M03 &&
         a.M10 == b.M10 && a.M11 == b.M11 && a.M12 == b.M12 && a.M13 == b.M13 &&
         a.M20 == b.M20 && a.M21 == b.M21 && a.M22 == b.M22 && a.M23 == b.M23 &&
         a.M30 == b.M30 && a.M31 == b.M31 && a.M32 == b.M32 && a.M33 == b.M33;
 
-    public static bool operator !=(Matrix4x4<TNum> a, Matrix4x4<TNum> b) => !(a == b);
+    public static bool operator !=(Mat4x4<TNum> a, Mat4x4<TNum> b) => !(a == b);
 
     public override int GetHashCode() => HashCode.Combine(X, Y, Z, W);
 
 
-    public static implicit operator Vec4<Vec4<TNum>>(Matrix4x4<TNum> m) =>
-        Unsafe.As<Matrix4x4<TNum>, Vec4<Vec4<TNum>>>(ref m);
+    public static implicit operator Vec4<Vec4<TNum>>(Mat4x4<TNum> m) =>
+        Unsafe.BitCast<Mat4x4<TNum>, Vec4<Vec4<TNum>>>(m);
 
-    public static implicit operator Matrix4x4<TNum>(Vec4<Vec4<TNum>> n) =>
-        Unsafe.As<Vec4<Vec4<TNum>>, Matrix4x4<TNum>>(ref n);
+    public static implicit operator Mat4x4<TNum>(Vec4<Vec4<TNum>> n) =>
+        Unsafe.BitCast<Vec4<Vec4<TNum>>, Mat4x4<TNum>>(n);
 
     private Vec4<Vec4<TNum>> Nested()
         => this;
+
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vec4<Vec4<TNum>> AsNested(Mat4x4<TNum> m) => m;
 
     public TNum Determinant()
     {
@@ -336,23 +339,8 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Ve
     }
 
 
-    public bool Equals(Matrix4x4<TNum> other)
-        => M00 == other.M00 &&
-           M01 == other.M01 &&
-           M02 == other.M02 &&
-           M03 == other.M03 &&
-           M10 == other.M10 &&
-           M11 == other.M11 &&
-           M12 == other.M12 &&
-           M13 == other.M13 &&
-           M20 == other.M20 &&
-           M21 == other.M21 &&
-           M22 == other.M22 &&
-           M23 == other.M23 &&
-           M30 == other.M30 &&
-           M31 == other.M31 &&
-           M32 == other.M32 &&
-           M33 == other.M33;
+    public bool Equals(Mat4x4<TNum> other)
+        => AsNested(this) == AsNested(other);
 
     public (TNum left,
         TNum right,
@@ -387,22 +375,22 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Ve
     }
 
     /// <inheritdoc />
-    public static Matrix4x4<TNum> Parse(string s, IFormatProvider? provider)
+    public static Mat4x4<TNum> Parse(string s, IFormatProvider? provider)
         => Vec4<Vec4<TNum>>.Parse(s, provider);
 
     /// <inheritdoc />
-    public static Matrix4x4<TNum> Parse(ReadOnlySpan<char> s, IFormatProvider? provider) =>
+    public static Mat4x4<TNum> Parse(ReadOnlySpan<char> s, IFormatProvider? provider) =>
         Vec4<Vec4<TNum>>.Parse(s, provider);
 
     /// <inheritdoc />
-    public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, out Matrix4x4<TNum> result)
+    public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, out Mat4x4<TNum> result)
     {
         result = default;
         return s is { Length: > 0 } && TryParse(s, provider, out result);
     }
 
     /// <inheritdoc />
-    public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out Matrix4x4<TNum> result)
+    public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out Mat4x4<TNum> result)
     {
         var success = Vec4<Vec4<TNum>>.TryParse(s, provider, out var n);
         result = n;
@@ -411,10 +399,10 @@ public readonly struct Matrix4x4<TNum> : IMatrix<Matrix4x4<TNum>, Vec4<TNum>, Ve
     
     
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Matrix4x4<TOther> To<TOther>()
+    public Mat4x4<TOther> To<TOther>()
         where TOther : unmanaged, IFloatingPointIeee754<TOther>
     {
-        Unsafe.SkipInit(out Matrix4x4<TOther> res);
+        Unsafe.SkipInit(out Mat4x4<TOther> res);
         var newNums = AsSpan().Select(TOther.CreateTruncating);
         var resSpan = MemoryMarshal.CreateSpan(ref Unsafe.AsRef(in res.X.X),ColCount*RowCount);
         newNums.CopyTo(resSpan);

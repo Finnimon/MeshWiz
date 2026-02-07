@@ -134,7 +134,7 @@ public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
 
     // ReSharper disable once InconsistentNaming
     [Pure]
-    public Matrix4x4<TNum> AsMatrix4x4()
+    public Mat4x4<TNum> AsMatrix4x4()
     {
         var num1 = X * X;
         var num2 = Y * Y;
@@ -154,12 +154,12 @@ public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
         var z = Vec4<TNum>.Create((two * (num6 + num7)), (two * (num8 - num9)),
             (one - two * (num2 + num1)), TNum.Zero);
         var w = Vec4<TNum>.UnitW;
-        return new Matrix4x4<TNum>(x, y, z, w);
+        return new Mat4x4<TNum>(x, y, z, w);
     }
 
     // ReSharper disable once InconsistentNaming
     [Pure]
-    public Matrix3x3<TNum> AsMatrix3x3()
+    public Mat3x3<TNum> AsMatrix3x3()
     {
         var num1 = X * X;
         var num2 = Y * Y;
@@ -178,7 +178,7 @@ public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
             (two * (num8 + num9)));
         var z = Vec3<TNum>.Create((two * (num6 + num7)), (two * (num8 - num9)),
             (one - two * (num2 + num1)));
-        return new Matrix3x3<TNum>(x, y, z);
+        return Mat3x3<TNum>.Create(x, y, z);
     }
     [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vec3<TNum> UnitX()
@@ -208,7 +208,7 @@ public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
     }
     
     [Pure]
-    internal static Quaternion<TNum> CreateUnsafe(in Matrix3x3<TNum> matrix)
+    internal static Quaternion<TNum> CreateUnsafe(in Mat3x3<TNum> matrix)
     {
         var num1 = matrix.M00 + matrix.M11 + matrix.M22;
         TNum x, y, z, w;

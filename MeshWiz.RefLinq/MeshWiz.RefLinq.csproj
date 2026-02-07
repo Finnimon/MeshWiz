@@ -11,6 +11,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\MeshWiz.Buffers\MeshWiz.Buffers.csproj" />
     <ProjectReference Include="..\MeshWiz.Utility\MeshWiz.Utility.csproj" />
   </ItemGroup>
 </Project>

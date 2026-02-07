@@ -17,6 +17,8 @@ public static partial class Iterator
         return source.TryGetFirst(out var first) ? first! : ThrowHelper.ThrowInvalidOperationException<TItem>();
     }
 
+    public static AdapterIterator<T> Iterate<T>(this IEnumerable<T> c) => new AdapterIterator<T>(c);
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static bool TryGetFirst<TIter, TItem>(TIter source, out TItem? item)
         where TIter : IRefIterator<TIter, TItem>, allows ref struct
@@ -95,33 +97,33 @@ public static partial class Iterator
         {
             if (fastCount == 0)
                 return [];
-            var array = new TItem[fastCount];
+            var array = GC.AllocateUninitializedArray<TItem>(fastCount);
             iter.CopyTo(array);
             return array;
         }
 
-        return AddToArrBuilderThen<TIter, TItem, TItem[]>(iter, x => x.ToArray());
+        
+        using BufferedArrayBuilder<TItem> builder = new(int.Max(8,iter.EstimateCount()));
+        builder.AddEnumeratorInlined(iter);
+        return builder.ToArray();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static List<TItem> ToList<TIter, TItem>(TIter iter)
         where TIter : IRefIterator<TIter, TItem>, allows ref struct
-        => AddToArrBuilderThen<TIter, TItem, List<TItem>>(iter, x => x.ToList());
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static T AddToArrBuilderThen<TIter, TItem, T>(TIter iter, Func<SegmentedArrayBuilder<TItem>, T> then)
-        where TIter : IRefIterator<TIter, TItem>, allows ref struct
     {
-        Unsafe.SkipInit(out InlineArray8<TItem> scratchMem);
-        Span<TItem> scratch = scratchMem;
-        var size = iter.EstimateCount();
-        var rentScratch = size > 8;
-        using var rented = rentScratch ? RentedArray<TItem>.Rent(size) : RentedArray<TItem>.Empty();
-        if (rentScratch)
-            scratch = rented.GetCompleteArray();
-        using SegmentedArrayBuilder<TItem> builder = new(scratch);
-        builder.AddNonICollectionRange(iter);
-        return then(builder);
+        if (iter.TryGetNonEnumeratedCount(out var fastCount))
+        {
+            if (fastCount == 0)
+                return [];
+            var l = new List<TItem>(fastCount);
+            CollectionsMarshal.SetCount(l,fastCount);
+            iter.CopyTo(CollectionsMarshal.AsSpan(l));
+            return l;
+        }
+        using BufferedArrayBuilder<TItem> builder = new(int.Max(8,iter.EstimateCount()));
+        builder.AddEnumeratorInlined(iter);
+        return builder.ToList();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

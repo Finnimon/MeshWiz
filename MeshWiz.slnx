@@ -12,6 +12,22 @@
     <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
     <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
   </Project>
+  <Project Path="MeshWiz.Buffers.Benchmark\MeshWiz.Buffers.Benchmark.csproj" Type="Classic C#">
+    <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x86 " Project="Debug|Any CPU" />
+    <Configuration Solution="Release|Any CPU " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
+  </Project>
+  <Project Path="MeshWiz.Buffers\MeshWiz.Buffers.csproj" Type="Classic C#">
+    <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x86 " Project="Debug|Any CPU" />
+    <Configuration Solution="Release|Any CPU " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
+  </Project>
   <Project Path="MeshWiz.Collections\MeshWiz.Collections.csproj">
     <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
     <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
@@ -20,7 +36,14 @@
     <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
     <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
   </Project>
-  <Project Path="MeshWiz.Contracts/MeshWiz.Contracts.csproj" />
+  <Project Path="MeshWiz.Contracts/MeshWiz.Contracts.csproj">
+    <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x86 " Project="Debug|Any CPU" />
+    <Configuration Solution="Release|Any CPU " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
+  </Project>
   <Project Path="MeshWiz.IO.Stl.Benchmark\MeshWiz.IO.Stl.Benchmark.csproj">
     <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
     <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
@@ -77,7 +100,14 @@
     <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
     <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
   </Project>
-  <Project Path="MeshWiz.Math/MeshWiz.Math.csproj" />
+  <Project Path="MeshWiz.Math/MeshWiz.Math.csproj">
+    <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x86 " Project="Debug|Any CPU" />
+    <Configuration Solution="Release|Any CPU " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
+  </Project>
   <Project Path="MeshWiz.OpenCL\MeshWiz.OpenCL.csproj">
     <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
     <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
@@ -166,5 +196,12 @@
     <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
     <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
   </Project>
-  <Project Path="MeshWiz.Utility/MeshWiz.Utility.csproj" />
+  <Project Path="MeshWiz.Utility/MeshWiz.Utility.csproj">
+    <Configuration Solution="Debug|Any CPU " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x64 " Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x86 " Project="Debug|Any CPU" />
+    <Configuration Solution="Release|Any CPU " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x64 " Project="Release|Any CPU" />
+    <Configuration Solution="Release|x86 " Project="Release|Any CPU" />
+  </Project>
 </Solution>

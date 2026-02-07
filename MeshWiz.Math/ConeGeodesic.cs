@@ -316,7 +316,7 @@ public readonly struct ConeGeodesic<TNum> : IDiscretePoseCurve<Pose3<TNum>, Vec3
         var normal = Surface.NormalAtUnsafe(p);
         var polarAxis = CartesianAxisVector.CartesianToPolar();
         var dirAngle = polarAxis.PolarAngle - pAngle;
-        var rot = Matrix3x3<TNum>.CreateRotation(normal, dirAngle);
+        var rot = Mat3x3<TNum>.CreateRotation(normal, dirAngle);
         var dir = rot * tipToP;
         return (p, dir, normal);
     }

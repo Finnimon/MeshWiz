@@ -7,14 +7,14 @@ using MeshWiz.Contracts;
 
 namespace MeshWiz.Math;
 
-public interface IMatrix<TSelf, out TRow, out TCol, TNum>
+public interface IMat<TSelf, out TRow, out TCol, TNum>
     : IEquatable<TSelf>,
         IUnmanagedDataVector<TNum>,
         IAdditionOperators<TSelf, TSelf, TSelf>,
         ISubtractionOperators<TSelf, TSelf, TSelf>,
         ISpanParsable<TSelf>,
         ISpanFormattable
-    where TSelf : IMatrix<TSelf, TRow, TCol, TNum>
+    where TSelf : IMat<TSelf, TRow, TCol, TNum>
     where TRow : unmanaged, IVec<TRow, TNum>
     where TCol : unmanaged, IVec<TCol, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
@@ -31,7 +31,8 @@ public interface IMatrix<TSelf, out TRow, out TCol, TNum>
     public TNum this[int row, int col] { get; }
 
     public TNum[,] ToArrayFast();
-
+    static abstract TSelf operator *(TNum l, TSelf r);
+    static abstract TSelf operator *(TSelf l,TNum r);
     public static abstract bool operator ==(TSelf left, TSelf right);
     static abstract bool operator !=(TSelf left, TSelf right);
 }

@@ -257,31 +257,25 @@ public ref struct SelectManyIterator<TIter, TInner, TIn, TOut>(TIter source, Fun
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private TRes WriteToSegBuilderAndThen<TRes>(Func<SegmentedArrayBuilder<TOut>, TRes> andThen, Func<TRes> @default)
+    private TRes WriteToSegBuilderAndThen<TRes>(Func<BufferedArrayBuilder<TOut>, TRes> andThen, Func<TRes> @default)
     {
         if (_source.TryGetNonEnumeratedCount(out var count) && count == 0)
             return @default();
-        var copy = this;
+        using var copy = this;
         copy.Reset();
-        // using var scratch = RentedArray<TOut>.Rent(spanner.EstimateCount());
-        Unsafe.SkipInit(out InlineArray8<TOut> scratchMem);
-        var size = copy.EstimateCount();
-        var rentScratch = size > 8;
-        using var rented = rentScratch ? RentedArray<TOut>.Rent(size) : RentedArray<TOut>.Empty();
-        Span<TOut> scratch = rentScratch ? rented.GetCompleteArray() : scratchMem;
-        using SegmentedArrayBuilder<TOut> builder = new(scratch);
+        using BufferedArrayBuilder<TOut> builder = new(int.Max(copy.EstimateCount(),8));
         if (IsSpanner)
         {
             var asSpanner = AsSpanner();
             while (asSpanner._source.MoveNext()) 
-                builder.AddRange(asSpanner._flattener(asSpanner._source.Current).OriginalSource);
+                builder.AddRangeInlined(asSpanner._flattener(asSpanner._source.Current).OriginalSource);
         }
         else
         {
             while (copy._source.MoveNext())
             {
                 var curChild = copy._flattener(copy._source.Current);
-                builder.AddNonICollectionRangeInlined(curChild);
+                builder.AddEnumeratorInlined(curChild);
             }
         }
 

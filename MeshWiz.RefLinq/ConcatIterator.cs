@@ -130,18 +130,18 @@ public ref struct ConcatIterator<TLeft, TRight, TItem>(TLeft l, TRight r)
     /// <inheritdoc />
     public TItem[] ToArray()
     {
-        SegmentedArrayBuilder<TItem> b = new(default);
-        b.AddNonICollectionRangeInlined(_left);
-        b.AddNonICollectionRangeInlined(_right);
+        using BufferedArrayBuilder<TItem> b = new(EstimateCount());
+        b.AddEnumerator(_left);
+        b.AddEnumerator(_right);
         return b.ToArray();
     }
 
     /// <inheritdoc />
     public List<TItem> ToList()
     {
-        SegmentedArrayBuilder<TItem> b = new(default);
-        b.AddNonICollectionRangeInlined(_left);
-        b.AddNonICollectionRangeInlined(_right);
+        using BufferedArrayBuilder<TItem> b = new(EstimateCount());
+        b.AddEnumerator(_left);
+        b.AddEnumerator(_right);
         return b.ToList();
     }
 

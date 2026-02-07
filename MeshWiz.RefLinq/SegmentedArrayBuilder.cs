@@ -10,6 +10,7 @@ namespace MeshWiz.RefLinq;
 /// <summary>Provides a helper for efficiently building arrays and lists.</summary>
 /// <remarks>This is implemented as an inline array of rented arrays.</remarks>
 /// <typeparam name="T">Specifies the element type of the collection being built.</typeparam>
+[Obsolete(nameof(BufferedArrayBuilder<>),error:true)]
 internal ref struct SegmentedArrayBuilder<T>
 {
     /// <summary>The size to use for the first segment that's stack allocated by the caller.</summary>
@@ -233,7 +234,7 @@ internal ref struct SegmentedArrayBuilder<T>
         if (count != 0)
         {
             result = new List<T>(count);
-
+    
             CollectionsMarshal.SetCount(result, count);
             ToSpanInlined(CollectionsMarshal.AsSpan(result));
         }

@@ -283,7 +283,7 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vec2<TNum>
                 {
                     var about = previousNormal.Cross(newNormal);
                     var transformAngle = Vec3<TNum>.SignedAngleBetween(previousNormal, newNormal, about);
-                    var rotation = Matrix4x4<TNum>.CreateRotation(about, transformAngle);
+                    var rotation = Mat4x4<TNum>.CreateRotation(about, transformAngle);
                     var rotatedDir = rotation.MultiplyDirection(previousDir);
                     previousDir = rotatedDir;
                 }
@@ -426,7 +426,7 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vec2<TNum>
             {
                 var about = previousNormal.Cross(newNormal);
                 var transformAngle = Vec3<TNum>.SignedAngleBetween(previousNormal, newNormal, about);
-                var rotation = Matrix4x4<TNum>.CreateRotation(about, transformAngle);
+                var rotation = Mat4x4<TNum>.CreateRotation(about, transformAngle);
                 var rotatedDir = rotation.MultiplyDirection(previousDir);
                 previousDir = rotatedDir;
             }

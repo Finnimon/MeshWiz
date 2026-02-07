@@ -6,6 +6,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\MeshWiz.Buffers\MeshWiz.Buffers.csproj" />
       <ProjectReference Include="..\MeshWiz.Math.Benchmark\MeshWiz.Math.Benchmark.csproj" />
       <ProjectReference Include="..\MeshWiz.Math.OpenCL\MeshWiz.Math.OpenCL.csproj" />
       <ProjectReference Include="..\MeshWiz.Math\MeshWiz.Math.csproj" />

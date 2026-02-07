@@ -335,9 +335,9 @@ public static partial class Polyline
             var isClosed = polyline.IsClosed;
 
             var prevLine = polyline[0];
-            prevLine += prevLine.Direction.Right * amount;
+            prevLine += prevLine.Direction.Right() * amount;
             var lastLine = polyline[^1];
-            lastLine += lastLine.Direction.Right * amount;
+            lastLine += lastLine.Direction.Right() * amount;
             var interSectionPoints = new Vec2<TNum>[polyline.Points.Length];
             if (!isClosed)
             {
@@ -355,7 +355,7 @@ public static partial class Polyline
             for (var i = 1; i < polyline.Count; i++)
             {
                 var line = polyline[i];
-                line += line.Direction.Right * amount;
+                line += line.Direction.Right() * amount;
                 Line.TryIntersect(prevLine, line, out var intersection);
                 var p = prevLine.Traverse(intersection);
                 interSectionPoints[i] = p;

@@ -3,11 +3,11 @@ using CommunityToolkit.Diagnostics;
 
 namespace MeshWiz.Math;
 
-public static class Matrices
+public static class Mat
 {
     public static TNum Determinant<TRow,TCol,TNum, TMatrix>(ref this TMatrix matrix)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
-        where TMatrix : unmanaged,IMatrix<TMatrix,TRow,TCol,TNum>
+        where TMatrix : unmanaged,IMat<TMatrix,TRow,TCol,TNum>
         where TRow : unmanaged, IVec<TRow, TNum>
         where TCol : unmanaged, IVec<TCol, TNum>
 

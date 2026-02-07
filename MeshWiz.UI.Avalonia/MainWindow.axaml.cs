@@ -140,7 +140,7 @@ public partial class MainWindow : Window
         var bvhCircle = BvhPolyline<Vec2<double>, double>.Sah(circle);
         var bounds = bvhCircle.BBox;
         var line = bounds.Min.LineTo(AABB.UpperLeft(bounds));
-        var meanderDir = line.Direction.Left;
+        var meanderDir = line.Direction.Left();
         line=new(line.Start-meanderDir,line.End-meanderDir);
         RollingList<double> buf = [];
         var poly2 = Polygon2<Polyline<Vec2<double>, double>, double>.Create(circle).Value;

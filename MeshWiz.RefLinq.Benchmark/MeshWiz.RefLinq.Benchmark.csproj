@@ -8,6 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\MeshWiz.Math\MeshWiz.Math.csproj" />
       <ProjectReference Include="..\MeshWiz.RefLinq\MeshWiz.RefLinq.csproj" />
     </ItemGroup>
 

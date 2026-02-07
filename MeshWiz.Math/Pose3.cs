@@ -60,7 +60,7 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>
         var x = Vec3<TNum>.Cross(y, z);
         if (!z.IsNormalized || !y.IsNormalized)
             return Result<Arithmetics, Pose3<TNum>>.Failure(Arithmetics.NormalizationImpossible);
-        Matrix3x3<TNum> mat = new(x, y, z);
+        var mat = Mat3x3<TNum>.Create(x, y, z);
         var rot = Quaternion<TNum>.CreateUnsafe(in mat);
         return new Pose3<TNum>(rot, origin);
     }
@@ -77,7 +77,7 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>
         z -= y.Dot(z) * y;
         z = z.Normalized();
         var x = Vec3<TNum>.Cross(y, z).Normalized();
-        Matrix3x3<TNum> mat = new(x, y, z);
+        var mat = Mat3x3<TNum>.Create(x, y, z);
         var rot = Quaternion<TNum>.CreateUnsafe(in mat);
         return new Pose3<TNum>(rot, origin);
     }
@@ -85,7 +85,7 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>
     [Pure]
     public static Pose3<TNum> CreateUnsafe(Vec3<TNum> origin, Vec3<TNum> x, Vec3<TNum> y, Vec3<TNum> z)
     {
-        Matrix3x3<TNum> mat = new(x, y, z);
+        var mat = Mat3x3<TNum>.Create(x, y, z);
         var rot = Quaternion<TNum>.CreateUnsafe(in mat);
         return new Pose3<TNum>(rot, origin);
     }
@@ -157,10 +157,10 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>
 
     public Plane<TNum> Xy() => Plane<TNum>.CreateUnsafe(Rotation.UnitZ(),Origin);
 
-    public Matrix4x4<TNum> ToMatrix4x4()
+    public Mat4x4<TNum> ToMatrix4x4()
     {
         var rot= Rotation.AsMatrix3x3();
-        return Matrix4x4<TNum>.Create(
+        return Mat4x4<TNum>.Create(
             Vec4<TNum>.Create(rot.X,Origin.X),
             Vec4<TNum>.Create(rot.Y,Origin.Y),
             Vec4<TNum>.Create(rot.Z,Origin.Z),

@@ -40,7 +40,7 @@ public static partial class Surface
         {
             
             var ribFactor = TNum.CreateTruncating(rib);
-            var rot = Matrix4x4<TNum>.CreateRotation(axis.Direction, angleStep * ribFactor);
+            var rot = Mat4x4<TNum>.CreateRotation(axis.Direction, angleStep * ribFactor);
             basisU = rot.MultiplyDirection(basisU);
             var newPoints = new Vec3<TNum>[sourcePoints.Length];
             spines[rib] = newPoints;
@@ -84,7 +84,7 @@ public static partial class Surface
             Vec3<TNum>[][] spines, int pointCount, Vec3<TNum> origin) where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             var ribFactor = TNum.CreateTruncating(rib);
-            var rot = Matrix4x4<TNum>.CreateRotation(direction, angleStep * ribFactor);
+            var rot = Mat4x4<TNum>.CreateRotation(direction, angleStep * ribFactor);
             
             var newPoints = sweepCurve.Points.ToArray();
             spines[rib] = newPoints;

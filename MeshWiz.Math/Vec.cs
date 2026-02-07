@@ -39,40 +39,46 @@ public static class Mat<TNum>
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
     internal static TNum GetElement<TMat, TRow, TCol>(in TMat a, int row, int col)
-        where TMat : unmanaged, IMatrix<TMat, TRow, TCol, TNum>
+        where TMat : unmanaged, IMat<TMat, TRow, TCol, TNum>
         where TRow : unmanaged, IVec<TRow, TNum>
         where TCol : unmanaged, IVec<TCol, TNum>
         => Unsafe.Add(ref Unsafe.As<TMat, TNum>(ref Unsafe.AsRef(in a)), row * TRow.Dimensions + col);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
+    internal static TNum GetElement<TMat, TVec>(in TMat a, int row, int col)
+        where TMat : unmanaged, IMat<TMat, TVec, TVec, TNum>
+        where TVec : unmanaged, IVec<TVec, TNum>
+        => Unsafe.Add(ref Unsafe.As<TMat, TNum>(ref Unsafe.AsRef(in a)), row * TVec.Dimensions + col);
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void SetElement<TMat, TRow, TCol>(in TMat a, int row, int col, TNum v)
-        where TMat : unmanaged, IMatrix<TMat, TRow, TCol, TNum>
+        where TMat : unmanaged, IMat<TMat, TRow, TCol, TNum>
         where TRow : unmanaged, IVec<TRow, TNum>
         where TCol : unmanaged, IVec<TCol, TNum>
         => Unsafe.Add(ref Unsafe.As<TMat, TNum>(ref Unsafe.AsRef(in a)), row * TRow.Dimensions + col) = v;
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void SetElement<TMat, TVec>(in TMat a, int row, int col, TNum v)
-        where TMat : unmanaged, IMatrix<TMat, TVec, TVec, TNum>
+        where TMat : unmanaged, IMat<TMat, TVec, TVec, TNum>
         where TVec : unmanaged, IVec<TVec, TNum>
         => Unsafe.Add(ref Unsafe.As<TMat, TNum>(ref Unsafe.AsRef(in a)), row * TVec.Dimensions + col) = v;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void SetRow<TMat, TRow, TCol>(in TMat a, int row, TRow v)
-        where TMat : unmanaged, IMatrix<TMat, TRow, TCol, TNum>
+        where TMat : unmanaged, IMat<TMat, TRow, TCol, TNum>
         where TRow : unmanaged, IVec<TRow, TNum>
         where TCol : unmanaged, IVec<TCol, TNum>
         => Unsafe.Add(ref Unsafe.As<TMat, TRow>(ref Unsafe.AsRef(in a)), row) = v;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
     internal static TRow GetRow<TMat, TRow, TCol>(in TMat a, int row)
-        where TMat : unmanaged, IMatrix<TMat, TRow, TCol, TNum>
+        where TMat : unmanaged, IMat<TMat, TRow, TCol, TNum>
         where TRow : unmanaged, IVec<TRow, TNum>
         where TCol : unmanaged, IVec<TCol, TNum>
         => Unsafe.Add(ref Unsafe.As<TMat, TRow>(ref Unsafe.AsRef(in a)), row);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
     internal static TCol GetCol<TMat, TRow, TCol>(in TMat a, int col)
-        where TMat : unmanaged, IMatrix<TMat, TRow, TCol, TNum>
+        where TMat : unmanaged, IMat<TMat, TRow, TCol, TNum>
         where TRow : unmanaged, IVec<TRow, TNum>
         where TCol : unmanaged, IVec<TCol, TNum>
     {
@@ -85,9 +91,20 @@ public static class Mat<TNum>
         return v;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
+    internal static TVec GetCol<TMat, TVec>(in TMat a, int col)
+        where TMat : unmanaged, IMat<TMat, TVec, TVec, TNum>
+        where TVec : unmanaged, IVec<TVec, TNum>
+        => GetCol<TMat, TVec, TVec>(in a, col);
+    [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
+    internal static TVec GetRow<TMat, TVec>(in TMat a, int row)
+        where TMat : unmanaged, IMat<TMat, TVec, TVec, TNum>
+        where TVec : unmanaged, IVec<TVec, TNum>
+        => GetRow<TMat, TVec, TVec>(in a, row);
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void SetCol<TMat, TRow, TCol>(in TMat a, int col, TCol v)
-        where TMat : unmanaged, IMatrix<TMat, TRow, TCol, TNum>
+        where TMat : unmanaged, IMat<TMat, TRow, TCol, TNum>
         where TRow : unmanaged, IVec<TRow, TNum>
         where TCol : unmanaged, IVec<TCol, TNum>
     {
@@ -97,4 +114,9 @@ public static class Mat<TNum>
         for (var row = 0; row < colDim; row++)
             Unsafe.Add(ref pin, row * rowDim + col) = Vec<TNum>.GetElement(in v, row);
     }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void SetCol<TMat, TVec>(in TMat a, int col,TVec v)
+        where TMat : unmanaged, IMat<TMat, TVec, TVec, TNum>
+        where TVec : unmanaged, IVec<TVec, TNum>
+        => SetCol<TMat, TVec, TVec>(in a, col,v);
 }

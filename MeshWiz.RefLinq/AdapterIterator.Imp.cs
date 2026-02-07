@@ -234,6 +234,7 @@ public readonly partial struct AdapterIterator<T>
         public static IImp Create(IEnumerable<T> enumerable)
             => enumerable switch
             {
+                AdapterIterator<T> adapter=>adapter._imp,
                 IReadOnlyList<T> l => new ListImp(l, 0, l.Count),
                 IList<T> l=>new ListImp(new ListToList(l),0,l.Count),
                 _ => new BaseImp(enumerable)

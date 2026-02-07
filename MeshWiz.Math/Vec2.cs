@@ -16,8 +16,8 @@ namespace MeshWiz.Math;
 public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    public Vec2<TNum> Right => new(Y, -X);
-    public Vec2<TNum> Left => new(-Y, X);
+    public Vec2<TNum> Right() => new(Y, -X);
+    public Vec2<TNum> Left() => new(-Y, X);
     public static Vec2<TNum> Zero => new(TNum.Zero, TNum.Zero);
 
     public static Vec2<TNum> One => new(TNum.One, TNum.One);

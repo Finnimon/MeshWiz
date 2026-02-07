@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Numerics;
@@ -12,20 +13,20 @@ namespace MeshWiz.Math;
 [StructLayout(LayoutKind.Sequential)]
 [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
 // ReSharper disable once InconsistentNaming
-public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Vec3<TNum>, TNum>
+public readonly struct Mat3x3<TNum> : IMat<Mat3x3<TNum>, Vec3<TNum>, Vec3<TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     /// <inheritdoc />
     public Vec3<TNum> GetCol(int column)
-        => Mat<TNum>.GetCol<Matrix3x3<TNum>, Vec3<TNum>, Vec3<TNum>>(in this, column);
+        => Mat<TNum>.GetCol<Mat3x3<TNum>, Vec3<TNum>, Vec3<TNum>>(in this, column);
 
 
     /// <inheritdoc />
     public Vec3<TNum> GetRow(int row)
-        => Mat<TNum>.GetRow<Matrix3x3<TNum>, Vec3<TNum>, Vec3<TNum>>(in this, row);
+        => Mat<TNum>.GetRow<Mat3x3<TNum>, Vec3<TNum>, Vec3<TNum>>(in this, row);
 
     [Pure]
-    public static Matrix3x3<TNum> CreateRotation(Vec3<TNum> axis, TNum angle)
+    public static Mat3x3<TNum> CreateRotation(Vec3<TNum> axis, TNum angle)
     {
         axis = axis.Normalized();
 
@@ -45,27 +46,15 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
 
     public const int ColCount = 3;
     public const int RowCount = 3;
-    static int IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Vec3<TNum>, TNum>.RowCount => RowCount;
-    static int IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Vec3<TNum>, TNum>.ColCount => ColCount;
+    public const int Count = ColCount * RowCount;
+    static int IMat<Mat3x3<TNum>, Vec3<TNum>, Vec3<TNum>, TNum>.RowCount => RowCount;
+    static int IMat<Mat3x3<TNum>, Vec3<TNum>, Vec3<TNum>, TNum>.ColCount => ColCount;
 
-    public static Matrix3x3<TNum> Identity
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-    }
-        = new(Vec3<TNum>.UnitX, Vec3<TNum>.UnitY, Vec3<TNum>.UnitZ);
+    public static Mat3x3<TNum> Identity => Create(Vec3<TNum>.UnitX, Vec3<TNum>.UnitY, Vec3<TNum>.UnitZ);
 
-    public static Matrix3x3<TNum> Zero
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-    } = new(TNum.Zero);
+    public static Mat3x3<TNum> Zero => default;
 
-    public static Matrix3x3<TNum> One
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-    } = new(TNum.One);
+    public static Mat3x3<TNum> One => Create(TNum.One);
 
     public TNum Det => Determinant();
 
@@ -79,62 +68,60 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
     public readonly Vec3<TNum> X, Y, Z;
 
 
-    public Matrix3x3(
-        TNum m00, TNum m01, TNum m02,
-        TNum m10, TNum m11, TNum m12,
-        TNum m20, TNum m21, TNum m22)
+
+
+    
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Mat3x3<TNum> Create(TNum v)
     {
-        X = Vec3<TNum>.Create(m00, m01, m02);
-        Y = Vec3<TNum>.Create(m10, m11, m12);
-        Z = Vec3<TNum>.Create(m20, m21, m22);
+        var vec = Vec3<TNum>.Create(v);
+        return Create(vec, vec, vec);
     }
 
-    public Matrix3x3(Vec3<TNum> x, Vec3<TNum> y, Vec3<TNum> z)
-    {
-        X = x;
-        Y = y;
-        Z = z;
-    }
-
-    public Matrix3x3(TNum value)
-    {
-        X = Vec3<TNum>.Create(value);
-        Y = X;
-        Z = Y;
-    }
-
-    public static Matrix3x3<TNum> FromComponents(TNum[] components) =>
+    public static Mat3x3<TNum> FromComponents(TNum[] components) =>
         components.Length == 9
-            ? Unsafe.As<TNum, Matrix3x3<TNum>>(ref components[0])
-            : ThrowHelper.ThrowArgumentException<Matrix3x3<TNum>>("Components must be of length 9");
+            ? Unsafe.As<TNum, Mat3x3<TNum>>(ref components[0])
+            : ThrowHelper.ThrowArgumentException<Mat3x3<TNum>>("Components must be of length 9");
 
-    public static Matrix3x3<TNum> FromComponents(TNum[,] components) =>
+    public static Mat3x3<TNum> FromComponents(TNum[,] components) =>
         components is { Length: 9, Rank: 2 }
-            ? Unsafe.As<TNum, Matrix3x3<TNum>>(ref components[0, 0])
-            : ThrowHelper.ThrowArgumentException<Matrix3x3<TNum>>("Components must be of length 9");
+            ? Unsafe.As<TNum, Mat3x3<TNum>>(ref components[0, 0])
+            : ThrowHelper.ThrowArgumentException<Mat3x3<TNum>>("Components must be of length 9");
 
-    public static Matrix3x3<TNum> FromComponents(IReadOnlyList<TNum> components)
-        => new(
+    public static Mat3x3<TNum> FromComponents(IReadOnlyList<TNum> components)
+        => Create(
             components[0], components[1], components[2],
             components[3], components[4], components[5],
             components[6], components[7], components[8]);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
-    public static Matrix3x3<TNum> Create(Vec3<TNum> x, Vec3<TNum> y, Vec3<TNum> z)
+    private static Mat3x3<TNum> Create(
+        TNum m00, TNum m01, TNum m02, 
+        TNum m10, TNum m11, TNum m12, 
+        TNum m20, TNum m21, TNum m22) =>
+        Create(
+            Vec3<TNum>.Create(m00, m01, m02),
+            Vec3<TNum>.Create(m10, m11, m12),
+            Vec3<TNum>.Create(m20, m21, m22)
+        );
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
+    public static Mat3x3<TNum> Create(Vec3<TNum> x, Vec3<TNum> y, Vec3<TNum> z)
     {
-        Unsafe.SkipInit<Matrix3x3<TNum>>(out var m);
-        Mat<TNum>.SetRow<Matrix3x3<TNum>, Vec3<TNum>, Vec3<TNum>>(in m, 0, x);
-        Mat<TNum>.SetRow<Matrix3x3<TNum>, Vec3<TNum>, Vec3<TNum>>(in m, 1, y);
-        Mat<TNum>.SetRow<Matrix3x3<TNum>, Vec3<TNum>, Vec3<TNum>>(in m, 2, z);
+        Unsafe.SkipInit<Mat3x3<TNum>>(out var m);
+        Unsafe.AsRef(in m.X) = x;
+        Unsafe.AsRef(in m.Y) = y;
+        Unsafe.AsRef(in m.Z) = z;
         return m;
     }
 
-    public static Matrix3x3<TNum> FromColumns(Vec3<TNum> c0, Vec3<TNum> c1, Vec3<TNum> c2)
+    public static Mat3x3<TNum> FromColumns(Vec3<TNum> c0, Vec3<TNum> c1, Vec3<TNum> c2)
     {
-        Unsafe.SkipInit<Matrix3x3<TNum>>(out var m);
-        Mat<TNum>.SetCol<Matrix3x3<TNum>, Vec3<TNum>, Vec3<TNum>>(in m, 0, c0);
-        Mat<TNum>.SetCol<Matrix3x3<TNum>, Vec3<TNum>, Vec3<TNum>>(in m, 1, c1);
-        Mat<TNum>.SetCol<Matrix3x3<TNum>, Vec3<TNum>, Vec3<TNum>>(in m, 2, c2);
+        Unsafe.SkipInit<Mat3x3<TNum>>(out var m);
+        Mat<TNum>.SetCol<Mat3x3<TNum>, Vec3<TNum>, Vec3<TNum>>(in m, 0, c0);
+        Mat<TNum>.SetCol<Mat3x3<TNum>, Vec3<TNum>, Vec3<TNum>>(in m, 1, c1);
+        Mat<TNum>.SetCol<Mat3x3<TNum>, Vec3<TNum>, Vec3<TNum>>(in m, 2, c2);
         return m;
     }
 
@@ -143,7 +130,7 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
         get
         {
             if (RowCount <= (uint)row || ColCount <= (uint)col) IndexThrowHelper.Throw();
-            return Mat<TNum>.GetElement<Matrix3x3<TNum>, Vec3<TNum>, Vec3<TNum>>(in this, row, col);
+            return Mat<TNum>.GetElement<Mat3x3<TNum>, Vec3<TNum>, Vec3<TNum>>(in this, row, col);
         }
     }
 
@@ -192,8 +179,8 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
         return Vec3<TNum>.Create(d0 / det, d1 / det, d2 / det);
     }
 
-    public Matrix3x3<TNum> Transpose()
-        => FromColumns(X, Y, Z);
+    public Mat3x3<TNum> Transpose() =>Transpose(this);
+    public static Mat3x3<TNum> Transpose(Mat3x3<TNum> mat)=>FromColumns(mat.X, mat.Y, mat.Z);
 
     public void Deconstruct(out Vec3<TNum> x, out Vec3<TNum> y, out Vec3<TNum> z)
     {
@@ -201,9 +188,8 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
         y = Y;
         z = Z;
     }
-    public static Matrix3x3<TNum> Transpose(Matrix3x3<TNum> m) => m.Transpose();
 
-    public Matrix3x3<TNum> Inverse()
+    public Mat3x3<TNum> Inverse()
     {
         var det = Determinant();
         if (TNum.Abs(det) < TNum.Epsilon)
@@ -222,7 +208,7 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
         var c21 = -(M00 * M12 - M02 * M10);
         var c22 = M00 * M11 - M01 * M10;
 
-        var adj = new Matrix3x3<TNum>(
+        var adj = Create(
             c00, c10, c20,
             c01, c11, c21,
             c02, c12, c22);
@@ -230,7 +216,7 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
         return adj / det;
     }
 
-    public static bool TryInvert(Matrix3x3<TNum> m, out Matrix3x3<TNum> result)
+    public static bool TryInvert(Mat3x3<TNum> m, out Mat3x3<TNum> result)
     {
         var det = m.Determinant();
         if (det == TNum.Zero)
@@ -243,10 +229,10 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
         return true;
     }
 
-    public static Matrix3x3<TNum> operator *(Matrix3x3<TNum> a, Matrix3x3<TNum> b)
+    public static Mat3x3<TNum> operator *(Mat3x3<TNum> a, Mat3x3<TNum> b)
     {
         b = b.Transpose();
-        return new Matrix3x3<TNum>(
+        return Create(
             a.X.Dot(b.X), a.X.Dot(b.Y), a.X.Dot(b.Z),
             a.Y.Dot(b.X), a.Y.Dot(b.Y), a.Y.Dot(b.Z),
             a.Z.Dot(b.X), a.Z.Dot(b.Y), a.Z.Dot(b.Z)
@@ -256,52 +242,52 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
     public Vec3<TNum> Multiply(Vec3<TNum> v)
         => Vec3<TNum>.Create(X.Dot(v), Y.Dot(v), Z.Dot(v));
 
-    public static Vec3<TNum> operator *(Matrix3x3<TNum> m, Vec3<TNum> v) => m.Multiply(v);
+    public static Vec3<TNum> operator *(Mat3x3<TNum> m, Vec3<TNum> v) => m.Multiply(v);
 
-    public static Vec3<TNum> operator *(Vec3<TNum> v, Matrix3x3<TNum> m) => m.Transpose().Multiply(v);
+    public static Vec3<TNum> operator *(Vec3<TNum> v, Mat3x3<TNum> m) => m.Transpose().Multiply(v);
 
-    public static Matrix3x3<TNum> operator *(Matrix3x3<TNum> mat, TNum scalar)
-        => new(mat.X * scalar, mat.Y * scalar, mat.Z * scalar);
+    public static Mat3x3<TNum> operator *(Mat3x3<TNum> mat, TNum scalar)
+        => Create(mat.X * scalar, mat.Y * scalar, mat.Z * scalar);
 
-    public static Matrix3x3<TNum> operator /(Matrix3x3<TNum> mat, TNum divisor)
+    public static Mat3x3<TNum> operator /(Mat3x3<TNum> mat, TNum divisor)
         => mat * (TNum.One / divisor);
 
-    public static Matrix3x3<TNum> operator *(TNum scalar, Matrix3x3<TNum> mat)
+    public static Mat3x3<TNum> operator *(TNum scalar, Mat3x3<TNum> mat)
         => mat * scalar;
 
-    public static Matrix3x3<TNum> operator +(Matrix3x3<TNum> left, Matrix3x3<TNum> right)
-        => new(left.X + right.X, left.Y + right.Y, left.Z + right.Z);
+    public static Mat3x3<TNum> operator +(Mat3x3<TNum> left, Mat3x3<TNum> right)
+        => Create(left.X + right.X, left.Y + right.Y, left.Z + right.Z);
 
-    public static Matrix3x3<TNum> operator -(Matrix3x3<TNum> left, Matrix3x3<TNum> right)
-        => new(left.X - right.X, left.Y - right.Y, left.Z - right.Z);
+    public static Mat3x3<TNum> operator -(Mat3x3<TNum> left, Mat3x3<TNum> right)
+        => Create(left.X - right.X, left.Y - right.Y, left.Z - right.Z);
 
-    public static Matrix3x3<TNum> operator -(Matrix3x3<TNum> mat)
-        => new(-mat.X, -mat.Y, -mat.Z);
+    public static Mat3x3<TNum> operator -(Mat3x3<TNum> mat)
+        => Create(-mat.X, -mat.Y, -mat.Z);
 
     /// <inheritdoc />
     public ReadOnlySpan<TNum> AsSpan() => MemoryMarshal.CreateReadOnlySpan(in X.X, ColCount * RowCount);
 
     public override bool Equals(object? obj)
-        => obj is Matrix3x3<TNum> m && this == m;
+        => obj is Mat3x3<TNum> m && this == m;
 
-    public static bool operator ==(Matrix3x3<TNum> a, Matrix3x3<TNum> b)
+    public static bool operator ==(Mat3x3<TNum> a, Mat3x3<TNum> b)
         => a.X == b.X && a.Y == b.Y && a.Z == b.Z;
 
-    public static bool operator !=(Matrix3x3<TNum> a, Matrix3x3<TNum> b) => !(a == b);
+    public static bool operator !=(Mat3x3<TNum> a, Mat3x3<TNum> b) => !(a == b);
 
     public override int GetHashCode()
         => HashCode.Combine(X, Y, Z);
 
 
-    public bool Equals(Matrix3x3<TNum> other)
+    public bool Equals(Mat3x3<TNum> other)
         => this == other;
 
 
-    public static implicit operator Vec3<Vec3<TNum>>(Matrix3x3<TNum> matrix) =>
-        Unsafe.As<Matrix3x3<TNum>, Vec3<Vec3<TNum>>>(ref matrix);
+    public static implicit operator Vec3<Vec3<TNum>>(Mat3x3<TNum> matrix) =>
+        Unsafe.As<Mat3x3<TNum>, Vec3<Vec3<TNum>>>(ref matrix);
 
-    public static implicit operator Matrix3x3<TNum>(Vec3<Vec3<TNum>> matrix) =>
-        Unsafe.As<Vec3<Vec3<TNum>>, Matrix3x3<TNum>>(ref matrix);
+    public static implicit operator Mat3x3<TNum>(Vec3<Vec3<TNum>> matrix) =>
+        Unsafe.As<Vec3<Vec3<TNum>>, Mat3x3<TNum>>(ref matrix);
 
     private Vec3<Vec3<TNum>> Nested() => this;
     public override string ToString() => Nested().ToString();
@@ -321,22 +307,22 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
     }
 
     /// <inheritdoc />
-    public static Matrix3x3<TNum> Parse(string s, IFormatProvider? provider)
+    public static Mat3x3<TNum> Parse(string s, IFormatProvider? provider)
         => Vec3<Vec3<TNum>>.Parse(s, provider);
 
     /// <inheritdoc />
-    public static Matrix3x3<TNum> Parse(ReadOnlySpan<char> s, IFormatProvider? provider) =>
+    public static Mat3x3<TNum> Parse(ReadOnlySpan<char> s, IFormatProvider? provider) =>
         Vec3<Vec3<TNum>>.Parse(s, provider);
 
     /// <inheritdoc />
-    public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, out Matrix3x3<TNum> result)
+    public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, out Mat3x3<TNum> result)
     {
         result = default;
         return s is { Length: > 0 } && TryParse(s, provider, out result);
     }
 
     /// <inheritdoc />
-    public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out Matrix3x3<TNum> result)
+    public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out Mat3x3<TNum> result)
     {
         var success = Vec3<Vec3<TNum>>.TryParse(s, provider, out var n);
         result = n;
@@ -344,10 +330,10 @@ public readonly struct Matrix3x3<TNum> : IMatrix<Matrix3x3<TNum>, Vec3<TNum>, Ve
     }
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Matrix3x3<TOther> To<TOther>()
+    public Mat3x3<TOther> To<TOther>()
         where TOther : unmanaged, IFloatingPointIeee754<TOther>
     {
-        Unsafe.SkipInit(out Matrix3x3<TOther> res);
+        Unsafe.SkipInit(out Mat3x3<TOther> res);
         var newNums = AsSpan().Select(TOther.CreateTruncating);
         var resSpan = MemoryMarshal.CreateSpan(ref Unsafe.AsRef(in res.X.X), ColCount * RowCount);
         newNums.CopyTo(resSpan);

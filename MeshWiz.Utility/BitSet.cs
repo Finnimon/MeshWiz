@@ -6,45 +6,64 @@ namespace MeshWiz.Utility;
 
 public sealed class BitSet : IReadOnlyList<bool>
 {
-    public int Count { get; }
-    private int Capacity => _bits.Length * 64;
-    private readonly ulong[] _bits;
+    int IReadOnlyCollection<bool>.Count => (int)Count;
+    public uint Count { get; }
 
-    public BitSet(int n)
+
+    private static int NIntBits
     {
-        Count = n;
-        var longCount = GetNecessaryLongCount(Count);
-        _bits = new ulong[longCount];
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => nuint.Size * 8;
     }
 
-    public BitSet(int n, bool initialValue)
+    private int Capacity => _bits.Length * NIntBits;
+    private readonly nuint[] _bits;
+
+    public BitSet(uint n)
     {
         Count = n;
-        var longCount = GetNecessaryLongCount(Count);
-        _bits = new ulong[longCount];
-        if (initialValue) Array.Fill(_bits, ulong.MaxValue);
+        var longCount = WordCount(n);
+        _bits = new nuint[longCount];
     }
 
+    public BitSet(uint n, bool initialValue)
+    {
+        Count = n;
+        var wordCount = WordCount(n);
+        if(!initialValue)
+        {
+            _bits = new nuint[wordCount];
+            return;
+        }
+        _bits=GC.AllocateUninitializedArray<nuint>(wordCount);
+        Array.Fill(_bits, nuint.MaxValue);
+    }
+
+    bool IReadOnlyList<bool>.this[int index]
+    {
+        get => this[(uint)index];   
+    }
 
     /// <inheritdoc />
-    public bool this[int index]
+    public bool this[uint index]
     {
         get
         {
             if (Count <= (uint)index)
-                return IndexThrowHelper.Throw<bool>(index, Count);
-            var (longIndex, shift) = IndexToAdress(index);
-            return ((_bits[longIndex] >> shift) & 1) != 0;
+                IndexThrowHelper.Throw((int)index,(int) Count);
+            var (word, bit) = Address(index);
+            return ((_bits[word] >> bit) & One) == One;
         }
         set
         {
             if (Count <= (uint)index)
             {
-                IndexThrowHelper.Throw(index, Count);
+                IndexThrowHelper.Throw((int)index,(int) Count);
                 return;
             }
-            var (word, bit) = IndexToAdress(index);
-            var setter = 1UL << bit;
+
+            var (word, bit) = Address(index);
+            var setter = One << bit;
             if (value)
                 _bits[word] |= setter; // set bit
             else
@@ -52,19 +71,24 @@ public sealed class BitSet : IReadOnlyList<bool>
         }
     }
 
+    private const nuint One = 1;
+    private const nuint Zero = 0;
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int GetNecessaryLongCount(int bitCount)
-        => bitCount % 64 == 0 ? bitCount / 64 : bitCount / 64 + 1;
+    private static int WordCount(uint bitCount)
+        => (int)(bitCount % 64 == 0 ? bitCount / 64 : bitCount / 64 + 1);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static (int word, int bit) IndexToAdress(int index)
-        => (index / 64, index % 64);
+    private static (int word, int bit) Address(uint index)
+    {
+        var bitSize = NIntBits;
+        return ((int)(index / bitSize), (int)(index % bitSize));
+    }
 
     /// <inheritdoc />
     public IEnumerator<bool> GetEnumerator()
     {
-        for (var i = 0; i < Count; i++)
+        for (var i = 0u; i < Count; i++)
             yield return this[i];
     }
 

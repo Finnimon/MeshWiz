@@ -160,7 +160,7 @@ public static partial class BvhPolyline
             if (_hit.IsApproxZero()) return IntersectionLevel.Intersects;
 
             var intersected = l[_hitTarget];
-            var outwards = intersected.AxisVector.Right;
+            var outwards = intersected.AxisVector.Right();
             var dotSignHit = windingOrder switch
             {
                 WindingOrder.Clockwise => -1,
@@ -184,7 +184,7 @@ public static partial class BvhPolyline
 
             otherLineIndex = (_hitTarget + otherLineIndex).WrapZeroBound(l.Count);
             var otherLine = l[otherLineIndex];
-            var isHit = TNum.Sign(Vec2<TNum>.Dot(otherLine.AxisVector.Right, _ray.Direction)) == dotSignHit;
+            var isHit = TNum.Sign(Vec2<TNum>.Dot(otherLine.AxisVector.Right(), _ray.Direction)) == dotSignHit;
             return isHit ? IntersectionLevel.Contains : IntersectionLevel.None;
         }
     }

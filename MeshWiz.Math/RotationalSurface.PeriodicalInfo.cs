@@ -136,7 +136,7 @@ public sealed partial record RotationalSurface<TNum>
             PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum> source, TNum angle, Ray3<TNum> axis)
         {
             var poses = source.Poses.ToArray();
-            var rot = Matrix4x4<TNum>.CreateRotation(axis.Direction, angle);
+            var rot = Mat4x4<TNum>.CreateRotation(axis.Direction, angle);
             for (var i = 0; i < poses.Length; i++)
             {
                 var pose = poses[i];
