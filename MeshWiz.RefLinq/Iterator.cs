@@ -203,6 +203,10 @@ public static partial class Iterator
         return seed;
     }
 
+    public static int Count<TIter, T>(this TIter iter, Func<T, bool> test) 
+        where TIter : IRefIterator<TIter, T>, allows ref struct
+        => iter.Where(test).Count();
+
 
     internal static TOut Aggregate<TIter, TItem, TOut>(TIter iter, Func<TOut, TItem, TOut> aggregator, TOut seed)
         where TIter : IRefIterator<TIter, TItem>, allows ref struct

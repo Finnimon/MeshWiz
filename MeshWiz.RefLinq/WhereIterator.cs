@@ -83,7 +83,15 @@ public ref struct WhereIterator<TIter, TItem>(TIter source, Func<TItem, bool> fi
 
 
     /// <inheritdoc />
-    public int Count() => Iterator.Count<WhereIterator<TIter, TItem>, TItem>(this);
+    public int Count()
+    {
+        if (_source.TryGetNonEnumeratedCount(out var neCount) && neCount == 0)
+            return 0;
+        var c = 0;
+        using var iter = _source.GetEnumerator();
+        while (iter.MoveNext()) c++;
+        return c;
+    }
 
     /// <inheritdoc />
     public bool TryGetNonEnumeratedCount(out int count) => _source.TryGetNonEnumeratedCount(out count) && count == 0;
@@ -98,8 +106,11 @@ public ref struct WhereIterator<TIter, TItem>(TIter source, Func<TItem, bool> fi
         return copy;
     }
 
+    public WhereIterator<TIter, TItem> Where(Func<TItem, bool> predicate) =>
+        _source.Where(Func.And(_filter, predicate));
+    
     /// <inheritdoc />
-    public WhereIterator<WhereIterator<TIter, TItem>, TItem> Where(Func<TItem, bool> predicate) =>
+    WhereIterator<WhereIterator<TIter, TItem>, TItem> IRefIterator<WhereIterator<TIter, TItem>, TItem>.Where(Func<TItem, bool> predicate) =>
         new(this, predicate);
 
     /// <inheritdoc />
@@ -132,7 +143,7 @@ public ref struct WhereIterator<TIter, TItem>(TIter source, Func<TItem, bool> fi
     public HashSet<TItem> ToHashSet(IEqualityComparer<TItem>? comp)
         => Iterator.ToHashSet(this, comp);
 
-    public TItem First(Func<TItem, bool> predicate) => Where(predicate).First();
+    public TItem First(Func<TItem, bool> predicate) => _source.Where(Func.And(_filter,predicate)).First();
     public TItem? FirstOrDefault(Func<TItem, bool> predicate) => Where(predicate).FirstOrDefault();
 
     public TItem Last(Func<TItem, bool> predicate) => Where(predicate).Last();
@@ -150,7 +161,7 @@ public ref struct WhereIterator<TIter, TItem>(TIter source, Func<TItem, bool> fi
 
     /// <inheritdoc />
     public int EstimateCount()
-        => (int)double.Ceiling(_source.EstimateCount()*0.5);
+        => (int)double.Ceiling(_source.EstimateCount() * 0.5);
 
     public OfTypeIterator<WhereIterator<TIter, TItem>, TItem, TOther> OfType<TOther>() => new(this);
 
@@ -197,22 +208,24 @@ public ref struct WhereIterator<TIter, TItem>(TIter source, Func<TItem, bool> fi
         Func<TItem, TKey> keyGen)
         where TKey : notnull
         => ToDictionary(keyGen, x => x, null);
-    
-    
-    public SelectManyIterator<WhereIterator<TIter,TItem>, TInner, TItem, TOut> SelectMany<TInner, TOut>(
-        Func<TItem, TInner> flattener) where TInner : IRefIterator<TInner,TOut>, allows ref struct =>
+
+
+    public SelectManyIterator<WhereIterator<TIter, TItem>, TInner, TItem, TOut> SelectMany<TInner, TOut>(
+        Func<TItem, TInner> flattener) where TInner : IRefIterator<TInner, TOut>, allows ref struct =>
         new(this, flattener);
 
-    public SelectManyIterator<WhereIterator<TIter,TItem>, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
+    public SelectManyIterator<WhereIterator<TIter, TItem>, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
         Func<TItem, TOut[]> flattener) => new(this, inner => flattener(inner));
 
-    public SelectManyIterator<WhereIterator<TIter,TItem>, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
+    public SelectManyIterator<WhereIterator<TIter, TItem>, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
         Func<TItem, List<TOut>> flattener) => new(this, inner => flattener(inner));
 
-    public SelectManyIterator<WhereIterator<TIter,TItem>, AdapterIterator<TOut>, TItem, TOut> SelectMany<TOut>(
-        Func<TItem, IEnumerable<TOut>> flattener) => new(this,Func.Combine(flattener,Iterator.Adapt));
-    public bool All(Func<TItem,bool> predicate)=>!Any(x=>!predicate(x));
-    public SelectManyIterator<WhereIterator<TIter,TItem>, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
+    public SelectManyIterator<WhereIterator<TIter, TItem>, AdapterIterator<TOut>, TItem, TOut> SelectMany<TOut>(
+        Func<TItem, IEnumerable<TOut>> flattener) => new(this, Func.Combine(flattener, Iterator.Adapt));
+
+    public bool All(Func<TItem, bool> predicate) => !Any(x => !predicate(x));
+
+    public SelectManyIterator<WhereIterator<TIter, TItem>, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
         Func<TItem, SpanIterator<TOut>> flattener)
         => new(this, flattener);
 
@@ -222,27 +235,31 @@ public ref struct WhereIterator<TIter, TItem>(TIter source, Func<TItem, bool> fi
         result = default;
         return false;
     }
-    
-    
-    public DistinctIterator<WhereIterator<TIter,TItem>, TItem> Distinct()
-        => Distinct(null);
-    public DistinctIterator<WhereIterator<TIter,TItem>, TItem> Distinct(IEqualityComparer<TItem>? comp)
-        => new(this, comp);
-    public DistinctIterator<WhereIterator<TIter,TItem>,TItem> DistinctBy<T>(Func<TItem, T> keySelector) where T : notnull 
-        =>new(this,Equality.By(keySelector));
 
-    public ConcatIterator<WhereIterator<TIter,TItem>, TOther, TItem> Concat<TOther>(TOther other) 
-        where TOther : IRefIterator<TOther, TItem>,allows ref struct
+
+    public DistinctIterator<WhereIterator<TIter, TItem>, TItem> Distinct()
+        => Distinct(null);
+
+    public DistinctIterator<WhereIterator<TIter, TItem>, TItem> Distinct(IEqualityComparer<TItem>? comp)
+        => new(this, comp);
+
+    public DistinctIterator<WhereIterator<TIter, TItem>, TItem> DistinctBy<T>(Func<TItem, T> keySelector)
+        where T : notnull
+        => new(this, Equality.By(keySelector));
+
+    public ConcatIterator<WhereIterator<TIter, TItem>, TOther, TItem> Concat<TOther>(TOther other)
+        where TOther : IRefIterator<TOther, TItem>, allows ref struct
         => new(this, other);
-    public ConcatIterator<WhereIterator<TIter,TItem>, ItemIterator<TItem>, TItem> Append(TItem append) 
+
+    public ConcatIterator<WhereIterator<TIter, TItem>, ItemIterator<TItem>, TItem> Append(TItem append)
         => new(this, append);
-    public ConcatIterator<ItemIterator<TItem>,WhereIterator<TIter,TItem>, TItem> Prepend(TItem prepend) 
-        => new(prepend,this);
+
+    public ConcatIterator<ItemIterator<TItem>, WhereIterator<TIter, TItem>, TItem> Prepend(TItem prepend)
+        => new(prepend, this);
 
     public static WhereIterator<TIter, TItem> Empty() => new(TIter.Empty(), _ => false);
-    
-    
-    
+
+
     /// <inheritdoc />
     public TItem Min()
         => Min(null);
@@ -261,23 +278,23 @@ public ref struct WhereIterator<TIter, TItem>(TIter source, Func<TItem, bool> fi
 
     /// <inheritdoc />
     public TItem Min(IComparer<TItem>? comp)
-        =>Iterator.TryGetMin(this,comp,out var min)?min!:ThrowHelper.ThrowInvalidOperationException<TItem>();
+        => Iterator.TryGetMin(this, comp, out var min) ? min! : ThrowHelper.ThrowInvalidOperationException<TItem>();
 
     /// <inheritdoc />
     public TItem Max(IComparer<TItem>? comp)
-        =>Iterator.TryGetMax(this,comp,out var min)?min!:ThrowHelper.ThrowInvalidOperationException<TItem>();
+        => Iterator.TryGetMax(this, comp, out var min) ? min! : ThrowHelper.ThrowInvalidOperationException<TItem>();
 
     /// <inheritdoc />
     public TItem? MinOrDefault(IComparer<TItem>? comp)
     {
-        Iterator.TryGetMin(this,comp,out var min);
+        Iterator.TryGetMin(this, comp, out var min);
         return min;
     }
 
     /// <inheritdoc />
     public TItem? MaxOrDefault(IComparer<TItem>? comp)
     {
-        Iterator.TryGetMax(this,comp,out var min);
+        Iterator.TryGetMax(this, comp, out var min);
         return min;
     }
 

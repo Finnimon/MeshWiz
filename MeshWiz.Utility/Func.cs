@@ -116,6 +116,8 @@ public static class Func
     public static T Identity<T>(T arg)
         where T:allows ref struct
         => arg;
+
+    public static Func<TItem, bool> And<TItem>(Func<TItem, bool> filter0, Func<TItem, bool> filter1) => elem=>filter0(elem) && filter1(elem);
 }
 
 
