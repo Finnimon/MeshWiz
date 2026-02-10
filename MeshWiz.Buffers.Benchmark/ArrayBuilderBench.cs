@@ -5,24 +5,46 @@ namespace MeshWiz.Buffers.Benchmark;
 
 public class ArrayBuilderBench
 {
-    private IEnumerable<string> _wrapper=new EnumerableWrapper<string>([]);
-    
-    [Params(0,1/*,100,1_000_000*/)]
+    private IEnumerable<string> _refWrapper = new EnumerableWrapper<string>([]);
+    private IEnumerable<int> _valWrapper = new EnumerableWrapper<int>([]);
+
+    [Params(0, 1, 2, 4, 8, 17, 4096, 1_000_000)]
     public int N;
 
-    [Params("Enumerable")] public string Mode { get; set; } = "";
-    
+    [Params(nameof(IEnumerable<>), nameof(Array), nameof(ICollection<>), nameof(IReadOnlyCollection<>))]
+    public string Mode { get; set; } = "";
+
+    [Params(true, false)] public bool ReferenceType;
+
     [GlobalSetup]
     public void Setup()
     {
-        var dat= Enumerable.ToArray(Enumerable.Range(0, N).Select(i => i.ToString()));
-        _wrapper=Mode.Equals("Enumerable") ? new EnumerableWrapper<string>(dat) : dat;
+        var dat = Enumerable.ToArray(Enumerable.Range(0, N));
+        _valWrapper = Mode switch
+        {
+            nameof(IEnumerable<>) => new EnumerableWrapper<int>(dat),
+            nameof(Array) => dat,
+            nameof(ICollection<>) => dat.ToHashSet(),
+            nameof(IReadOnlyCollection<>) => new EnumerableReadOnlyCollectionWrapper<int>(dat),
+            _ => throw new InvalidOperationException()
+        };
+        var dat2 = dat.Select(i => i.ToString()).ToArray();
+        _refWrapper = Mode switch
+        {
+            nameof(IEnumerable<>) => new EnumerableWrapper<string>(dat2),
+            nameof(Array) => dat2,
+            nameof(ICollection<>) => dat2.ToHashSet(),
+            nameof(IReadOnlyCollection<>) => new EnumerableReadOnlyCollectionWrapper<string>(dat2),
+            _ => throw new InvalidOperationException()
+        };
     }
 
-    // [Benchmark(Baseline = true)]
-    // public string[] EnumerableToArray() => Enumerable.ToArray(_wrapper);
+    [Benchmark(Baseline = true)]
+    public object EnumerableToArray() =>
+        ReferenceType ? Enumerable.ToArray(_refWrapper) : Enumerable.ToArray(_valWrapper);
+
     [Benchmark]
-    public string[] BufferToArray() => Iterator.ToArray(_wrapper);
+    public object BufferToArray() => ReferenceType ? Iterator.ToArray(_refWrapper) : Iterator.ToArray(_valWrapper);
     // [Benchmark]
     // public List<string> EnumerableToList()=>Enumerable.ToList(_wrapper);
     // [Benchmark]

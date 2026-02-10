@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using CommunityToolkit.Diagnostics;
 
 namespace MeshWiz.RefLinq;
 
@@ -17,10 +18,19 @@ public static partial class Iterator
             _ => ArrBuilderToArray(enumerable)
         };
     
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static T[] ArrBuilderToArray<T>(IEnumerable<T> enumerable)
     {
+        using var iterator = enumerable.GetEnumerator();
+        return !iterator.MoveNext() ? [] : ForceEnumeration(iterator);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static T[] ForceEnumeration<T>(IEnumerator<T> iterator)
+    {
         using BufferedArrayBuilder<T> b = new();
-        b.AddEnumeratingInlined(enumerable);
+        b.AddInlined(iterator.Current);
+        b.AddEnumeratorInlined(iterator);
         return b.ToArray();
     }
 

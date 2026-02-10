@@ -18,10 +18,10 @@ public ref struct BufferedArrayBuilder<T>
     private int _curSegmentPosition = -1;
     public readonly bool OnFirstSegment => _poolBufCount == 0;
     public readonly int Count => _size;
+    public const int MinInitialSize = 128;
+    public BufferedArrayBuilder() : this(MinInitialSize, true) { }
 
-    public BufferedArrayBuilder() : this(8, true) { }
-
-    public BufferedArrayBuilder(int capacity) : this(int.Max(8, capacity), true) { }
+    public BufferedArrayBuilder(int capacity) : this(int.Max(MinInitialSize, capacity), true) { }
 
     private BufferedArrayBuilder(int initial, bool _)
     {
@@ -153,7 +153,7 @@ public ref struct BufferedArrayBuilder<T>
         var countFullPoolBuf = _poolBufCount - 1;
         for (var i = 0; i < countFullPoolBuf; i++)
         {
-            ref var fullPoolBuf = ref _laterSegments[i];
+            var fullPoolBuf = _laterSegments[i];
             fullPoolBuf.Span.CopyTo(target.Slice(offset));
             offset += fullPoolBuf.Span.Length;
         }
@@ -207,20 +207,23 @@ public ref struct BufferedArrayBuilder<T>
             _laterSegments[i].Dispose();
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     private ref struct Arrays
     {
         // @formatter:off
  #pragma warning disable CS0169 // Field is never used
  #pragma warning disable CS0649 // Field is never used
  // ReSharper disable once UnassignedField.Local
-        private Pool.Buffer<T> _0,_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,_17,_18,_19,_20,_21,_22,_23,_24,_25,_26;
+        private Pool.Buffer<T> _0,_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,_17,_18,_19,_20,_21;
  #pragma warning restore CS0649 // Field is never used
  #pragma warning restore CS0169 // Field is never used
         // @formatter:on
-        public ref Pool.Buffer<T> this[int index]
+        public Pool.Buffer<T> this[int index]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => ref Unsafe.Add(ref Unsafe.AsRef(in _0), index);
+            get => Unsafe.Add(ref Unsafe.AsRef(ref _0), index);
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set=>Unsafe.Add(ref Unsafe.AsRef(ref _0), index) = value;
         }
     }
 
