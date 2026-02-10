@@ -9,7 +9,7 @@ This entire repo is meant to provide various utilities around [Meshes](./MeshWiz
 # How To Build
 cd $repo_dir  
 dotnet restore  
-dotnet build [-c Release]
+dotnet build 
 
 # Remarks
 - See the different Polyline partials for more complex usage examples.

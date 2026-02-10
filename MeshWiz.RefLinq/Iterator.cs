@@ -90,43 +90,6 @@ public static partial class Iterator
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static TItem[] ToArray<TIter, TItem>(TIter iter)
-        where TIter : IRefIterator<TIter, TItem>, allows ref struct
-    {
-        if (iter.TryGetNonEnumeratedCount(out var fastCount))
-        {
-            if (fastCount == 0)
-                return [];
-            var array = GC.AllocateUninitializedArray<TItem>(fastCount);
-            iter.CopyTo(array);
-            return array;
-        }
-
-        
-        using BufferedArrayBuilder<TItem> builder = new(int.Max(8,iter.EstimateCount()));
-        builder.AddEnumeratorInlined(iter);
-        return builder.ToArray();
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static List<TItem> ToList<TIter, TItem>(TIter iter)
-        where TIter : IRefIterator<TIter, TItem>, allows ref struct
-    {
-        if (iter.TryGetNonEnumeratedCount(out var fastCount))
-        {
-            if (fastCount == 0)
-                return [];
-            var l = new List<TItem>(fastCount);
-            CollectionsMarshal.SetCount(l,fastCount);
-            iter.CopyTo(CollectionsMarshal.AsSpan(l));
-            return l;
-        }
-        using BufferedArrayBuilder<TItem> builder = new(int.Max(8,iter.EstimateCount()));
-        builder.AddEnumeratorInlined(iter);
-        return builder.ToList();
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int PreSize<TIter, TItem>(TIter iter) where TIter : IRefIterator<TIter, TItem>, allows ref struct
     {
         var preSize = iter.TryGetNonEnumeratedCount(out var capa) ? capa : iter.EstimateCount();

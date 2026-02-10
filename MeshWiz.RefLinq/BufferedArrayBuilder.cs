@@ -10,8 +10,8 @@ namespace MeshWiz.RefLinq;
 [SuppressMessage("ReSharper", "NotDisposedResource")]
 public ref struct BufferedArrayBuilder<T>
 {
-    private Freelist.Buffer<T> _firstSegment;
     private Arrays _laterSegments;
+    private Freelist.Buffer<T> _firstSegment;
     private Span<T> _currentSegment;
     private int _size;
     private int _poolBufCount;
@@ -19,9 +19,11 @@ public ref struct BufferedArrayBuilder<T>
     public readonly bool OnFirstSegment => _poolBufCount == 0;
     public readonly int Count => _size;
 
-    public BufferedArrayBuilder() : this(8) { }
+    public BufferedArrayBuilder() : this(8, true) { }
 
-    public BufferedArrayBuilder(int initial)
+    public BufferedArrayBuilder(int capacity) : this(int.Max(8, capacity), true) { }
+
+    private BufferedArrayBuilder(int initial, bool _)
     {
         _firstSegment = Freelist.Shared.Rent<T>(initial);
         _currentSegment = _firstSegment.Span;
@@ -36,6 +38,7 @@ public ref struct BufferedArrayBuilder<T>
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void AddRange(ReadOnlySpan<T> span) => AddRangeInlined(span);
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AddRangeInlined(ReadOnlySpan<T> span)
     {
@@ -48,9 +51,10 @@ public ref struct BufferedArrayBuilder<T>
             AddEnumerating(span);
             return;
         }
-        span.CopyTo(_currentSegment.Slice(_curSegmentPosition+1));
+
+        span.CopyTo(_currentSegment.Slice(_curSegmentPosition + 1));
         _curSegmentPosition += span.Length;
-        _size+=span.Length;
+        _size += span.Length;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -68,6 +72,7 @@ public ref struct BufferedArrayBuilder<T>
 
     public void AddRange(IReadOnlyCollection<T> c) => AddRange(c, c.Count);
     public void AddRange(ICollection<T> c) => AddRange(c, c.Count);
+
     private void AddRange(IEnumerable<T> collection, int count)
     {
         if (count == 0) return;
@@ -79,6 +84,7 @@ public ref struct BufferedArrayBuilder<T>
             AddEnumerating(collection);
             return;
         }
+
         foreach (var elem in collection) AddAssumingSpace(elem);
     }
 
@@ -158,14 +164,14 @@ public ref struct BufferedArrayBuilder<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void ExpandAdd(T current)
     {
-        if (OnFirstSegment && Freelist.TryGrow(in _firstSegment,_firstSegment.Span.Length))
+        if (OnFirstSegment && Freelist.TryGrow(in _firstSegment, _firstSegment.Span.Length))
         {
             _currentSegment = _firstSegment.Span;
             _currentSegment[_curSegmentPosition] = current;
             return;
         }
 
-        var nextSize = _currentSegment.Length * 2;
+        var nextSize = int.Max(1,_currentSegment.Length * 2);
         if (nextSize < 0) ThrowHelper.ThrowInsufficientMemoryException();
         nextSize = int.Min(nextSize, Array.MaxLength);
         var poolBuf = Pool.Rent<T>(nextSize);
@@ -184,7 +190,7 @@ public ref struct BufferedArrayBuilder<T>
             if (growth != 0) return growth >= target;
         }
 
-        var nextSize = target*2;
+        var nextSize = target * 2;
         if (nextSize < 0) ThrowHelper.ThrowInsufficientMemoryException();
         nextSize = int.Min(nextSize, Array.MaxLength);
         var poolBuf = Pool.Rent<T>(nextSize);
@@ -207,7 +213,7 @@ public ref struct BufferedArrayBuilder<T>
  #pragma warning disable CS0169 // Field is never used
  #pragma warning disable CS0649 // Field is never used
  // ReSharper disable once UnassignedField.Local
-        private Pool.Buffer<T> _0,_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,_17,_18,_19,_20,_21,_22,_23,_24,_25,_26,_27;
+        private Pool.Buffer<T> _0,_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,_17,_18,_19,_20,_21,_22,_23,_24,_25,_26;
  #pragma warning restore CS0649 // Field is never used
  #pragma warning restore CS0169 // Field is never used
         // @formatter:on
@@ -229,12 +235,10 @@ public ref struct BufferedArrayBuilder<T>
     public readonly List<T> ToList()
     {
         var count = _size;
-        if (count==0) return [];
-        var list=new List<T>(count);
-        CollectionsMarshal.SetCount(list,count);
+        if (count == 0) return [];
+        var list = new List<T>(count);
+        CollectionsMarshal.SetCount(list, count);
         ToSpanInlined(CollectionsMarshal.AsSpan(list));
         return list;
-        
     }
-    
 }

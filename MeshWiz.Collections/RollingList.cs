@@ -281,8 +281,12 @@ public sealed class RollingList<T> : IVersionedList<T>, IReadOnlyList<T>
     public void Clear()
     {
         _version++;
-        if(!TypeOf<T>.Unmanaged)
-            Array.Fill(_items, default!);
+        if (Count!=0&&RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+        {
+            GetSpans(out var lower, out var upper);
+            lower.Clear();
+            upper.Clear();
+        }
         _headIndex = 0;
         _postTailIndex = 0;
         Count = 0;
@@ -313,18 +317,24 @@ public sealed class RollingList<T> : IVersionedList<T>, IReadOnlyList<T>
     public void CopyTo(T[] array, int arrayIndex)
     {
         if (Count == 0) return;
+        GetSpans(out var lower, out var upper);
+        var arrSpan = array.AsSpan();
+        lower.CopyTo(arrSpan.Slice(arrayIndex,lower.Length));
+        upper.CopyTo(arrSpan.Slice(arrayIndex+lower.Length,upper.Length));
+    }
+
+    private void GetSpans(out Span<T> lower,out Span<T> upper)
+    {
+        lower = upper = [];
+        if(Count==0) return;
         var itemSpan = _items.AsSpan();
         var overflow = _headIndex >= _postTailIndex;
-        var firstChunk = overflow
+        lower = overflow
             ? itemSpan[_headIndex..itemSpan.Length]
             : itemSpan[_headIndex.._postTailIndex];
-        firstChunk.CopyTo(array.AsSpan(arrayIndex));
-
-        var remainder = Count - firstChunk.Length;
+        var remainder = Count - lower.Length;
         if (remainder < 1) return;
-
-        var secondChunk = itemSpan[..remainder];
-        secondChunk.CopyTo(array.AsSpan(arrayIndex + firstChunk.Length));
+        upper = itemSpan[..remainder];
     }
 
     /// <inheritdoc />

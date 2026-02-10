@@ -22,7 +22,7 @@ public static partial class Iterator
                 return true;
         }
 
-        if ((comparer is null || Equals(comparer, EqualityComparer<T>.Default)) && TypeOf<T>.Unmanaged)
+        if ((comparer is null || Equals(comparer, EqualityComparer<T>.Default)) && !RuntimeHelpers.IsReferenceOrContainsReferences<T>())
             return VectorizedSequenceEqual<TLeft, TRight, T>(l, r);
         return ComparerSequenceEqual(l, r, comparer);
     }
@@ -44,7 +44,7 @@ public static partial class Iterator
         where TLeft : IRefIterator<TLeft, T>, allows ref struct
         where TRight : IRefIterator<TRight, T>, allows ref struct
     {
-        Debug.Assert(TypeOf<T>.Unmanaged);
+        Debug.Assert(!RuntimeHelpers.IsReferenceOrContainsReferences<T>());
         if (left.TryConvertToSpanIter<TLeft, T>(out var lSpanIter) &&
             right.TryConvertToSpanIter<TRight, T>(out var rSpanIter))
             return lSpanIter.OriginalSource.SequenceEqual(rSpanIter.OriginalSource);

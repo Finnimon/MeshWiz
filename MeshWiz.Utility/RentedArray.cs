@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 
 namespace MeshWiz.Utility;
@@ -44,7 +45,7 @@ public readonly ref struct RentedArray<T> : IDisposable
     public void Dispose()
     {
         if (!_rented) return;
-        _source?.Return(_array, clearArray: _clearUnmanaged || !TypeOf<T>.Unmanaged);
+        _source?.Return(_array, clearArray: _clearUnmanaged || RuntimeHelpers.IsReferenceOrContainsReferences<T>());
     }
 
     public static implicit operator Span<T>(RentedArray<T> arr) => GetArray(arr).AsSpan(0, arr._targetLength);
