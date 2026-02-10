@@ -7,7 +7,7 @@ public sealed partial class Freelist
 {
     public ref struct Buffer<T>
     {
-        internal readonly Freelist? _allocator;
+        internal readonly Freelist _allocator;
         internal readonly nuint[] _src;
         public readonly Span<T> Span;
         internal readonly int _wordStart;
@@ -22,7 +22,7 @@ public sealed partial class Freelist
             return _alive;
         }
         
-        internal Buffer(int wordStart, Span<T> span, Freelist? allocator, nuint[] src, int wordCount)
+        internal Buffer(int wordStart, Span<T> span, Freelist allocator, nuint[] src, int wordCount)
         {
             _alive = true;
             _wordStart = wordStart;
@@ -32,7 +32,7 @@ public sealed partial class Freelist
             _wordCount = wordCount;
         }
 
-        internal Buffer(bool alive, int wordStart, Span<T> span, Freelist? allocator, nuint[] src,  int wordCount)
+        internal Buffer(bool alive, int wordStart, Span<T> span, Freelist allocator, nuint[] src,  int wordCount)
         {
             _alive = alive;
             _wordStart = wordStart; 
@@ -49,17 +49,20 @@ public sealed partial class Freelist
             _allocator?.Release(this);
         }
 
+        public void Dispose(int writtenLength)
+        {
+            if(!_alive) return;
+            _alive = false;
+            _allocator?.Release(this,writtenLength);
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining),System.Diagnostics.Contracts.Pure]
         internal static Buffer<T> FromWordBuf(Buffer<nuint> underlying, int length)
         {
             var reinterpret = MemoryMarshal.CreateSpan(ref Unsafe.As<nuint,T>(ref MemoryMarshal.GetReference(underlying.Span)),length);
-            return new Buffer<T>(
-                underlying._wordStart,
-                reinterpret,
-                underlying._allocator,
-                underlying._src,
-                underlying._wordCount
-            );
+            var buf=Unsafe.As<Buffer<nuint>,Buffer<T>>(ref underlying);
+            Unsafe.AsRef(in buf.Span)=reinterpret;
+            return buf;
         }
     }
 }

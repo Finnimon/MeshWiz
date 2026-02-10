@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.Diagnostics;
@@ -16,13 +17,26 @@ public ref struct BufferedArrayBuilder<T>
     private int _size;
     private int _poolBufCount;
     private int _curSegmentPosition = -1;
-    public readonly bool OnFirstSegment => _poolBufCount == 0;
+    public readonly bool OnFirstSegment
+    {
+        [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _poolBufCount == 0;
+    }
+
     public readonly int Count => _size;
     public const int MinInitialSize = 128;
-    public BufferedArrayBuilder() : this(MinInitialSize, true) { }
 
-    public BufferedArrayBuilder(int capacity) : this(int.Max(MinInitialSize, capacity), true) { }
+    public BufferedArrayBuilder()
+    {
+        _firstSegment = Freelist.Shared.Rent<T>(MinInitialSize);
+        _currentSegment = _firstSegment.Span;
+    }
 
+    public BufferedArrayBuilder(int capacity)
+    {
+        _firstSegment = Freelist.Shared.Rent<T>(int.Max(capacity,MinInitialSize));
+        _currentSegment = _firstSegment.Span;
+    }
     private BufferedArrayBuilder(int initial, bool _)
     {
         _firstSegment = Freelist.Shared.Rent<T>(initial);
@@ -164,7 +178,7 @@ public ref struct BufferedArrayBuilder<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void ExpandAdd(T current)
     {
-        if (OnFirstSegment && Freelist.TryGrow(in _firstSegment, _firstSegment.Span.Length))
+        if (OnFirstSegment && 0!=Freelist.GrowGreedy(in _firstSegment))
         {
             _currentSegment = _firstSegment.Span;
             _currentSegment[_curSegmentPosition] = current;
@@ -202,6 +216,11 @@ public ref struct BufferedArrayBuilder<T>
 
     public void Dispose()
     {
+        if (_poolBufCount == 0)
+        {
+            _firstSegment.Dispose(_size);
+            return;
+        }
         _firstSegment.Dispose();
         for (var i = 0; i < _poolBufCount; i++)
             _laterSegments[i].Dispose();

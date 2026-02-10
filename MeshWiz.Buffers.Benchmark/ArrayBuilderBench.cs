@@ -8,13 +8,13 @@ public class ArrayBuilderBench
     private IEnumerable<string> _refWrapper = new EnumerableWrapper<string>([]);
     private IEnumerable<int> _valWrapper = new EnumerableWrapper<int>([]);
 
-    [Params(0, 1, 2, 4, 8, 17, 4096, 1_000_000)]
+    [Params(/*0, 1, */2/*, 8, 17, 4096*/)]
     public int N;
 
-    [Params(nameof(IEnumerable<>), nameof(Array), nameof(ICollection<>), nameof(IReadOnlyCollection<>))]
+    [Params(nameof(IEnumerable<>)/*, nameof(Array), nameof(ICollection<>), nameof(IReadOnlyCollection<>)*/)]
     public string Mode { get; set; } = "";
 
-    [Params(true, false)] public bool ReferenceType;
+    [Params(false)] public bool ReferenceType;
 
     [GlobalSetup]
     public void Setup()

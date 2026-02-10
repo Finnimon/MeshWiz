@@ -8,7 +8,7 @@ namespace MeshWiz.Buffers.Benchmark;
 [DisassemblyDiagnoser(maxDepth: 2)] // later, when optimizing
 public class AllocatorBench<T>
 {
-    public const int LinearRentStep = 1_000, MaxLinearRentSize = 1_000_000;
+    public const int LinearRentStep = 1_000, MaxLinearRentSize = 128;
     private Freelist _allocator = new Freelist(MaxLinearRentSize, false);
 
     [GlobalCleanup]
@@ -18,12 +18,12 @@ public class AllocatorBench<T>
     }
 
     //
-    // [Benchmark(Baseline = true)]
-    // public void LinearArrayPool()
-    // {
-    //     var rent = ArrayPool<T>.Shared.Rent(MaxLinearRentSize);
-    //     ArrayPool<T>.Shared.Return(rent, clearArray: false);
-    // }
+    [Benchmark(Baseline = true)]
+    public void LinearArrayPool()
+    {
+        var rent = ArrayPool<T>.Shared.Rent(MaxLinearRentSize);
+        ArrayPool<T>.Shared.Return(rent);
+    }
     // //
     // [Benchmark]
     // public void LinearPool()
@@ -34,23 +34,23 @@ public class AllocatorBench<T>
     [Benchmark]
     public void Freelist()
     {
-        using var rent = _allocator.Rent<T>(MaxLinearRentSize);
+        using var rent = Buffers.Freelist.Shared.Rent<T>(MaxLinearRentSize);
     }
 
-    [Benchmark]
-    public void FreelistGrow()
-    {
-        using var rent = _allocator.Rent<T>(MaxLinearRentSize-500);
-        var initital = rent.Span.Length;
-        Buffers.Freelist.GrowGreedy(in rent);
-    }
-
-    [Benchmark]
-    public void FreelistTryGrow()
-    {
-        using var rent = _allocator.Rent<T>(MaxLinearRentSize-500);
-        Buffers.Freelist.TryGrow(in rent,20);
-    }
+    // [Benchmark]
+    // public void FreelistGrow()
+    // {
+    //     using var rent = _allocator.Rent<T>(MaxLinearRentSize-500);
+    //     var initital = rent.Span.Length;
+    //     Buffers.Freelist.GrowGreedy(in rent);
+    // }
+    //
+    // [Benchmark]
+    // public void FreelistTryGrow()
+    // {
+    //     using var rent = _allocator.Rent<T>(MaxLinearRentSize-500);
+    //     Buffers.Freelist.TryGrow(in rent,20);
+    // }
     //
     //
     // [Benchmark]

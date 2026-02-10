@@ -55,7 +55,7 @@ public partial class Freelist
     {
         private int[] keys; // Do not rename (binary serialization)
         private int[] values; // Do not rename (binary serialization)
-        private int _size; // Do not rename (binary serialization)
+        public int Count; // Do not rename (binary serialization)
         private readonly Comparer<int> comparer; // Do not rename (binary serialization)
 
         private const int DefaultCapacity = 4;
@@ -70,7 +70,7 @@ public partial class Freelist
         {
             keys = [];
             values = [];
-            _size = 0;
+            Count = 0;
             comparer = Comparer<int>.Default;
         }
 
@@ -103,7 +103,7 @@ public partial class Freelist
         //
         public void Add(int key, int value)
         {
-            int i = Array.BinarySearch(keys, 0, _size, key, comparer);
+            int i = Array.BinarySearch(keys, 0, Count, key, comparer);
             if (i >= 0) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(key));
 
             Insert(~i, key, value);
@@ -122,13 +122,13 @@ public partial class Freelist
             set
             {
                 if (value == keys.Length) return;
-                if (value < _size) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(value));
+                if (value < Count) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(value));
 
                 if (value > 0)
                 {
                     var newKeys = GC.AllocateUninitializedArray<int>(value);
                     var newValues = GC.AllocateUninitializedArray<int>(value);
-                    if (_size > 0)
+                    if (Count > 0)
                     {
                         Keys.CopyTo(newKeys);
                         Values.CopyTo(newValues);
@@ -145,9 +145,6 @@ public partial class Freelist
             }
         }
 
-        // Returns the number of entries in this sorted list.
-        public int Count => _size;
-
         public unsafe Span<int> Keys => MemoryMarshal.CreateSpan(ref MemoryMarshal.GetArrayDataReference(keys), Count);
 
         public unsafe Span<int> Values =>
@@ -155,10 +152,11 @@ public partial class Freelist
 
         // Removes all entries from this sorted list.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Clear() => _size = 0;
+        public void Clear() => Count = 0;
 
 
         // Checks if this sorted list contains an entry with the given key.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ContainsKey(int key)
         {
             return IndexOfKey(key) >= 0;
@@ -175,6 +173,7 @@ public partial class Freelist
         // Ensures that the capacity of this sorted list is at least the given
         // minimum value. The capacity is increased to twice the current capacity
         // or to min, whichever is larger.
+        [MethodImpl(MethodImplOptions.NoInlining)]
         private void EnsureCapacity(int min)
         {
             int newCapacity = keys.Length == 0 ? DefaultCapacity : keys.Length * 2;
@@ -200,6 +199,7 @@ public partial class Freelist
         /// <param name="index">The zero-based index of the value within the entire <see cref="SortedList{TKey,TValue}"/>.</param>
         /// <param name="value">The value with which to replace the entry at the specified index.</param>
         /// <exception cref="ArgumentOutOfRangeException">The specified index was out of range.</exception>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetValueAtIndex(int index, int value) => values[index] = value;
 
         /// <summary>
@@ -208,18 +208,14 @@ public partial class Freelist
         /// <param name="index">The zero-based index of the key within the entire <see cref="SortedList{TKey,TValue}"/>.</param>
         /// <returns>The key corresponding to the specified index.</returns>
         /// <exception cref="ArgumentOutOfRangeException">The specified index is out of range.</exception>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int GetKeyAtIndex(int index) => keys[index];
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public KeyValuePair<int, int> GetEntryAtIndex(int index) => new(keys[index], values[index]);
 
-        public void SetKeyAtIndex(int index, int key)
-        {
-            keys[index] = key;
-#if DEBUG
-            var okay = (index == 0 ||keys[index-1]<key)&&(index==_size-1||keys[index+1]>key);
-            if(okay) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(key));
-#endif
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetKeyAtIndex(int index, int key) => keys[index] = key;
 
         // Returns the value associated with the given key. If an entry with the
         // given key is not found, the returned value is null.
@@ -235,7 +231,7 @@ public partial class Freelist
             }
             set
             {
-                var i = Array.BinarySearch(keys, 0, _size, key, comparer);
+                var i = Array.BinarySearch(keys, 0, Count, key, comparer);
                 if (i >= 0)
                 {
                     values[i] = value;
@@ -254,26 +250,26 @@ public partial class Freelist
         // key value.
         public int IndexOfKey(int key)
         {
-            if (_size == 1) return keys[0] == key ? 0 : -1;
-            var ret = Array.BinarySearch(keys, 0, _size, key, comparer);
+            if (Count == 1) return keys[0] == key ? 0 : -1;
+            var ret = Array.BinarySearch(keys, 0, Count, key, comparer);
             return ret >= 0 ? ret : -1;
         }
 
         public int IndexOfValue(int value)
         {
-            if (_size == 1) return values[0] == value ? 0 : -1;
-            var ret = Array.BinarySearch(values, 0, _size, value, comparer);
+            if (Count == 1) return values[0] == value ? 0 : -1;
+            var ret = Array.BinarySearch(values, 0, Count, value, comparer);
             return ret >= 0 ? ret : -1;
         }
 
         // Inserts an entry with a given key and value at a given index.
         public void Insert(int index, int key, int value)
         {
-            if (_size == keys.Length) EnsureCapacity(_size + 1);
-            if (index < _size)
+            if (Count == keys.Length) EnsureCapacity(Count + 1);
+            if (index < Count)
             {
-                Array.Copy(keys, index, keys, index + 1, _size - index);
-                Array.Copy(values, index, values, index + 1, _size - index);
+                Array.Copy(keys, index, keys, index + 1, Count - index);
+                Array.Copy(values, index, values, index + 1, Count - index);
             }
 
             keys[index] = key;
@@ -284,13 +280,13 @@ public partial class Freelist
         // decreased by one.
         public void RemoveAt(int index)
         {
-            if (index < 0 || index >= _size)
+            if (index < 0 || index >= Count)
                 ThrowHelper.ThrowArgumentOutOfRangeException(nameof(index));
-            _size--;
-            if (index < _size)
+            Count--;
+            if (index < Count)
             {
-                Array.Copy(keys, index + 1, keys, index, _size - index);
-                Array.Copy(values, index + 1, values, index, _size - index);
+                Array.Copy(keys, index + 1, keys, index, Count - index);
+                Array.Copy(values, index + 1, values, index, Count - index);
             }
         }
 
@@ -298,8 +294,8 @@ public partial class Freelist
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AddAssumeOrdered(int key, int value)
         {
-            var idx = _size++;
-            if (idx == keys.Length) EnsureCapacity(_size);
+            var idx = Count++;
+            if (idx == keys.Length) EnsureCapacity(Count);
             keys[idx] = key;
             values[idx] = value;
         }

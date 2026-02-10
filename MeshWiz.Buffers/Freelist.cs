@@ -34,10 +34,10 @@ public sealed partial class Freelist
         ClearUponReturn = clearUponReturn;
     }
 
-    [MustUseReturnValue,MustDisposeResource]
+    [MustUseReturnValue, MustDisposeResource, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Buffer<T> Rent<T>(int length)
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(length, nameof(length));
+        if (length < 0) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(length));
         if (length == 0) return EmptyBuffer<T>();
         var wordCount = Utilities.GetWordCount<T>(length);
         return Buffer<T>.FromWordBuf(RentInternal(wordCount), length);
@@ -46,24 +46,26 @@ public sealed partial class Freelist
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Buffer<nuint> RentInternal(int length)
     {
-        if (length < 0 || length > Array.MaxLength) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(length));
-        if (length > (_activeBuffer.Length - _rentedWordCount)) return RentOnNewBuffer(length);
-        return _occupiedChunks.Count switch
+        if (length <= (_activeBuffer.Length - _rentedWordCount))
         {
-            0 => FastRentFromStart(length),
-            1 => FastDenseRent(length),
-            _ => FindGapRent(length)
-        };
+            if (_rentedBufCount == 0)
+                return FastRentFromStart(length);
+            if (_occupiedChunks.Count == 1)
+                return FastDenseRent(length);
+            return FindGapRent(length);
+        }
+
+        return RentOnNewBuffer(length);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Buffer<T> EmptyBuffer<T>() => new(true, 0, [], null, [], 0);
+    internal Buffer<T> EmptyBuffer<T>() => new(true, 0, [], this, [], 0);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private Buffer<nuint> FindGapRent(int len)
     {
         var chunkCount = _occupiedChunks.Count;
-        var lastIndex = chunkCount-1;
+        var lastIndex = chunkCount - 1;
         var totalEnd = _occupiedChunks.GetValueAtIndex(lastIndex);
         var totalGapsSize = totalEnd - _rentedBufCount;
         var gapCount = lastIndex;
@@ -71,11 +73,11 @@ public sealed partial class Freelist
         var maybeGapPossible = maxGapSize >= len;
         if (!maybeGapPossible)
         {
-            var rem = _activeBuffer.Length-totalEnd;
+            var rem = _activeBuffer.Length - totalEnd;
             if (rem >= len) return RentAfter(lastIndex, len, totalEnd);
             return RentOnNewBuffer(len);
         }
-        
+
         KeyValuePair<int, int> previous = new(0, 0);
         var pos = 0;
         for (var i = 0; i < chunkCount; i++)
@@ -83,18 +85,17 @@ public sealed partial class Freelist
             var chunk = _occupiedChunks.GetEntryAtIndex(i);
             var gapSize = chunk.Key - previous.Value;
             if (gapSize > len || i == 0 && gapSize == len)
-                return RentBefore(i, len,chunk);
+                return RentBefore(i, len, chunk);
             if (gapSize == len)
-                return RentBetween(i - 1, i, len,previous,chunk);
+                return RentBetween(i - 1, i, len, previous, chunk);
             if (++pos == chunkCount && len <= _activeBuffer.Length - chunk.Value)
-                return RentAfter(i, len,chunk.Value);
+                return RentAfter(i, len, chunk.Value);
             previous = chunk;
         }
 
         return RentOnNewBuffer(len);
     }
 
-    
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private Buffer<nuint> RentOnNewBuffer(int length)
@@ -115,7 +116,8 @@ public sealed partial class Freelist
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Buffer<UIntPtr> RentBetween(int chunkBefore, int chunkAfter, int len, KeyValuePair<int, int> previous, KeyValuePair<int, int> chunk)
+    private Buffer<UIntPtr> RentBetween(int chunkBefore, int chunkAfter, int len, KeyValuePair<int, int> previous,
+        KeyValuePair<int, int> chunk)
 
     {
         var bufStart = previous.Value;
@@ -197,8 +199,7 @@ public sealed partial class Freelist
     {
         _rentedBufCount++;
         _rentedWordCount += length;
-        var span = MemoryMarshal.CreateSpan(
-            ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_activeBuffer), start), length);
+        var span = MemoryMarshal.CreateSpan(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_activeBuffer), start), length);
         return new Buffer<nuint>(start, span, this, _activeBuffer, length);
     }
 
@@ -206,18 +207,24 @@ public sealed partial class Freelist
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void Release<T>(Buffer<T> buffer)
     {
-        if (ClearUponReturn||RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+        if (ClearUponReturn || RuntimeHelpers.IsReferenceOrContainsReferences<T>())
             buffer.Span.Clear();
-        if (!ReferenceEquals(_activeBuffer,buffer._src)) return;
+        ReleaseInternal(buffer);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void ReleaseInternal<T>(Buffer<T> buffer)
+    {
+        if (!ReferenceEquals(_activeBuffer, buffer._src)) return;
 
         _rentedBufCount--;
         var bufLen = buffer._wordCount;
         _rentedWordCount -= bufLen;
-        // if (_rentedCount == 0)
-        // {
-        //     _occupiedChunks.Clear();
-        //     return;
-        // }
+        if (_rentedBufCount == 0)
+        {
+            _occupiedChunks.Clear();
+            return;
+        }
 
         var bufStart = buffer._wordStart;
         var bufEnd = bufStart + bufLen;
@@ -227,6 +234,12 @@ public sealed partial class Freelist
             return;
         }
 
+        SlowRemove(bufEnd, bufStart);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void SlowRemove(int bufEnd, int bufStart)
+    {
         var bufEndIdx = _occupiedChunks.IndexOfValue(bufEnd);
         if (bufEndIdx != -1)
         {
@@ -273,7 +286,7 @@ public sealed partial class Freelist
                 _occupiedChunks.AddAssumeOrdered(bufEnd, outerEnd);
                 break;
         }
-    }   
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void RemoveBufFromOuter(int bufStart, int bufEnd)
@@ -311,5 +324,13 @@ public sealed partial class Freelist
 
         return ThrowHelper.ThrowInvalidOperationException<int>(
             $"No containing chunk found for bufStart={bufStart}");
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void Release<T>(Buffer<T> buffer, int writtenLength)
+    {
+        if (ClearUponReturn || RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+            buffer.Span.Slice(0, writtenLength).Clear();
+        ReleaseInternal(buffer);
     }
 }

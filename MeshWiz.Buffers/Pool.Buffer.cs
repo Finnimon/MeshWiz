@@ -7,7 +7,7 @@ public static partial class Pool
 {
     public readonly ref struct Buffer<T>
     {
-        private readonly nint[] _words;
+        private readonly nuint[] _words;
         public readonly Span<T> Span;
         
         public Buffer()
@@ -15,7 +15,7 @@ public static partial class Pool
             _words = [];
             Span = [];
         }
-        internal Buffer(nint[] words)
+        internal Buffer(nuint[] words)
         {
             _words = words;
             Span = Utilities.UnsafeCast<T>(words);
@@ -25,7 +25,7 @@ public static partial class Pool
         {
             if (_words.Length == 0) return;
             if(RuntimeHelpers.IsReferenceOrContainsReferences<T>()) Span.Clear();
-            ArrayPool<nint>.Shared.Return(_words, clearArray: false);
+            ArrayPool<nuint>.Shared.Return(_words, clearArray: false);
         }
     }
 }

@@ -7,30 +7,28 @@ namespace MeshWiz.RefLinq;
 
 public static partial class Iterator
 {
-    public static T[] ToArray<T>(IEnumerable<T> enumerable) =>
-        enumerable switch
+    public static T[] ToArray<T>(IEnumerable<T> enumerable)
+    {
+        // if (enumerable is T[] arr) return arr.AsSpan().ToArray();
+        // if (enumerable is List<T> l) return CollectionsMarshal.AsSpan(l).ToArray();
+        // if (enumerable is ICollection<T> col) return IColToArray<T>(col);
+        // return ArrBuilderToArray(enumerable);
+        return enumerable switch
         {
-            T[] arr => arr.AsSpan().ToArray(),
-            List<T> l => CollectionsMarshal.AsSpan(l).ToArray(),
-            ICollection<T> c => IColToArray(c),
-            IReadOnlyCollection<T> r => KnownCountToArray(r, r.Count),
-            ICollection c2 => IColToArray<T>(c2),
+            // T[] arr => arr.AsSpan().ToArray(),
+            // List<T> l => CollectionsMarshal.AsSpan(l).ToArray(),
+            // ICollection<T> c => IColToArray(c),
+            // IReadOnlyCollection<T> r => KnownCountToArray(r, r.Count),
+            // ICollection c2 => IColToArray<T>(c2),
             _ => ArrBuilderToArray(enumerable)
         };
-    
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static T[] ArrBuilderToArray<T>(IEnumerable<T> enumerable)
-    {
-        using var iterator = enumerable.GetEnumerator();
-        return !iterator.MoveNext() ? [] : ForceEnumeration(iterator);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static T[] ForceEnumeration<T>(IEnumerator<T> iterator)
+    private static T[] ArrBuilderToArray<T>(IEnumerable<T> enumerable)
     {
         using BufferedArrayBuilder<T> b = new();
-        b.AddInlined(iterator.Current);
-        b.AddEnumeratorInlined(iterator);
+        b.AddEnumeratingInlined(enumerable);
         return b.ToArray();
     }
 
@@ -110,7 +108,7 @@ public static partial class Iterator
         }
 
 
-        using BufferedArrayBuilder<TItem> builder = new(int.Max(8, iter.EstimateCount()));
+        using BufferedArrayBuilder<TItem> builder = new(iter.EstimateCount());
         builder.AddEnumeratorInlined(iter);
         return builder.ToArray();
     }
@@ -129,7 +127,7 @@ public static partial class Iterator
             return l;
         }
 
-        using BufferedArrayBuilder<TItem> builder = new(int.Max(8, iter.EstimateCount()));
+        using BufferedArrayBuilder<TItem> builder = new(iter.EstimateCount());
         builder.AddEnumeratorInlined(iter);
         return builder.ToList();
     }

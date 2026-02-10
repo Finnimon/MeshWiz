@@ -36,17 +36,29 @@ internal static class Utilities
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Span<TTo> UnsafeCast<TTo>(nint[] span)
+    internal static Span<TTo> UnsafeCast<TTo>(nuint[] span)
     {
-        uint num1 = (uint)nint.Size;
+        uint num1 = (uint)nuint.Size;
         uint num2 = (uint)Unsafe.SizeOf<TTo>();
         uint length1 = (uint)span.Length;
         int length2 = (int)num1 != (int)num2
             ? (num1 != 1U ? checked((int)unchecked((ulong)length1 * (ulong)num1 / (ulong)num2)) : (int)(length1 / num2))
             : (int)length1;
-        return MemoryMarshal.CreateSpan(ref Unsafe.As<nint, TTo>(ref MemoryMarshal.GetArrayDataReference(span)),
+        return MemoryMarshal.CreateSpan(ref Unsafe.As<nuint, TTo>(ref MemoryMarshal.GetArrayDataReference(span)),
             length2);
     }
+    // [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    // internal static Span<TTo> UnsafeCast<TTo>(Span<nuint> span)
+    // {
+    //     uint num1 = (uint)nint.Size;
+    //     uint num2 = (uint)Unsafe.SizeOf<TTo>();
+    //     uint length1 = (uint)span.Length;
+    //     int length2 = (int)num1 != (int)num2
+    //         ? (num1 != 1U ? checked((int)unchecked((ulong)length1 * (ulong)num1 / (ulong)num2)) : (int)(length1 / num2))
+    //         : (int)length1;
+    //     return MemoryMarshal.CreateSpan(ref Unsafe.As<nuint, TTo>(ref MemoryMarshal.GetReference(span)),
+    //         length2);
+    // }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static Span<T> Resize<T>(Span<T> span, int newSize) => MemoryMarshal.CreateSpan(ref MemoryMarshal.GetReference(span), newSize);
