@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // Modifications: Replaced IEnumerable with IEnumerator and ReadOnlySpan
+
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -10,7 +11,6 @@ namespace MeshWiz.RefLinq;
 /// <summary>Provides a helper for efficiently building arrays and lists.</summary>
 /// <remarks>This is implemented as an inline array of rented arrays.</remarks>
 /// <typeparam name="T">Specifies the element type of the collection being built.</typeparam>
-[Obsolete(nameof(BufferedArrayBuilder<>),error:false)]
 public ref struct SegmentedArrayBuilder<T>
 {
     /// <summary>The size to use for the first segment that's stack allocated by the caller.</summary>
@@ -151,7 +151,7 @@ public ref struct SegmentedArrayBuilder<T>
     /// </remarks>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void AddNonICollectionRange<TIter>(TIter source)
-        where TIter : IRefIterator<TIter,T>, allows ref struct
+        where TIter : IRefIterator<TIter, T>, allows ref struct
         => AddNonICollectionRangeInlined(source);
 
     /// <summary>Adds a collection of items into the builder.</summary>
@@ -161,12 +161,12 @@ public ref struct SegmentedArrayBuilder<T>
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void AddNonICollectionRangeInlined<TIter>(TIter source)
-        where TIter : IRefIterator<TIter,T>, allows ref struct
+        where TIter : IRefIterator<TIter, T>, allows ref struct
     {
         var currentSegment = _currentSegment;
         var countInCurrentSegment = _countInCurrentSegment;
         var couldCount = source.TryGetNonEnumeratedCount(out var addCount);
-        if(!couldCount)
+        if (!couldCount)
             while (source.MoveNext())
             {
                 var item = source.Current;
@@ -185,7 +185,7 @@ public ref struct SegmentedArrayBuilder<T>
             }
         else
         {
-            Expand(Count+addCount);
+            Expand(Count + addCount);
             while (source.MoveNext())
             {
                 var item = source.Current;
@@ -200,6 +200,32 @@ public ref struct SegmentedArrayBuilder<T>
                     currentSegment[0] = item;
                     countInCurrentSegment = 1;
                 }
+            }
+        }
+
+        _countInCurrentSegment = countInCurrentSegment;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void AddNonICollectionRangeInlined2<TIter>(TIter source)
+        where TIter : IEnumerator<T>, allows ref struct
+    {
+        var currentSegment = _currentSegment;
+        var countInCurrentSegment = _countInCurrentSegment;
+        while (source.MoveNext())
+        {
+            var item = source.Current;
+            if ((uint)countInCurrentSegment < (uint)currentSegment.Length)
+            {
+                currentSegment[countInCurrentSegment] = item;
+                countInCurrentSegment++;
+            }
+            else
+            {
+                Expand();
+                currentSegment = _currentSegment;
+                currentSegment[0] = item;
+                countInCurrentSegment = 1;
             }
         }
 
@@ -234,7 +260,7 @@ public ref struct SegmentedArrayBuilder<T>
         if (count != 0)
         {
             result = new List<T>(count);
-    
+
             CollectionsMarshal.SetCount(result, count);
             ToSpanInlined(CollectionsMarshal.AsSpan(result));
         }

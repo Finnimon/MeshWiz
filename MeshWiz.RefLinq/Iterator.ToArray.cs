@@ -25,7 +25,7 @@ public static partial class Iterator
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static T[] ArrBuilderToArray<T>(IEnumerable<T> enumerable)
+    public static T[] ArrBuilderToArray<T>(IEnumerable<T> enumerable)
     {
         using BufferedArrayBuilder<T> b = new();
         b.AddEnumeratingInlined(enumerable);

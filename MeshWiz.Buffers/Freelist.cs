@@ -30,7 +30,7 @@ public sealed partial class Freelist
         ArgumentOutOfRangeException.ThrowIfLessThan(initialByteSize, 0, nameof(initialByteSize));
         _initialWordCount = int.Max(1, Utilities.GetWordCount<byte>(initialByteSize));
         _activeBuffer = [];
-        _occupiedChunks = new WeakSortedList(4);
+        _occupiedChunks = new WeakSortedList(32);
         ClearUponReturn = clearUponReturn;
     }
 
@@ -59,7 +59,7 @@ public sealed partial class Freelist
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal Buffer<T> EmptyBuffer<T>() => new(true, 0, [], this, [], 0);
+    private Buffer<T> EmptyBuffer<T>() => new(true, 0, [], this, [], 0);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private Buffer<nuint> FindGapRent(int len)
@@ -207,8 +207,6 @@ public sealed partial class Freelist
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void Release<T>(Buffer<T> buffer)
     {
-        if (ClearUponReturn || RuntimeHelpers.IsReferenceOrContainsReferences<T>())
-            buffer.Span.Clear();
         ReleaseInternal(buffer);
     }
 
@@ -326,11 +324,4 @@ public sealed partial class Freelist
             $"No containing chunk found for bufStart={bufStart}");
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void Release<T>(Buffer<T> buffer, int writtenLength)
-    {
-        if (ClearUponReturn || RuntimeHelpers.IsReferenceOrContainsReferences<T>())
-            buffer.Span.Slice(0, writtenLength).Clear();
-        ReleaseInternal(buffer);
-    }
 }

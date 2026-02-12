@@ -55,7 +55,7 @@ public partial class Freelist
     {
         private int[] keys; // Do not rename (binary serialization)
         private int[] values; // Do not rename (binary serialization)
-        public int Count; // Do not rename (binary serialization)
+        internal int Count; // Do not rename (binary serialization)
         private readonly Comparer<int> comparer; // Do not rename (binary serialization)
 
         private const int DefaultCapacity = 4;
@@ -255,6 +255,7 @@ public partial class Freelist
             return ret >= 0 ? ret : -1;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int IndexOfValue(int value)
         {
             if (Count == 1) return values[0] == value ? 0 : -1;

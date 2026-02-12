@@ -17,9 +17,10 @@ public ref struct BufferedArrayBuilder<T>
     private int _size;
     private int _poolBufCount;
     private int _curSegmentPosition = -1;
+
     public readonly bool OnFirstSegment
     {
-        [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _poolBufCount == 0;
     }
 
@@ -34,9 +35,10 @@ public ref struct BufferedArrayBuilder<T>
 
     public BufferedArrayBuilder(int capacity)
     {
-        _firstSegment = Freelist.Shared.Rent<T>(int.Max(capacity,MinInitialSize));
+        _firstSegment = Freelist.Shared.Rent<T>(int.Max(capacity, MinInitialSize));
         _currentSegment = _firstSegment.Span;
     }
+
     private BufferedArrayBuilder(int initial, bool _)
     {
         _firstSegment = Freelist.Shared.Rent<T>(initial);
@@ -178,14 +180,20 @@ public ref struct BufferedArrayBuilder<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void ExpandAdd(T current)
     {
-        if (OnFirstSegment && 0!=Freelist.GrowGreedy(in _firstSegment))
+        if (_poolBufCount == 0 && 0 != Freelist.GrowGreedy(in _firstSegment))
         {
             _currentSegment = _firstSegment.Span;
             _currentSegment[_curSegmentPosition] = current;
             return;
         }
 
-        var nextSize = int.Max(1,_currentSegment.Length * 2);
+        PoolBufGrowAdd(current);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void PoolBufGrowAdd(T current)
+    {
+        var nextSize = int.Max(1, _currentSegment.Length * 2);
         if (nextSize < 0) ThrowHelper.ThrowInsufficientMemoryException();
         nextSize = int.Min(nextSize, Array.MaxLength);
         var poolBuf = Pool.Rent<T>(nextSize);
@@ -218,9 +226,10 @@ public ref struct BufferedArrayBuilder<T>
     {
         if (_poolBufCount == 0)
         {
-            _firstSegment.Dispose(_size);
+            _firstSegment.Dispose();
             return;
         }
+
         _firstSegment.Dispose();
         for (var i = 0; i < _poolBufCount; i++)
             _laterSegments[i].Dispose();
@@ -237,12 +246,10 @@ public ref struct BufferedArrayBuilder<T>
  #pragma warning restore CS0649 // Field is never used
  #pragma warning restore CS0169 // Field is never used
         // @formatter:on
-        public Pool.Buffer<T> this[int index]
+        public ref Pool.Buffer<T> this[int index]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => Unsafe.Add(ref Unsafe.AsRef(ref _0), index);
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set=>Unsafe.Add(ref Unsafe.AsRef(ref _0), index) = value;
+            get => ref Unsafe.Add(ref Unsafe.AsRef(ref _0), index);
         }
     }
 

@@ -46,16 +46,8 @@ public sealed partial class Freelist
         {
             if (!_alive) return;
             _alive = false;
-            _allocator?.Release(this);
+            if(_wordCount!=0)_allocator.Release(this);
         }
-
-        public void Dispose(int writtenLength)
-        {
-            if(!_alive) return;
-            _alive = false;
-            _allocator?.Release(this,writtenLength);
-        }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining),System.Diagnostics.Contracts.Pure]
         internal static Buffer<T> FromWordBuf(Buffer<nuint> underlying, int length)
         {

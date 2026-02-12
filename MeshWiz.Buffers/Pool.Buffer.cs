@@ -24,7 +24,6 @@ public static partial class Pool
         public void Dispose()
         {
             if (_words.Length == 0) return;
-            if(RuntimeHelpers.IsReferenceOrContainsReferences<T>()) Span.Clear();
             ArrayPool<nuint>.Shared.Return(_words, clearArray: false);
         }
     }

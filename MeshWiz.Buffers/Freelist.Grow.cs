@@ -9,7 +9,6 @@ public sealed partial class Freelist
     public static int GrowGreedy<T>(in Buffer<T> buf)
     {
         var alloc = buf._allocator;
-        if (alloc is null) return 0;
         if (!buf._alive) ThrowHelper.ThrowInvalidOperationException("Dead buffer.");
         if (!ReferenceEquals(alloc._activeBuffer,buf._src)) return 0;
         var bufEnd = buf._wordStart + buf._wordCount;
@@ -24,11 +23,12 @@ public sealed partial class Freelist
         return GreedyGapGrow(in buf, bufIndex, alloc);
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static int GreedyGapGrow<T>(in Buffer<T> buf, int bufIndex, Freelist alloc)
     {
         var nextChunkIndex = bufIndex + 1;
-        var nextChunk = alloc._occupiedChunks.GetEntryAtIndex(nextChunkIndex);
-        var space = nextChunk.Key - buf._wordStart;
+        var nextChunkStart = alloc._occupiedChunks.GetKeyAtIndex(nextChunkIndex);
+        var space = nextChunkStart - buf._wordStart;
         var maxWords = GetMaxWordCount<T>();
         var targetSize = int.Min(maxWords, space);
         var newElemCount = Utilities.GetElemCount<T>(targetSize);
@@ -85,14 +85,14 @@ public sealed partial class Freelist
         if (!buf._alive) return false;
         if (growBy == 0) return true;
         var alloc = buf._allocator;
-        if (alloc is null) return false;
-        if (!ReferenceEquals(alloc._activeBuffer,buf._src)) return false;
+        var activeBuffer = alloc._activeBuffer;
+        if (!ReferenceEquals(activeBuffer,buf._src)) return false;
 
         var totalLen = buf.Span.Length + growBy;
         var totalWordCount = Utilities.GetWordCount<T>(totalLen);
         var bufEnd = buf._wordCount + buf._wordStart;
         var targetBufEnd = totalWordCount + buf._wordStart;
-        var totalMemLength = alloc._activeBuffer.Length;
+        var totalMemLength = activeBuffer.Length;
 
         if (targetBufEnd > totalMemLength) return false;
 
@@ -114,6 +114,7 @@ public sealed partial class Freelist
             totalWordCount);
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static bool SlowGrow<T>(in Buffer<T> buf, Freelist alloc, int bufEnd, int targetBufEnd,
         int totalLen,
         int totalWordCount)

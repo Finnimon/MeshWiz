@@ -16,7 +16,7 @@
     
     <ItemGroup>
         <ProjectReference Include="../MeshWiz.Math/MeshWiz.Math.csproj"/>
-        <ProjectReference Include="..\MeshWiz.Contracts\MeshWiz.Contracts.csproj" />
+        <ProjectReference Include="../MeshWiz.Contracts/MeshWiz.Contracts.csproj" />
     </ItemGroup>
 
     <ItemGroup>
