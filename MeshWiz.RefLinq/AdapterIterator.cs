@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using CommunityToolkit.Diagnostics;
+using MeshWiz.Buffers;
 using MeshWiz.Utility;
 
 namespace MeshWiz.RefLinq;
@@ -96,14 +98,33 @@ public readonly partial struct AdapterIterator<T> : IRefIterator<AdapterIterator
         => Take(num..);
 
     /// <inheritdoc />
-    public T[] ToArray() => Iterator.ToArray<AdapterIterator<T>, T>(this);
+    public T[] ToArray()
+    {
+        if (_imp.TryGetNonEnumeratedCount(out var count))
+        {
+            var arr = GC.AllocateUninitializedArray<T>(count);
+            _imp.CopyTo(arr);
+            return arr;
+        }
+
+        return ArrayBuilder.Helper<T>.ToArray(_imp.Underlying);
+    }
 
     public bool TryGetSpan(out ReadOnlySpan<T> span) => _imp.TryGetSpan(out span);
 
     /// <inheritdoc />
     public List<T> ToList()
-        => Iterator.ToList<AdapterIterator<T>, T>(this);
+    {
+        if (_imp.TryGetNonEnumeratedCount(out var count))
+        {
+            List<T> list = new(count);
+            CollectionsMarshal.SetCount(list,count);
+            _imp.CopyTo(CollectionsMarshal.AsSpan(list));
+            return list;
+        }
 
+        return ArrayBuilder.Helper<T>.ToList(_imp.Underlying);
+    }
     /// <inheritdoc />
     public HashSet<T> ToHashSet()
         => ToHashSet(null);

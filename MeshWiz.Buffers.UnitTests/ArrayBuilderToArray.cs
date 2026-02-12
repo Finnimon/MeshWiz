@@ -1,11 +1,14 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using NUnit.Framework;
 
 namespace MeshWiz.Buffers.UnitTests;
 
+[SuppressMessage("ReSharper", "PossibleMultipleEnumeration")]
 public class ArrayBuilderToArray
 {
     [TestCaseSource(typeof(EnumerableTestCases), nameof(EnumerableTestCases.Cases))]
+    [Obsolete]
     public void Buffered<T>(IEnumerable<T> data)
     {
         var res = ArrayBuilder.Buffered<T>.ToArray(data);
@@ -17,4 +20,20 @@ public class ArrayBuilderToArray
         var res = ArrayBuilder.Segmented<T>.ToList(data);
         Assert.That(res,Is.EquivalentTo(data));
     }
+    [TestCaseSource(typeof(EnumerableTestCases), nameof(EnumerableTestCases.Cases))]
+    [Obsolete]
+    public void Pooled<T>(IEnumerable<T> data)
+    {
+        var res = ArrayBuilder.Pooled<T>.ToList(data);
+        Assert.That(res,Is.EquivalentTo(data));
+    }
+    
+    
+    [TestCaseSource(typeof(EnumerableTestCases), nameof(EnumerableTestCases.Cases))]
+    public void Enumerable<T>(IEnumerable<T> data)
+    {
+        var res = System.Linq.Enumerable.ToList(data);
+        Assert.That(res,Is.EquivalentTo(data));
+    }
+    
 }

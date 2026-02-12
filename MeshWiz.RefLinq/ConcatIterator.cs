@@ -1,5 +1,7 @@
 using System.Collections;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
+using MeshWiz.Buffers;
 using MeshWiz.Utility;
 
 namespace MeshWiz.RefLinq;
@@ -130,18 +132,21 @@ public ref struct ConcatIterator<TLeft, TRight, TItem>(TLeft l, TRight r)
     /// <inheritdoc />
     public TItem[] ToArray()
     {
-        using BufferedArrayBuilder<TItem> b = new(EstimateCount());
-        b.AddEnumerator(_left);
-        b.AddEnumerator(_right);
+        Unsafe.SkipInit(out ArrayBuilder.Scratch<TItem> s);
+        using ArrayBuilder.Segmented<TItem> b = new(s);
+        b.AddEnumeratorInlined(_left);
+        b.AddEnumeratorInlined(_right);
         return b.ToArray();
     }
+    
 
     /// <inheritdoc />
     public List<TItem> ToList()
     {
-        using BufferedArrayBuilder<TItem> b = new(EstimateCount());
-        b.AddEnumerator(_left);
-        b.AddEnumerator(_right);
+        Unsafe.SkipInit(out ArrayBuilder.Scratch<TItem> s);
+        using ArrayBuilder.Segmented<TItem> b = new(s);
+        b.AddEnumeratorInlined(_left);
+        b.AddEnumeratorInlined(_right);
         return b.ToList();
     }
 

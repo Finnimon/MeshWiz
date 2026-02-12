@@ -10,7 +10,7 @@ internal static class Utilities
     internal static int GetWordCount<T>(int length)
     {
         var size = Unsafe.SizeOf<T>() * (long)length;
-        var align = nint.Size;
+        const long align = 16;
         size = (size + align - 1) / align * align;
         return (int)(size / align);
     }
@@ -19,13 +19,13 @@ internal static class Utilities
     internal static int GetWordCount<T>(long length)
     {
         var size = Unsafe.SizeOf<T>() * length;
-        var align = nint.Size;
+        const long align = 16;
         size = (size + align - 1) / align * align;
         return (int)(size / align);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
-    internal static int GetElemCount<T>(long wordCount) => (int)((wordCount * nint.Size) / Unsafe.SizeOf<T>());
+    internal static int GetElemCount<T>(long wordCount) => (int)((wordCount * 16) / Unsafe.SizeOf<T>());
 
 
     public enum MemoryPressure
@@ -36,15 +36,28 @@ internal static class Utilities
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Span<TTo> UnsafeCast<TTo>(nuint[] span)
+    internal static Span<TTo> UnsafeCast<TTo>(UInt128[] span)
     {
-        uint num1 = (uint)nuint.Size;
+        uint num1 = 16U;
         uint num2 = (uint)Unsafe.SizeOf<TTo>();
         uint length1 = (uint)span.Length;
         int length2 = (int)num1 != (int)num2
             ? (num1 != 1U ? checked((int)unchecked((ulong)length1 * (ulong)num1 / (ulong)num2)) : (int)(length1 / num2))
             : (int)length1;
-        return MemoryMarshal.CreateSpan(ref Unsafe.As<nuint, TTo>(ref MemoryMarshal.GetArrayDataReference(span)),
+        return MemoryMarshal.CreateSpan(ref Unsafe.As<UInt128, TTo>(ref MemoryMarshal.GetArrayDataReference(span)),
+            length2);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Span<TTo> UnsafeCast<TTo>(Span<UInt128> span)
+    {
+        uint num1 = 16U;
+        uint num2 = (uint)Unsafe.SizeOf<TTo>();
+        uint length1 = (uint)span.Length;
+        int length2 = (int)num1 != (int)num2
+            ? (num1 != 1U ? checked((int)unchecked((ulong)length1 * (ulong)num1 / (ulong)num2)) : (int)(length1 / num2))
+            : (int)length1;
+        return MemoryMarshal.CreateSpan(ref Unsafe.As<UInt128, TTo>(ref MemoryMarshal.GetReference(span)),
             length2);
     }
     // [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -61,7 +74,8 @@ internal static class Utilities
     // }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Span<T> Resize<T>(Span<T> span, int newSize) => MemoryMarshal.CreateSpan(ref MemoryMarshal.GetReference(span), newSize);
+    internal static Span<T> Resize<T>(Span<T> span, int newSize) =>
+        MemoryMarshal.CreateSpan(ref MemoryMarshal.GetReference(span), newSize);
 
     public static MemoryPressure GetMemoryPressure()
     {

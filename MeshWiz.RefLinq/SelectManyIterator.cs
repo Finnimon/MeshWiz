@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
+using MeshWiz.Buffers;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
@@ -246,7 +247,25 @@ public ref struct SelectManyIterator<TIter, TInner, TIn, TOut>(TIter source, Fun
         => new(this, num..);
 
     /// <inheritdoc />
-    public TOut[] ToArray() => WriteToSegBuilderAndThen(b => b.ToArray(), Array.Empty<TOut>);
+    public TOut[] ToArray()
+    {
+        Unsafe.SkipInit(out ArrayBuilder.Scratch<TOut> s);
+        using ArrayBuilder.Segmented<TOut> b = new(s);
+        Reset();
+        if (!IsSpanner)
+        {
+            while (_source.MoveNext())
+                b.AddEnumeratorInlined(_flattener(_source.Current));
+        }
+        else
+        {
+            var spanner = this.AsSpanner();
+            while (spanner._source.MoveNext())
+                b.AddRange(spanner._flattener(spanner._source.Current).OriginalSource);
+        }
+
+        return b.ToArray();
+    }
 
 
     private SelectManyIterator<TIter, SpanIterator<TOut>, TIn, TOut> AsSpanner()
@@ -256,36 +275,27 @@ public ref struct SelectManyIterator<TIter, TInner, TIn, TOut>(TIter source, Fun
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private TRes WriteToSegBuilderAndThen<TRes>(Func<BufferedArrayBuilder<TOut>, TRes> andThen, Func<TRes> @default)
-    {
-        if (_source.TryGetNonEnumeratedCount(out var count) && count == 0)
-            return @default();
-        using var copy = this;
-        copy.Reset();
-        using BufferedArrayBuilder<TOut> builder = new(int.Max(copy.EstimateCount(),8));
-        if (IsSpanner)
-        {
-            var asSpanner = AsSpanner();
-            while (asSpanner._source.MoveNext()) 
-                builder.AddRangeInlined(asSpanner._flattener(asSpanner._source.Current).OriginalSource);
-        }
-        else
-        {
-            while (copy._source.MoveNext())
-            {
-                var curChild = copy._flattener(copy._source.Current);
-                builder.AddEnumeratorInlined(curChild);
-            }
-        }
-
-        return andThen(builder);
-    }
 
     /// <inheritdoc />
     public List<TOut> ToList()
-        => WriteToSegBuilderAndThen(b => b.ToList(), () => []);
-
+    {
+        Unsafe.SkipInit(out ArrayBuilder.Scratch<TOut> s);
+        using ArrayBuilder.Segmented<TOut> b = new(s);
+        Reset();
+        if (!IsSpanner)
+        {
+            while (_source.MoveNext())
+                b.AddEnumeratorInlined(_flattener(_source.Current));
+        }
+        else
+        {
+            var spanner = this.AsSpanner();
+            while (spanner._source.MoveNext())
+                b.AddRange(spanner._flattener(spanner._source.Current).OriginalSource);
+        }
+        return b.ToList();
+    }
+    
     /// <inheritdoc />
     public HashSet<TOut> ToHashSet() => [..ToArray()];
 

@@ -68,7 +68,7 @@ public sealed partial class Freelist
     private static int GetMaxWordCount<T>()
     {
         var sizeT = Unsafe.SizeOf<T>();
-        return sizeT >= nint.Size ? Array.MaxLength : Utilities.GetWordCount<T>(Array.MaxLength);
+        return sizeT >= 16 ? Array.MaxLength : Utilities.GetWordCount<T>(Array.MaxLength);
     }
 
     /// <summary>

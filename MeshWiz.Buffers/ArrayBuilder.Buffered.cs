@@ -9,6 +9,7 @@ namespace MeshWiz.Buffers;
 public static partial class ArrayBuilder
 {
     [SuppressMessage("ReSharper", "NotDisposedResource")]
+    [Obsolete]
     public ref struct Buffered<T> : IBuilder<Buffered<T>, T>
     {
         private Arrays _laterSegments;
@@ -25,7 +26,7 @@ public static partial class ArrayBuilder
             get => _poolBufCount == 0;
         }
 
-        public const int MinInitialSize = 128;
+        public const int MinInitialSize = 512;
 
         public Buffered()
         {
@@ -140,25 +141,19 @@ public static partial class ArrayBuilder
         public void AddEnumeratorInlined<TIter>(TIter iterator)
             where TIter : IEnumerator<T>, allows ref struct
         {
-            var seg = _currentSegment;
-            var pos = _curSegmentPosition;
             while (iterator.MoveNext())
             {
                 var current = iterator.Current;
-                ++pos;
-                if (seg.Length > pos)
+                ++_curSegmentPosition;
+                if (_currentSegment.Length > _curSegmentPosition)
                 {
-                    seg[pos] = current;
+                    _currentSegment[_curSegmentPosition] = current;
                     continue;
                 }
 
-                pos = Expand(pos);
-                seg = _currentSegment;
-                seg[pos] = current;
+                Expand();
+                _currentSegment[_curSegmentPosition] = current;
             }
-
-            _curSegmentPosition = pos;
-            _currentSegment = seg;
         }
 
         // [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -176,27 +171,28 @@ public static partial class ArrayBuilder
         // }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private int Expand(int curSegmentPosition)
+        private void Expand()
         {
-            if (_poolBufCount == 0 && 0 != Freelist.GrowGreedy(in _firstSegment))
+            if (_poolBufCount == 0 && Freelist.TryGrow(in _firstSegment, _curSegmentPosition))
             {
                 _currentSegment = _firstSegment.Span;
-                return curSegmentPosition;
             }
-
-            return SlowPoolBufExpand(curSegmentPosition);
+            else
+            {
+                SlowPoolBufExpand();
+            }
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private int SlowPoolBufExpand(int curSegmentPosition)
+        private void SlowPoolBufExpand()
         {
-            _countInFinished += curSegmentPosition;
-            var nextSize = checked(curSegmentPosition * 2);
+            _countInFinished += _curSegmentPosition;
+            var nextSize = checked(_curSegmentPosition * 2);
             nextSize = int.Min(nextSize, Array.MaxLength);
             var poolBuf = Pool.Rent<T>(nextSize);
             _laterSegments[_poolBufCount++] = poolBuf;
             _currentSegment = poolBuf.Span;
-            return 0;
+            _curSegmentPosition = 0;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -275,7 +271,7 @@ public static partial class ArrayBuilder
  #pragma warning disable CS0169 // Field is never used
  #pragma warning disable CS0649 // Field is never used
  // ReSharper disable once UnassignedField.Local
-        private Pool.Buffer<T> _0,_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,_17,_18,_19,_20,_21;
+        private Pool.Buffer<T> _0,_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,_17,_18,_19;   
  #pragma warning restore CS0649 // Field is never used
  #pragma warning restore CS0169 // Field is never used
             // @formatter:on

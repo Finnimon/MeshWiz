@@ -8,6 +8,7 @@ namespace MeshWiz.Buffers.UnitTests;
 public class ArrayBuilderToList
 {
     [TestCaseSource(typeof(EnumerableTestCases), nameof(EnumerableTestCases.Cases))]
+    [Obsolete]
     public void Buffered<T>(IEnumerable<T> data)
     {
         var res = ArrayBuilder.Buffered<T>.ToList(data);
@@ -17,6 +18,21 @@ public class ArrayBuilderToList
     public void Segmented<T>(IEnumerable<T> data)
     {
         var res = ArrayBuilder.Segmented<T>.ToList(data);
+        Assert.That(res,Is.EquivalentTo(data));
+    }
+    
+    [TestCaseSource(typeof(EnumerableTestCases), nameof(EnumerableTestCases.Cases))]
+    [Obsolete]
+    public void Pooled<T>(IEnumerable<T> data)
+    {
+        var res = ArrayBuilder.Pooled<T>.ToArray(data);
+        Assert.That(res,Is.EquivalentTo(data));
+    }
+    
+    [TestCaseSource(typeof(EnumerableTestCases), nameof(EnumerableTestCases.Cases))]
+    public void Enumerable<T>(IEnumerable<T> data)
+    {
+        var res = System.Linq.Enumerable.ToArray(data);
         Assert.That(res,Is.EquivalentTo(data));
     }
 }

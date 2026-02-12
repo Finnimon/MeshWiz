@@ -9,12 +9,12 @@ public class ArrayBuilderBench
     private IEnumerable<string> _refWrapper = new EnumerableWrapper<string>([]);
     private IEnumerable<nint> _valWrapper = new EnumerableWrapper<nint>([]);
 
-    [Params(0, 1, 2, 8, 64, 4096)] public int N;
+    [Params(0, 1, 2, 8, 64, 4096,1_000_000,100_000_000,2_047_483_591)] public int N;
 
-    [Params(nameof(IEnumerable<>) /*, nameof(Array), nameof(ICollection<>), nameof(IReadOnlyCollection<>)*/)]
+    [Params(nameof(IEnumerable<>) , nameof(Array), nameof(ICollection<>), nameof(IReadOnlyCollection<>))]
     public string Mode { get; set; } = nameof(IEnumerable<>);
 
-    [Params(false)] public bool ReferenceType;
+    [Params(true,false)] public bool ReferenceType;
 
     [GlobalSetup]
     public void Setup()
@@ -28,7 +28,7 @@ public class ArrayBuilderBench
             nameof(IReadOnlyCollection<>) => new EnumerableReadOnlyCollectionWrapper<nint>(dat),
             _ => throw new InvalidOperationException()
         };
-        var dat2 = dat.Select(i => i.ToString()).ToArray();
+        var dat2 = dat.Select(i => (i % 10).ToString()).ToArray();
         _refWrapper = Mode switch
         {
             nameof(IEnumerable<>) => new EnumerableWrapper<string>(dat2),
@@ -40,22 +40,9 @@ public class ArrayBuilderBench
     }
 
     [Benchmark(Baseline = true)]
-    public object EnumerableToArray() =>
+    public Array EnumerableToArray() =>
         ReferenceType ? Enumerable.ToArray(_refWrapper) : Enumerable.ToArray(_valWrapper);
-
-    //
+    
     [Benchmark]
-    public Array SegmentedArrayBuilder() => ReferenceType
-        ? ArrayBuilder.Segmented<string>.ToArray(_refWrapper)
-        : ArrayBuilder.Segmented<nint>.ToArray(_valWrapper);
-
-    [Benchmark]
-    public Array BufferedArrayBuilder() => ReferenceType
-        ? ArrayBuilder.Buffered<string>.ToArray(_refWrapper)
-        : ArrayBuilder.Buffered<nint>.ToArray(_valWrapper);
-
-    // [Benchmark]
-    // public List<string> EnumerableToList()=>Enumerable.ToList(_wrapper);
-    // [Benchmark]
-    // public List<string> BufferToList()=>Iterator.ToList(_wrapper);
+    public Array ArrayBuilderHelper() => ReferenceType ? Iterator.ToArray(_refWrapper) : Iterator.ToArray(_valWrapper);
 }

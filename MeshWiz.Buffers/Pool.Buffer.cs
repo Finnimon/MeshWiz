@@ -7,7 +7,7 @@ public static partial class Pool
 {
     public readonly ref struct Buffer<T>
     {
-        private readonly nuint[] _words;
+        private readonly UInt128[] _words;
         public readonly Span<T> Span;
         
         public Buffer()
@@ -15,7 +15,7 @@ public static partial class Pool
             _words = [];
             Span = [];
         }
-        internal Buffer(nuint[] words)
+        internal Buffer(UInt128[] words)
         {
             _words = words;
             Span = Utilities.UnsafeCast<T>(words);
@@ -24,7 +24,7 @@ public static partial class Pool
         public void Dispose()
         {
             if (_words.Length == 0) return;
-            ArrayPool<nuint>.Shared.Return(_words, clearArray: false);
+            ArrayPool<UInt128>.Shared.Return(_words, clearArray: false);
         }
     }
 }

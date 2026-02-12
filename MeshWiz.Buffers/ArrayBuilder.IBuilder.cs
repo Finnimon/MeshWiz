@@ -51,5 +51,7 @@ public static partial class ArrayBuilder
         void AddEnumerator<TIter>(TIter iter)
             where TIter : IEnumerator<T>, allows ref struct 
             => AddEnumeratorInlined(iter);
+
+        void Dispose();
     }
 }

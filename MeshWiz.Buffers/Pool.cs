@@ -16,6 +16,6 @@ public static partial class Pool
     public static Buffer<T> Rent<T>(int minimumLength)
     {
         var minWordLen = Utilities.GetWordCount<T>(minimumLength);
-        return new Buffer<T>(ArrayPool<nuint>.Shared.Rent(minWordLen));
+        return new Buffer<T>(ArrayPool<UInt128>.Shared.Rent(minWordLen));
     }
 }

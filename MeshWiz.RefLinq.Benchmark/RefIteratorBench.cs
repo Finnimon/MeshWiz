@@ -10,6 +10,7 @@ public abstract class RefIteratorBench<TIter, TItem>
     public abstract TIter CreateIterator();
 
     protected abstract Span<TItem> GetCopyTargetSpan();
+    
     public TIter CreateIteratorTimer() => CreateIterator();
 
     [Benchmark]

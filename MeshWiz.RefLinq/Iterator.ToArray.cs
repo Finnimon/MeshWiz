@@ -2,47 +2,34 @@ using System.Collections;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.Diagnostics;
+using MeshWiz.Buffers;
 
 namespace MeshWiz.RefLinq;
 
 public static partial class Iterator
 {
-    public static T[] ToArray<T>(IEnumerable<T> enumerable)
-    {
-        // if (enumerable is T[] arr) return arr.AsSpan().ToArray();
-        // if (enumerable is List<T> l) return CollectionsMarshal.AsSpan(l).ToArray();
-        // if (enumerable is ICollection<T> col) return IColToArray<T>(col);
-        // return ArrBuilderToArray(enumerable);
-        return enumerable switch
+    public static T[] ToArray<T>(IEnumerable<T> enumerable) =>
+        enumerable switch
         {
-            // T[] arr => arr.AsSpan().ToArray(),
-            // List<T> l => CollectionsMarshal.AsSpan(l).ToArray(),
-            // ICollection<T> c => IColToArray(c),
-            // IReadOnlyCollection<T> r => KnownCountToArray(r, r.Count),
-            // ICollection c2 => IColToArray<T>(c2),
-            _ => ArrBuilderToArray(enumerable)
+            T[] arr => arr.AsSpan().ToArray(),
+            List<T> l => CollectionsMarshal.AsSpan(l).ToArray(),
+            ICollection<T> c => IColToArray(c),
+            ICollection c2 => IColToArray<T>(c2),
+            _ => ArrayBuilder.Helper<T>.ToArray(enumerable)
         };
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    public static T[] ArrBuilderToArray<T>(IEnumerable<T> enumerable)
-    {
-        using BufferedArrayBuilder<T> b = new();
-        b.AddEnumeratingInlined(enumerable);
-        return b.ToArray();
-    }
-
-    private static T[] KnownCountToArray<T>(IEnumerable<T> enumerable, int rCount)
-    {
-        var arr = GC.AllocateUninitializedArray<T>(rCount);
-        var pos = -1;
-        foreach (var item in enumerable) arr[++pos] = item;
-        return arr;
-    }
+    //
+    // private static T[] KnownCountToArray<T>(IEnumerable<T> enumerable, int rCount)
+    // {
+    //     var arr = GC.AllocateUninitializedArray<T>(rCount);
+    //     var pos = -1;
+    //     foreach (var item in enumerable) arr[++pos] = item;
+    //     return arr;
+    // }
 
     // ReSharper disable once InconsistentNaming
     private static T[] IColToArray<T>(ICollection<T> collection)
     {
+        if (collection.Count == 0) return [];
         var arr = GC.AllocateUninitializedArray<T>(collection.Count);
         collection.CopyTo(arr, 0);
         return arr;
@@ -52,6 +39,7 @@ public static partial class Iterator
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static T[] IColToArray<T>(ICollection collection)
     {
+        if (collection.Count == 0) return [];
         var arr = GC.AllocateUninitializedArray<T>(collection.Count);
         collection.CopyTo(arr, 0);
         return arr;
@@ -62,10 +50,7 @@ public static partial class Iterator
         {
             T[] arr => arr.AsSpan().ToList(),
             List<T> l => CollectionsMarshal.AsSpan(l).ToList(),
-            ICollection<T> c => KnownCountToList(c, c.Count),
-            IReadOnlyCollection<T> r => KnownCountToList(r, r.Count),
-            ICollection c2 => KnownCountToList(enumerable, c2.Count),
-            _ => ArrBuilderToList(enumerable)
+            _ => ArrayBuilder.Helper<T>.ToList(enumerable)
         };
 
     private static List<T> KnownCountToList<T>(IEnumerable<T> enumerable, int count)
@@ -79,12 +64,6 @@ public static partial class Iterator
     }
 
 
-    private static List<T> ArrBuilderToList<T>(IEnumerable<T> enumerable)
-    {
-        using BufferedArrayBuilder<T> b = new();
-        b.AddEnumeratingInlined(enumerable);
-        return b.ToList();
-    }
 
     public static List<T> ToList<T>(this ReadOnlySpan<T> span)
     {
@@ -107,10 +86,7 @@ public static partial class Iterator
             return array;
         }
 
-
-        using BufferedArrayBuilder<TItem> builder = new(iter.EstimateCount());
-        builder.AddEnumeratorInlined(iter);
-        return builder.ToArray();
+        return ArrayBuilder.Helper<TItem>.ToArray(iter);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -127,8 +103,6 @@ public static partial class Iterator
             return l;
         }
 
-        using BufferedArrayBuilder<TItem> builder = new(iter.EstimateCount());
-        builder.AddEnumeratorInlined(iter);
-        return builder.ToList();
+        return ArrayBuilder.Helper<TItem>.ToList(iter);
     }
 }
