@@ -27,7 +27,7 @@ public static partial class Iterator
     // }
 
     // ReSharper disable once InconsistentNaming
-    private static T[] IColToArray<T>(ICollection<T> collection)
+    internal static T[] IColToArray<T>(ICollection<T> collection)
     {
         if (collection.Count == 0) return [];
         var arr = GC.AllocateUninitializedArray<T>(collection.Count);
@@ -37,7 +37,7 @@ public static partial class Iterator
 
     // ReSharper disable once InconsistentNaming
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static T[] IColToArray<T>(ICollection collection)
+    internal static T[] IColToArray<T>(ICollection collection)
     {
         if (collection.Count == 0) return [];
         var arr = GC.AllocateUninitializedArray<T>(collection.Count);
@@ -45,7 +45,7 @@ public static partial class Iterator
         return arr;
     }
 
-    public static List<T> ToList<T>(IEnumerable<T> enumerable) =>
+    public static List<T> ToList<T>(this IEnumerable<T> enumerable) =>
         enumerable switch
         {
             T[] arr => arr.AsSpan().ToList(),
@@ -53,7 +53,7 @@ public static partial class Iterator
             _ => ArrayBuilder.Helper<T>.ToList(enumerable)
         };
 
-    private static List<T> KnownCountToList<T>(IEnumerable<T> enumerable, int count)
+    internal static List<T> KnownCountToList<T>(IEnumerable<T> enumerable, int count)
     {
         List<T> l = new(count);
         CollectionsMarshal.SetCount(l, count);
@@ -79,8 +79,7 @@ public static partial class Iterator
     {
         if (iter.TryGetNonEnumeratedCount(out var fastCount))
         {
-            if (fastCount == 0)
-                return [];
+            if (fastCount == 0) return [];
             var array = GC.AllocateUninitializedArray<TItem>(fastCount);
             iter.CopyTo(array);
             return array;

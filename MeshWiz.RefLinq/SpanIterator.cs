@@ -56,10 +56,10 @@ public ref struct SpanIterator<TItem>(ReadOnlySpan<TItem> source) : IRefIterator
     }
 
     /// <inheritdoc />
-    public readonly void CopyTo(Span<TItem> destination)
-    {
-        _source.CopyTo(destination);
-    }
+    public readonly void CopyTo(Span<TItem> destination) => _source.CopyTo(destination);
+
+    public readonly void CopyTo(TItem[] array, int arrayIndex) => _source.CopyTo(array.AsSpan(arrayIndex));
+
 
     /// <inheritdoc />
     public readonly void Dispose() { }
@@ -89,8 +89,8 @@ public ref struct SpanIterator<TItem>(ReadOnlySpan<TItem> source) : IRefIterator
     public SelectManyIterator<SpanIterator<TItem>, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
         Func<TItem, List<TOut>> flattener) => new(this, inner => flattener(inner));
 
-    public SelectManyIterator<SpanIterator<TItem>, AdapterIterator<TOut>, TItem, TOut> SelectMany<TOut>(
-        Func<TItem, IEnumerable<TOut>> flattener) => new(this, Func.Combine(flattener, Iterator.Adapt));
+    public SelectManyIterator<SpanIterator<TItem>, Iterator<TOut>, TItem, TOut> SelectMany<TOut>(
+        Func<TItem, IEnumerable<TOut>> flattener) => new(this, Func.Combine(flattener, Iterator.Iterate));
 
 
     /// <inheritdoc />

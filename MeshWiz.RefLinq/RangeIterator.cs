@@ -183,6 +183,10 @@ public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter
         else
             Iterator.CopyTo(this, destination);
     }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void CopyTo(TItem[] array, int arrayIndex)=>CopyTo(array.AsSpan(arrayIndex));
+
 
     /// <inheritdoc />
     public RangeIterator<TIter, TItem> GetEnumerator()
@@ -206,8 +210,8 @@ public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter
     public SelectManyIterator<RangeIterator<TIter, TItem>, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
         Func<TItem, List<TOut>> flattener) => new(this, inner => flattener(inner));
 
-    public SelectManyIterator<RangeIterator<TIter, TItem>, AdapterIterator<TOut>, TItem, TOut> SelectMany<TOut>(
-        Func<TItem, IEnumerable<TOut>> flattener) => new(this, Func.Combine(flattener, Iterator.Adapt));
+    public SelectManyIterator<RangeIterator<TIter, TItem>, Iterator<TOut>, TItem, TOut> SelectMany<TOut>(
+        Func<TItem, IEnumerable<TOut>> flattener) => new(this, Func.Combine(flattener, Iterator.Iterate));
 
     /// <inheritdoc />
     public SelectIterator<RangeIterator<TIter, TItem>, TItem, TOut> Select<TOut>(Func<TItem, TOut> selector)

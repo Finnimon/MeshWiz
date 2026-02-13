@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 
@@ -83,6 +84,7 @@ public ref struct WhereIterator<TIter, TItem>(TIter source, Func<TItem, bool> fi
 
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Count()
     {
         if (_source.TryGetNonEnumeratedCount(out var neCount) && neCount == 0)
@@ -94,10 +96,15 @@ public ref struct WhereIterator<TIter, TItem>(TIter source, Func<TItem, bool> fi
     }
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryGetNonEnumeratedCount(out int count) => _source.TryGetNonEnumeratedCount(out count) && count == 0;
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void CopyTo(Span<TItem> destination) => Iterator.CopyTo(this, destination);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void CopyTo(TItem[] array, int arrayIndex) => CopyTo(array.AsSpan(arrayIndex));
 
     public readonly WhereIterator<TIter, TItem> GetEnumerator()
     {
@@ -220,8 +227,8 @@ public ref struct WhereIterator<TIter, TItem>(TIter source, Func<TItem, bool> fi
     public SelectManyIterator<WhereIterator<TIter, TItem>, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
         Func<TItem, List<TOut>> flattener) => new(this, inner => flattener(inner));
 
-    public SelectManyIterator<WhereIterator<TIter, TItem>, AdapterIterator<TOut>, TItem, TOut> SelectMany<TOut>(
-        Func<TItem, IEnumerable<TOut>> flattener) => new(this, Func.Combine(flattener, Iterator.Adapt));
+    public SelectManyIterator<WhereIterator<TIter, TItem>, Iterator<TOut>, TItem, TOut> SelectMany<TOut>(
+        Func<TItem, IEnumerable<TOut>> flattener) => new(this, Func.Combine(flattener, Iterator.Iterate));
 
     public bool All(Func<TItem, bool> predicate) => !Any(x => !predicate(x));
 

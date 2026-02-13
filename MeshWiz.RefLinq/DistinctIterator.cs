@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 
@@ -87,6 +88,8 @@ public ref struct DistinctIterator<TIter, TItem> : IRefIterator<DistinctIterator
     /// <inheritdoc />
     public void CopyTo(Span<TItem> destination)
         => Iterator.CopyTo(this, destination);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void CopyTo(TItem[] array, int arrayIndex)=>CopyTo(array.AsSpan(arrayIndex));
 
     /// <inheritdoc />
     public DistinctIterator<TIter, TItem> GetEnumerator()
@@ -213,9 +216,9 @@ public ref struct DistinctIterator<TIter, TItem> : IRefIterator<DistinctIterator
         => new(this, x => flattener(x));
 
     /// <inheritdoc />
-    public SelectManyIterator<DistinctIterator<TIter, TItem>, AdapterIterator<TOut>, TItem, TOut> SelectMany<TOut>(
+    public SelectManyIterator<DistinctIterator<TIter, TItem>, Iterator<TOut>, TItem, TOut> SelectMany<TOut>(
         Func<TItem, IEnumerable<TOut>> flattener)
-        => new(this, Func.Combine(flattener, Iterator.Adapt));
+        => new(this, Func.Combine(flattener, Iterator.Iterate));
 
     /// <inheritdoc />
     public bool TryTakeRange(Range r, [AllowNull] out DistinctIterator<TIter, TItem> result)

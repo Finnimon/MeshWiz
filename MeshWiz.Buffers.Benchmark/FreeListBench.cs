@@ -7,6 +7,7 @@ namespace MeshWiz.Buffers.Benchmark;
 [ThreadingDiagnoser] // optional but useful
 [DisassemblyDiagnoser(maxDepth: 2)] // later, when optimizing
 public class AllocatorBench<T>
+    where T: unmanaged
 {
     public const int LinearRentStep = 1_000, MaxLinearRentSize = 128;
     private Freelist _allocator = new Freelist(MaxLinearRentSize, false);

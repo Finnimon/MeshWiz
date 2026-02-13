@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace MeshWiz.RefLinq;
 
@@ -14,6 +15,7 @@ public interface IRefIterator<TSelf, TItem> : IEnumerator<TItem>
     int Count();
     bool TryGetNonEnumeratedCount(out int count);
     void CopyTo(Span<TItem> destination);
+    void CopyTo(TItem[] array, int arrayIndex);
     TSelf GetEnumerator();
     WhereIterator<TSelf, TItem> Where(Func<TItem, bool> predicate);
     SelectIterator<TSelf, TItem, TOut> Select<TOut>(Func<TItem, TOut> selector);
@@ -84,7 +86,7 @@ public interface IRefIterator<TSelf, TItem> : IEnumerator<TItem>
     SelectManyIterator<TSelf, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
         Func<TItem, List<TOut>> flattener);
 
-    SelectManyIterator<TSelf, AdapterIterator<TOut>, TItem, TOut> SelectMany<TOut>(
+    SelectManyIterator<TSelf, Iterator<TOut>, TItem, TOut> SelectMany<TOut>(
         Func<TItem, IEnumerable<TOut>> flattener);
 
     /// <summary>

@@ -8,7 +8,7 @@ namespace MeshWiz.RefLinq;
 
 public static partial class Iterator
 {
-    public static bool SequenceEqual<TLeft, TRight, T>(TLeft l, TRight r, IEqualityComparer<T>? comparer = null)
+    public static bool SequenceEqual<TLeft, TRight, T>(this TLeft l, TRight r, IEqualityComparer<T>? comparer = null)
         where TLeft : IRefIterator<TLeft, T>, allows ref struct
         where TRight : IRefIterator<TRight, T>, allows ref struct
     {

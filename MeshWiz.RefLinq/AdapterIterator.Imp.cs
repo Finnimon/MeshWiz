@@ -6,7 +6,7 @@ using System.Runtime.InteropServices.Marshalling;
 
 namespace MeshWiz.RefLinq;
 
-public readonly partial struct AdapterIterator<T>
+public readonly partial struct Iterator<T>
 {
     internal static class Imp
     {
@@ -18,14 +18,14 @@ public readonly partial struct AdapterIterator<T>
             public IEnumerable<T> Underlying { get; }
             bool TryGetNonEnumeratedCount(out int count);
             int Count();
-            bool TryTakeRange(Range r,out IImp? range);
+            bool TryTakeRange(Range r,[NotNullWhen(true)] out IImp? range);
             bool TryGetLast(out T? item);
             bool TryGetFirst(out T? item);
             void CopyTo(Span<T> dest);
             bool TryGetSpan(out ReadOnlySpan<T> data);
         }
 
-        internal sealed class BaseImp : IImp
+        internal struct BaseImp : IImp
         {
             public IEnumerable<T> Underlying => _source;
             private readonly IEnumerable<T> _source;
@@ -143,7 +143,7 @@ public readonly partial struct AdapterIterator<T>
             public bool TryGetSpan(out ReadOnlySpan<T> data)
                 => Imp.TryGetSpan(this, out data);
         }
-        internal sealed class ListImp : IImp
+        internal struct ListImp : IImp
         {
             private readonly IReadOnlyList<T> _data;
             private int _pos;
@@ -231,10 +231,11 @@ public readonly partial struct AdapterIterator<T>
                 => Imp.TryGetSpan(this, out data);
         }
 
+        [SuppressMessage("ReSharper", "HeapView.BoxingAllocation")]
         public static IImp Create(IEnumerable<T> enumerable)
             => enumerable switch
             {
-                AdapterIterator<T> adapter=>adapter._imp,
+                Iterator<T> adapter=>adapter._imp,
                 IReadOnlyList<T> l => new ListImp(l, 0, l.Count),
                 IList<T> l=>new ListImp(new ListToList(l),0,l.Count),
                 _ => new BaseImp(enumerable)

@@ -4,4 +4,4 @@ using BenchmarkDotNet.Running;
 using MeshWiz.RefLinq.Benchmark;
 
 // var summaries = BenchmarkRunner.Run(typeof(Program).Assembly);
-BenchmarkRunner.Run(typeof(Program).Assembly);
+BenchmarkRunner.Run<ArraySelectWhere>();

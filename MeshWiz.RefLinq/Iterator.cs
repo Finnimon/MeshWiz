@@ -17,7 +17,6 @@ public static partial class Iterator
         return source.TryGetFirst(out var first) ? first! : ThrowHelper.ThrowInvalidOperationException<TItem>();
     }
 
-    public static AdapterIterator<T> Iterate<T>(this IEnumerable<T> c) => new AdapterIterator<T>(c);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static bool TryGetFirst<TIter, TItem>(TIter source, out TItem? item)
@@ -64,15 +63,9 @@ public static partial class Iterator
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void CopyTo<TIter, TItem>(TIter iter, Span<TItem> destination)
-        where TIter : IRefIterator<TIter, TItem>, allows ref struct
+    internal static void CopyTo<TIter,TItem>(TIter iter, Span<TItem> destination)
+        where TIter : IEnumerator<TItem>, allows ref struct
     {
-        if (iter.TryConvertToSpanIter<TIter, TItem>(out var spanIterator))
-        {
-            spanIterator.OriginalSource.CopyTo(destination);
-            return;
-        }
-
         var i = -1;
         while (iter.MoveNext()) destination[++i] = iter.Current;
     }
@@ -141,19 +134,15 @@ public static partial class Iterator
         return seed;
     }
 
-    public static ReadOnlySpan<TItem> Take<TItem>(this ReadOnlySpan<TItem> span, Range range) => span[range];
-    public static ReadOnlySpan<TItem> Take<TItem>(this ReadOnlySpan<TItem> span, int num) => span[..num];
-    public static ReadOnlySpan<TItem> Skip<TItem>(this ReadOnlySpan<TItem> span, int num) => span[num..];
-
-    public static Span<TItem> TakeSpan<TItem>(this List<TItem> data, Range range) =>
+    public static Span<TItem> Take<TItem>(this List<TItem> data, Range range) =>
         CollectionsMarshal.AsSpan(data)[range];
 
-    public static Span<TItem> TakeSpan<TItem>(this List<TItem> data, int num) => CollectionsMarshal.AsSpan(data)[..num];
-    public static Span<TItem> SkipSpan<TItem>(this List<TItem> data, int num) => CollectionsMarshal.AsSpan(data)[num..];
+    public static Span<TItem> Take<TItem>(this List<TItem> data, int num) => CollectionsMarshal.AsSpan(data)[..num];
+    public static Span<TItem> Skip<TItem>(this List<TItem> data, int num) => CollectionsMarshal.AsSpan(data)[num..];
 
-    public static Span<TItem> TakeSpan<TItem>(this TItem[] data, Range range) => (data).AsSpan(range);
-    public static Span<TItem> TakeSpan<TItem>(this TItem[] data, int num) => (data).AsSpan(0, num);
-    public static Span<TItem> SkipSpan<TItem>(this TItem[] data, int num) => (data).AsSpan(num);
+    public static Span<TItem> Take<TItem>(this TItem[] data, Range range) => data.AsSpan(range);
+    public static Span<TItem> Take<TItem>(this TItem[] data, int num) => data.AsSpan(0, num);
+    public static Span<TItem> Skip<TItem>(this TItem[] data, int num) => data.AsSpan(num);
 
     internal static TItem Aggregate<TIter, TItem>(TIter iter, Func<TItem, TItem, TItem> aggregator)
         where TIter : IRefIterator<TIter, TItem>, allows ref struct
@@ -179,7 +168,8 @@ public static partial class Iterator
         return seed;
     }
 
-    internal static AdapterIterator<T> Adapt<T>(this IEnumerable<T> source) => new(source);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Iterator<T> Iterate<T>(this IEnumerable<T> source) => new(source);
 
     public static ItemIterator<T> Repeat<T>(T item, int count)
     {

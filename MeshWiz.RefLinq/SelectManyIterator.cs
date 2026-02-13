@@ -183,6 +183,9 @@ public ref struct SelectManyIterator<TIter, TInner, TIn, TOut>(TIter source, Fun
             SpannerCopyTo(destination);
         Reset();
     }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void CopyTo(TOut[] array, int arrayIndex)=>CopyTo(array.AsSpan(arrayIndex));
+
 
     private void SpannerCopyTo(Span<TOut> destination)
     {
@@ -229,9 +232,9 @@ public ref struct SelectManyIterator<TIter, TInner, TIn, TOut>(TIter source, Fun
         SelectMany<TMany>(
             Func<TOut, List<TMany>> flattener2) => new(this, inner => flattener2(inner));
 
-    public SelectManyIterator<SelectManyIterator<TIter, TInner, TIn, TOut>, AdapterIterator<TMany>, TOut, TMany>
+    public SelectManyIterator<SelectManyIterator<TIter, TInner, TIn, TOut>, Iterator<TMany>, TOut, TMany>
         SelectMany<TMany>(
-            Func<TOut, IEnumerable<TMany>> flattener2) => new(this, Func.Combine(flattener2, Iterator.Adapt));
+            Func<TOut, IEnumerable<TMany>> flattener2) => new(this, Func.Combine(flattener2, Iterator.Iterate));
 
 
     /// <inheritdoc />

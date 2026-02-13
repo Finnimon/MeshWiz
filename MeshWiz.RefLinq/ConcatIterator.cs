@@ -22,6 +22,8 @@ public ref struct ConcatIterator<TLeft, TRight, TItem>(TLeft l, TRight r)
         _isLeft = false;
         return _right.MoveNext();
     }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void CopyTo(TItem[] array, int arrayIndex)=>CopyTo(array.AsSpan(arrayIndex));
 
     /// <inheritdoc />
     public void Reset()
@@ -90,14 +92,25 @@ public ref struct ConcatIterator<TLeft, TRight, TItem>(TLeft l, TRight r)
     /// <inheritdoc />
     public void CopyTo(Span<TItem> destination)
     {
-        if (!_left.TryGetNonEnumeratedCount(out var lCount))
+        int offset;
+        if (_left.TryGetNonEnumeratedCount(out var lCount))
         {
-            Iterator.CopyTo(this, destination);
-            return;
+            _left.CopyTo(destination);
+            offset = lCount;
         }
+        else offset = SlowLeftCopy(destination);
 
-        _left.CopyTo(destination);
-        _right.CopyTo(destination[lCount..]);
+        _right.CopyTo(destination[offset..]);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private int SlowLeftCopy(Span<TItem> destination)
+    {
+        int offset;
+        using var left = _left.GetEnumerator();
+        offset = 0;
+        while (left.MoveNext()) destination[offset++] = left.Current;
+        return offset;
     }
 
     /// <inheritdoc />
@@ -248,10 +261,10 @@ public ref struct ConcatIterator<TLeft, TRight, TItem>(TLeft l, TRight r)
 
 
     /// <inheritdoc />
-    public SelectManyIterator<ConcatIterator<TLeft, TRight, TItem>, AdapterIterator<TOut>, TItem, TOut>
+    public SelectManyIterator<ConcatIterator<TLeft, TRight, TItem>, Iterator<TOut>, TItem, TOut>
         SelectMany<TOut>(
             Func<TItem, IEnumerable<TOut>> flattener)
-        => new(this, Func.Combine(flattener, Iterator.Adapt));
+        => new(this, Func.Combine(flattener, Iterator.Iterate));
 
     /// <inheritdoc />
     public bool TryTakeRange(Range range, out ConcatIterator<TLeft, TRight, TItem> result)

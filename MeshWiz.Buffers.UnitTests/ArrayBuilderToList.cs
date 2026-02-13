@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using NUnit.Framework;
 
 namespace MeshWiz.Buffers.UnitTests;
@@ -10,6 +9,7 @@ public class ArrayBuilderToList
     [TestCaseSource(typeof(EnumerableTestCases), nameof(EnumerableTestCases.Cases))]
     [Obsolete]
     public void Buffered<T>(IEnumerable<T> data)
+    where T: unmanaged
     {
         var res = ArrayBuilder.Buffered<T>.ToList(data);
         Assert.That(res,Is.EquivalentTo(data));
@@ -24,6 +24,7 @@ public class ArrayBuilderToList
     [TestCaseSource(typeof(EnumerableTestCases), nameof(EnumerableTestCases.Cases))]
     [Obsolete]
     public void Pooled<T>(IEnumerable<T> data)
+    where T: unmanaged
     {
         var res = ArrayBuilder.Pooled<T>.ToArray(data);
         Assert.That(res,Is.EquivalentTo(data));

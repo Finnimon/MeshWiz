@@ -29,7 +29,7 @@ public class BvhTest
         Assert.That(bvhDidIntersect,Is.EqualTo(genericDidHit));
         var orderBvhHits= hits.Select(h => h.Distance).Select(f => float.Round(f, 2)).Distinct().ToArray();
         Array.Sort(orderBvhHits);
-        var orderGenericHits = traverser.Hits.SkipSpan(0).Select(f => float.Round(f, 2)).Distinct().ToArray();
+        var orderGenericHits = traverser.Hits.Skip(0).Select(f => float.Round(f, 2)).Distinct().ToArray();
         Array.Sort(orderGenericHits);
         Assert.That(orderBvhHits, Is.EqualTo(orderGenericHits));
         Console.WriteLine(string.Join(" ",orderBvhHits));

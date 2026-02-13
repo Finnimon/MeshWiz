@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 
@@ -80,6 +81,8 @@ public ref struct SelectIterator<TIter, TIn,TOut>(TIter source, Func<TIn, TOut> 
 
     /// <inheritdoc />
     public void CopyTo(Span<TOut> destination) => Iterator.CopyTo(this, destination);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void CopyTo(TOut[] array, int arrayIndex)=>CopyTo(array.AsSpan(arrayIndex));
 
     public readonly SelectIterator<TIter,TIn, TOut> GetEnumerator()
     {
@@ -102,8 +105,8 @@ public ref struct SelectIterator<TIter, TIn,TOut>(TIter source, Func<TIn, TOut> 
     public SelectManyIterator<SelectIterator<TIter,TIn,TOut>, SpanIterator<TMany>, TOut, TMany> SelectMany<TMany>(
         Func<TOut, List<TMany>> flattener) => new(this, inner => flattener(inner));
 
-    public SelectManyIterator<SelectIterator<TIter,TIn,TOut>, AdapterIterator<TMany>, TOut, TMany> SelectMany<TMany>(
-        Func<TOut, IEnumerable<TMany>> flattener) => new(this, Func.Combine(flattener,Iterator.Adapt));
+    public SelectManyIterator<SelectIterator<TIter,TIn,TOut>, Iterator<TMany>, TOut, TMany> SelectMany<TMany>(
+        Func<TOut, IEnumerable<TMany>> flattener) => new(this, Func.Combine(flattener,Iterator.Iterate));
 
     /// <inheritdoc />
     SelectIterator<SelectIterator<TIter, TIn, TOut>, TOut, TOut1> IRefIterator<SelectIterator<TIter, TIn, TOut>, TOut>.Select<TOut1>(Func<TOut, TOut1> selector) 

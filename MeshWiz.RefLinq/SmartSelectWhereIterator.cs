@@ -5,25 +5,37 @@ using MeshWiz.Utility;
 
 namespace MeshWiz.RefLinq;
 
-public ref struct SmartSelectIterator<TIn, TOut>(ReadOnlySpan<TIn> source,Func<TIn,TOut> sel):IRefIterator<SmartSelectIterator<TIn,TOut>,TOut>
+public ref struct SmartSelectWhereIterator<TIn, TOut>(ReadOnlySpan<TIn> source,Func<TIn,TOut> sel, Func<TOut,bool> filter):IRefIterator<SmartSelectWhereIterator<TIn,TOut>,TOut>
 {
     public readonly ReadOnlySpan<TIn> Source=source;
     private readonly Func<TIn, TOut> _sel=sel;
+    private readonly Func<TOut, bool> _filter=filter;
     private int _index=-1;
+    private TOut? _current;
     public readonly int Length => Source.Length;
 
     /// <inheritdoc />
     public bool MoveNext()
-        => Source.Length>(uint)++_index;
+    {
+        var filter = _filter;
+        var sel = _sel;
+        while(Source.Length > (uint)++_index)
+        {
+            _current=sel(Source[_index]);
+            if (filter(_current)) return true;
+        }
+
+        return false;
+    }
 
     /// <inheritdoc />
     public void Reset() => _index = -1;
 
     /// <inheritdoc />
-    object? IEnumerator.Current => Current;
+    readonly object? IEnumerator.Current => Current;
 
-    public TOut Current => _sel(Source[_index]);
-    public TOut this[int index]
+    public readonly TOut Current => _current!;
+    public readonly TOut this[int index]
     {
         get
         {
@@ -32,13 +44,12 @@ public ref struct SmartSelectIterator<TIn, TOut>(ReadOnlySpan<TIn> source,Func<T
         }
     }
 
-    public SmartSelectIterator<TIn, TOut> this[Range r] => new(Source[r], _sel);
 
     /// <inheritdoc />
-    public void Dispose() { }
+    public readonly void Dispose() { }
 
     /// <inheritdoc />
-    public TOut First() => this[0];
+    public readonly  TOut First() => Iterator.First<SmartSelectWhereIterator<TIn, TOut>, TOut>(this);
 
     /// <inheritdoc />
     public TOut? FirstOrDefault()
@@ -50,18 +61,14 @@ public ref struct SmartSelectIterator<TIn, TOut>(ReadOnlySpan<TIn> source,Func<T
     /// <inheritdoc />
     public bool TryGetFirst(out TOut? item)
     {
-        if (Length == 0)
-        {
-            item = default;
-            return false;
-        }
-        item = this[0];
-        return true;
+        var ret = MoveNext();
+        item = _current;
+        return ret;
     }
 
     /// <inheritdoc />
     public TOut Last()
-        => this[^1];
+        => Iterator.Last<SmartSelectWhereIterator<TIn, TOut>, TOut>(this);
 
     /// <inheritdoc />
     public TOut? LastOrDefault()
@@ -73,37 +80,40 @@ public ref struct SmartSelectIterator<TIn, TOut>(ReadOnlySpan<TIn> source,Func<T
     /// <inheritdoc />
     public bool TryGetLast(out TOut? item)
     {
-        if (Length == 0)
+        var src = Source;
+        var sel = _sel;
+        var filter=_filter;
+        for (var i = src.Length - 1; i >= 0; i--)
         {
-            item = default;
-            return false;
+            var cur = sel(src[i]);
+            if(!filter(cur)) continue;
+            item = cur;
+            return true;
         }
-        item = this[^1];
-        return true;
+        Unsafe.SkipInit(out item);
+        return false;
     }
 
     /// <inheritdoc />
-    int IRefIterator<SmartSelectIterator<TIn, TOut>, TOut>.Count()
-        => Length;
+    public int Count() => Iterator.Count<SmartSelectWhereIterator<TIn, TOut>, TOut>(this);
 
     /// <inheritdoc />
-    bool IRefIterator<SmartSelectIterator<TIn, TOut>, TOut>.TryGetNonEnumeratedCount(out int count)
-    {
-        count = Length;
-        return true;
-    }
-
-    /// <inheritdoc />
-    public void CopyTo(Span<TOut> destination)
-    {
-        for (var i = 0; i < Length; i++) destination[i] = this[i];
-    }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void CopyTo(TOut[] array, int arrayIndex)=>CopyTo(array.AsSpan(arrayIndex));
-
+    public bool TryGetNonEnumeratedCount(out int count)
+    {
+        count = 0;
+        return Length==0;
+    }
 
     /// <inheritdoc />
-    public SmartSelectIterator<TIn, TOut> GetEnumerator()
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void CopyTo(Span<TOut> destination) => Iterator.CopyTo(this, destination);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void CopyTo(TOut[] array, int arrayIndex) => CopyTo(array.AsSpan(arrayIndex));
+
+    /// <inheritdoc />
+    public SmartSelectWhereIterator<TIn, TOut> GetEnumerator()
     {
         var copy = this;
         copy.Reset();
@@ -111,35 +121,27 @@ public ref struct SmartSelectIterator<TIn, TOut>(ReadOnlySpan<TIn> source,Func<T
     }
 
     /// <inheritdoc />
-    public SmartSelectWhereIterator<TIn, TOut> Where(Func<TOut, bool> predicate) => new(Source,_sel, predicate);
-
-    WhereIterator<SmartSelectIterator<TIn, TOut>, TOut> IRefIterator<SmartSelectIterator<TIn, TOut>, TOut>.Where(Func<TOut, bool> predicate) => new(this, predicate);
+    public WhereIterator<SmartSelectWhereIterator<TIn, TOut>, TOut> Where(Func<TOut, bool> predicate) => new(this, predicate);
     
 
     /// <inheritdoc />
-    SelectIterator<SmartSelectIterator<TIn, TOut>, TOut, TOut1> IRefIterator<SmartSelectIterator<TIn, TOut>, TOut>.Select<TOut1>(Func<TOut, TOut1> selector) 
+    SelectIterator<SmartSelectWhereIterator<TIn, TOut>, TOut, TOut1> IRefIterator<SmartSelectWhereIterator<TIn, TOut>, TOut>.Select<TOut1>(Func<TOut, TOut1> selector) 
         => new(this, selector);
-
-    public SmartSelectIterator<TIn, TOut2> Select<TOut2>(Func<TOut, TOut2> sel2) => new(Source, Func.Combine(_sel, sel2));
-
-    public SmartSelectIterator<TIn, TOut> Take(Range r) => this[r];
-    public SmartSelectIterator<TIn, TOut> Take(int num) => this[..num];
-    public SmartSelectIterator<TIn, TOut> Skip(int num) => this[num..];
     /// <inheritdoc />
-    RangeIterator<SmartSelectIterator<TIn, TOut>, TOut> IRefIterator<SmartSelectIterator<TIn, TOut>, TOut>.Take(Range r) => new(this, r);
+    RangeIterator<SmartSelectWhereIterator<TIn, TOut>, TOut> IRefIterator<SmartSelectWhereIterator<TIn, TOut>, TOut>.Take(Range r) => new(this, r);
 
     /// <inheritdoc />
-    RangeIterator<SmartSelectIterator<TIn, TOut>, TOut> IRefIterator<SmartSelectIterator<TIn, TOut>, TOut>.Take(int num) => new(this, ..num);
+    RangeIterator<SmartSelectWhereIterator<TIn, TOut>, TOut> IRefIterator<SmartSelectWhereIterator<TIn, TOut>, TOut>.Take(int num) => new(this, ..num);
 
     /// <inheritdoc />
-    RangeIterator<SmartSelectIterator<TIn, TOut>, TOut> IRefIterator<SmartSelectIterator<TIn, TOut>, TOut>.Skip(int num) => new(this, num..);
+    RangeIterator<SmartSelectWhereIterator<TIn, TOut>, TOut> IRefIterator<SmartSelectWhereIterator<TIn, TOut>, TOut>.Skip(int num) => new(this, num..);
 
     /// <inheritdoc />
-    public TOut[] ToArray() => Iterator.ToArray<SmartSelectIterator<TIn, TOut>, TOut>(this);
+    public TOut[] ToArray() => Iterator.ToArray<SmartSelectWhereIterator<TIn, TOut>, TOut>(this);
 
     /// <inheritdoc />
     public List<TOut> ToList()
-        => Iterator.ToList<SmartSelectIterator<TIn, TOut>, TOut>(this);
+        => Iterator.ToList<SmartSelectWhereIterator<TIn, TOut>, TOut>(this);
 
     /// <inheritdoc />
     public HashSet<TOut> ToHashSet()
@@ -176,11 +178,11 @@ public ref struct SmartSelectIterator<TIn, TOut>(ReadOnlySpan<TIn> source,Func<T
         => !Any(Func.Invert(predicate));
 
     /// <inheritdoc />
-    int IRefIterator<SmartSelectIterator<TIn, TOut>, TOut>.EstimateCount()
+    int IRefIterator<SmartSelectWhereIterator<TIn, TOut>, TOut>.EstimateCount()
         => Length;
 
     /// <inheritdoc />
-    public OfTypeIterator<SmartSelectIterator<TIn, TOut>, TOut, TOther> OfType<TOther>()
+    public OfTypeIterator<SmartSelectWhereIterator<TIn, TOut>, TOut, TOther> OfType<TOther>()
         => new(this);
 
     /// <inheritdoc />
@@ -237,50 +239,50 @@ public ref struct SmartSelectIterator<TIn, TOut>(ReadOnlySpan<TIn> source,Func<T
     public Dictionary<TKey, TOut> ToDictionary<TKey>(Func<TOut, TKey> keyGen) where TKey : notnull => ToDictionary(keyGen, Func.Identity);
 
     /// <inheritdoc />
-    public SelectManyIterator<SmartSelectIterator<TIn, TOut>, TInner, TOut, TOut1> SelectMany<TInner, TOut1>(Func<TOut, TInner> flattener) where TInner : IRefIterator<TInner,TOut1>, allows ref struct 
+    public SelectManyIterator<SmartSelectWhereIterator<TIn, TOut>, TInner, TOut, TOut1> SelectMany<TInner, TOut1>(Func<TOut, TInner> flattener) where TInner : IRefIterator<TInner,TOut1>, allows ref struct 
         => new(this, flattener);
 
     /// <inheritdoc />
-    public SelectManyIterator<SmartSelectIterator<TIn, TOut>, SpanIterator<TOut1>, TOut, TOut1> SelectMany<TOut1>(
+    public SelectManyIterator<SmartSelectWhereIterator<TIn, TOut>, SpanIterator<TOut1>, TOut, TOut1> SelectMany<TOut1>(
         Func<TOut, TOut1[]> flattener)
         => new(this,x => flattener(x));
 
     /// <inheritdoc />
-    public SelectManyIterator<SmartSelectIterator<TIn, TOut>, SpanIterator<TOut1>, TOut, TOut1> SelectMany<TOut1>(Func<TOut, List<TOut1>> flattener)
+    public SelectManyIterator<SmartSelectWhereIterator<TIn, TOut>, SpanIterator<TOut1>, TOut, TOut1> SelectMany<TOut1>(Func<TOut, List<TOut1>> flattener)
         => new(this,x => flattener(x));
     
-    public SelectManyIterator<SmartSelectIterator<TIn,TOut>, SpanIterator<TOut2>, TOut, TOut2> SelectMany<TOut2>(
+    public SelectManyIterator<SmartSelectWhereIterator<TIn,TOut>, SpanIterator<TOut2>, TOut, TOut2> SelectMany<TOut2>(
         Func<TOut, SpanIterator<TOut2>> flattener)
         => new(this, flattener);
 
     /// <inheritdoc />
-    public SelectManyIterator<SmartSelectIterator<TIn, TOut>, Iterator<TOut1>, TOut, TOut1> SelectMany<TOut1>(Func<TOut, IEnumerable<TOut1>> flattener)
+    public SelectManyIterator<SmartSelectWhereIterator<TIn, TOut>, Iterator<TOut1>, TOut, TOut1> SelectMany<TOut1>(Func<TOut, IEnumerable<TOut1>> flattener)
         => new(this,Func.Combine(flattener,Iterator.Iterate));
 
     /// <inheritdoc />
-    public bool TryTakeRange(Range r, out SmartSelectIterator<TIn, TOut> result)
+    bool IRefIterator<SmartSelectWhereIterator<TIn, TOut>, TOut>.TryTakeRange(Range r, out SmartSelectWhereIterator<TIn, TOut> result)
     {
-        result = this[r];
-        return true;
+        Unsafe.SkipInit(out result);
+        return false;
     }
     
     
-    public DistinctIterator<SmartSelectIterator<TIn,TOut>, TOut> Distinct()
+    public DistinctIterator<SmartSelectWhereIterator<TIn,TOut>, TOut> Distinct()
         => Distinct(null);
-    public DistinctIterator<SmartSelectIterator<TIn,TOut>, TOut> Distinct(IEqualityComparer<TOut>? comp)
+    public DistinctIterator<SmartSelectWhereIterator<TIn,TOut>, TOut> Distinct(IEqualityComparer<TOut>? comp)
         => new(this, comp);
-    public DistinctIterator<SmartSelectIterator<TIn,TOut>,TOut> DistinctBy<T>(Func<TOut, T> keySelector) where T : notnull 
+    public DistinctIterator<SmartSelectWhereIterator<TIn,TOut>,TOut> DistinctBy<T>(Func<TOut, T> keySelector) where T : notnull 
         =>new(this,Equality.By(keySelector));
 
-    public ConcatIterator<SmartSelectIterator<TIn,TOut>, TOther, TOut> Concat<TOther>(TOther other) 
+    public ConcatIterator<SmartSelectWhereIterator<TIn,TOut>, TOther, TOut> Concat<TOther>(TOther other) 
         where TOther : IRefIterator<TOther, TOut>,allows ref struct
         => new(this, other);
-    public ConcatIterator<SmartSelectIterator<TIn,TOut>, ItemIterator<TOut>, TOut> Append(TOut append) 
+    public ConcatIterator<SmartSelectWhereIterator<TIn,TOut>, ItemIterator<TOut>, TOut> Append(TOut append) 
         => new(this, append);
-    public ConcatIterator<ItemIterator<TOut>,SmartSelectIterator<TIn,TOut>, TOut> Prepend(TOut prepend) 
+    public ConcatIterator<ItemIterator<TOut>,SmartSelectWhereIterator<TIn,TOut>, TOut> Prepend(TOut prepend) 
         => new(prepend,this);
 
-    public static SmartSelectIterator<TIn, TOut> Empty() => new(ReadOnlySpan<TIn>.Empty, x => (TOut)(object)x!);
+    public static SmartSelectWhereIterator<TIn, TOut> Empty() => new(ReadOnlySpan<TIn>.Empty, x => (TOut)(object)x!,x=>true);
     
     
     

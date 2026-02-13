@@ -11,6 +11,7 @@ public static partial class ArrayBuilder
     [SuppressMessage("ReSharper", "NotDisposedResource")]
     [Obsolete]
     public ref struct Buffered<T> : IBuilder<Buffered<T>, T>
+    where T:unmanaged
     {
         private Arrays _laterSegments;
         private Freelist.Buffer<T> _firstSegment;

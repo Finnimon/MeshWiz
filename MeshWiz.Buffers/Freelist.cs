@@ -36,6 +36,7 @@ public sealed partial class Freelist
 
     [MustUseReturnValue, MustDisposeResource, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Buffer<T> Rent<T>(int length)
+    where T:unmanaged
     {
         if (length < 0) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(length));
         if (length == 0) return EmptyBuffer<T>();
@@ -59,7 +60,9 @@ public sealed partial class Freelist
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Buffer<T> EmptyBuffer<T>() => new(true, 0, [], this, [], 0);
+    private Buffer<T> EmptyBuffer<T>() 
+        where T:unmanaged
+        => new(true, 0, [], this, [], 0);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private Buffer<UInt128> FindGapRent(int len)
@@ -208,12 +211,14 @@ public sealed partial class Freelist
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void Release<T>(Buffer<T> buffer)
+    where T: unmanaged
     {
         ReleaseInternal(buffer);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ReleaseInternal<T>(Buffer<T> buffer)
+    where T:unmanaged
     {
         if (!ReferenceEquals(_activeBuffer, buffer._src)) return;
 

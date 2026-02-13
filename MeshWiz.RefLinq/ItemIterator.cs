@@ -78,6 +78,9 @@ public struct ItemIterator<T> : IRefIterator<ItemIterator<T>, T>
     {
         destination[.._count].Fill(_item!);
     }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void CopyTo(T[] array, int arrayIndex)=>CopyTo(array.AsSpan(arrayIndex));
+
 
     /// <inheritdoc />
     public ItemIterator<T> GetEnumerator()
@@ -160,9 +163,9 @@ public struct ItemIterator<T> : IRefIterator<ItemIterator<T>, T>
         => new(this, x => flattener(x));
 
     /// <inheritdoc />
-    public SelectManyIterator<ItemIterator<T>, AdapterIterator<TOut>, T, TOut> SelectMany<TOut>(
+    public SelectManyIterator<ItemIterator<T>, Iterator<TOut>, T, TOut> SelectMany<TOut>(
         Func<T, IEnumerable<TOut>> flattener)
-        => new(this, Func.Combine(flattener, Iterator.Adapt));
+        => new(this, Func.Combine(flattener, Iterator.Iterate));
 
     public static implicit operator ItemIterator<T>(T item) => new(item,1);
 

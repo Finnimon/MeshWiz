@@ -6,6 +6,7 @@ namespace MeshWiz.Buffers;
 public sealed partial class Freelist
 {
     public ref struct Buffer<T>
+    where T:unmanaged
     {
         internal readonly Freelist _allocator;
         internal readonly UInt128[] _src;

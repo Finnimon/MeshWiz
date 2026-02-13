@@ -11,6 +11,7 @@ public static partial class ArrayBuilder
     [SuppressMessage("ReSharper", "NotDisposedResource")]
     [Obsolete]
     public ref struct Pooled<T> : IBuilder<Pooled<T>,T>
+    where T:unmanaged
     {
         private PoolBufs _bufs;
         private int _poolBufCount;

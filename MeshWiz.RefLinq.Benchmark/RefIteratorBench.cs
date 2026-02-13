@@ -8,10 +8,10 @@ public abstract class RefIteratorBench<TIter, TItem>
 {
     [Benchmark]
     public abstract TIter CreateIterator();
-
-    protected abstract Span<TItem> GetCopyTargetSpan();
+    [Benchmark]
+    public abstract IEnumerable<TItem> CreateEnumerable();
     
-    public TIter CreateIteratorTimer() => CreateIterator();
+    protected abstract Span<TItem> GetCopyTargetSpan();
 
     [Benchmark]
     public TItem First() => CreateIterator().First();
@@ -62,22 +62,4 @@ public abstract class RefIteratorBench<TIter, TItem>
     public TItem? MaxOrDefault()=>CreateIterator().MaxOrDefault();
 
     public const int RandomSeed=1093274091;
-}
-
-public class SmartSelectIteratorBench: RefIteratorBench<SmartSelectIterator<int,string>,string>
-{
-    private int[] _source=[];
-    private string[] _copyTarget = [];
-    [GlobalSetup]
-    public void Setup()
-    {
-        var rand = new Random(RandomSeed);
-        _source=Enumerable.Range(0,1024).Select(_=>rand.Next()).ToArray();
-        _copyTarget=new string[_source.Length];
-    }
-    /// <inheritdoc />
-    public override SmartSelectIterator<int, string> CreateIterator() => _source.AsSpan().Select(i => i.ToString());
-
-    /// <inheritdoc />
-    protected override Span<string> GetCopyTargetSpan() => _copyTarget;
 }

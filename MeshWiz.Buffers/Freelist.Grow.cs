@@ -7,6 +7,7 @@ namespace MeshWiz.Buffers;
 public sealed partial class Freelist
 {
     public static int GrowGreedy<T>(in Buffer<T> buf)
+    where T: unmanaged
     {
         var alloc = buf._allocator;
         if (!buf._alive) ThrowHelper.ThrowInvalidOperationException("Dead buffer.");
@@ -25,6 +26,7 @@ public sealed partial class Freelist
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static int GreedyGapGrow<T>(in Buffer<T> buf, int bufIndex, Freelist alloc)
+    where T: unmanaged
     {
         var nextChunkIndex = bufIndex + 1;
         var nextChunkStart = alloc._occupiedChunks.GetKeyAtIndex(nextChunkIndex);
@@ -50,6 +52,7 @@ public sealed partial class Freelist
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int GreedyGrowFromEnd<T>(in Buffer<T> buf, int allocEnd, Freelist alloc, int bufIndex)
+    where T: unmanaged
     {
         var space = allocEnd - buf._wordStart;
         var maxWords = GetMaxWordCount<T>();
@@ -80,6 +83,7 @@ public sealed partial class Freelist
     /// <exception cref="ArgumentOutOfRangeException">when <paramref name="growBy"/> is less than 0</exception>
     /// <returns></returns>
     public static bool TryGrow<T>(in Buffer<T> buf, int growBy)
+    where T: unmanaged
     {
         if (growBy < 0) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(growBy));
         if (!buf._alive) return false;
@@ -118,6 +122,7 @@ public sealed partial class Freelist
     private static bool SlowGrow<T>(in Buffer<T> buf, Freelist alloc, int bufEnd, int targetBufEnd,
         int totalLen,
         int totalWordCount)
+    where T: unmanaged
     {
         var chunkIndex = alloc._occupiedChunks.IndexOfValue(bufEnd);
         if (chunkIndex == -1) return false;
@@ -138,6 +143,7 @@ public sealed partial class Freelist
 
     private static void ResizeMerging<T>(in Buffer<T> buf, Freelist alloc, int nextChunkIndex, int chunkIndex,
         int newElemCount, int newWordCount)
+    where T: unmanaged
     {
         var nextChunkEnd = alloc._occupiedChunks.GetValueAtIndex(nextChunkIndex);
         alloc._occupiedChunks.RemoveAt(nextChunkIndex);
@@ -151,6 +157,7 @@ public sealed partial class Freelist
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool FastGrowFinalChunk<T>(in Buffer<T> buf, Freelist alloc, int newElemCount,
         int newWordCount, int lastIndex)
+    where T: unmanaged
     {
         Resize(in buf, alloc, newElemCount, newWordCount, lastIndex);
         return true;
@@ -159,6 +166,7 @@ public sealed partial class Freelist
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void Resize<T>(in Buffer<T> buf, Freelist alloc, int newElemCount, int newWordCount,
         int containingChunkIndex)
+    where T: unmanaged
     {
         alloc._occupiedChunks.SetValueAtIndex(containingChunkIndex, buf._wordStart + newWordCount);
         alloc._rentedWordCount += newWordCount - buf._wordCount;
