@@ -85,10 +85,10 @@ public readonly partial struct Iterator<T>
             }
 
             /// <inheritdoc />
-            public bool TryTakeRange(Range r, out IImp? range)
+            public bool TryTakeRange(Range r,[NotNullWhen(true)] out IImp? range)
             {
                 if (_source is IReadOnlyList<T> or IList<T>)
-                    return Create(_source).TryTakeRange(r,out range);
+                    return Create(_source).TryTakeRange(r, out range);
                 range = null;
                 return false;
             }
