@@ -5,7 +5,7 @@ using MeshWiz.Utility;
 
 namespace MeshWiz.RefLinq;
 
-public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter, TItem>, TItem>
+public ref struct RangedIterator<TIter, TItem> : IRefIterator<RangedIterator<TIter, TItem>, TItem>
     where TIter : IRefIterator<TIter, TItem>, allows ref struct
 
 {
@@ -15,7 +15,7 @@ public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter
     private readonly bool _innerRanged;
     private readonly int _sourceCount;
 
-    private RangeIterator(TIter source, Range r, int sourceCount)
+    private RangedIterator(TIter source, Range r, int sourceCount)
     {
         _pos = -1;
         _sourceCount = sourceCount;
@@ -50,7 +50,7 @@ public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter
 
     public TItem Current => _source.Current;
 
-    public RangeIterator(TIter source, Range range)
+    public RangedIterator(TIter source, Range range)
     {
         _pos = -1;
         if (source.TryTakeRange(range, out var rangedIter))
@@ -76,7 +76,7 @@ public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter
             ThrowHelper.ThrowInvalidOperationException();
     }
 
-    private RangeIterator(TIter source, int start, int end, int sourceCount)
+    private RangedIterator(TIter source, int start, int end, int sourceCount)
     {
         _pos = -1;
         if (source.TryTakeRange(start..end, out var ranged))
@@ -148,7 +148,7 @@ public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter
     /// <inheritdoc />
     public TItem Last() => _innerRanged
         ? _source.Last()
-        : Iterator.Last<RangeIterator<TIter, TItem>, TItem>(this);
+        : Iterator.Last<RangedIterator<TIter, TItem>, TItem>(this);
 
     /// <inheritdoc />
     public TItem? LastOrDefault()
@@ -189,7 +189,7 @@ public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter
 
 
     /// <inheritdoc />
-    public RangeIterator<TIter, TItem> GetEnumerator()
+    public RangedIterator<TIter, TItem> GetEnumerator()
     {
         var copy = this;
         copy.Reset();
@@ -197,41 +197,41 @@ public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter
     }
 
     /// <inheritdoc />
-    public WhereIterator<RangeIterator<TIter, TItem>, TItem> Where(Func<TItem, bool> predicate) => new(this, predicate);
+    public WhereIterator<RangedIterator<TIter, TItem>, TItem> Where(Func<TItem, bool> predicate) => new(this, predicate);
 
 
-    public SelectManyIterator<RangeIterator<TIter, TItem>, TInner, TItem, TOut> SelectMany<TInner, TOut>(
+    public SelectManyIterator<RangedIterator<TIter, TItem>, TInner, TItem, TOut> SelectMany<TInner, TOut>(
         Func<TItem, TInner> flattener) where TInner : IRefIterator<TInner, TOut>, allows ref struct =>
         new(this, flattener);
 
-    public SelectManyIterator<RangeIterator<TIter, TItem>, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
+    public SelectManyIterator<RangedIterator<TIter, TItem>, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
         Func<TItem, TOut[]> flattener) => new(this, inner => flattener(inner));
 
-    public SelectManyIterator<RangeIterator<TIter, TItem>, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
+    public SelectManyIterator<RangedIterator<TIter, TItem>, SpanIterator<TOut>, TItem, TOut> SelectMany<TOut>(
         Func<TItem, List<TOut>> flattener) => new(this, inner => flattener(inner));
 
-    public SelectManyIterator<RangeIterator<TIter, TItem>, Iterator<TOut>, TItem, TOut> SelectMany<TOut>(
+    public SelectManyIterator<RangedIterator<TIter, TItem>, Iterator<TOut>, TItem, TOut> SelectMany<TOut>(
         Func<TItem, IEnumerable<TOut>> flattener) => new(this, Func.Combine(flattener, Iterator.Iterate));
 
     /// <inheritdoc />
-    public SelectIterator<RangeIterator<TIter, TItem>, TItem, TOut> Select<TOut>(Func<TItem, TOut> selector)
+    public SelectIterator<RangedIterator<TIter, TItem>, TItem, TOut> Select<TOut>(Func<TItem, TOut> selector)
         => new(this, selector);
 
     /// <inheritdoc />
-    RangeIterator<RangeIterator<TIter, TItem>, TItem> IRefIterator<RangeIterator<TIter, TItem>, TItem>.Take(Range r) =>
+    RangedIterator<RangedIterator<TIter, TItem>, TItem> IRefIterator<RangedIterator<TIter, TItem>, TItem>.Take(Range r) =>
         new(this, r);
 
 
     /// <inheritdoc />
-    RangeIterator<RangeIterator<TIter, TItem>, TItem> IRefIterator<RangeIterator<TIter, TItem>, TItem>.Take(int num)
+    RangedIterator<RangedIterator<TIter, TItem>, TItem> IRefIterator<RangedIterator<TIter, TItem>, TItem>.Take(int num)
         => new(this, ..num);
 
 
     /// <inheritdoc />
-    RangeIterator<RangeIterator<TIter, TItem>, TItem> IRefIterator<RangeIterator<TIter, TItem>, TItem>.Skip(int num)
+    RangedIterator<RangedIterator<TIter, TItem>, TItem> IRefIterator<RangedIterator<TIter, TItem>, TItem>.Skip(int num)
         => new(this, num..);
 
-    public RangeIterator<TIter, TItem> Take(Range r)
+    public RangedIterator<TIter, TItem> Take(Range r)
     {
         var count = Count();
         var (start, length) = r.GetOffsetAndLength(count);
@@ -239,23 +239,23 @@ public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter
         var end = start + length;
         if (start == _start && length == count)
             return this;
-        return new RangeIterator<TIter, TItem>(_source, start, end, _sourceCount);
+        return new RangedIterator<TIter, TItem>(_source, start, end, _sourceCount);
     }
 
-    public RangeIterator<TIter, TItem> Take(int num)
+    public RangedIterator<TIter, TItem> Take(int num)
         => Take(..num);
 
-    public RangeIterator<TIter, TItem> Skip(int num)
+    public RangedIterator<TIter, TItem> Skip(int num)
         => Take(num..);
 
 
     /// <inheritdoc />
     public TItem[] ToArray()
-        => _innerRanged ? _source.ToArray() : Iterator.ToArray<RangeIterator<TIter, TItem>, TItem>(this);
+        => _innerRanged ? _source.ToArray() : Iterator.ToArray<RangedIterator<TIter, TItem>, TItem>(this);
 
     /// <inheritdoc />
     public List<TItem> ToList()
-        => _innerRanged ? _source.ToList() : Iterator.ToList<RangeIterator<TIter, TItem>, TItem>(this);
+        => _innerRanged ? _source.ToList() : Iterator.ToList<RangedIterator<TIter, TItem>, TItem>(this);
 
     /// <inheritdoc />
     public HashSet<TItem> ToHashSet()
@@ -285,7 +285,7 @@ public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter
     /// <inheritdoc />
     public int EstimateCount() => Count();
 
-    public OfTypeIterator<RangeIterator<TIter, TItem>, TItem, TOther> OfType<TOther>() => new(this);
+    public OfTypeIterator<RangedIterator<TIter, TItem>, TItem, TOther> OfType<TOther>() => new(this);
 
 
     public TItem Aggregate(Func<TItem, TItem, TItem> aggregator)
@@ -340,34 +340,34 @@ public ref struct RangeIterator<TIter, TItem> : IRefIterator<RangeIterator<TIter
 
     public bool All(Func<TItem, bool> predicate) => !Any(x => !predicate(x));
 
-    public bool TryTakeRange(Range r, out RangeIterator<TIter, TItem> result)
+    public bool TryTakeRange(Range r, out RangedIterator<TIter, TItem> result)
     {
         result = Take(r);
         return true;
     }
 
 
-    public DistinctIterator<RangeIterator<TIter, TItem>, TItem> Distinct()
+    public DistinctIterator<RangedIterator<TIter, TItem>, TItem> Distinct()
         => Distinct(null);
 
-    public DistinctIterator<RangeIterator<TIter, TItem>, TItem> Distinct(IEqualityComparer<TItem>? comp)
+    public DistinctIterator<RangedIterator<TIter, TItem>, TItem> Distinct(IEqualityComparer<TItem>? comp)
         => new(this, comp);
 
-    public DistinctIterator<RangeIterator<TIter, TItem>, TItem> DistinctBy<T>(Func<TItem, T> keySelector)
+    public DistinctIterator<RangedIterator<TIter, TItem>, TItem> DistinctBy<T>(Func<TItem, T> keySelector)
         where T : notnull
         => new(this, Equality.By(keySelector));
 
-    public ConcatIterator<RangeIterator<TIter, TItem>, TOther, TItem> Concat<TOther>(TOther other)
+    public ConcatIterator<RangedIterator<TIter, TItem>, TOther, TItem> Concat<TOther>(TOther other)
         where TOther : IRefIterator<TOther, TItem>, allows ref struct
         => new(this, other);
 
-    public ConcatIterator<RangeIterator<TIter, TItem>, ItemIterator<TItem>, TItem> Append(TItem append)
+    public ConcatIterator<RangedIterator<TIter, TItem>, ItemIterator<TItem>, TItem> Append(TItem append)
         => new(this, append);
 
-    public ConcatIterator<ItemIterator<TItem>, RangeIterator<TIter, TItem>, TItem> Prepend(TItem prepend)
+    public ConcatIterator<ItemIterator<TItem>, RangedIterator<TIter, TItem>, TItem> Prepend(TItem prepend)
         => new(prepend, this);
 
-    public static RangeIterator<TIter, TItem> Empty() => new(TIter.Empty(), Range.All, 0);
+    public static RangedIterator<TIter, TItem> Empty() => new(TIter.Empty(), Range.All, 0);
 
 
     /// <inheritdoc />

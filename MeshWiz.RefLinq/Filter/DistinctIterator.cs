@@ -108,15 +108,15 @@ public ref struct DistinctIterator<TIter, TItem> : IRefIterator<DistinctIterator
         => new(this, selector);
 
     /// <inheritdoc />
-    public RangeIterator<DistinctIterator<TIter, TItem>, TItem> Take(Range r)
+    public RangedIterator<DistinctIterator<TIter, TItem>, TItem> Take(Range r)
         => new(this, r);
 
     /// <inheritdoc />
-    public RangeIterator<DistinctIterator<TIter, TItem>, TItem> Take(int num)
+    public RangedIterator<DistinctIterator<TIter, TItem>, TItem> Take(int num)
         => new(this, ..num);
 
     /// <inheritdoc />
-    public RangeIterator<DistinctIterator<TIter, TItem>, TItem> Skip(int num)
+    public RangedIterator<DistinctIterator<TIter, TItem>, TItem> Skip(int num)
         => new(this, num..);
 
     /// <inheritdoc />

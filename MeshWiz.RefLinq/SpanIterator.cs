@@ -101,16 +101,16 @@ public ref struct SpanIterator<TItem>(ReadOnlySpan<TItem> source) : IRefIterator
     public SmartSelectIterator<TItem, TOut> Select<TOut>(Func<TItem, TOut> sel) => new(_source, sel);
 
     /// <inheritdoc />
-    RangeIterator<SpanIterator<TItem>, TItem> IRefIterator<SpanIterator<TItem>, TItem>.Take(Range r)
+    RangedIterator<SpanIterator<TItem>, TItem> IRefIterator<SpanIterator<TItem>, TItem>.Take(Range r)
         => Iterator.Take<SpanIterator<TItem>, TItem>(this, r);
 
     /// <inheritdoc />
-    RangeIterator<SpanIterator<TItem>, TItem> IRefIterator<SpanIterator<TItem>, TItem>.Take(int num)
+    RangedIterator<SpanIterator<TItem>, TItem> IRefIterator<SpanIterator<TItem>, TItem>.Take(int num)
         => Iterator.Take<SpanIterator<TItem>, TItem>(this, num);
 
 
     /// <inheritdoc />
-    RangeIterator<SpanIterator<TItem>, TItem> IRefIterator<SpanIterator<TItem>, TItem>.Skip(int num)
+    RangedIterator<SpanIterator<TItem>, TItem> IRefIterator<SpanIterator<TItem>, TItem>.Skip(int num)
         => Iterator.Skip<SpanIterator<TItem>, TItem>(this, num);
 
     public SpanIterator<TItem> Take(Range r) => this[r];
@@ -148,11 +148,7 @@ public ref struct SpanIterator<TItem>(ReadOnlySpan<TItem> source) : IRefIterator
     public TItem Last(Func<TItem, bool> predicate) => Where(predicate).Last();
     public TItem? LastOrDefault(Func<TItem, bool> predicate) => Where(predicate).LastOrDefault();
 
-    public bool Any()
-    {
-        var copy = this;
-        return copy.MoveNext();
-    }
+    public bool Any() => Length != 0;
 
     public bool Any(Func<TItem, bool> predicate) => Where(predicate).MoveNext();
 

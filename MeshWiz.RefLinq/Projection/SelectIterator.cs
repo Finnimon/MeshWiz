@@ -119,16 +119,16 @@ public ref struct SelectIterator<TIter, TIn,TOut>(TIter source, Func<TIn, TOut> 
         Func<TOut, SpanIterator<TOut2>> flattener)
         => new(this, flattener);
     /// <inheritdoc />
-    public RangeIterator<SelectIterator<TIter,TIn,TOut>, TOut> Take(Range r) 
+    public RangedIterator<SelectIterator<TIter,TIn,TOut>, TOut> Take(Range r) 
         => Iterator.Take<SelectIterator<TIter,TIn,TOut>, TOut>(this, r);
 
     /// <inheritdoc />
-    public RangeIterator<SelectIterator<TIter,TIn,TOut>, TOut> Take(int num)
+    public RangedIterator<SelectIterator<TIter,TIn,TOut>, TOut> Take(int num)
         => Iterator.Take<SelectIterator<TIter,TIn,TOut>, TOut>(this, num);
     
 
     /// <inheritdoc />
-    public RangeIterator<SelectIterator<TIter,TIn,TOut>, TOut> Skip(int num)
+    public RangedIterator<SelectIterator<TIter,TIn,TOut>, TOut> Skip(int num)
         => Iterator.Skip<SelectIterator<TIter,TIn,TOut>, TOut>(this, num);
     /// <inheritdoc />
     public TOut[] ToArray() => Iterator.ToArray<SelectIterator<TIter, TIn, TOut>, TOut>(this);

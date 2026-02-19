@@ -238,15 +238,15 @@ public ref struct SelectManyIterator<TIter, TInner, TIn, TOut>(TIter source, Fun
 
 
     /// <inheritdoc />
-    public RangeIterator<SelectManyIterator<TIter, TInner, TIn, TOut>, TOut> Take(Range r)
+    public RangedIterator<SelectManyIterator<TIter, TInner, TIn, TOut>, TOut> Take(Range r)
         => new(this, r);
 
     /// <inheritdoc />
-    public RangeIterator<SelectManyIterator<TIter, TInner, TIn, TOut>, TOut> Take(int num)
+    public RangedIterator<SelectManyIterator<TIter, TInner, TIn, TOut>, TOut> Take(int num)
         => new(this, ..num);
 
     /// <inheritdoc />
-    public RangeIterator<SelectManyIterator<TIter, TInner, TIn, TOut>, TOut> Skip(int num)
+    public RangedIterator<SelectManyIterator<TIter, TInner, TIn, TOut>, TOut> Skip(int num)
         => new(this, num..);
 
     /// <inheritdoc />

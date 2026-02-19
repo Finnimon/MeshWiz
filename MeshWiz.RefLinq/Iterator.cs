@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -55,19 +56,21 @@ public static partial class Iterator
     {
         if (iter.TryGetNonEnumeratedCount(out var count))
             return count;
+        using var mut = iter.GetEnumerator();
         var c = 0;
-        while (iter.MoveNext())
+        while (mut.MoveNext())
             c++;
         return c;
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void CopyTo<TIter,TItem>(TIter iter, Span<TItem> destination)
+    internal static void CopyTo<TIter, TItem>(TIter iter, Span<TItem> destination)
         where TIter : IEnumerator<TItem>, allows ref struct
     {
         var i = -1;
         while (iter.MoveNext()) destination[++i] = iter.Current;
+        iter.Reset();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -77,7 +80,7 @@ public static partial class Iterator
         span = default;
 
         var correctType = typeof(TIter) == typeof(SpanIterator<TItem>);
-        span = correctType ? Unsafe.As<TIter, SpanIterator<TItem>>(ref Unsafe.AsRef(in iter)) : default;
+        span = correctType ? Unsafe.As<TIter, SpanIterator<TItem>>(ref iter) : default;
         return correctType;
     }
 
@@ -98,15 +101,15 @@ public static partial class Iterator
         return l;
     }
 
-    internal static RangeIterator<TSource, TItem> Take<TSource, TItem>(TSource source, int num)
+    internal static RangedIterator<TSource, TItem> Take<TSource, TItem>(TSource source, int num)
         where TSource : IRefIterator<TSource, TItem>, allows ref struct =>
         new(source, ..num);
 
-    internal static RangeIterator<TSource, TItem> Take<TSource, TItem>(TSource source, Range range)
+    internal static RangedIterator<TSource, TItem> Take<TSource, TItem>(TSource source, Range range)
         where TSource : IRefIterator<TSource, TItem>, allows ref struct =>
         new(source, range);
 
-    internal static RangeIterator<TSource, TItem> Skip<TSource, TItem>(TSource source, int skip)
+    internal static RangedIterator<TSource, TItem> Skip<TSource, TItem>(TSource source, int skip)
         where TSource : IRefIterator<TSource, TItem>, allows ref struct =>
         new(source, skip..);
 
@@ -155,7 +158,7 @@ public static partial class Iterator
         return seed;
     }
 
-    public static int Count<TIter, T>(this TIter iter, Func<T, bool> test) 
+    public static int Count<TIter, T>(this TIter iter, Func<T, bool> test)
         where TIter : IRefIterator<TIter, T>, allows ref struct
         => iter.Where(test).Count();
 
@@ -210,24 +213,37 @@ public static partial class Iterator
         return !first;
     }
 
-    
+
     public static bool TryGetSpan<T>([NoEnumeration] this IEnumerable<T> enumerable, out ReadOnlySpan<T> data)
     {
-        if (enumerable is T[] arr)
+        switch (enumerable)
         {
-            data = arr;
+            case T[] arr:
+                data = arr;
+                return true;
+            case List<T> l:
+                data = CollectionsMarshal.AsSpan(l);
+                return true;
+            default:
+                data = ReadOnlySpan<T>.Empty;
+                return enumerable
+                    is ICollection<T> { Count: 0 }
+                    or ICollection { Count: 0 }
+                    or IReadOnlyCollection<T> { Count: 0 };
+        }
+    }
+
+    public static bool Any<TIter, T>(this TIter iter, Func<T, bool> test)
+        where TIter : IRefIterator<TIter, T>
+    {
+        if (iter.TryGetNonEnumeratedCount(out var c) && c == 0) return false;
+        using var copy = iter.GetEnumerator();
+        while (copy.MoveNext())
+        {
+            if (!test(copy.Current)) continue;
             return true;
         }
-
-        if (enumerable is List<T> l)
-        {
-            data = CollectionsMarshal.AsSpan(l);
-            return true;
-        }
-
-        data = ReadOnlySpan<T>.Empty;
-        var emptyCorrect=enumerable.TryGetNonEnumeratedCount(out var count) && count == 0;
-        return emptyCorrect;
+        return false;
     }
 
     public static bool TryGetNonEnumeratedCount<T>([NoEnumeration] this IEnumerable<T> enumerable, out int count)
@@ -236,9 +252,10 @@ public static partial class Iterator
         {
             ICollection<T> coll => coll.Count,
             IReadOnlyCollection<T> coll => coll.Count,
+            ICollection coll => coll.Count,
             _ => -1
         };
 
-        return count!=-1;
+        return count != -1;
     }
 }

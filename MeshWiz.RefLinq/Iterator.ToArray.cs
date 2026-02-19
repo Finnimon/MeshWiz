@@ -77,6 +77,7 @@ public static partial class Iterator
     internal static TItem[] ToArray<TIter, TItem>(TIter iter)
         where TIter : IRefIterator<TIter, TItem>, allows ref struct
     {
+        // ReSharper disable once InvertIf - fast path
         if (iter.TryGetNonEnumeratedCount(out var fastCount))
         {
             if (fastCount == 0) return [];
@@ -92,6 +93,7 @@ public static partial class Iterator
     internal static List<TItem> ToList<TIter, TItem>(TIter iter)
         where TIter : IRefIterator<TIter, TItem>, allows ref struct
     {
+        // ReSharper disable once InvertIf - fast path
         if (iter.TryGetNonEnumeratedCount(out var fastCount))
         {
             if (fastCount == 0)

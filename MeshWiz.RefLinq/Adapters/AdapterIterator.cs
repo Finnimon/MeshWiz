@@ -110,17 +110,17 @@ public readonly partial struct Iterator<T> : IRefIterator<Iterator<T>, T>, IEnum
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public RangeIterator<Iterator<T>, T> Take(Range r)
+    public RangedIterator<Iterator<T>, T> Take(Range r)
         => new(this, r);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public RangeIterator<Iterator<T>, T> Take(int num)
+    public RangedIterator<Iterator<T>, T> Take(int num)
         => Take(..num);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public RangeIterator<Iterator<T>, T> Skip(int num)
+    public RangedIterator<Iterator<T>, T> Skip(int num)
         => Take(num..);
 
     /// <inheritdoc />
@@ -164,6 +164,9 @@ public readonly partial struct Iterator<T> : IRefIterator<Iterator<T>, T>, IEnum
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public HashSet<T> ToHashSet(IEqualityComparer<T>? comp)
         => Iterator.ToHashSet(this, comp);
+
+    /// <inheritdoc />
+    public bool Any() => _imp.Any();
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

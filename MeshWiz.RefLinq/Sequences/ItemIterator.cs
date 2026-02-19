@@ -99,15 +99,15 @@ public struct ItemIterator<T> : IRefIterator<ItemIterator<T>, T>
         => new(this, selector);
 
     /// <inheritdoc />
-    public RangeIterator<ItemIterator<T>, T> Take(Range r)
+    public RangedIterator<ItemIterator<T>, T> Take(Range r)
         => new(this, r);
 
     /// <inheritdoc />
-    public RangeIterator<ItemIterator<T>, T> Take(int num)
+    public RangedIterator<ItemIterator<T>, T> Take(int num)
         => new(this, ..num);
 
     /// <inheritdoc />
-    public RangeIterator<ItemIterator<T>, T> Skip(int num)
+    public RangedIterator<ItemIterator<T>, T> Skip(int num)
         => new(this, num..);
 
     /// <inheritdoc />
@@ -125,6 +125,9 @@ public struct ItemIterator<T> : IRefIterator<ItemIterator<T>, T>
     /// <inheritdoc />
     public HashSet<T> ToHashSet(IEqualityComparer<T>? comp)
         => new(Enumerate(), comp);
+
+    /// <inheritdoc />
+    public bool Any() => _count != 0;
 
     /// <inheritdoc />
     public int EstimateCount()

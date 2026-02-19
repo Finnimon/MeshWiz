@@ -50,9 +50,9 @@ public static class SpanExt
     public static SmartSelectIterator<TIn, TOut> Select<TIn, TOut>(this ReadOnlySpan<TIn> span, Func<TIn, TOut> sel)
         => new(span, sel);
 
-    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static SmartSelectIterator<TIn, TOut> Select<TIn, TOut>(this Span<TIn> span, Func<TIn, TOut> sel)
-        => new(span, sel);
+    // [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    // public static SmartSelectIterator<TIn, TOut> Select<TIn, TOut>(this Span<TIn> span, Func<TIn, TOut> sel)
+    //     => new(span, sel);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static WhereIterator<SpanIterator<T>, T> Where<T>(this ReadOnlySpan<T> span, Func<T, bool> predicate)

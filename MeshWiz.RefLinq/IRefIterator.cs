@@ -19,9 +19,9 @@ public interface IRefIterator<TSelf, TItem> : IEnumerator<TItem>
     TSelf GetEnumerator();
     WhereIterator<TSelf, TItem> Where(Func<TItem, bool> predicate);
     SelectIterator<TSelf, TItem, TOut> Select<TOut>(Func<TItem, TOut> selector);
-    RangeIterator<TSelf, TItem> Take(Range r);
-    RangeIterator<TSelf, TItem> Take(int num);
-    RangeIterator<TSelf, TItem> Skip(int num);
+    RangedIterator<TSelf, TItem> Take(Range r);
+    RangedIterator<TSelf, TItem> Take(int num);
+    RangedIterator<TSelf, TItem> Skip(int num);
 
 
     TItem[] ToArray();

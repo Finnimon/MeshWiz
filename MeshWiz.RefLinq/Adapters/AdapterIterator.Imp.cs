@@ -23,15 +23,16 @@ public readonly partial struct Iterator<T>
             bool TryGetFirst(out T? item);
             void CopyTo(Span<T> dest);
             bool TryGetSpan(out ReadOnlySpan<T> data);
+            bool Any();
         }
 
-        internal struct BaseImp : IImp
+        public struct Base : IImp
         {
             public IEnumerable<T> Underlying => _source;
             private readonly IEnumerable<T> _source;
             private IEnumerator<T> _enumerator;
 
-            public BaseImp(IEnumerable<T> source)
+            public Base(IEnumerable<T> source)
             {
                 _source = source;
                 _enumerator = _source.GetEnumerator();
@@ -84,6 +85,11 @@ public readonly partial struct Iterator<T>
                 return count;
             }
 
+            public bool Any()
+            {
+                using var iter = _source.GetEnumerator();
+                return iter.MoveNext();
+            }
             /// <inheritdoc />
             public bool TryTakeRange(Range r,[NotNullWhen(true)] out IImp? range)
             {
@@ -168,7 +174,7 @@ public readonly partial struct Iterator<T>
             public void Reset() => _pos = -1;
 
             public T Current => _data[_pos+_offset];
-
+            public bool Any() => Count() != 0;
             /// <inheritdoc />
             object? IEnumerator.Current => Current;
 
@@ -238,7 +244,7 @@ public readonly partial struct Iterator<T>
                 Iterator<T> adapter=>adapter._imp,
                 IReadOnlyList<T> l => new ListImp(l, 0, l.Count),
                 IList<T> l=>new ListImp(new ListToList(l),0,l.Count),
-                _ => new BaseImp(enumerable)
+                _ => new Base(enumerable)
             };
 
         private sealed record ListToList(IList<T> Underlying) : IReadOnlyList<T>

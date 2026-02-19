@@ -131,15 +131,15 @@ public ref struct OfTypeIterator<TIter, TIn, TOut>(TIter source) : IRefIterator<
         => new(this, selector);
 
     /// <inheritdoc />
-    public RangeIterator<OfTypeIterator<TIter, TIn, TOut>, TOut> Take(Range r)
+    public RangedIterator<OfTypeIterator<TIter, TIn, TOut>, TOut> Take(Range r)
         => Iterator.Take<OfTypeIterator<TIter, TIn, TOut>, TOut>(this, r);
 
     /// <inheritdoc />
-    public RangeIterator<OfTypeIterator<TIter, TIn, TOut>, TOut> Take(int num)
+    public RangedIterator<OfTypeIterator<TIter, TIn, TOut>, TOut> Take(int num)
         => Iterator.Take<OfTypeIterator<TIter, TIn, TOut>, TOut>(this, num);
 
     /// <inheritdoc />
-    public RangeIterator<OfTypeIterator<TIter, TIn, TOut>, TOut> Skip(int num)
+    public RangedIterator<OfTypeIterator<TIter, TIn, TOut>, TOut> Skip(int num)
         => Iterator.Skip<OfTypeIterator<TIter, TIn, TOut>, TOut>(this, num);
 
 
@@ -177,8 +177,7 @@ public ref struct OfTypeIterator<TIter, TIn, TOut>(TIter source) : IRefIterator<
     /// <inheritdoc />
     public bool Any()
     {
-        var copy = this;
-        copy.Reset();
+        using var copy = this.GetEnumerator();
         return copy.MoveNext();
     }
 

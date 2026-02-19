@@ -13,7 +13,7 @@ public static class Equality
             var xNull = x is null;
             var yNull = y is null;
 
-            return xNull && yNull 
+            return xNull && yNull
                    || !yNull && keySel(x!).Equals(keySel(y!));
         }
 
@@ -34,10 +34,8 @@ public static class Equality
         }
     }
 
-    public static IEqualityComparer<T> By<T, TKey>(Func<T, TKey> keySelector) where TKey : notnull 
-        => new ByEqComparer<T, TKey>(keySelector);
+    public static ByEqComparer<T, TKey> By<T, TKey>(Func<T, TKey> keySelector) where TKey : notnull => new(keySelector);
 
-    public static ByComparer<T,TKey> CompareBy<T, TKey>(Func<T, TKey> keySelector)
-    where TKey: IComparable<TKey> =>
-        new ByComparer<T, TKey>(keySelector);
+    public static ByComparer<T, TKey> CompareBy<T, TKey>(Func<T, TKey> keySelector) 
+        where TKey : IComparable<TKey> => new(keySelector);
 }

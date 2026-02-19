@@ -125,16 +125,16 @@ public ref struct WhereIterator<TIter, TItem>(TIter source, Func<TItem, bool> fi
         new(this, selector);
 
     /// <inheritdoc />
-    public RangeIterator<WhereIterator<TIter, TItem>, TItem> Take(Range r)
+    public RangedIterator<WhereIterator<TIter, TItem>, TItem> Take(Range r)
         => Iterator.Take<WhereIterator<TIter, TItem>, TItem>(this, r);
 
     /// <inheritdoc />
-    public RangeIterator<WhereIterator<TIter, TItem>, TItem> Take(int num)
+    public RangedIterator<WhereIterator<TIter, TItem>, TItem> Take(int num)
         => Iterator.Take<WhereIterator<TIter, TItem>, TItem>(this, num);
 
 
     /// <inheritdoc />
-    public RangeIterator<WhereIterator<TIter, TItem>, TItem> Skip(int num)
+    public RangedIterator<WhereIterator<TIter, TItem>, TItem> Skip(int num)
         => Iterator.Skip<WhereIterator<TIter, TItem>, TItem>(this, num);
 
 

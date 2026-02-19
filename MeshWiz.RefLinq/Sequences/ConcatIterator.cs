@@ -130,15 +130,15 @@ public ref struct ConcatIterator<TLeft, TRight, TItem>(TLeft l, TRight r)
         => new(this, selector);
 
     /// <inheritdoc />
-    public RangeIterator<ConcatIterator<TLeft, TRight, TItem>, TItem> Take(Range r)
+    public RangedIterator<ConcatIterator<TLeft, TRight, TItem>, TItem> Take(Range r)
         => new(this, r);
 
     /// <inheritdoc />
-    public RangeIterator<ConcatIterator<TLeft, TRight, TItem>, TItem> Take(int num)
+    public RangedIterator<ConcatIterator<TLeft, TRight, TItem>, TItem> Take(int num)
         => new(this, ..num);
 
     /// <inheritdoc />
-    public RangeIterator<ConcatIterator<TLeft, TRight, TItem>, TItem> Skip(int num)
+    public RangedIterator<ConcatIterator<TLeft, TRight, TItem>, TItem> Skip(int num)
         => new(this, num..);
 
 
@@ -192,7 +192,7 @@ public ref struct ConcatIterator<TLeft, TRight, TItem>(TLeft l, TRight r)
     /// <inheritdoc />
     public bool Any()
     {
-        var copy = this;
+        using var copy = GetEnumerator();
         copy.Reset();
         return copy.MoveNext();
     }
