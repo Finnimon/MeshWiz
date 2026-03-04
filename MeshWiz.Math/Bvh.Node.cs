@@ -55,5 +55,13 @@ public static partial class Bvh
             where TOtherVec : unmanaged, IVec<TOtherVec, TOther>
             where TOther : unmanaged, IFloatingPointIeee754<TOther>
             => new(Bounds.To<TOtherVec>(), _first, _second);
+
+        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Node<TVec, TNum> WithBounds(AABB<TVec> bbox)
+        {
+            var copy = this;
+            Unsafe.AsRef(in copy.Bounds) = bbox;
+            return copy;
+        }
     }
 }

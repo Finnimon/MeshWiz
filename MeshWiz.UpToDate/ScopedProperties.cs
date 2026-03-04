@@ -10,6 +10,8 @@ public static class ScopedProperties
     public static EquatableScopedProperty<T> Property<T>(this IUpToDate scope, T initialValue)
         where T : IEquatable<T>
         => new(scope, initialValue);
+    
+    public static ReferenceScopedProperty<T> ClassProperty<T>(this IUpToDate scope, T initialValue) where T : class =>new(scope,initialValue);
 
     public static EquatableScopedProperty<T> Property<T>(this IUpToDate scope)
         where T : IEquatable<T>, new()

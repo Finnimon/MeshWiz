@@ -397,6 +397,9 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Ray3<TNum> RayThrough(Vec3<TNum> through) => new Ray3<TNum>(this, through - this);
+    
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Ray3<TNum> RayAlong(Vec3<TNum> dir) => new Ray3<TNum>(this, dir);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Line<Vec3<TNum>, TNum> LineTo(Vec3<TNum> end) => new(this, end);

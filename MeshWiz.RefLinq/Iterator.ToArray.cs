@@ -8,7 +8,7 @@ namespace MeshWiz.RefLinq;
 
 public static partial class Iterator
 {
-    public static T[] ToArray<T>(IEnumerable<T> enumerable) =>
+    public static T[] ToArray<T>(this IEnumerable<T> enumerable) =>
         enumerable switch
         {
             T[] arr => arr.AsSpan().ToArray(),

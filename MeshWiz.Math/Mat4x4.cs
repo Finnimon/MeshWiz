@@ -21,39 +21,23 @@ public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>,
     static int IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>, TNum>.ColCount => ColCount;
     public const int ColCount = 4;
     public const int RowCount = 4;
-
+    public const int Count = ColCount * RowCount;
+    public bool IsIdentity => Mat<TNum>.IsIdentity<Mat4x4<TNum>, Vec4<TNum>>(this);
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public static Mat4x4<TNum> Identity
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-    } =
-        new(Vec4<TNum>.UnitX,
-            Vec4<TNum>.UnitY,
-            Vec4<TNum>.UnitZ,
-            Vec4<TNum>.UnitW);
+    public static Mat4x4<TNum> Identity => Create(Vec4<TNum>.UnitX,
+        Vec4<TNum>.UnitY,
+        Vec4<TNum>.UnitZ,
+        Vec4<TNum>.UnitW);
 
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public static Mat4x4<TNum> Zero
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-    } = new(TNum.Zero);
+    public static Mat4x4<TNum> Zero => default;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public static Mat4x4<TNum> One
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-    } = new(TNum.One);
+    public static Mat4x4<TNum> One => Create(TNum.One);
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public static Mat4x4<TNum> NaN
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-    } = new(TNum.NaN);
+    public static Mat4x4<TNum> NaN => Create(TNum.NaN);
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public TNum Det => Determinant();
@@ -62,7 +46,7 @@ public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>,
     public Vec4<TNum> Diagonal => new(M00, M11, M22, M33);
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public TNum Trace => M00 + M11 + M22 + M33;
+    public TNum Trace => Vec4<TNum>.Sum(Diagonal);
 
     [Pure]
     public Mat4x4<TNum> Normalized() => this / Det;
@@ -106,10 +90,14 @@ public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>,
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Mat4x4<TNum> Create(TNum v)
     {
-        var vec = Vec4<TNum>.Create(v);
-        return Create(vec,vec,vec,vec);
+        Unsafe.SkipInit(out Mat4x4<TNum> m);
+        AsSpanUnsafe(ref m).Fill(v);
+        return m;
     }
-    
+
+    private static Span<TNum> AsSpanUnsafe(ref Mat4x4<TNum> m) =>
+        MemoryMarshal.CreateSpan(ref Unsafe.AsRef(in m.X.X), Count);
+
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Mat4x4<TNum> Create(Vec4<TNum> x, Vec4<TNum> y, Vec4<TNum> z, Vec4<TNum> w)
     {
@@ -123,7 +111,8 @@ public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>,
 
 
     private static readonly int NumSize = Unsafe.SizeOf<TNum>();
-    public  TNum this[int row, int col]
+
+    public TNum this[int row, int col]
     {
         get
         {
@@ -145,16 +134,16 @@ public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>,
         return result;
     }
 
-    public static unsafe ReadOnlySpan<TNum> AsSpan(in Mat4x4<TNum> matrix) 
-        => MemoryMarshal.CreateReadOnlySpan(in matrix.X.X,ColCount*RowCount);
+    public static unsafe ReadOnlySpan<TNum> AsSpan(in Mat4x4<TNum> matrix)
+        => MemoryMarshal.CreateReadOnlySpan(in matrix.X.X, Count);
 
-    public Mat4x4<TNum> Transpose() => FromColumns(X, Y, Z, W);
+    public Mat4x4<TNum> Transpose() => Transpose(this);
 
-    public static Mat4x4<TNum> Transpose(Mat4x4<TNum> m) => m.Transpose();
+    public static Mat4x4<TNum> Transpose(Mat4x4<TNum> m) => FromColumns(m.X, m.Y, m.Z, m.W);
 
     public static Mat4x4<TNum> operator *(Mat4x4<TNum> a, Mat4x4<TNum> b)
     {
-        b = b.Transpose();
+        b = Transpose(b);
         return new Mat4x4<TNum>(
             a.X.Dot(b.X), a.X.Dot(b.Y), a.X.Dot(b.Z), a.X.Dot(b.W),
             a.Y.Dot(b.X), a.Y.Dot(b.Y), a.Y.Dot(b.Z), a.Y.Dot(b.W),
@@ -164,10 +153,12 @@ public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>,
     }
 
 
-    public Vec3<TNum> MultiplyPoint(Vec3<TNum> v)
+    public Vec3<TNum> MultiplyPoint(Vec3<TNum> v) => MultiplyPoint(this, v);
+
+    public static Vec3<TNum> MultiplyPoint(Mat4x4<TNum> m, Vec3<TNum> v)
     {
-        var v4 = new Vec4<TNum>(v, TNum.One);
-        v4 = Multiply(v4);
+        var v4 = Vec4<TNum>.Create(v,TNum.One);
+        v4 = m * v4;
         return v4.XYZ / v4.W;
     }
 
@@ -177,9 +168,11 @@ public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>,
 
     [Pure]
     public Vec4<TNum> Multiply(Vec4<TNum> v)
-        => new(X.Dot(v), Y.Dot(v), Z.Dot(v), W.Dot(v));
+        => this * v;
 
-    public static Vec4<TNum> operator *(Mat4x4<TNum> m, Vec4<TNum> v) => m.Multiply(v);
+    public static Vec4<TNum> operator *(Mat4x4<TNum> m, Vec4<TNum> v) => m.X * v.X + m.Y * v.Y + m.Z * v.Z + m.W * v.W;
+
+    public static Vec4<TNum> operator *(Vec4<TNum> v, Mat4x4<TNum> m) => Transpose(m) * v;
     public static Vec3<TNum> operator *(Mat4x4<TNum> m, Vec3<TNum> v) => m.MultiplyPoint(v);
 
     public static Mat4x4<TNum> operator *(Mat4x4<TNum> m, TNum scalar) =>
@@ -198,7 +191,7 @@ public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>,
 
 
     // Row/Column access via bitwise cast
-    public Vec4<TNum> GetRow(int row) 
+    public Vec4<TNum> GetRow(int row)
         => RowCount > (uint)row
             ? Unsafe.AddByteOffset(ref Unsafe.AsRef(in X), Vec3<TNum>.ByteSize * row)
             : ThrowHelper.ThrowArgumentOutOfRangeException<Vec4<TNum>>(nameof(row));
@@ -271,8 +264,8 @@ public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>,
     public static Mat4x4<TNum> CreateViewAt(Vec3<TNum> eye, Vec3<TNum> target, Vec3<TNum> up)
     {
         var z = (eye - target).Normalized();
-        var x = Vec3<TNum>.Cross(up , z).Normalized();
-        var y = Vec3<TNum>.Cross(z , x).Normalized();
+        var x = Vec3<TNum>.Cross(up, z).Normalized();
+        var y = Vec3<TNum>.Cross(z, x).Normalized();
         var w = Vec4<TNum>.Create(
             -(x.Dot(eye)),
             -(y.Dot(eye)),
@@ -321,7 +314,7 @@ public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>,
     private Vec4<Vec4<TNum>> Nested()
         => this;
 
-    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec4<Vec4<TNum>> AsNested(Mat4x4<TNum> m) => m;
 
     public TNum Determinant()
@@ -396,16 +389,59 @@ public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>,
         result = n;
         return success;
     }
-    
-    
+
+
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Mat4x4<TOther> To<TOther>()
         where TOther : unmanaged, IFloatingPointIeee754<TOther>
     {
         Unsafe.SkipInit(out Mat4x4<TOther> res);
         var newNums = AsSpan().Select(TOther.CreateTruncating);
-        var resSpan = MemoryMarshal.CreateSpan(ref Unsafe.AsRef(in res.X.X),ColCount*RowCount);
+        var resSpan = MemoryMarshal.CreateSpan(ref Unsafe.AsRef(in res.X.X), ColCount * RowCount);
         newNums.CopyTo(resSpan);
         return res;
     }
+
+    public static Mat4x4<TNum> CreatePerspectiveFov(TNum fovy, TNum aspect, TNum depthNear, TNum depthFar)
+    {
+        if (fovy <= TNum.Zero || fovy > TNum.Pi) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(fovy), fovy, null);
+        if (aspect <= TNum.Zero) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(aspect), aspect, null);
+        if (depthNear <= TNum.Zero) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(depthNear), depthNear, null);
+        if (depthFar <= TNum.Zero) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(depthFar), depthFar, null);
+
+        var maxY = depthNear * TNum.Tan(Numbers<TNum>.Half * fovy);
+        var minY = -maxY;
+        var minX = minY * aspect;
+        var maxX = maxY * aspect;
+
+        return CreatePerspectiveOffCenter(minX, maxX, minY, maxY, depthNear, depthFar);
+    }
+
+    public static Mat4x4<TNum> CreatePerspectiveOffCenter(
+        TNum left,
+        TNum right,
+        TNum bottom,
+        TNum top,
+        TNum depthNear,
+        TNum depthFar)
+    {
+        if (depthNear <= TNum.Zero) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(depthNear), depthNear, null);
+        if (depthFar <= TNum.Zero) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(depthFar), depthFar, null);
+        if (depthNear >= depthFar) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(depthNear));
+        var two = Numbers<TNum>.Two;
+        var x = two * depthNear / (right - left);
+        var y = two * depthNear / (top - bottom);
+        var a = (right + left) / (right - left);
+        var b = (top + bottom) / (top - bottom);
+        var c = -(depthFar + depthNear) / (depthFar - depthNear);
+        var d = -(two * depthFar * depthNear) / (depthFar - depthNear);
+        return Create(
+            Vec4<TNum>.Zero.WithElement(0, x),
+            Vec4<TNum>.Zero.WithElement(1, y),
+            Vec4<TNum>.Create(a, b, c, TNum.NegativeOne),
+            Vec4<TNum>.Zero.WithElement(2, d)
+        );
+    }
+
+    public Mat3x3<TNum> AsMat3x3() => Mat3x3<TNum>.Create(X.XYZ, Y.XYZ, Z.XYZ);
 }

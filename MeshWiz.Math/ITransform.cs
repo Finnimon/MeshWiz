@@ -5,6 +5,6 @@ namespace MeshWiz.Math;
 public interface ITransform<T>
 {
     [Pure]
-    public T Transform(T src);
+    public T Transform(T pt);
 }
 

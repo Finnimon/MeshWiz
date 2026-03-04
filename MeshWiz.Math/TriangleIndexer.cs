@@ -15,9 +15,6 @@ public readonly struct TriangleIndexer(int a, int b, int c) : IEquatable<Triangl
     public Triangle3<TNum> Extract<TNum>(ReadOnlySpan<Vec3<TNum>> vertices)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
         => new(vertices[A], vertices[B], vertices[C]);
-    public Triangle3<TNum> Extract<TNum>(Span<Vec3<TNum>> vertices)
-        where TNum : unmanaged, IFloatingPointIeee754<TNum>
-        => new(vertices[A], vertices[B], vertices[C]);
 
     public Triangle<TVector, TNum> Extract<TVector, TNum>(IReadOnlyList<TVector> vertices)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>

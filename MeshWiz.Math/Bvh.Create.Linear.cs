@@ -104,7 +104,7 @@ public static partial class Bvh
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             minNodeSize = int.Max(1, minNodeSize);
-            var perItemBounds = source
+            var perItemBounds = source.Iterate()
                 .Select(item => item.BBox)
                 .ToArray();
             var boundsSpan = perItemBounds.AsSpan();

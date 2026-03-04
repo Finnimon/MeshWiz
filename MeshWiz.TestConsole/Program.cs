@@ -1,28 +1,21 @@
 ﻿using System.Diagnostics;
 using MeshWiz.Math;
+using MeshWiz.Utility;
 
 Console.WriteLine("Hello World!");
 
 
-var arc = new Arc2<double>(default, 1, 0, double.Pi);
-var poly = arc.ToPolyline();
-BSpline<Vec2<double>, double> spline = new(poly.Vertices);
-spline.Traverse(0.5);
-spline.Traverse(0.5);
-spline.Traverse(0.5);
-spline.Traverse(0.5);
-for (var i = 0; i < 1000; i++)
-{
-    var t=i/1000.0;
-    spline.Traverse(t);
-}
-var sw = Stopwatch.StartNew();
+var mesh=Bvh.Mesh<float>.Sah(new Sphere<float>(default,1).Tessellate());
+Console.WriteLine(mesh.Count);
+Console.WriteLine(mesh.Depth);
+var transformedMesh=new Bvh.TransformableMesh<float>(mesh);
+    var sw = Stopwatch.StartNew();
 for (var i = 0; i < 10000; i++)
 {
-    var t=i/10000.0;
-    spline.Traverse(t);
-    // Bezier.Lerp<Vec2<double>>(spline.Knots,Vec2<double>.Create(t));
+    transformedMesh.Transform = Mat4x4<float>.CreateTranslation(Vec3<float>.UnitX * 5f);
+    transformedMesh.Intersects(mesh);
+    transformedMesh.Transform = Mat4x4<float>.CreateTranslation(Vec3<float>.UnitX * 0.5f);
+    transformedMesh.Intersects(mesh);
 }
-Console.WriteLine(spline.Knots.Length);
+
 Console.WriteLine(sw.Elapsed);
-Console.WriteLine(sw.Elapsed/1000);

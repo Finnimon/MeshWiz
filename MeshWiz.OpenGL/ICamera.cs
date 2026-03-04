@@ -15,8 +15,6 @@ public interface ICamera
     public void MoveUp(float signedMovementScalar);
     public Vec3<float> Position { get; }
     public Vec3<float> LookAt { get; set; }
-    public (Matrix4 model, Matrix4 view, Matrix4 projection) CreateRenderMatrices(float aspect);
+    public ( Mat4x4<float> view, Mat4x4<float> projection) CreateRenderMatrices(float aspect);
 
-    public (Matrix4 model, Matrix4 view, Matrix4 projection) CreateRenderMatrices(Vector2 bounds)
-    => CreateRenderMatrices(bounds.X / bounds.Y);
 }

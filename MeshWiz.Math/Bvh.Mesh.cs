@@ -8,8 +8,8 @@ public static partial class Bvh
     public class Mesh<TNum> : IMesh<TNum>, IHierarchy<Triangle3<TNum>,Vec3<TNum>,TNum>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
-        private readonly Triangle3<TNum>[] _triangles;
-        private readonly Node<Vec3<TNum>, TNum>[] _nodes;
+        internal readonly Triangle3<TNum>[] _triangles;
+        internal readonly Node<Vec3<TNum>, TNum>[] _nodes;
         public ReadOnlySpan<Node<Vec3<TNum>, TNum>> Nodes => _nodes;
 
         /// <inheritdoc />
@@ -70,8 +70,13 @@ public static partial class Bvh
             _volCentroid = allInfo.VolumeCentroid;
         }
         public int Depth { get; }
-        public Mesh(Triangle3<TNum>[] triangles, Node<Vec3<TNum>, TNum>[] nodes, int depth)
+
+        public Mesh(IEnumerable<Triangle3<TNum>> triangles, IEnumerable<Node<Vec3<TNum>, TNum>> nodes, int depth) :
+            this(triangles.Iterate().ToArray(), nodes.Iterate().ToArray(), depth) { }
+
+        internal Mesh(Triangle3<TNum>[] triangles, Node<Vec3<TNum>, TNum>[] nodes, int depth)
         {
+
             _triangles = triangles;
             _nodes = nodes;
             Depth = depth;
@@ -81,10 +86,9 @@ public static partial class Bvh
         {
             var info=Create.Sah<Triangle3<TNum>, Vec3<TNum>, TNum>(mesh, maxDepth, splitTests, minNodeSize);
             var tris = info.IndexShuffle is null
-                ? mesh.ToArray()
+                ? mesh.Iterate().ToArray()
                 : info.IndexShuffle.Iterate().Select(i => mesh[i]).ToArray();
             return new Mesh<TNum>(tris, info.Nodes, info.Depth);
         }
-        
     }
 }

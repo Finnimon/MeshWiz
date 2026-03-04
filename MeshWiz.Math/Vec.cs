@@ -1,6 +1,8 @@
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using MeshWiz.Utility;
+using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
@@ -17,6 +19,21 @@ public static class Vec<TNum>
         return res;
     }
 
+    public static int LargestComponentIndex<TVec>(TVec v)
+        where TVec : unmanaged, IVec<TVec, TNum>
+    {
+        var previous = TNum.Abs(GetElement(v, 0));
+        var maxI = 0;
+        for (var i = 1; i < TVec.Dimensions; i++)
+        {
+            var cur = TNum.Abs(GetElement(v, i));
+            if (cur < previous) continue;
+            previous = cur;
+            maxI = i;
+        }
+
+        return maxI;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
     internal static TNum GetElement<TVec>(in TVec a, int index)
@@ -56,6 +73,7 @@ public static class Mat<TNum>
         where TRow : unmanaged, IVec<TRow, TNum>
         where TCol : unmanaged, IVec<TCol, TNum>
         => Unsafe.Add(ref Unsafe.As<TMat, TNum>(ref Unsafe.AsRef(in a)), row * TRow.Dimensions + col) = v;
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void SetElement<TMat, TVec>(in TMat a, int row, int col, TNum v)
         where TMat : unmanaged, IMat<TMat, TVec, TVec, TNum>
@@ -86,7 +104,7 @@ public static class Mat<TNum>
         ref var pin = ref Unsafe.As<TMat, TNum>(ref Unsafe.AsRef(in a));
         var rowDim = TRow.Dimensions;
         var colDim = TCol.Dimensions;
-        for (var row = 0; row < colDim; row++) 
+        for (var row = 0; row < colDim; row++)
             Vec<TNum>.SetElement(in v, row, Unsafe.Add(ref pin, row * rowDim + col));
         return v;
     }
@@ -96,6 +114,7 @@ public static class Mat<TNum>
         where TMat : unmanaged, IMat<TMat, TVec, TVec, TNum>
         where TVec : unmanaged, IVec<TVec, TNum>
         => GetCol<TMat, TVec, TVec>(in a, col);
+
     [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
     internal static TVec GetRow<TMat, TVec>(in TMat a, int row)
         where TMat : unmanaged, IMat<TMat, TVec, TVec, TNum>
@@ -114,9 +133,31 @@ public static class Mat<TNum>
         for (var row = 0; row < colDim; row++)
             Unsafe.Add(ref pin, row * rowDim + col) = Vec<TNum>.GetElement(in v, row);
     }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void SetCol<TMat, TVec>(in TMat a, int col,TVec v)
+    internal static void SetCol<TMat, TVec>(in TMat a, int col, TVec v)
         where TMat : unmanaged, IMat<TMat, TVec, TVec, TNum>
         where TVec : unmanaged, IVec<TVec, TNum>
-        => SetCol<TMat, TVec, TVec>(in a, col,v);
+        => SetCol<TMat, TVec, TVec>(in a, col, v);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining),Pure]
+    public static bool IsIdentity<TMat, TVec>(TMat transform)
+        where TMat : unmanaged, IMat<TMat, TVec, TVec, TNum>
+        where TVec : unmanaged, IVec<TVec, TNum>
+        => IsIdentity<TMat, TVec>(transform, Numbers<TNum>.ZeroEpsilon);
+    [MethodImpl(MethodImplOptions.AggressiveInlining),Pure]
+    public static bool IsIdentity<TMat, TVec>(TMat transform, TNum epsilon)
+        where TMat : unmanaged,IMat<TMat, TVec, TVec, TNum>
+        where TVec : unmanaged, IVec<TVec, TNum>
+    {
+        for (var i = 0; i < TVec.Dimensions; i++)
+        for (var j = 0; j < TVec.Dimensions; j++)
+        {
+            var elem = GetElement<TMat, TVec>(in transform, i, j);
+            var correctValue = i == j ? TNum.One : default;
+            if (!elem.IsApprox(correctValue, epsilon)) return false;
+        }
+
+        return true;
+    }
 }

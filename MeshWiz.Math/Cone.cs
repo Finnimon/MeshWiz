@@ -2,6 +2,7 @@ using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using MeshWiz.RefLinq;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
@@ -66,7 +67,7 @@ public readonly struct Cone<TNum> : IBody<TNum>,
     {
         var baseMesh = Base.Reversed().Tessellate(edgeCount).Indexed();
         var indices = new TriangleIndexer[edgeCount * 2];
-        baseMesh.Indices.CopyTo(indices, 0);
+        baseMesh.Indices.Iterate().CopyTo(indices, 0);
         Vec3<TNum>[] vertices = [..baseMesh.Vertices, Tip];
         var tipIndex = vertices.Length - 1;
         for (var i = 0; i < edgeCount; i++)

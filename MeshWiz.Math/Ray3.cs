@@ -10,7 +10,8 @@ namespace MeshWiz.Math;
 public readonly struct Ray3<TNum>
     : IIntersecter<Triangle3<TNum>, TNum>,
         IIntersecter<Plane<TNum>, TNum>,
-        IIntersecter<AABB<Vec3<TNum>>, TNum>
+        IIntersecter<AABB<Vec3<TNum>>, TNum>,
+        IEquatable<Ray3<TNum>> 
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly Vec3<TNum> Origin, Direction;
@@ -127,6 +128,14 @@ public readonly struct Ray3<TNum>
         var alongVector = dotProduct * ndir;
         return Origin + alongVector;
     }
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public TNum ParameterOfClosestPoint(Vec3<TNum> p)
+    {
+        var v = p - Origin;
+        var ndir = Direction;
+        var dotProduct = v.Dot(ndir);
+        return dotProduct;
+    }
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TNum DistanceTo(Vec3<TNum> p) => ClosestPoint(p).DistanceTo(p);
@@ -156,4 +165,17 @@ public readonly struct Ray3<TNum>
     public Ray3<TOther> To<TOther>()
         where TOther : unmanaged, IFloatingPointIeee754<TOther>
         => Ray3<TOther>.CreateUnsafe(Origin.To<TOther>(), Direction.To<TOther>());
+
+    /// <inheritdoc />
+    public bool Equals(Ray3<TNum> other) => Origin.Equals(other.Origin) && Direction.Equals(other.Direction);
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => obj is Ray3<TNum> other && Equals(other);
+
+    /// <inheritdoc />
+    public override int GetHashCode() => HashCode.Combine(Origin, Direction);
+
+    public static bool operator ==(Ray3<TNum> left, Ray3<TNum> right) => left.Equals(right);
+
+    public static bool operator !=(Ray3<TNum> left, Ray3<TNum> right) => !left.Equals(right);
 }

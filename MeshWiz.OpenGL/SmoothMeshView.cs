@@ -1,4 +1,5 @@
 using MeshWiz.Math;
+using MeshWiz.RefLinq;
 using MeshWiz.UpToDate;
 using OpenTK.Mathematics;
 
@@ -13,6 +14,7 @@ public class SmoothMeshView : IOpenGLControl
         get => _show;
         set => _show.Value = value;
     }
+    public Mat4x4<float> Model { get; set; } = Mat4x4<float>.Identity;
 
     public required ICamera Camera { get; set; }
 
@@ -141,10 +143,11 @@ public class SmoothMeshView : IOpenGLControl
 
     private void UpdateShaders(float aspectRatio)
     {
-        var (model, view, projection) = Camera.CreateRenderMatrices(aspectRatio);
+        var ( view, projection) = Camera.CreateRenderMatrices(aspectRatio);
         const string colorUniformName = "objectColor";
         var camDistance = Camera.Position.DistanceTo(Camera.LookAt);
         var depthOffset = DepthOffset / (camDistance * camDistance);
+        var model = Model;
         _solidColorShader!.ConsumeOutOfDate();
         _blinnPhongShader!.ConsumeOutOfDate();
         _solidColorShader!.BindAnd()
@@ -246,8 +249,8 @@ public class SmoothMeshView : IOpenGLControl
         var normals = GetInterleavedMesh(mesh);
         _newMesh = false;
         // Interleave positions and normals
-        var vertexData = new float[mesh.Vertices.Length * 6];
-        for (var i = 0; i < mesh.Vertices.Length; i++)
+        var vertexData = new float[mesh.Vertices.Count * 6];
+        for (var i = 0; i < mesh.Vertices.Count; i++)
         {
             var v = mesh.Vertices[i];
             var n = normals[i];
@@ -261,7 +264,7 @@ public class SmoothMeshView : IOpenGLControl
         }
 
 
-        _uploadedCount = mesh.Indices.Length * 3;
+        _uploadedCount = mesh.Indices.Count * 3;
 
         _vbo = new BufferObject(BufferTarget.ArrayBuffer);
         _vbo.BindAnd()
@@ -287,10 +290,10 @@ public class SmoothMeshView : IOpenGLControl
 
     Vec3<float>[] GetInterleavedMesh(IIndexedMesh<float> mesh)
     {
-        var normals = new Vec3<float>[mesh.Vertices.Length];
-        var counts = new uint[mesh.Vertices.Length];
+        var normals = new Vec3<float>[mesh.Vertices.Count];
+        var counts = new uint[mesh.Vertices.Count];
 
-        for (var i = 0; i < mesh.Indices.Length; i++)
+        for (var i = 0; i < mesh.Indices.Count; i++)
         {
             var indexer = mesh.Indices[i];
             var normal = indexer.Extract(mesh.Vertices).Normal;

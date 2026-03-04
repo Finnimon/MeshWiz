@@ -54,7 +54,7 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vec2<TNum>
     }
 
     [field: AllowNull, MaybeNull]
-    private ChildSurface[] ChildSurfaces => field ??= Enumerable.Range(0, Count).Select(CreateChildSurface2).ToArray();
+    private ChildSurface[] ChildSurfaces => field ??= Iterator.Range(0, Count).Select(CreateChildSurface2).ToArray();
 
     private ChildSurface CreateChildSurface2(int index) =>
         GetIncompleteChildSurfaceType(index) switch
@@ -493,7 +493,7 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vec2<TNum>
         int childSurfaceCount)
     {
         var segments = TraceGeodesics(p, dir, i => i < childSurfaceCount)
-            .ToArray(); //execute entirely to improve function caching
+            .Iterate().ToArray(); //execute entirely to improve function caching
         if (segments.Length == 0)
             return new PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum>();
         if (segments.Length == 1)

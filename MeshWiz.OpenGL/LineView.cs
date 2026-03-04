@@ -9,6 +9,7 @@ public class LineView : IOpenGLControl
     private readonly EquatableScopedProperty<bool> _show;
     public bool Show { get=>_show; set=>_show.Value=value; }
     public ICamera Camera{get; set;}
+    public Mat4x4<float> Model { get; set; } = Mat4x4<float>.Identity;
 
     private readonly FloatingPointScopedProperty<float> _lineWidth;
     public float LineWidth
@@ -82,7 +83,8 @@ public class LineView : IOpenGLControl
     public float DepthOffset { get; set; } = 0.0005f;
     private void UpdateShader(float aspect)
     {
-        var (model, view, projection) = Camera.CreateRenderMatrices(aspect);
+        var (view, projection) = Camera.CreateRenderMatrices(aspect);
+        var model = Model;
         var objectColor = Color;
         var camDistance = Camera.Position.DistanceTo(Camera.LookAt);
         var depthOffset =  DepthOffset/(camDistance*camDistance);
@@ -105,9 +107,7 @@ public class LineView : IOpenGLControl
     {
         _newLine = false;
         _vao!.Bind();
-        _vbo?.Unbind();
-        _vbo?.Dispose();
-        _vbo=new BufferObject(BufferTarget.ArrayBuffer);
+        _vbo??=new BufferObject(BufferTarget.ArrayBuffer);
         _vbo.BindAnd().BufferData(Polyline.Points,BufferUsageHint.StaticDraw);
         _uploadedVertexCount=Polyline.Points.Length;
         _shader!.Bind();

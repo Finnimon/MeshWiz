@@ -1,10 +1,12 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using MeshWiz.Collections;
+using MeshWiz.RefLinq;
 using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
 
+[Obsolete(nameof(Bvh.Mesh<>))]
 public class BvhMesh<TNum> : IIndexedMesh<TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
@@ -26,9 +28,9 @@ public class BvhMesh<TNum> : IIndexedMesh<TNum>
     private Vec3<TNum>? _volumeCentroid;
 
 
-    public TriangleIndexer[] Indices { get; }
-    public Vec3<TNum>[] Vertices { get; }
-    public int Count => Indices.Length;
+    public IReadOnlyList<TriangleIndexer> Indices { get; }
+    public IReadOnlyList<Vec3<TNum>> Vertices { get; }
+    public int Count => Indices.Count;
     public Triangle3<TNum> this[int index] => Indices[index].Extract(Vertices);
 
 
@@ -43,9 +45,9 @@ public class BvhMesh<TNum> : IIndexedMesh<TNum>
         return new(hierarchy.GetUnsafeAccess(), info.indices, info.vertices, info.depth);
     }
 
-    private BvhMesh(BoundedVolume<TNum>[] hierarchy, TriangleIndexer[] indices, Vec3<TNum>[] vertices, uint depth)
+    private BvhMesh(IEnumerable<BoundedVolume<TNum>> hierarchy, IReadOnlyList<TriangleIndexer> indices, Vec3<TNum>[] vertices, uint depth)
     {
-        _hierarchy = hierarchy;
+        _hierarchy = hierarchy.Iterate().ToArray();
         Indices = indices;
         Vertices = vertices;
         BBox = _hierarchy.Length > 0 ? _hierarchy[0].Bounds : AABB<Vec3<TNum>>.Empty;
@@ -260,20 +262,11 @@ public class BvhMesh<TNum> : IIndexedMesh<TNum>
     public BvhMesh<TOther> To<TOther>()
         where TOther : unmanaged, IFloatingPointIeee754<TOther>
     {
-        var indices = Indices[..^1];
-        var vertices = new Vec3<TOther>[Vertices.Length];
-        for (var i = 0; i < Vertices.Length; i++) vertices[i] = Vertices[i].To<TOther>();
+        var indices = Indices;
+        var vertices = Vertices.Iterate().Select(v=>v.To<TOther>()).ToArray();
+        
         var hierarchy = new BoundedVolume<TOther>[_hierarchy.Length];
-        for (var index = 0; index < _hierarchy.Length; index++)
-        {
-            var node = _hierarchy[index];
-            var bbox = node.Bounds;
-            AABB<Vec3<TOther>> oBBox = bbox.To<Vec3<TOther>>();
-            BoundedVolume<TOther> otherNode = node.IsParent
-                ? BoundedVolume<TOther>.MakeParent(oBBox, node.FirstChild, node.SecondChild)
-                : BoundedVolume<TOther>.MakeLeaf(oBBox, node.Start, node.Length);
-            hierarchy[index] = otherNode;
-        }
+        hierarchy = _hierarchy.AsSpan().Select(n => n.To<TOther>()).ToArray();
 
         return new BvhMesh<TOther>(hierarchy, indices, vertices, Depth);
     }

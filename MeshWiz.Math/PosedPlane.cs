@@ -21,7 +21,7 @@ public readonly struct PosedPlane<TNum>
 
     public PosedPlane(Vec3<TNum> origin, Quaternion<TNum> rot)
     {
-        var mat = rot.AsMatrix3x3();
+        var mat = rot.AsMat3x3();
         U = mat.X;
         V = mat.Y;
         Normal = mat.Z;
@@ -61,11 +61,11 @@ public readonly struct PosedPlane<TNum>
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vec2<TNum>[] ProjectIntoLocal(IEnumerable<Vec3<TNum>> pts)
-        => pts.TryGetSpan(out var span) ? ProjectIntoLocal(span) : pts.Select(ProjectIntoLocal).ToArray();
+        => pts.TryGetSpan(out var span) ? ProjectIntoLocal(span) : pts.Iterate().Select(ProjectIntoLocal).ToArray();
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vec3<TNum>[] ProjectIntoWorld(IEnumerable<Vec2<TNum>> pts)
-        => pts.TryGetSpan(out var span) ? ProjectIntoWorld(span) : pts.Select(ProjectIntoWorld).ToArray();
+        => pts.TryGetSpan(out var span) ? ProjectIntoWorld(span) : pts.Iterate().Select(ProjectIntoWorld).ToArray();
 
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]

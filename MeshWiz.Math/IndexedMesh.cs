@@ -22,12 +22,12 @@ public sealed class IndexedMesh<TNum> : IIndexedMesh<TNum>
     private Vec3<TNum>? _volumeCentroid;
     private AABB<Vec3<TNum>>? _bBox;
 
-    public Vec3<TNum>[] Vertices { get; }
-    public TriangleIndexer[] Indices { get; }
-    public int Count => Indices.Length;
+    public IReadOnlyList<Vec3<TNum>> Vertices { get; }
+    public IReadOnlyList<TriangleIndexer> Indices { get; }
+    public int Count => Indices.Count;
     public Triangle3<TNum> this[int index] => Indices[index].Extract(Vertices);
 
-    public IndexedMesh(Vec3<TNum>[] vertices, TriangleIndexer[] indices)
+    public IndexedMesh(IReadOnlyList<Vec3<TNum>> vertices,IReadOnlyList<TriangleIndexer> indices)
     {
         Vertices = vertices;
         Indices = indices;
@@ -83,7 +83,7 @@ public sealed class IndexedMesh<TNum> : IIndexedMesh<TNum>
 
     public IndexedMesh<TNum> Inverted()
     {
-        var indices=Enumerable.Select(Indices, tri => new TriangleIndexer(tri.A, tri.C, tri.B)).ToArray();
+        var indices=Indices.Iterate().Select(tri => new TriangleIndexer(tri.A, tri.C, tri.B)).ToArray();
         return new(Vertices, indices);
     }
 }

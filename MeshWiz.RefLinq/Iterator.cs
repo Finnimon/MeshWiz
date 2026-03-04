@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -42,6 +43,9 @@ public static partial class Iterator
 
         return found;
     }
+
+    [System.Diagnostics.Contracts.Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static SequenceIterator<T> Sequence<T>(T start, T endInclusive, T step) where T : struct, INumber<T> => new(start, endInclusive, step);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static TItem Last<TIter, TItem>(TIter source)
@@ -213,7 +217,13 @@ public static partial class Iterator
         return !first;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void CopyTo<T>(this IEnumerable<T> source, Span<T> destination) => source.Iterate().CopyTo(destination);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void CopyTo<T>(this IEnumerable<T> source, T[] destination, int index) => source.Iterate().CopyTo(destination.AsSpan(index));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryGetSpan<T>([NoEnumeration] this IEnumerable<T> enumerable, out ReadOnlySpan<T> data)
     {
         switch (enumerable)
@@ -258,4 +268,8 @@ public static partial class Iterator
 
         return count != -1;
     }
+
+    public static RangeIterator<T> Range<T>(T start, int count)
+        where T : struct, INumber<T>
+        => new(start, count);
 }

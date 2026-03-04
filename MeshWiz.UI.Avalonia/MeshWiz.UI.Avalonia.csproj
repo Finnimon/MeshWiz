@@ -21,12 +21,12 @@
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\MeshWiz.Avalonia\MeshWiz.Avalonia.csproj" />
+      <ProjectReference Include="..\MeshWiz.Kinematics\MeshWiz.Kinematics.csproj" />
       <ProjectReference Include="..\MeshWiz.OpenGL\MeshWiz.OpenGL.csproj" />
       <ProjectReference Include="..\MeshWiz.Collections\MeshWiz.Collections.csproj" />
       <ProjectReference Include="..\MeshWiz.IO.Stl\MeshWiz.IO.Stl.csproj" />
       <ProjectReference Include="..\MeshWiz.IO\MeshWiz.IO.csproj" />
       <ProjectReference Include="..\MeshWiz.Math\MeshWiz.Math.csproj" />
-      <ProjectReference Include="..\MeshWiz.Slicer.OpenTK\MeshWiz.Slicer.OpenTK.csproj" />
       <ProjectReference Include="..\MeshWiz.Slicer\MeshWiz.Slicer.csproj" />
     </ItemGroup>
 </Project>

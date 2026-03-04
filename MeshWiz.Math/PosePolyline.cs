@@ -17,7 +17,7 @@ public sealed class PosePolyline<TPose, TVec, TNum>
     where TPose : IPose<TPose, TVec, TNum>
 {
     private readonly TPose[] _poses;
-    public PosePolyline(IEnumerable<TPose> poses) => _poses = poses.ToArray();
+    public PosePolyline(IEnumerable<TPose> poses) => _poses = poses.Iterate().ToArray();
     public PosePolyline(params ReadOnlySpan<TPose> poses) => _poses = poses.ToArray();
     private PosePolyline(TPose[] poses) => _poses = poses;
     internal static PosePolyline<TPose, TVec, TNum> CreateNonCopying(TPose[] poses) => new(poses);
@@ -65,7 +65,7 @@ public sealed class PosePolyline<TPose, TVec, TNum>
     }
 
     public static PosePolyline<TPose, TVec, TNum> CreateCulled(IEnumerable<TPose> poses) =>
-        CreateCulledNonCopying(poses.ToArray());
+        CreateCulledNonCopying(poses.Iterate().ToArray());
 
     public ReadOnlySpan<TPose> Poses => _poses;
     public int Count => int.Max(0, _poses.Length - 1);

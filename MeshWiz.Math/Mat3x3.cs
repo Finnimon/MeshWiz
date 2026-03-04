@@ -26,23 +26,7 @@ public readonly struct Mat3x3<TNum> : IMat<Mat3x3<TNum>, Vec3<TNum>, Vec3<TNum>,
         => Mat<TNum>.GetRow<Mat3x3<TNum>, Vec3<TNum>, Vec3<TNum>>(in this, row);
 
     [Pure]
-    public static Mat3x3<TNum> CreateRotation(Vec3<TNum> axis, TNum angle)
-    {
-        axis = axis.Normalized();
-
-        var cos = TNum.Cos(angle);
-        var sin = TNum.Sin(angle);
-        var t = TNum.One - cos;
-        var tAxis = t * axis;
-        var x = axis.X * tAxis;
-        var y = axis.Y * tAxis;
-        var z = axis.Z * tAxis;
-        var (sinX, sinY, sinZ) = sin * axis;
-        x += Vec3<TNum>.Create(cos, -sinZ, sinY);
-        y += Vec3<TNum>.Create(sinZ, cos, -sinX);
-        z += Vec3<TNum>.Create(-sinY, sinX, cos);
-        return Create(x, y, z);
-    }
+    public static Mat3x3<TNum> CreateRotation(Vec3<TNum> axis, Angle<TNum> angle) => Quaternion<TNum>.CreateFromAxisAngle(axis, angle).AsMat3x3();
 
     public const int ColCount = 3;
     public const int RowCount = 3;
@@ -67,10 +51,6 @@ public readonly struct Mat3x3<TNum> : IMat<Mat3x3<TNum>, Vec3<TNum>, Vec3<TNum>,
 
     public readonly Vec3<TNum> X, Y, Z;
 
-
-
-
-    
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Mat3x3<TNum> Create(TNum v)
@@ -97,8 +77,8 @@ public readonly struct Mat3x3<TNum> : IMat<Mat3x3<TNum>, Vec3<TNum>, Vec3<TNum>,
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
     private static Mat3x3<TNum> Create(
-        TNum m00, TNum m01, TNum m02, 
-        TNum m10, TNum m11, TNum m12, 
+        TNum m00, TNum m01, TNum m02,
+        TNum m10, TNum m11, TNum m12,
         TNum m20, TNum m21, TNum m22) =>
         Create(
             Vec3<TNum>.Create(m00, m01, m02),
@@ -179,8 +159,8 @@ public readonly struct Mat3x3<TNum> : IMat<Mat3x3<TNum>, Vec3<TNum>, Vec3<TNum>,
         return Vec3<TNum>.Create(d0 / det, d1 / det, d2 / det);
     }
 
-    public Mat3x3<TNum> Transpose() =>Transpose(this);
-    public static Mat3x3<TNum> Transpose(Mat3x3<TNum> mat)=>FromColumns(mat.X, mat.Y, mat.Z);
+    public Mat3x3<TNum> Transpose() => Transpose(this);
+    public static Mat3x3<TNum> Transpose(Mat3x3<TNum> mat) => FromColumns(mat.X, mat.Y, mat.Z);
 
     public void Deconstruct(out Vec3<TNum> x, out Vec3<TNum> y, out Vec3<TNum> z)
     {
@@ -231,7 +211,7 @@ public readonly struct Mat3x3<TNum> : IMat<Mat3x3<TNum>, Vec3<TNum>, Vec3<TNum>,
 
     public static Mat3x3<TNum> operator *(Mat3x3<TNum> a, Mat3x3<TNum> b)
     {
-        b = b.Transpose();
+        b = Transpose(b);
         return Create(
             a.X.Dot(b.X), a.X.Dot(b.Y), a.X.Dot(b.Z),
             a.Y.Dot(b.X), a.Y.Dot(b.Y), a.Y.Dot(b.Z),
@@ -240,11 +220,11 @@ public readonly struct Mat3x3<TNum> : IMat<Mat3x3<TNum>, Vec3<TNum>, Vec3<TNum>,
     }
 
     public Vec3<TNum> Multiply(Vec3<TNum> v)
-        => Vec3<TNum>.Create(X.Dot(v), Y.Dot(v), Z.Dot(v));
+        => this * v;
 
-    public static Vec3<TNum> operator *(Mat3x3<TNum> m, Vec3<TNum> v) => m.Multiply(v);
+    public static Vec3<TNum> operator *(Mat3x3<TNum> m, Vec3<TNum> v) => m.X * v.X + m.Y * v.Y + m.Z * v.Z;
 
-    public static Vec3<TNum> operator *(Vec3<TNum> v, Mat3x3<TNum> m) => m.Transpose().Multiply(v);
+    public static Vec3<TNum> operator *(Vec3<TNum> v, Mat3x3<TNum> m) => Transpose(m) * v;
 
     public static Mat3x3<TNum> operator *(Mat3x3<TNum> mat, TNum scalar)
         => Create(mat.X * scalar, mat.Y * scalar, mat.Z * scalar);

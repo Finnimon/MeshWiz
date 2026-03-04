@@ -10,7 +10,7 @@ public sealed class BBoxView : IOpenGLControl
     public required ICamera Camera { get; set; }
     private readonly EquatableScopedProperty<Color4> _color;
     public Color4  Color { get=>_color; set=>_color.Value=value; }
-    
+    public Mat4x4<float> Model { get; set; } = Mat4x4<float>.Identity;
     private readonly FloatingPointScopedProperty<float> _lineWidth;
     public float LineWidth
     {
@@ -58,7 +58,6 @@ public sealed class BBoxView : IOpenGLControl
         _vao.Bind();
         _ibo = new BufferObject(BufferTarget.ElementArrayBuffer);
         _ibo.BindAnd().BufferData(Indices,BufferUsageHint.StaticDraw);
-        
         OpenGLHelper.LogGlError(nameof(BBoxView));
     }
 
@@ -70,10 +69,11 @@ public sealed class BBoxView : IOpenGLControl
 
     private void UpdateShader(float aspectRatio)
     {
-        var (model, view, projection) = Camera.CreateRenderMatrices(aspectRatio);
+        var (view, projection) = Camera.CreateRenderMatrices(aspectRatio);
         var objectColor = Color;
         const float depthOffset = 0.000001f;
         _shaderProgram!.ConsumeOutOfDate();
+        var model = Model;
         _shaderProgram!.BindAnd()
             .SetUniform(nameof(model),ref model)
             .SetUniform(nameof(view),ref view)
@@ -81,9 +81,8 @@ public sealed class BBoxView : IOpenGLControl
             .SetUniform(nameof(objectColor),objectColor)
             .SetUniform(nameof(depthOffset),depthOffset)
             .Unbind();
-        if(!_shaderProgram.ConsumeOutOfDate())
-            this.OutOfDate();
-            OpenGLHelper.LogGlError(nameof(BBoxView));
+        if(!_shaderProgram.ConsumeOutOfDate()) OutOfDate();
+        OpenGLHelper.LogGlError(nameof(BBoxView));
     }
 
     private void UploadBox()

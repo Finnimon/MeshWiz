@@ -203,9 +203,14 @@ public readonly struct Mat2x2<TNum> : IMat<Mat2x2<TNum>, Vec2<TNum>, Vec2<TNum>,
     }
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vec2<TNum> operator *(Mat2x2<TNum> l, Vec2<TNum> r) => l.X * r.X + l.Y * r.Y;
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vec2<TNum> operator *(Vec2<TNum> vec, Mat2x2<TNum> m) => Transpose(m) * vec;
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override bool Equals(object? obj) => obj is Mat2x2<TNum> other && this == other;
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    /// <inheritdoc />
     public override int GetHashCode() => AsNested(this).GetHashCode();
 }
