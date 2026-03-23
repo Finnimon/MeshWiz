@@ -86,17 +86,22 @@ public static partial class Signal
                 searchRange = AABB.From(searchMid.Input, searchMax.Input);
             }
 
-            SignalDataPoint<TIn, TOut>[] res = [searchMid, searchMin, searchMax];
 
-            return res.OrderBy(v => TOut.Abs(v.OutPut - target)).First();
+            return SignalDataPoint<TIn, TOut>.Closest(target, searchMid, searchMin, searchMax);
         }
-
 
         public static SignalDataPoint<TIn, TOut> BestFitNewton<TIn, TOut>(
             ISignal<TIn, TOut> signal,
+            AABB<TIn> searchRange)
+            where TIn : unmanaged, IFloatingPointIeee754<TIn>
+            where TOut : unmanaged, IFloatingPointIeee754<TOut>
+            => BestFitNewton(signal, searchRange,32);
+        public static SignalDataPoint<TIn, TOut> BestFitNewton<TIn, TOut>(
+            ISignal<TIn, TOut> signal,
             AABB<TIn> searchRange,
-            int maxIterations = 32,
-            TOut tolerance = default) where TIn : unmanaged, IFloatingPointIeee754<TIn>
+            int maxIterations,
+            TOut tolerance = default) 
+            where TIn : unmanaged, IFloatingPointIeee754<TIn>
             where TOut : unmanaged, IFloatingPointIeee754<TOut>
         {
             if (tolerance == default)
@@ -148,7 +153,6 @@ public static partial class Signal
             var min = SignalDataPoint<TIn, TOut>.Create(signal, searchRange.Min);
             var max = SignalDataPoint<TIn, TOut>.Create(signal, searchRange.Max);
 
-            SignalDataPoint<TIn, TOut>[] res = [min, best, max];
             return SignalDataPoint<TIn, TOut>.Closest(TOut.Zero, best, min, max);
         }
 

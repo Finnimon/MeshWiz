@@ -10,21 +10,16 @@ public ref struct SelectIterator<TIter, TIn,TOut>(TIter source, Func<TIn, TOut> 
     where TIter : IRefIterator<TIter, TIn>, allows ref struct
 {
     private TIter _source = source;
-    private readonly Func<TIn, TOut> _sel = sel;
     private TOut? _current;
 
 
     /// <inheritdoc />
     public bool MoveNext()
     {
-        while (_source.MoveNext())
-        {
-            var cur = _source.Current;
-            _current = _sel(cur);
-            return true;
-        }
-
-        return false;
+        if (!_source.MoveNext()) return false;
+        var cur = _source.Current;
+        _current = sel(cur);
+        return true;
     }
 
     /// <inheritdoc />
@@ -34,7 +29,7 @@ public ref struct SelectIterator<TIter, TIn,TOut>(TIter source, Func<TIn, TOut> 
     public TOut Current => _current!;
 
     /// <inheritdoc />
-    object? IEnumerator.Current => _current;
+    object? IEnumerator.Current => Current;
 
     /// <inheritdoc />
     public void Dispose() { }
@@ -68,7 +63,7 @@ public ref struct SelectIterator<TIter, TIn,TOut>(TIter source, Func<TIn, TOut> 
     public bool TryGetLast(out TOut? item)
     {
         var found= _source.TryGetLast(out var pre);
-        item = found ? _sel(pre!) : default;
+        item = found ? sel(pre!) : default;
         return found;
     }
 
@@ -112,8 +107,8 @@ public ref struct SelectIterator<TIter, TIn,TOut>(TIter source, Func<TIn, TOut> 
     SelectIterator<SelectIterator<TIter, TIn, TOut>, TOut, TOut1> IRefIterator<SelectIterator<TIter, TIn, TOut>, TOut>.Select<TOut1>(Func<TOut, TOut1> selector) 
         => new(this, selector);
 
-    public SelectIterator<TIter, TIn, TOut2> Select<TOut2>(Func<TOut, TOut2> sel)
-        => new(_source, Func.Combine(_sel, sel));
+    public SelectIterator<TIter, TIn, TOut2> Select<TOut2>(Func<TOut, TOut2> sel1)
+        => new(_source, Func.Combine(sel, sel1));
     
     public SelectManyIterator<SelectIterator<TIter,TIn,TOut>, SpanIterator<TOut2>, TOut, TOut2> SelectMany<TOut2>(
         Func<TOut, SpanIterator<TOut2>> flattener)
@@ -171,6 +166,7 @@ public ref struct SelectIterator<TIter, TIn,TOut>(TIter source, Func<TIn, TOut> 
             ThrowHelper.ThrowInvalidOperationException();
         var seed = iter.Current;
         while (iter.MoveNext()) seed = aggregator(seed, iter.Current);
+        iter.Reset();
         return seed;
     }
 
@@ -212,7 +208,7 @@ public ref struct SelectIterator<TIter, TIn,TOut>(TIter source, Func<TIn, TOut> 
     public bool TryTakeRange(Range r, out SelectIterator<TIter, TIn, TOut> result)
     {
         var success = _source.TryTakeRange(r, out var newSource);
-        result = success ? new SelectIterator<TIter, TIn, TOut>(newSource!, _sel) : default;
+        result = success ? new SelectIterator<TIter, TIn, TOut>(newSource!, sel) : default;
         return success;
     }
     

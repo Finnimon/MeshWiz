@@ -160,4 +160,13 @@ public static class Mat<TNum>
 
         return true;
     }
+
+    public static TMat WithDiagonal<TMat,TVec>(TMat mat, TVec diag) 
+        where TMat : unmanaged,IMat<TMat, TVec, TVec, TNum>
+        where TVec : unmanaged, IVec<TVec, TNum>
+    {
+        for(var i=0;i<TVec.Dimensions;i++)
+            SetElement<TMat, TVec>(in mat,i,i,Vec<TNum>.GetElement(in diag,i));
+        return mat;
+    }
 }

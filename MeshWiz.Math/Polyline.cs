@@ -10,11 +10,12 @@ using CommunityToolkit.Diagnostics;
 using MeshWiz.Collections;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
+using SpanExt = MeshWiz.RefLinq.SpanExt;
 
 namespace MeshWiz.Math;
 
 public sealed class Polyline<TVec, TNum>
-    : IPolyline<Polyline<TVec, TNum>, Line<TVec, TNum>, TVec, TVec, TNum>, 
+    : IPolyline<Polyline<TVec, TNum>, Line<TVec, TNum>, TVec, TVec, TNum>,
         IReadOnlyList<Line<TVec, TNum>>
     where TVec : unmanaged, IVec<TVec, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
@@ -121,8 +122,11 @@ public sealed class Polyline<TVec, TNum>
 
     [field: AllowNull, MaybeNull]
     // ReSharper disable once InconsistentNaming
-    internal TNum[] _cumulativeDistances =>
-        field ??= Polyline.CalculateCumulativeDistances<TVec, TNum>(verts: _points);
+    internal TNum[] _cumulativeDistances
+    {
+        get { return field ??= Polyline.CalculateCumulativeDistances<TVec, TNum>(verts: _points); }
+        private set;
+    }
 
     public ReadOnlySpan<TNum> CumulativeDistances => _cumulativeDistances;
 
@@ -389,6 +393,33 @@ public sealed class Polyline<TVec, TNum>
     /// <inheritdoc />
     public static Polyline<TVec, TNum> CreateCulled(IEnumerable<TVec> source)
         => CreateNonCopying(Polyline.Cull<TVec, TNum>(source));
+
+    [Pure]
+    public Polyline<TVec, TNum> TransformedBy<TTransform>(TTransform transform)
+        where TTransform : ISpatialTransform<TVec>
+    {
+        var copy = CreateNonCopying(SpanExt.Iterate(this.Points).Select(transform.TransformPoint).ToArray());
+        if (!transform.IsAffine) return copy;
+        copy._cumulativeDistances = _cumulativeDistances;
+        if (_bbox.TryGetValue(out var bbox))
+            copy._bbox = AABB.From(transform.TransformPoint(bbox.Min), transform.TransformPoint(bbox.Max));
+        if (_vertexCentroid.TryGetValue(out var vertCentroid))
+            copy._vertexCentroid = transform.TransformPoint(vertCentroid);
+        return copy;
+    }
+
+    public void InitializeLazies()
+    {
+        _ = BBox;
+        _ = VertexCentroid;
+        _ = CumulativeDistances;
+    }
+
+    public Polyline<TVec,TNum> Reversed()
+    {
+        var points = this._points.Reverse().ToArray();
+        return new Polyline<TVec, TNum>(points) { _bbox = _bbox };
+    }
 }
 
 public static partial class Polyline
@@ -400,7 +431,7 @@ public static partial class Polyline
         => (isClosed || (TNum.Zero <= distance && distance <= TNum.One))
             ? TraverseOnCurve(distance, cumulativeDistances, isClosed, verts)
             : TraverseFromEnds(distance, cumulativeDistances, verts);
-    
+
     public static TLerp Traverse<TLerp, TNum>(TNum distance, IReadOnlyList<TNum> cumulativeDistances, bool isClosed,
         IReadOnlyList<TLerp> verts)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
@@ -436,7 +467,7 @@ public static partial class Polyline
 
         return TLerp.ExactLerp(p1, p2, distance);
     }
-    
+
     private static TLerp TraverseFromEnds<TLerp, TNum>(TNum by, IReadOnlyList<TNum> cumulateDistances,
         IReadOnlyList<TLerp> verts)
         where TLerp : ILerp<TLerp, TNum> where TNum : unmanaged, IFloatingPointIeee754<TNum>
@@ -491,6 +522,7 @@ public static partial class Polyline
         var pEnd = verts[segment + 1];
         return TLerp.ExactLerp(pStart, pEnd, remainder);
     }
+
     public static TLerp TraverseOnCurve<TLerp, TNum>(TNum t,
         ReadOnlySpan<TNum> cumulativeDistances,
         bool isClosed,
@@ -597,7 +629,7 @@ public static partial class Polyline
         seg = posBefore;
         return true;
     }
-    
+
     [Pure]
     public static bool TryFindContainingSegmentExactly<TPos, TNum>(bool isClosed,
         IReadOnlyList<TNum> cumulativeDistances,

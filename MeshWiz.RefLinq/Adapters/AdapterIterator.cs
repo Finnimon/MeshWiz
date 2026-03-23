@@ -55,7 +55,7 @@ public readonly partial struct Iterator<T> : IRefIterator<Iterator<T>, T>, IEnum
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public T Last()
-        => TryGetLast(out var last) ? last! : ThrowHelper.ThrowInvalidOperationException<T>();
+        => TryGetLast(out var last) ? last! : EnumerableThrowHelper.NoElements<T>();
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -281,12 +281,12 @@ public readonly partial struct Iterator<T> : IRefIterator<Iterator<T>, T>, IEnum
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public T Min(IComparer<T>? comp)
-        => Iterator.TryGetMin(this, comp, out var min) ? min : ThrowHelper.ThrowInvalidOperationException<T>();
+        => Iterator.TryGetMin(this, comp, out var min) ? min : EnumerableThrowHelper.NoElements<T>();
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public T Max(IComparer<T>? comp)
-        => Iterator.TryGetMax(this, comp, out var min) ? min : ThrowHelper.ThrowInvalidOperationException<T>();
+        => Iterator.TryGetMax(this, comp, out var min) ? min : EnumerableThrowHelper.NoElements<T>();
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using MeshWiz.Utility;
+using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
@@ -79,7 +80,7 @@ public static partial class Bvh
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool Traverse<TElement, TIntersection, TVec, TNum>(
         IReadOnlyList<TElement> elements,
-        ReadOnlySpan<Node<TVec, TNum>> nodes,
+        IReadOnlyList<Node<TVec, TNum>> nodes,
         int depth,
         Func<AABB<TVec>, bool> bBoxDoIntersect,
         Func<TElement, (TIntersection, bool)> elementIntersect,
@@ -110,7 +111,7 @@ public static partial class Bvh
 
     public static bool Traverse<TTraverser, TElement, TIntersection, TVec, TNum>(
         IReadOnlyList<TElement> elements,
-        ReadOnlySpan<Node<TVec, TNum>> nodes,
+        IReadOnlyList<Node<TVec, TNum>> nodes,
         TTraverser traverser,
         int depth
     )
@@ -127,7 +128,7 @@ public static partial class Bvh
         {
             var nIndex = stack[--stackSize];
             nextNode:
-            ref readonly var n = ref nodes[nIndex];
+            var n = nodes[nIndex];
 
             var isHit = traverser.DoIntersect(n.Bounds);
             if (!isHit) continue;
@@ -173,6 +174,7 @@ public static partial class Bvh
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         if (left.Elements.Count == 0 || right.Elements.Count == 0) return false;
+        if (!left.IsTransforming && right.IsTransforming) (left, right) = (right, left);
         using var leftRentedArr = RentedArray<int>.Rent(left.Depth + right.Depth);
         var leftStack = leftRentedArr.GetCompleteArray().AsSpan();
         using var rightRentedArr = RentedArray<int>.Rent(left.Depth + right.Depth);
@@ -181,31 +183,33 @@ public static partial class Bvh
         rightStack[0] = 0;
         var stackSize = 1;
 
+        var leftElems = left.Elements;
+        var rightElems = right.Elements;
         var leftNodes = left.Nodes;
         var rightNodes = right.Nodes;
         while (0 < stackSize)
         {
             var leftPos = leftStack[--stackSize];
             var rightPos = rightStack[stackSize];
-            ref readonly var leftNode = ref leftNodes[leftPos];
-            ref readonly var rightNode = ref rightNodes[rightPos];
+            var leftNode = leftNodes[leftPos];
+            var rightNode = rightNodes[rightPos];
+
+            afterNodePop:
             var separated = false;
             var touching = false;
 
             for (var i = 0; i < TVec.Dimensions; i++)
             {
-                var minA = leftNode.Bounds.Min[i];
-                var maxA = leftNode.Bounds.Max[i];
-                var minB = rightNode.Bounds.Min[i];
-                var maxB = rightNode.Bounds.Max[i];
+                var dimA = leftNode.Bounds.GetDim<TVec, TNum>(i);
+                var dimB = rightNode.Bounds.GetDim<TVec, TNum>(i);
 
-                if (maxA < minB || maxB < minA)
+                if (!dimA.Max.IsApproxGreaterOrEqual(dimB.Min) || !dimB.Max.IsApproxGreaterOrEqual(dimA.Min))
                 {
                     separated = true;
                     break;
                 }
 
-                if (maxA == minB || maxB == minA)
+                if (dimA.Max.IsApprox(dimB.Min) || dimB.Max.IsApprox(dimA.Min))
                     touching = true;
             }
 
@@ -222,30 +226,31 @@ public static partial class Bvh
             {
                 leftStack[stackSize] = leftNode.SecondChild;
                 rightStack[stackSize++] = rightPos;
-                leftStack[stackSize] = leftNode.FirstChild;
-                rightStack[stackSize++] = rightPos;
-                continue;
+                leftNode = leftNodes[(leftPos = leftNode.FirstChild)];
+
+                goto afterNodePop;
             }
 
             if (rightNode.IsParent)
             {
                 leftStack[stackSize] = leftPos;
                 rightStack[stackSize++] = rightNode.SecondChild;
-                leftStack[stackSize] = leftPos;
-                rightStack[stackSize++] = rightNode.FirstChild;
-                continue;
+                rightNode = rightNodes[(rightPos = rightNode.FirstChild)];
+                goto afterNodePop;
             }
 
-            var bothLeaf = leftNode.IsLeaf && rightNode.IsLeaf;
-            Debug.Assert(bothLeaf);
+            // @formatter:off
             for (var leftElem = 0; leftElem < leftNode.Length; leftElem++)
+            {
+            var leftElement = leftElems[leftElem + leftNode.Start];
             for (var rightElem = 0; rightElem < rightNode.Length; rightElem++)
             {
-                var leftElement = left.Elements[leftElem + leftNode.Start];
-                var rightElement = right.Elements[rightElem + rightNode.Start];
+                var rightElement = rightElems[rightElem + rightNode.Start];
                 var hit = elemTest(leftElement, rightElement);
                 if (hit) return true;
             }
+            }
+            // @formatter:on
         }
 
         return false;

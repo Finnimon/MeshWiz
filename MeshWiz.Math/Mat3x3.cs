@@ -7,13 +7,14 @@ using System.Runtime.InteropServices;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.RefLinq;
 using MeshWiz.Utility;
+using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
 [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
 // ReSharper disable once InconsistentNaming
-public readonly struct Mat3x3<TNum> : IMat<Mat3x3<TNum>, Vec3<TNum>, Vec3<TNum>, TNum>
+public readonly struct Mat3x3<TNum> : IMat<Mat3x3<TNum>, Vec3<TNum>, Vec3<TNum>, TNum>, ISpatialTransform<Vec3<TNum>>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     /// <inheritdoc />
@@ -27,6 +28,9 @@ public readonly struct Mat3x3<TNum> : IMat<Mat3x3<TNum>, Vec3<TNum>, Vec3<TNum>,
 
     [Pure]
     public static Mat3x3<TNum> CreateRotation(Vec3<TNum> axis, Angle<TNum> angle) => Quaternion<TNum>.CreateFromAxisAngle(axis, angle).AsMat3x3();
+    
+    [Pure]
+    public static Mat3x3<TNum> CreateRotation(Ray3<TNum> axis, Angle<TNum> angle) => Quaternion<TNum>.CreateFromAxisAngle(axis, angle).AsMat3x3();
 
     public const int ColCount = 3;
     public const int RowCount = 3;
@@ -318,5 +322,21 @@ public readonly struct Mat3x3<TNum> : IMat<Mat3x3<TNum>, Vec3<TNum>, Vec3<TNum>,
         var resSpan = MemoryMarshal.CreateSpan(ref Unsafe.AsRef(in res.X.X), ColCount * RowCount);
         newNums.CopyTo(resSpan);
         return res;
+    }
+
+    /// <inheritdoc />
+    public Vec3<TNum> TransformPoint(Vec3<TNum> p) => this * p;
+
+    /// <inheritdoc />
+    public Vec3<TNum> TransformDirection(Vec3<TNum> v)
+        => this * v;
+
+    /// <inheritdoc />
+    public bool IsAffine => Det.IsApprox(TNum.One);
+
+    public static Mat3x3<TNum> CreateScalar(TNum scalar)
+    {
+        Mat3x3<TNum> mat = default;
+        return Mat<TNum>.WithDiagonal(mat, Vec3<TNum>.Create(scalar));
     }
 }

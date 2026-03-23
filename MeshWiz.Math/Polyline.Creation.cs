@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using MeshWiz.Collections;
+using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
@@ -73,7 +74,6 @@ public static partial class Polyline
             where TVec : unmanaged, IVec<TVec, TNum>
         {
             var epsilon = squareTolerance ?? CalculateMinimumEpsilon(segments);
-
             if (segments is { Count: 0 }) return [];
             if (segments is { Count: 1 }) return [new Polyline<TVec, TNum>(segments[0].Start, segments[0].End)];
 
@@ -139,7 +139,7 @@ public static partial class Polyline
                 epsilon = sqLength;
             }
 
-            return epsilon / TNum.CreateTruncating(2);
+            return epsilon * TNum.CreateTruncating(0.75);
         }
 
 

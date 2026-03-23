@@ -17,7 +17,8 @@ public static partial class Curve
             where TCurve : ICurve<Vec3<TNum>, TNum> 
             => Intersection(curve, 
                 plane, 
-                (sig, searchRange) => Signal.Analysis.BestFitNewton(sig, searchRange));
+                Signal.Analysis.BestFitNewton,
+                search);
 
         public static Result<Arithmetics, TNum> Intersection<TCurve, TNum>(
             TCurve curve,

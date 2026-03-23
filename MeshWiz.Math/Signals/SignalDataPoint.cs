@@ -1,5 +1,7 @@
 ﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
+using MeshWiz.RefLinq;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
@@ -29,28 +31,31 @@ public readonly record struct SignalDataPoint<TIn, TOut>(
         return min;
     }
 
-    public static SignalDataPoint<TIn, TOut> Closest(TOut target, params ReadOnlySpan<SignalDataPoint<TIn, TOut>> opts)
-    {
-        if (opts.IsEmpty)
-            ThrowHelper.ThrowArgumentException(nameof(opts));
-        var min = 0;
-        var minDist = TOut.Abs(opts[0].OutPut - target);
-        for (var i = 1; i < opts.Length; i++)
+    public static SignalDataPoint<TIn, TOut> Closest(TOut target, params ReadOnlySpan<SignalDataPoint<TIn, TOut>> opts) =>
+        opts.Length switch
         {
-            var d = TOut.Abs(opts[i].OutPut - target);
-            if(minDist<d)
-                continue;
-            min = i;
-            minDist = d;
-        }
+            0 => ThrowHelper.ThrowArgumentException<SignalDataPoint<TIn, TOut>>(nameof(opts)),
+            1 => opts[0],
+            2 => Closest(target, opts[0], opts[1]),
+            3 => Closest(target, opts[0], opts[1], opts[2]),
+            _ => ClosestIterative(target, opts)
+        };
 
-        return opts[min];
-    }
+    private static SignalDataPoint<TIn, TOut> ClosestIterative(TOut target,
+        ReadOnlySpan<SignalDataPoint<TIn, TOut>> opts) =>
+        opts.Iterate().MinBy(v => TOut.Abs(target - v.OutPut));
 
-    public static SignalDataPoint<TIn, TOut> Closest(TOut target, SignalDataPoint<TIn, TOut> a, SignalDataPoint<TIn, TOut> b) =>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static SignalDataPoint<TIn, TOut> Closest(TOut target, SignalDataPoint<TIn, TOut> a,
+        SignalDataPoint<TIn, TOut> b) =>
         TOut.Abs(a.OutPut - target) < TOut.Abs(b.OutPut - target)
             ? a
             : b;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static SignalDataPoint<TIn, TOut> Closest(TOut target, SignalDataPoint<TIn, TOut> a,
+        SignalDataPoint<TIn, TOut> b, SignalDataPoint<TIn, TOut> c)
+        => Closest(target, Closest(target, a, b), b);
 
     public bool IsAcceptable(TOut target, TOut eps = default) =>
         OutPut.IsApprox(target, eps == default ? Numbers<TOut>.ZeroEpsilon : eps);

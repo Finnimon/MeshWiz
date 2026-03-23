@@ -280,8 +280,9 @@ public sealed class RollingList<T> : IVersionedList<T>, IReadOnlyList<T>
 
     public void Clear()
     {
+        if(Count==0) return;
         _version++;
-        if (Count!=0&&RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+        if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
         {
             GetSpans(out var lower, out var upper);
             lower.Clear();

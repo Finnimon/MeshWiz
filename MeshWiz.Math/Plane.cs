@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using System.Xml.Serialization;
+using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
@@ -67,39 +68,37 @@ public readonly struct Plane<TNum>
 
 
     public bool DoIntersect(Line<Vec3<TNum>, TNum> test)
-        => TNum.Sign(SignedDistance(test.Start))
-           != TNum.Sign(SignedDistance(test.End));
+        => DistanceSign(test.Start) != DistanceSign(test.End);
 
     public bool Intersect(Line<Vec3<TNum>, TNum> test, out Vec3<TNum> result)
     {
-        var denominator = Normal.Dot(test.Direction);
-        // Check if ray is parallel to the plane
+        var axis = test.AxisVector;
+        var len = axis.Length;
+        var dir = axis / len;
+        var denominator = Normal.Dot(dir);
         if (TNum.Abs(denominator) < TNum.Epsilon)
         {
-            result = Vec3<TNum>.NaN;
+            result = default;
             return false;
         }
 
-        // Compute intersection distance along ray direction
         var t = -(Normal.Dot(test.Start) + D) / denominator;
-        var testLen = test.Length;
-        t /= testLen;
-        result = test.Traverse(t);
-        return t.IsApproxGreaterOrEqual(TNum.NegativeZero) && TNum.One.IsApproxGreaterOrEqual(t);
+        result = test.Start + dir * t;
+        return t.IsApproxGreaterOrEqual(TNum.NegativeZero) && len.IsApproxGreaterOrEqual(t);
     }
 
     public bool IntersectParameter(Line<Vec3<TNum>, TNum> test, out TNum t)
     {
-        var denominator = Normal.Dot(test.Direction);
+        var axis = test.AxisVector;
+        var len = axis.Length;
+        var dir = axis / len;
+        var denominator = Normal.Dot(dir);
         if (TNum.Abs(denominator) < TNum.Epsilon)
         {
             t = default;
             return false;
         }
-
-        t = -(Normal.Dot(test.Start) + D) / denominator;
-        var testLen = test.Length;
-        t /= testLen;
+        t = (-(Normal.Dot(test.Start) + D) / denominator)/len;
         return t.IsApproxGreaterOrEqual(TNum.NegativeZero) && TNum.One.IsApproxGreaterOrEqual(t);
     }
 
@@ -118,9 +117,10 @@ public readonly struct Plane<TNum>
 
     public Vec3<TNum> ForceIntersect(Line<Vec3<TNum>, TNum> line)
     {
-        var denominator = Normal.Dot(line.AxisVector);
+        var dir = line.Direction;
+        var denominator = Normal.Dot(dir);
         var t = -(Normal.Dot(line.Start) + D) / denominator;
-        return line.Traverse(t / line.Length);
+        return dir * t + line.Start;
     }
 
     public bool DoIntersect(Ray3<TNum> test)
@@ -177,9 +177,8 @@ public readonly struct Plane<TNum>
         int aSign, int bSign, int cSign,
         out Line<Vec3<TNum>, TNum> result)
     {
-        result = default;
+        Unsafe.SkipInit(out result);
         if (aSign == 0) return false;
-        if (aSign == 1 && bSign == 0 && cSign == 0) return false;
         if (bSign == 0 && cSign == 0)
             result = aSign > 0 ? b.LineTo(c) : c.LineTo(b);
         else
@@ -227,7 +226,15 @@ public readonly struct Plane<TNum>
     }
 
     public bool DoIntersect(AABB<Vec3<TNum>> box)
-        => DistanceSign(box.Clamp(Origin)) == 0;
+    {
+        var center = box.Center;
+        var extents = box.Size * Numbers<TNum>.Half;
+
+        var d = SignedDistance(center);
+        var r = Vec3<TNum>.Dot(Vec3<TNum>.Abs(Normal), extents);
+
+        return r.IsApproxGreaterOrEqual(TNum.Abs(d));
+    }
 
 
     public bool Intersect(AABB<Vec3<TNum>> box, out Quad3<TNum> result)
@@ -328,6 +335,19 @@ public readonly struct Plane<TNum>
         var (u, v) = Basis;
         var local = world - Origin;
         return new Vec2<TNum>(local.Dot(u), local.Dot(v));
+    }
+
+    public Triangle2<TNum> ProjectIntoLocal(Triangle3<TNum> t)
+    {
+        var (u, v) = Basis;
+        var origin = Origin;
+        var local = t.A - origin;
+        var a = Vec2<TNum>.Create(Vec3<TNum>.Dot(local, u), Vec3<TNum>.Dot(local, v));
+        local = t.B - origin;
+        var b = Vec2<TNum>.Create(Vec3<TNum>.Dot(local, u), Vec3<TNum>.Dot(local, v));
+        local = t.C - origin;
+        var c = Vec2<TNum>.Create(Vec3<TNum>.Dot(local, u), Vec3<TNum>.Dot(local, v));
+        return new Triangle2<TNum>(a, b, c);
     }
 
     public Vec2<TNum>[] ProjectIntoLocal(IReadOnlyList<Vec3<TNum>> world)
@@ -436,6 +456,14 @@ public readonly struct Plane<TNum>
         return world;
     }
 
+    [Pure]
+    public PosedPlane<TNum> Precalculated()
+    {
+        var basis = Basis;
+        var pose=Pose3<TNum>.CreateUnsafe(Origin, basis.U, basis.V, Normal);
+        return PosedPlane<TNum>.Create(pose);
+    }
+
     public Line<Vec3<TNum>, TNum>[] ProjectIntoWorld(IReadOnlyList<Line<Vec2<TNum>, TNum>> local)
     {
         var (u, v) = Basis;
@@ -496,8 +524,21 @@ public readonly struct Plane<TNum>
         return new Line<Vec2<TNum>, TNum>(localStart, localEnd);
     }
 
-    [Pure, MethodImpl]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Plane<TOther> To<TOther>()
         where TOther : unmanaged, IFloatingPointIeee754<TOther>
         => Plane<TOther>.CreateUnsafe(Normal.To<TOther>(), TOther.CreateTruncating(D));
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool AreCoplanar(Plane<TNum> a, Plane<TNum> b)
+    {
+        var dot = Vec3<TNum>.Dot(a.Normal, b.Normal);
+        var sign = dot.EpsilonTruncatingSign();
+        if (!dot.IsApprox(sign == -1 ? -TNum.One : TNum.One)) return false;
+        var dB = sign == -1 ? -b.D : b.D;
+        return dB.IsApprox(a.D);
+    }
+
+    public Plane<TNum> WithD(TNum d)
+        => CreateUnsafe(Normal, d);
 }

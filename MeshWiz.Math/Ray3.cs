@@ -178,4 +178,6 @@ public readonly struct Ray3<TNum>
     public static bool operator ==(Ray3<TNum> left, Ray3<TNum> right) => left.Equals(right);
 
     public static bool operator !=(Ray3<TNum> left, Ray3<TNum> right) => !left.Equals(right);
+
+    public Plane<TNum> AsPlane() => Plane<TNum>.CreateUnsafe(Direction, Origin);
 }

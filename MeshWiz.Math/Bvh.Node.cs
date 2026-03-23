@@ -9,7 +9,7 @@ namespace MeshWiz.Math;
 public static partial class Bvh
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct Node<TVec, TNum>
+    public readonly struct Node<TVec, TNum> : IEquatable<Node<TVec, TNum>>
         where TVec : unmanaged, IVec<TVec, TNum>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
@@ -63,5 +63,23 @@ public static partial class Bvh
             Unsafe.AsRef(in copy.Bounds) = bbox;
             return copy;
         }
+
+        /// <inheritdoc />
+        public bool Equals(Node<TVec, TNum> other) =>
+            Bounds.Equals(other.Bounds) && _first == other._first && _second == other._second;
+
+        /// <inheritdoc />
+        public override bool Equals(object? obj) => obj is Node<TVec, TNum> other && Equals(other);
+
+        /// <inheritdoc />
+        public override int GetHashCode() => HashCode.Combine(Bounds, _first, _second);
+
+        public static bool operator ==(Node<TVec, TNum> left, Node<TVec, TNum> right) => left.Equals(right);
+
+        public static bool operator !=(Node<TVec, TNum> left, Node<TVec, TNum> right) => !left.Equals(right);
+
+        public override string ToString() => IsLeaf
+            ? $"LeafNode {{ {nameof(Bounds)} {Bounds}; {nameof(Start)} {Start}; {nameof(Length)}; {Length} }}"
+            : $"ParentNode {{ {nameof(Bounds)} {Bounds}; {nameof(FirstChild)} {FirstChild}; {nameof(SecondChild)}; {SecondChild} }}";
     }
 }

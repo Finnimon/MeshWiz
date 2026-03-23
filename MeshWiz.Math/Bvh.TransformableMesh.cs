@@ -1,3 +1,4 @@
+using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -13,23 +14,14 @@ public static partial class Bvh
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         private readonly Mesh<TNum> _untransformed;
-        private readonly TriangleIndexer[] _indexers;
-        public ReadOnlySpan<Vec3<TNum>> SourceVertices => _srcVerts;
-        private readonly Vec3<TNum>[] _srcVerts;
-        private readonly Vec3<TNum>[] _vertices;
-
-        public ReadOnlySpan<Vec3<TNum>> Vertices => _transform.IsIdentity
-            ? _srcVerts
-            : _vertices;
-
-        private Vec3<TNum>[] VertexArray => _transform.IsIdentity
-            ? _srcVerts
-            : _vertices;
-
-        private readonly Node<Vec3<TNum>, TNum>[] _nodes;
-        public ReadOnlySpan<Node<Vec3<TNum>, TNum>> Nodes => _nodes;
-
-        public int Depth { get; }
+        // private readonly TriangleIndexer[] _indexers;
+        // public ReadOnlySpan<Vec3<TNum>> SourceVertices => _srcVerts;
+        // private readonly Vec3<TNum>[] _srcVerts;
+        /// <inheritdoc />
+        public bool IsTransforming => true;
+        public SelectList<Node<Vec3<TNum>, TNum>,Node<Vec3<TNum>, TNum>> Nodes { get; }
+        IReadOnlyList<Node<Vec3<TNum>, TNum>> IHierarchy<Triangle3<TNum>, Vec3<TNum>, TNum>.Nodes => Nodes;
+        public int Depth => _untransformed.Depth;
 
         /// <inheritdoc />
         IReadOnlyList<Triangle3<TNum>> IHierarchy<Triangle3<TNum>, Vec3<TNum>, TNum>.Elements => this;
@@ -39,10 +31,12 @@ public static partial class Bvh
         public IReadOnlyList<Triangle3<TNum>> TransformedTriangles => this;
 
         /// <inheritdoc />
-        public int Count => _indexers.Length;
+        public int Count => _untransformed.Count;
 
         /// <inheritdoc />
-        public Triangle3<TNum> this[int index] => _indexers[index].Extract(_vertices);
+        public Triangle3<TNum> this[int index] =>
+            Triangle3<TNum>.Transform(_transform, _untransformed._triangles[index]);
+
 
         private TNum? _surfaceArea;
 
@@ -51,7 +45,7 @@ public static partial class Bvh
 
 
         /// <inheritdoc />
-        public AABB<Vec3<TNum>> BBox => Count == 0 ? AABB<Vec3<TNum>>.Empty : _nodes[0].Bounds;
+        public AABB<Vec3<TNum>> BBox => Count == 0 ? AABB<Vec3<TNum>>.Empty : Nodes[0].Bounds;
 
         private TNum? _volume;
 
@@ -77,10 +71,8 @@ public static partial class Bvh
         public TransformableMesh(Mesh<TNum> source)
         {
             _untransformed = source;
-            (_indexers, _srcVerts) = Mesh.Indexing.Indicate(_untransformed._triangles);
-            _vertices = _srcVerts.AsSpan().ToArray();
-            _nodes = source._nodes.AsSpan().ToArray();
-            Depth = source.Depth;
+             Nodes = _untransformed._nodes.SelectList(n => n.WithBounds(AABB.Transform(_transform, n.Bounds)));
+
         }
 
         private Mat4x4<TNum> _transform = Mat4x4<TNum>.Identity;
@@ -105,41 +97,10 @@ public static partial class Bvh
             _vertCentroid = Mat4x4<TNum>.MultiplyPoint(_transform, _untransformed.VertexCentroid);
             _surfaceCentroid = Mat4x4<TNum>.MultiplyPoint(_transform, _untransformed.SurfaceCentroid);
             _volCentroid = Mat4x4<TNum>.MultiplyPoint(_transform, _untransformed.VolumeCentroid);
-            RecomputeTransformedTriangles();
-            RecomputeNodeBounds();
+            // RecomputeTransformedTriangles();
+            // RecomputeNodeBounds();
         }
 
-        private void RecomputeTransformedTriangles()
-        {
-            var m = Transform;
-            if (m.IsIdentity) SourceVertices.CopyTo(_vertices);
-            else SourceVertices.Select(Transform.MultiplyPoint).CopyTo(_vertices);
-        }
-
-        private void RecomputeNodeBounds()
-        {
-            if (Transform.IsIdentity)
-            {
-                _untransformed._nodes.CopyTo(_nodes);
-                return;
-            }
-
-            var verts = VertexArray;
-            ReadOnlySpan<TriangleIndexer> indexers = _indexers;
-            var empty = AABB<Vec3<TNum>>.Empty;
-            for (var i = _nodes.Length - 1; i >= 0; i--)
-            {
-                ref var n = ref _nodes[i];
-                var bbox = n.IsParent
-                    ? _nodes[n.FirstChild].Bounds.CombineWith(_nodes[n.SecondChild].Bounds)
-                    : indexers[n.LeafRange].Iterate().Aggregate(
-                        (bbox, indexer) =>
-                            AABB<Vec3<TNum>>.Combine(bbox, verts[indexer.A], verts[indexer.B], verts[indexer.C]),
-                        empty
-                    );
-                n = n.WithBounds(bbox);
-            }
-        }
 
         /// <inheritdoc />
         public void InitializeLazies()
@@ -172,7 +133,12 @@ public static partial class Bvh
             => Bvh.Traverse(this, bBoxDoIntersect, elementIntersect, acceptHitReact);
 
         public bool Intersects(IHierarchy<Triangle3<TNum>, Vec3<TNum>, TNum> other) =>
-            TraverseAgainst(this, other, ignoreTouching: true,
-                Triangle3<TNum>.DoIntersect);
+            TraverseAgainst(this, other, ignoreTouching: true, Triangle3<TNum>.DoIntersect);
+        
+        public bool IntersectsOrTouches(IHierarchy<Triangle3<TNum>, Vec3<TNum>, TNum> other) =>
+            TraverseAgainst(this, other, ignoreTouching: false, Triangle3<TNum>.DoIntersectOrTouch);
+    
+        [Pure]
+        public Mesh<TNum> ToStatic() => Transform.IsIdentity ? _untransformed : new Mesh<TNum>(this, Nodes, Depth);
     }
 }

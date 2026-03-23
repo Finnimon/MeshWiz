@@ -202,7 +202,7 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>
     {
         var rot = a.Rotation * b.Rotation;
         rot = rot.Normalized();
-        var origin = a.Rotation.Rotate(b.Origin) + a.Origin;
+        var origin = a.TransformPoint(b.Origin);
         return new Pose3<TNum>(rot, origin);
     }
 
@@ -212,4 +212,15 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>
         if (eps == default) eps = Numbers<TNum>.ZeroEpsilon;
         return Origin.IsApprox(pose.Origin, eps) && Quaternion<TNum>.AsVec4(Rotation).IsApprox(pose.Rotation);
     }
+
+    /// <inheritdoc />
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Vec3<TNum> TransformPoint(Vec3<TNum> p) => Rotation.Rotate(p) + Origin;
+
+    /// <inheritdoc />
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Vec3<TNum> TransformDirection(Vec3<TNum> v) => Rotation.Rotate(v);
+
+    /// <inheritdoc />
+    bool ISpatialTransform<Vec3<TNum>>.IsAffine => true;
 }

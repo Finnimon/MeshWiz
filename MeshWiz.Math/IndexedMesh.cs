@@ -1,9 +1,10 @@
 using System.Numerics;
+using MeshWiz.Collections;
 using MeshWiz.RefLinq;
 
 namespace MeshWiz.Math;
 
-public sealed class IndexedMesh<TNum> : IIndexedMesh<TNum>
+public sealed class IndexedMesh<TNum> : IIndexedMesh<TNum>, ITransformable<IndexedMesh<TNum>,Vec3<TNum>>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public Vec3<TNum> Centroid => VolumeCentroid;
@@ -86,4 +87,8 @@ public sealed class IndexedMesh<TNum> : IIndexedMesh<TNum>
         var indices=Indices.Iterate().Select(tri => new TriangleIndexer(tri.A, tri.C, tri.B)).ToArray();
         return new(Vertices, indices);
     }
+
+    /// <inheritdoc />
+    public IndexedMesh<TNum> TransformedBy<TTransform>(TTransform transform) where TTransform : ISpatialTransform<Vec3<TNum>> 
+        => new(Vertices.SelectList(transform.TransformPoint).ToArray(), Indices);
 }

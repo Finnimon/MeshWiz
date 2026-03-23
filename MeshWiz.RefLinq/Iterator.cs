@@ -16,7 +16,7 @@ public static partial class Iterator
     internal static TItem First<TIter, TItem>(TIter source)
         where TIter : IRefIterator<TIter, TItem>, allows ref struct
     {
-        return source.TryGetFirst(out var first) ? first! : ThrowHelper.ThrowInvalidOperationException<TItem>();
+        return source.TryGetFirst(out var first) ? first! : EnumerableThrowHelper.NoElements<TItem>();
     }
 
 
@@ -52,7 +52,7 @@ public static partial class Iterator
         where TIter : IRefIterator<TIter, TItem>, allows ref struct =>
         source.TryGetLast(out var last)
             ? last!
-            : ThrowHelper.ThrowInvalidOperationException<TItem>();
+            : EnumerableThrowHelper.NoElements<TItem>();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static int Count<TIter, TIgnore>(TIter iter)
@@ -73,8 +73,8 @@ public static partial class Iterator
         where TIter : IEnumerator<TItem>, allows ref struct
     {
         var i = -1;
-        while (iter.MoveNext()) destination[++i] = iter.Current;
-        iter.Reset();
+        using var iterCopy = iter;
+        while (iterCopy.MoveNext()) destination[++i] = iterCopy.Current;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -155,7 +155,7 @@ public static partial class Iterator
         where TIter : IRefIterator<TIter, TItem>, allows ref struct
     {
         if (!iter.MoveNext())
-            ThrowHelper.ThrowInvalidOperationException();
+            EnumerableThrowHelper.NoElements();
         var seed = iter.Current;
         while (iter.MoveNext())
             seed = aggregator(seed, iter.Current);

@@ -82,4 +82,12 @@ public readonly struct SelectList<TIn, TOut> : IVersionedList<TOut>, IReadOnlyLi
     int IVersionedList<TOut>.Version => 0;
 
     public Enumerator<SelectList<TIn, TOut>, TOut> GetEnumerator() => new(this);
+
+    public TOut[] ToArray()
+    {
+        if (Count == 0) return [];
+        var arr = GC.AllocateUninitializedArray<TOut>(Count);
+        CopyTo(arr,0);
+        return arr;
+    }
 }

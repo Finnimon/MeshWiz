@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
+using System.Diagnostics.Tracing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -24,7 +25,7 @@ public readonly struct AABB<TNum>
 
     public readonly TNum Min, Max;
 
-    private AABB(TNum min, TNum max)
+    internal AABB(TNum min, TNum max)
     {
         Min = min;
         Max = max;
@@ -342,6 +343,10 @@ public readonly struct AABB<TNum>
         var first = select[0].BBox;
         return select.Aggregate(first, (current, bounded) => Combine(current, bounded.BBox));
     }
+
+    /// <inheritdoc />
+    public override string ToString()
+        => $"{{ Min {Min}; Max {Max} }}";
 }
 
 public static class AABB
@@ -505,4 +510,34 @@ public static class AABB
     public static Vec2<TNum> UpperLeft<TNum>(AABB<Vec2<TNum>> bbox)
         where TNum : unmanaged, IFloatingPointIeee754<TNum> =>
         bbox.Min.WithElement(0, bbox.Max[0]);
+
+
+    public static AABB<Vec3<TNum>> Transform<TNum>(Mat4x4<TNum> m, AABB<Vec3<TNum>> src)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+    {
+        var diag = src.Size*Numbers<TNum>.Half;
+        var mid = src.Min + diag;
+        diag= Vec3<TNum>.Abs(m.MultiplyDirection(diag));
+        mid = Mat4x4<TNum>.MultiplyPoint(m, mid);
+        return new(mid - diag, mid + diag);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static AABB<TNum> GetDim<TVec, TNum>(this AABB<TVec> bbox, int index)
+        where TVec : unmanaged, IVec<TVec, TNum>
+        where TNum : unmanaged, IFloatingPointIeee754<TNum> =>
+        new(bbox.Min[index],bbox.Max[index]);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static AABB<TNum> GetDim<TNum>(this AABB<Vec3<TNum>> bbox, int index)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum> => bbox.GetDim<Vec3<TNum>, TNum>(index);
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static AABB<TNum> GetDim<TNum>(this AABB<Vec2<TNum>> bbox, int index)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum> => bbox.GetDim<Vec2<TNum>, TNum>(index);
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static AABB<TNum> GetDim<TNum>(this AABB<Vec4<TNum>> bbox, int index)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum> => bbox.GetDim<Vec4<TNum>, TNum>(index);
+
 }

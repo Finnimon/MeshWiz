@@ -424,10 +424,10 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vec2<TNum>
                                      && Vec3<TNum>.IsRealNumber(previousNormal);
             if (normalCalcPossible && !newNormal.IsParallelTo(previousNormal))
             {
-                var about = previousNormal.Cross(newNormal);
+                var about = Vec3<TNum>.Zero.RayAlong(previousNormal.Cross(newNormal));
                 var transformAngle = Vec3<TNum>.SignedAngleBetween(previousNormal, newNormal, about);
-                var rotation = Mat4x4<TNum>.CreateRotation(about, transformAngle);
-                var rotatedDir = rotation.MultiplyDirection(previousDir);
+                var rotation = Mat3x3<TNum>.CreateRotation(about, transformAngle);
+                var rotatedDir = rotation*previousDir;
                 previousDir = rotatedDir;
             }
 

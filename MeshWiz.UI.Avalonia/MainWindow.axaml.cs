@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
@@ -12,6 +13,7 @@ using MeshWiz.OpenGL;
 using MeshWiz.RefLinq;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
+using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 
 namespace MeshWiz.UI.Avalonia;
@@ -42,160 +44,201 @@ public partial class MainWindow : Window
 
         LineViewWrapper.Unwrap.LineWidth = 2.5f;
         LineViewWrapper.Unwrap.Show = true;
-
-        IIndexedMesh<float> meshi = AABB.From(Vec3<float>.NegativeOne, Vec3<float>.One)
-            .Tessellate()
-            .Indexed();
         //
-        var surface = CreateTabloidSurface();
-        var start = surface.SweepCurve.Traverse(0.5);
-        var dir = Vec3<double>.Create(0.8, 0.5, 0);
+        // IIndexedMesh<float> meshi = AABB.From(Vec3<float>.NegativeOne, Vec3<float>.One)
+        //     .Tessellate()
+        //     .Indexed();
+        //
+        // //
+        // var surf = CreateTabloidSurface();
+        // MeshViewWrap.Unwrap.Mesh = surf.Tessellate(256).To<float>();
+        // camera.UnitUp = surf.Axis.Direction.To<float>();
+        // camera.LookAt=surf.Centroid.To<float>();
+        // var sweep = surf.SweepCurve;
+        // var mid = sweep.Traverse(0.5);
+        // var rot = Mat3x3<double>.CreateRotation(surf.NormalAt(mid), Angle<double>.FromDegrees(45));
+        // var startDir =  rot* surf.Axis.Direction;
+        // var info = surf.TracePeriod(mid, startDir);
+        // var curve = info.FinalizedPath;
+        // this.GlParent.Children.Add(
+        //     new LineView()
+        //     {
+        //         Camera = camera,
+        //         Polyline = curve.Select(pl=>pl.To<Vec3<float>,float>()).OrElse([])
+        //     }
+        //     );
 
-        var period = surface.TracePeriod(start,
-            dir);
-        var traces = period.TraceResult.Value;
-        var lastCurve = traces[^1];
-        var plane = new Plane<double>(surface.Axis.Direction, traces[0].Start);
-        // var solve = Curve.Solver.IntersectionNewton(lastCurve, plane,AABB.From(0d,1d));
-        // Console.WriteLine(solve.ToString());
-        // var trace = sw.Elapsed;
-        var jaggedGeodesic = period.FinalizedPath.Value;
-
-        var poses = period.CreatePattern(20, useParallel: true).Value;
-        meshi = surface.Tessellate(256).To<float>();
-
-
-        LineViewWrapper.Unwrap.Polyline = jaggedGeodesic.To<Vec3<float>, float>();
-        LineViewWrapper.Unwrap.Show = true;
-        var mesh = meshi;
-        this.MeshViewWrap.Unwrap.Mesh = mesh;
-        var distance = mesh.BBox.Min.DistanceTo(mesh.BBox.Max) * 2;
-        camera.Distance = 0.5f;
-        var pC = poses[^1].EndPose.Position.To<float>();
-        var d = Vec3<float>.Create(0, 0, pC.Z);
-        Console.WriteLine($"{d} {pC} {d.DistanceTo(pC)} {surface.Axis.Direction}");
-        var circ = new Circle3<float>(d, surface.Axis.Direction.To<float>(), d.DistanceTo(pC));
-        camera.LookAt = mesh.VertexCentroid;
-        BBoxWrap.Unwrap.BBox = mesh.BBox;
-        var minY = mesh.BBox.Min.Y + 0.0001f;
-        var maxY = mesh.BBox.Max.Y;
-        var range = maxY - minY;
-        poses = new PosePolyline<Pose3<double>, Vec3<double>, double>(
-            Polyline.Reduction.DouglasPeucker<Pose3<double>, Vec3<double>, double>(poses.Poses,
-                surface.RadiusRange.Max * 0.001));
-        // var floatPoses = poses.Poses.ToArray().Select(p => p.To<float>()).ToArray();
-        camera.UnitUp = Vec3<float>.UnitX;
-        // var loft = Mesh.Create.Loft(floatPoses, 0.05f);
-
-        _kinematicsView = new()
-        {
-            Camera = camera,
-            Model = Mat4x4<float>.Identity,
-            Show = true,
-            Polyline = Polyline<Vec3<float>, float>.Empty
-        };
-
-        _kinmatX = new()
-        {
-            Camera = camera,
-            Lines = [],
-            Color = Color4.Red,
-            Show = true,
-            Model = Mat4x4<float>.Identity
-        };
-        _kinmatY = new()
-        {
-            Camera = camera,
-            Lines = [],
-            Color = Color4.Green,
-            Show = true,
-            Model = Mat4x4<float>.Identity
-        };
-        _kinmatZ = new()
-        {
-            Camera = camera,
-            Lines = [],
-            Color = Color4.Blue,
-            Show = true,
-            Model = Mat4x4<float>.Identity
-        };
-
-        GlParent.Children.AddRange(
-            [
-                _kinematicsView,
-                _kinmatX,
-                _kinmatY,
-                _kinmatZ
-            ]
-        );
-        MeshViewWrap.Show = false;
-        LineViewWrapper.Show = false;
-        MeshViewWrap.Unwrap.SolidColor = Color4.DarkViolet;
-        var axisCount = 10;
-        var axes = new IAxis[axisCount];
-        camera.UnitUp = Vec3<float>.UnitZ;
-
-        for (var i = 0; i < axisCount; i++)
-        {
-            var axisRange = AABB<double>.From(-double.Pi, double.Pi);
-            var axisAxis = Ray3<double>.UnitX;
-            var axisConnector = Pose3<double>.Identity.TranslateBy(Vec3<double>.UnitZ/(i+1));
-            axes[i] = new RotationalAxis(axisRange, axisAxis, axisConnector,true);
-        }
         
-        // var traj = Pose3<double>.Identity.LineTo(Pose3<double>.Identity.TranslateBy(Vec3<double>.UnitZ).RotateAbout(Ray3<double>.UnitZ, Angle<double>.FromDegrees(90)));
-        // axes[1]=new TrajectorialAxis(AABB.From(0.0, 1), new PosePolyline<Pose3<double>, Vec3<double>, double>(traj.StartPose,traj.EndPose,traj.StartPose));
-        
-        _kinematics = new KinematicChainState(new KinematicChain(axes));
-        _kinematics.UpdateState(0,Iterator.Repeat(0.0, axes.Length).ToArray());
-        UpdateKinmatPts(_kinematicsView!, _kinematics);
+        var tmp =DoStuff();
+        camera.UnitUp=Vec3<float>.UnitZ;
+        MeshViewWrap.Unwrap.Mesh = tmp.halfCyl.To<float>();
+        // this.GlParent.Children.Add(
+        //     new LineView()
+        //     {
+        //         Camera = camera,
+        //         Polyline = (tmp.layers[tmp.layers.Count / 2]).To<Vec3<float>,float>(),
+        //     });
+        camera.LookAt = default;
+        //
+        // _kinematicsView = new()
+        // {
+        //     Camera = camera,
+        //     Model = Mat4x4<float>.Identity,
+        //     Show = true,
+        //     Polyline = Polyline<Vec3<float>, float>.Empty
+        // };
+        //
+        // _kinmatX = new()
+        // {
+        //     Camera = camera,
+        //     Lines = [],
+        //     Color = Color4.Red,
+        //     Show = true,
+        //     Model = Mat4x4<float>.Identity
+        // };
+        // _kinmatY = new()
+        // {
+        //     Camera = camera,
+        //     Lines = [],
+        //     Color = Color4.Green,
+        //     Show = true,
+        //     Model = Mat4x4<float>.Identity
+        // };
+        // _kinmatZ = new()
+        // {
+        //     Camera = camera,
+        //     Lines = [],
+        //     Color = Color4.Blue,
+        //     Show = true,
+        //     Model = Mat4x4<float>.Identity
+        // };
+        //
+        // GlParent.Children.AddRange(
+        //     [
+        //         _kinematicsView,
+        //         _kinmatX,
+        //         _kinmatY,
+        //         _kinmatZ
+        //     ]
+        // );
+        // MeshViewWrap.Show = false;
+        // LineViewWrapper.Show = false;
+        // MeshViewWrap.Unwrap.SolidColor = Color4.DarkViolet;
+        // var axisCount = 10;
+        // var axes = new IAxis[axisCount];
+        // camera.UnitUp = Vec3<float>.UnitZ;
+        //
+        // for (var i = 0; i < axisCount; i++)
+        // {
+        //     var axisRange = AABB<double>.From(-double.Pi, double.Pi);
+        //     var axisAxis = Ray3<double>.UnitX;
+        //     var axisConnector = Pose3<double>.Identity.TranslateBy(Vec3<double>.UnitZ/(i+1));
+        //     axes[i] = new RotationalAxis(axisRange, axisAxis, axisConnector,true);
+        // }
+        //
+        // // var traj = Pose3<double>.Identity.LineTo(Pose3<double>.Identity.TranslateBy(Vec3<double>.UnitZ).RotateAbout(Ray3<double>.UnitZ, Angle<double>.FromDegrees(90)));
+        // // axes[1]=new TrajectorialAxis(AABB.From(0.0, 1), new PosePolyline<Pose3<double>, Vec3<double>, double>(traj.StartPose,traj.EndPose,traj.StartPose));
+        //
+        // _kinematics = new KinematicChainState(new KinematicChain(axes));
+        // _kinematics.UpdateState(0,Iterator.Repeat(0.0, axes.Length).ToArray());
+        // UpdateKinmatPts(_kinematicsView!, _kinematics);
     }
-
-    private MeshWiz.OpenGL.IndexedLineView _kinmatX;
-    private MeshWiz.OpenGL.IndexedLineView _kinmatY;
-    private MeshWiz.OpenGL.IndexedLineView _kinmatZ;
-
-    public void AdvanceKinmatChain(KinematicChainState state, int num)
+static (IndexedMesh<double> halfCyl, List<Polyline<Vec3<double>, double>> layers) DoStuff()
     {
-        var stateVals = state.State;
-        Span<double> newState = stackalloc double[stateVals.Length];
-        for (var i = 0; i < state.Chain.Count; i++)
+        var halfCyl = CreateHalfCyl().Indexed();
+        Console.WriteLine(halfCyl.Count);
+        var sw = Stopwatch.StartNew();
+        var bvh = Bvh.Mesh<double>.Sah(halfCyl);
+        Console.WriteLine($"Create bvh {sw.Elapsed}");
+        sw.Restart();
+
+        var normal = Vec3<double>.Create(1, 0, 1).Normalized();
+        var plane = new Plane<double>(normal, 0);
+        var start = plane.SignedDistance(bvh.BBox.Min);
+        var end = plane.SignedDistance(bvh.BBox.Max);
+        var blLayer = new List<Polyline<Vec3<double>, double>>();
+        const int layerCount = 1000;
+        var buf=new RollingList<Line<Vec2<double>, double>>();
+        for(var i=0;i<= layerCount;i++)
         {
-            var step= state.Chain[i].Range.Size / 400*num;
-            newState[i]=(stateVals[i] + step);
+            var pt = Vec3<double>.Lerp(bvh.BBox.Min, bvh.BBox.Max, ((double)i) / (double)layerCount);
+            var lplane = new Plane<double>(plane.Normal, pt);
+            buf.Clear();
+            var pls = bvh.Intersect(lplane,buf);
+            var polys=Polyline.Creation.UnifyNonReversing(pls).Iterate().Select(lplane.ProjectIntoWorld);
+            blLayer.AddRange(polys.ToArray());
         }
-
-        state.UpdateState(0, newState);
+        Console.WriteLine($"intersection time, {sw.Elapsed}");
+        return (halfCyl, blLayer.Iterate().ToList());
     }
-
-    public void UpdateKinmatPts(LineView lv, KinematicChainState state)
+    static Mesh<double> CreateHalfCyl()
     {
-        var pts = state.AbsoluteConnectors.Select(p => p.Origin.To<float>()).Prepend(Vec3<float>.Zero).ToArray();
-        lv.Polyline = new Polyline<Vec3<float>, float>(pts);
-        _kinmatX.Lines = state.AbsoluteConnectors.Select(p => p.To<float>())
-            .Select(p => p.Origin.LineTo(p.Origin + p.X * 0.1f)).ToArray();
-        _kinmatY.Lines = state.AbsoluteConnectors.Select(p => p.To<float>())
-            .Select(p => p.Origin.LineTo(p.Origin + p.Y * 0.1f)).ToArray();
-        _kinmatZ.Lines = state.AbsoluteConnectors.Select(p => p.To<float>())
-            .Select(p => p.Origin.LineTo(p.Origin + p.Z * 0.1f)).ToArray();
+        var arc = new Arc3<double>(new Circle3<double>(default, Vec3<double>.UnitX, 1.0), -0.5*double.Pi,0.5*double.Pi);
+        var outer = arc.ToPolyline(new PolylineTessellationParameter<double>{MaxAngularDeviation=0.001});
+        var inner = outer.TransformedBy(Mat3x3<double>.CreateScalar(0.9)).Reversed();
+        Vec3<double>[] pts = [..outer.Points, ..inner.Points, outer.Points[0]];
+        Polyline<Vec3<double>, double> pl = new(pts);
+        var innerLine = outer.TransformedBy(Mat3x3<double>.CreateScalar(0.9));
+        var posTrans = Transforms<double>.Translation(Vec3<double>.UnitX);
+        var negTrans = Transforms<double>.Translation(-Vec3<double>.UnitX);
+        var posOffset = pl.TransformedBy(posTrans);
+        var negOffset = pl.TransformedBy(negTrans);
+        var seal = Mesh.Create.LoftRibs([innerLine.Points.ToArray(), outer.Points.ToArray()]);
+        var frontSeal = seal.TransformedBy(posTrans);
+        var backSeal = seal.Inverted().TransformedBy(negTrans);
+        var tubus = Mesh.Create.LoftRibs([posOffset.Points.ToArray(), negOffset.Points.ToArray()]);
+        Mesh<double> tmp = new([..frontSeal, ..tubus, ..backSeal]);
+        return tmp;
     }
-
-    private LineView _kinematicsView;
-    private KinematicChainState _kinematics;
+    // private MeshWiz.OpenGL.IndexedLineView _kinmatX;
+    // private MeshWiz.OpenGL.IndexedLineView _kinmatY;
+    // private MeshWiz.OpenGL.IndexedLineView _kinmatZ;
+    //
+    // public void AdvanceKinmatChain(KinematicChainState state, int num)
+    // {
+    //     var stateVals = state.State;
+    //     Span<double> newState = stackalloc double[stateVals.Length];
+    //     for (var i = 0; i < state.Chain.Count; i++)
+    //     {
+    //         var step= state.Chain[i].Range.Size / 400*num;
+    //         newState[i]=(stateVals[i] + step);
+    //     }
+    //
+    //     state.UpdateState(0, newState);
+    // }
+    //
+    // public void UpdateKinmatPts(LineView lv, KinematicChainState state)
+    // {
+    //     var pts = state.AbsoluteConnectors.Select(p => p.Origin.To<float>()).Prepend(Vec3<float>.Zero).ToArray();
+    //     lv.Polyline = new Polyline<Vec3<float>, float>(pts);
+    //     _kinmatX.Lines = state.AbsoluteConnectors.Select(p => p.To<float>())
+    //         .Select(p => p.Origin.LineTo(p.Origin + p.X * 0.1f)).ToArray();
+    //     _kinmatY.Lines = state.AbsoluteConnectors.Select(p => p.To<float>())
+    //         .Select(p => p.Origin.LineTo(p.Origin + p.Y * 0.1f)).ToArray();
+    //     _kinmatZ.Lines = state.AbsoluteConnectors.Select(p => p.To<float>())
+    //         .Select(p => p.Origin.LineTo(p.Origin + p.Z * 0.1f)).ToArray();
+    // }
+    //
+    // private LineView _kinematicsView;
+    // private KinematicChainState _kinematics;
 
     public static RotationalSurface<double> CreateTabloidSurface()
     {
         var c = new Circle2<double>(Vec2<double>.Zero, 1f);
         Arc2<double> arc = new(c, 0f, double.Pi);
-        var seq = Iterator.Sequence(0.5, -0.001, -0.001);
+        var seq = Iterator.Sequence(0, 0.5005, 0.001);
         var v1 = seq.Select(arc.Traverse).ToArray();
+        var rev = v1.AsSpan().ToArray();
+        Array.Reverse(rev);
         var shift = arc.Traverse(1) - arc.Traverse(0);
-
-        var v2 = seq.Select(pos => pos + 0.5f).Select(arc.Traverse).Select(v => v + shift);
-
-        Vec2<double>[] sweep = [..v2, ..v1];
-        var surface =
-            new RotationalSurface<double>(Vec3<double>.Zero.RayThrough(Vec3<double>.UnitX), sweep);
+        rev = rev;
+        Console.WriteLine(shift);
+        v1=v1.AsSpan().Select(v => v*Vec2<double>.Create(-1,1) + shift).ToArray();
+        Vec2<double>[] vecs = [..v1,..rev ];
+        
+        var poly = new Polyline<Vec2<double>, double>(vecs);
+        var surface = new RotationalSurface<double>(Ray3<double>.UnitZ, vecs);
+        Console.WriteLine(surface.Iterate().Any(s=>s.Type is RotationalSurface<double>.ChildSurfaceType.Cylinder));
         return surface;
     }
 
@@ -279,8 +322,8 @@ public partial class MainWindow : Window
             _ => -1
         };
         if (num == -1) return;
-        AdvanceKinmatChain(_kinematics, num * dir);
-        UpdateKinmatPts(_kinematicsView!, _kinematics);
+        // AdvanceKinmatChain(_kinematics, num * dir);
+        // UpdateKinmatPts(_kinematicsView!, _kinematics);
     }
 
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e) =>

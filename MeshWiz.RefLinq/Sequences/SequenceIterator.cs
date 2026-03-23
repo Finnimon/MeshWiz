@@ -13,7 +13,7 @@ public struct SequenceIterator<T> : IReadOnlyList<T>, IList<T>, IRefIterator<Seq
 {
     private readonly T _start, _endInclusive, _step;
     private readonly int _size;
-    private T _pos;
+    private int _pos;
 
     public SequenceIterator(T start, T endInclusive, T step)
     {
@@ -21,7 +21,7 @@ public struct SequenceIterator<T> : IReadOnlyList<T>, IList<T>, IRefIterator<Seq
         _endInclusive = endInclusive;
         _step = step;
         _size = FindSizeAndValidate(start, endInclusive, step);
-        _pos = _start - step;
+        _pos = -1;
     }
 
     private static int FindSizeAndValidate(T start, T endInclusive, T step)
@@ -34,9 +34,11 @@ public struct SequenceIterator<T> : IReadOnlyList<T>, IList<T>, IRefIterator<Seq
         return int.Max(1, int.CreateTruncating(steps));
     }
 
-    public readonly T Current => _pos;
-    public bool MoveNext() => (_pos += _step) <= _endInclusive;
-    public void Reset() => _pos = _start - _step;
+    public readonly T Current => T.CreateTruncating(_pos)*_step+_start;
+
+    public bool MoveNext() => (++_pos) < _size;
+
+    public void Reset() => _pos =-1;
 
     /// <inheritdoc />
     readonly object? IEnumerator.Current => Current;
@@ -233,7 +235,7 @@ public struct SequenceIterator<T> : IReadOnlyList<T>, IList<T>, IRefIterator<Seq
     public readonly HashSet<T> ToHashSet(IEqualityComparer<T>? comp) => new(this, comp);
 
     /// <inheritdoc />
-    public bool Any() => _size !=0;
+    public bool Any() => _size != 0;
 
     /// <inheritdoc />
     readonly int IRefIterator<SequenceIterator<T>, T>.EstimateCount() => Count;
@@ -326,7 +328,7 @@ public struct SequenceIterator<T> : IReadOnlyList<T>, IList<T>, IRefIterator<Seq
         _start = T.One;
         _size = 0;
         _endInclusive = T.Zero;
-        _pos = T.Zero;
+        _pos = -1;
         _step = T.Zero;
     }
 

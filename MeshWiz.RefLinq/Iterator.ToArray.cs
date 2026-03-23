@@ -78,15 +78,16 @@ public static partial class Iterator
         where TIter : IRefIterator<TIter, TItem>, allows ref struct
     {
         // ReSharper disable once InvertIf - fast path
-        if (iter.TryGetNonEnumeratedCount(out var fastCount))
+        using var iterCopy=iter.GetEnumerator();
+        if (iterCopy.TryGetNonEnumeratedCount(out var fastCount))
         {
             if (fastCount == 0) return [];
             var array = GC.AllocateUninitializedArray<TItem>(fastCount);
-            iter.CopyTo(array);
+            iterCopy.CopyTo(array);
             return array;
         }
 
-        return ArrayBuilder.Helper<TItem>.ToArray(iter);
+        return ArrayBuilder.Helper<TItem>.ToArray(iterCopy);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -94,16 +95,17 @@ public static partial class Iterator
         where TIter : IRefIterator<TIter, TItem>, allows ref struct
     {
         // ReSharper disable once InvertIf - fast path
-        if (iter.TryGetNonEnumeratedCount(out var fastCount))
+        using var iterCopy=iter.GetEnumerator();
+        if (iterCopy.TryGetNonEnumeratedCount(out var fastCount))
         {
             if (fastCount == 0)
                 return [];
             var l = new List<TItem>(fastCount);
             CollectionsMarshal.SetCount(l, fastCount);
-            iter.CopyTo(CollectionsMarshal.AsSpan(l));
+            iterCopy.CopyTo(CollectionsMarshal.AsSpan(l));
             return l;
         }
 
-        return ArrayBuilder.Helper<TItem>.ToList(iter);
+        return ArrayBuilder.Helper<TItem>.ToList(iterCopy);
     }
 }

@@ -91,7 +91,8 @@ public ref struct WhereIterator<TIter, TItem>(TIter source, Func<TItem, bool> fi
             return 0;
         var c = 0;
         using var iter = _source.GetEnumerator();
-        while (iter.MoveNext()) c++;
+        while (iter.MoveNext())
+            if(_filter(iter.Current)) c++;
         return c;
     }
 

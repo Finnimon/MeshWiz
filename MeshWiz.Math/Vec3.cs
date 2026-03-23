@@ -875,6 +875,21 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
         return TNum.CopySign(angle, z);
     }
 
+    [Pure]
+    public static TNum SignedAngleBetween(Vec3<TNum> a, Vec3<TNum> b, Ray3<TNum> about)
+    {
+        Plane<TNum> plane = about.AsPlane();
+        var a2D = plane.ProjectIntoLocal(a).Normalized();
+        var b2D = plane.ProjectIntoLocal(b).Normalized();
+
+        var dp = a2D.Dot(b2D);
+        dp = TNum.Clamp(dp, TNum.NegativeOne, TNum.One);
+        var angle = TNum.Acos(dp);
+
+        var z = a2D.Cross(b2D);
+        return TNum.CopySign(angle, z);
+    }
+
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec3<TNum> FusedMultiplyAdd(Vec3<TNum> a, TNum b, Vec3<TNum> addend)
