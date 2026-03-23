@@ -1,0 +1,9 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\MeshWiz.Kinematics\MeshWiz.Kinematics.csproj" />
+    <ProjectReference Include="..\MeshWiz.Math\MeshWiz.Math.csproj" />
+    <ProjectReference Include="..\MeshWiz.OpenGL\MeshWiz.OpenGL.csproj" />
+    <ProjectReference Include="..\MeshWiz.UpToDate\MeshWiz.UpToDate.csproj" />
+    <ProjectReference Include="..\MeshWiz.Utility\MeshWiz.Utility.csproj" />
+  </ItemGroup>
+</Project>
