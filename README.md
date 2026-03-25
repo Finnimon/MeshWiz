@@ -19,7 +19,7 @@ dotnet build
   - ...
 - Generally everything is generic
   - TNum always refers to a number-type such as half, float, double
-  - TVec or TVector almost always refers to a vector-type that extends [IVector](./MeshWiz.Math/IVector.cs)
+  - TVec or TVector almost always refers to a vector-type that extends [IVector](./MeshWiz.Math/IVec.cs)
   - Number generic examples:
     - [Vector2](./MeshWiz.Math/Vec2.cs)
     - [Vector3](./MeshWiz.Math/Vec3.cs)
@@ -39,5 +39,5 @@ I was greatly inspired by the following:
 - [Sam Byass' OpenTKAvalonia](https://github.com/SamboyCoding/OpenTKAvalonia) for my [OpenGLParent](./MeshWiz.Abstraction.Avalonia/OpenGLParent.cs) and [GLWrapper](./MeshWiz.Abstraction.Avalonia/GLWrapper.cs).
   I however decided to create them as reusable sealed Components for wrapping other [OpenGL abstractions](./MeshWiz.Abstraction.OpenTK/IOpenGLControl.cs).
 - [Sebastian Lague's BVH Mesh](https://github.com/SebLague/Ray-Tracing/blob/main/Assets/Scripts/BVH.cs) 
-  for my own [BvhMesh3](./MeshWiz.Math/BvhMesh3.cs) and all related components. 
+  for my own [Bvh Mesh](./MeshWiz.Math/Bvh.Mesh.cs) and all related components. 
   I However decided to place all the logic in a [Static Computer](./MeshWiz.Math/Mesh.Math.cs) for all things mesh.
