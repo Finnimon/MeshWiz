@@ -1,7 +1,11 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using MeshWiz.Collections;
 using MeshWiz.RefLinq;
 using MeshWiz.Utility;
@@ -10,16 +14,19 @@ namespace MeshWiz.Math;
 
 public static partial class Bvh
 {
-    public sealed class TransformableMesh<TNum> : IMesh<TNum>, IHierarchy<Triangle3<TNum>, Vec3<TNum>, TNum>
+    [JsonConverter(typeof(MeshWizJsonConverter))]
+    public sealed class TransformableMesh<TNum> : IMesh<TNum>, IHierarchy<Triangle3<TNum>, Vec3<TNum>, TNum>, IJsonConverterSelfProvider, IEquatable<TransformableMesh<TNum>>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         private readonly Mesh<TNum> _untransformed;
+
         // private readonly TriangleIndexer[] _indexers;
         // public ReadOnlySpan<Vec3<TNum>> SourceVertices => _srcVerts;
         // private readonly Vec3<TNum>[] _srcVerts;
         /// <inheritdoc />
         public bool IsTransforming => true;
-        public SelectList<Node<Vec3<TNum>, TNum>,Node<Vec3<TNum>, TNum>> Nodes { get; }
+
+        public SelectList<Node<Vec3<TNum>, TNum>, Node<Vec3<TNum>, TNum>> Nodes { get; }
         IReadOnlyList<Node<Vec3<TNum>, TNum>> IHierarchy<Triangle3<TNum>, Vec3<TNum>, TNum>.Nodes => Nodes;
         public int Depth => _untransformed.Depth;
 
@@ -28,7 +35,6 @@ public static partial class Bvh
 
         public ReadOnlySpan<Triangle3<TNum>> UntransformedTriangles => _untransformed._triangles;
 
-        public IReadOnlyList<Triangle3<TNum>> TransformedTriangles => this;
 
         /// <inheritdoc />
         public int Count => _untransformed.Count;
@@ -71,8 +77,7 @@ public static partial class Bvh
         public TransformableMesh(Mesh<TNum> source)
         {
             _untransformed = source;
-             Nodes = _untransformed._nodes.SelectList(n => n.WithBounds(AABB.Transform(_transform, n.Bounds)));
-
+            Nodes = _untransformed._nodes.SelectList(n => n.WithBounds(AABB.Transform(_transform, n.Bounds)));
         }
 
         private Mat4x4<TNum> _transform = Mat4x4<TNum>.Identity;
@@ -134,11 +139,87 @@ public static partial class Bvh
 
         public bool Intersects(IHierarchy<Triangle3<TNum>, Vec3<TNum>, TNum> other) =>
             TraverseAgainst(this, other, ignoreTouching: true, Triangle3<TNum>.DoIntersect);
-        
+
         public bool IntersectsOrTouches(IHierarchy<Triangle3<TNum>, Vec3<TNum>, TNum> other) =>
             TraverseAgainst(this, other, ignoreTouching: false, Triangle3<TNum>.DoIntersectOrTouch);
-    
+
         [Pure]
         public Mesh<TNum> ToStatic() => Transform.IsIdentity ? _untransformed : new Mesh<TNum>(this, Nodes, Depth);
+
+        private sealed class Converter : JsonConverter<TransformableMesh<TNum>>
+        {
+            public override TransformableMesh<TNum> Read(ref Utf8JsonReader reader, Type typeToConvert,
+                JsonSerializerOptions options)
+            {
+                if (reader.TokenType != JsonTokenType.StartObject)
+                    throw new JsonException();
+
+                Mesh<TNum>? untransformed = null;
+                Mat4x4<TNum>? transform = null;
+
+                while (reader.Read())
+                {
+                    if (reader.TokenType == JsonTokenType.EndObject)
+                        break;
+
+                    if (reader.TokenType != JsonTokenType.PropertyName)
+                        throw new JsonException();
+
+                    string propName = reader.GetString()!;
+                    reader.Read();
+
+                    switch (propName)
+                    {
+                        case nameof(untransformed):
+                            untransformed = JsonSerializer.Deserialize<Mesh<TNum>>(ref reader, options);
+                            break;
+                        case nameof(transform):
+                            transform = JsonSerializer.Deserialize<Mat4x4<TNum>>(ref reader, options);
+                            break;
+                        default:
+                            reader.Skip(); // important for forward compatibility
+                            break;
+                    }
+                }
+
+                if (untransformed is null || transform is null)
+                    throw new JsonException("Missing required properties");
+
+                return new TransformableMesh<TNum>(untransformed) { Transform = transform.Value };
+            }
+
+            /// <inheritdoc />
+            public override void Write(Utf8JsonWriter writer, TransformableMesh<TNum> value, JsonSerializerOptions options)
+            {
+                writer.WriteStartObject();
+                writer.WritePropertyName("untransformed");
+                JsonSerializer.Serialize(writer, value._untransformed, options);
+                writer.WritePropertyName("transform");
+                JsonSerializer.Serialize(writer, value._transform, options);
+                writer.WriteEndObject();
+            }
+        }
+
+        /// <inheritdoc />
+        public static JsonConverter CreateConverter(JsonSerializerOptions options) => new Converter();
+
+        /// <inheritdoc />
+        public bool Equals(TransformableMesh<TNum>? other)
+        {
+            if (other is null) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return _untransformed.Equals(other._untransformed) 
+                   && _transform.Equals(other._transform);
+        }
+
+        /// <inheritdoc />
+        public override bool Equals(object? obj) => ReferenceEquals(this, obj) || obj is TransformableMesh<TNum> other && Equals(other);
+
+        /// <inheritdoc />
+        public override int GetHashCode() => HashCode.Combine(_untransformed);
+
+        public static bool operator ==(TransformableMesh<TNum>? left, TransformableMesh<TNum>? right) => Equals(left, right);
+
+        public static bool operator !=(TransformableMesh<TNum>? left, TransformableMesh<TNum>? right) => !Equals(left, right);
     }
 }

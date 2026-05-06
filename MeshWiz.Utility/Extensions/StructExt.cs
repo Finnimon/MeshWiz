@@ -1,3 +1,4 @@
+using System;
 using MeshWiz.Contracts;
 
 namespace MeshWiz.Utility.Extensions;

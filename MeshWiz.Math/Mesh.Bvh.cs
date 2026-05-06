@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Numerics;
 using MeshWiz.Utility.Extensions;
 
@@ -5,6 +7,7 @@ namespace MeshWiz.Math;
 
 public static partial class Mesh
 {
+    [Obsolete]
     public static partial class Bvh
     {
         private readonly struct BvhSortingTriangle<TNum>(Triangle3<TNum> triangle)
@@ -14,7 +17,7 @@ public static partial class Mesh
             public readonly AABB<Vec3<TNum>> BBox = triangle.BBox;
             public readonly Vec3<TNum> Centroid = triangle.Centroid;
         }
-
+        
         public static (BoundedVolumeHierarchy<TNum> hierarchy,
             TriangleIndexer[] indices,
             Vec3<TNum>[] vertices,

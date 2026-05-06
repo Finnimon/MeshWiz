@@ -1,5 +1,11 @@
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -231,7 +237,6 @@ static (IndexedMesh<double> halfCyl, List<Polyline<Vec3<double>, double>> layers
         var rev = v1.AsSpan().ToArray();
         Array.Reverse(rev);
         var shift = arc.Traverse(1) - arc.Traverse(0);
-        rev = rev;
         Console.WriteLine(shift);
         v1=v1.AsSpan().Select(v => v*Vec2<double>.Create(-1,1) + shift).ToArray();
         Vec2<double>[] vecs = [..v1,..rev ];

@@ -1,18 +1,23 @@
+using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
-[StructLayout(LayoutKind.Sequential)]
-public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
+[StructLayout(LayoutKind.Sequential), JsonConverter(typeof(MeshWizJsonConverter))]
+public readonly struct Vec3<TNum> : IVec<Vec3<TNum>, TNum>, IJsonConverterSelfProvider
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly TNum X, Y, Z;
@@ -21,8 +26,12 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
     public static int ByteSize => Unsafe.SizeOf<TNum>() * Dimensions;
 
 
-    [Pure]
-    public Vec3<TNum> Normalized() => this / TNum.Sqrt(Dot(this,this));
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Vec3<TNum> Normalized() => Normalize(this);
+
+    public static Vec3<TNum> Normalize(Vec3<TNum> v) => v / GetLength(v);
+
+    public static TNum GetLength(Vec3<TNum> v) => TNum.Sqrt(Dot(v,v));
 
     /// <inheritdoc />
     public static Vec3<TNum> Create<TOtherNum>(TOtherNum other) where TOtherNum : INumberBase<TOtherNum>
@@ -68,6 +77,20 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
         where TList : IReadOnlyList<TNum>
         => Create(components[0], components[1], components[2]);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vec3<TNum> FromComponents(IEnumerable<TNum> components)
+    {
+        using var enumerator = components.GetEnumerator();
+        Unsafe.SkipInit(out Vec3<TNum> v);
+        int i;
+        for (i = 0; i < 3 && enumerator.MoveNext(); i++)
+        {
+            Vec<TNum>.SetElement(in v, i,enumerator.Current);
+        }
+        if(i!=3) ThrowHelper.ThrowArgumentException(nameof(components));
+        return v;
+    }
+
 
     /// <inheritdoc />
     public static Vec3<TNum> FromComponentsConstrained<TList, TOtherNum>(TList components)
@@ -105,6 +128,16 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
             TNum.CreateTruncating(components[1]),
             TNum.CreateTruncating(components[2]));
 
+    public Vec3(IEnumerable<TNum> dat)
+    {
+        this = dat switch
+        {
+            IReadOnlyList<TNum> l => FromComponents(l),
+            IList<TNum> l => Create(l[0], l[1], l[2]),
+            _ => FromComponents(dat),
+        };
+    }
+
 
     public Vec3<TNum> Inverse => Invert(this);
 
@@ -134,11 +167,11 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
     /// <inheritdoc />
     public static Vec3<TNum> PositiveInfinity => Create(TNum.PositiveInfinity);
 
-    public static Vec3<TNum> UnitX => Create(TNum.One, TNum.Zero, TNum.Zero);
+    public static Vec3<TNum> UnitX => Create(TNum.One, default, default);
 
-    public static Vec3<TNum> UnitY => Create(TNum.Zero, TNum.One, TNum.Zero);
+    public static Vec3<TNum> UnitY => Create(default, TNum.One, default);
 
-    public static Vec3<TNum> UnitZ => Create(TNum.Zero, TNum.Zero, TNum.One);
+    public static Vec3<TNum> UnitZ => Create(default, default, TNum.One);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vec3<TOther> To<TOther>() where TOther : unmanaged, IFloatingPointIeee754<TOther>
@@ -196,7 +229,7 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
 
     [Pure, SuppressMessage("ReSharper", "CompareOfTNumsByEqualityOperator"),
      MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator !=(Vec3<TNum> left, Vec3<TNum> right)
+    public static bool operator !=(Vec3<TNum> left, Vec3<TNum> right) 
         => left.X != right.X || left.Y != right.Y || left.Z != right.Z;
 
 
@@ -266,7 +299,7 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsParallelTo(Vec3<TNum> other)
     {
-        var dot = TNum.Abs(Dot(this.Normalized(), other.Normalized())) - TNum.One;
+        var dot = TNum.Abs(Dot(Normalized(), other.Normalized())) - TNum.One;
         return dot.IsApproxZero();
     }
 
@@ -335,11 +368,7 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
     }
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec3<TNum> Lerp(Vec3<TNum> a, Vec3<TNum> b, Vec3<TNum> t)
-        => Create(x: b.X * t.X + a.X * (TNum.One - t.X),
-            y: b.Y * t.Y + a.Y * (TNum.One - t.Y),
-            z: b.Z * t.Z + a.Z * (TNum.One - t.Z)
-        );
+    public static Vec3<TNum> Lerp(Vec3<TNum> a, Vec3<TNum> b, Vec3<TNum> t) => b * t + a * (One - t);
 
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -908,4 +937,7 @@ public readonly struct Vec3<TNum> : IVec3<Vec3<TNum>, TNum>
         Vec<TNum>.SetElement(in copy, index, elem);
         return copy;
     }
+    
+    /// <inheritdoc />
+    static JsonConverter IJsonConverterSelfProvider.CreateConverter(JsonSerializerOptions options) => new IVec<Vec3<TNum>,TNum>.VecConverter();
 }

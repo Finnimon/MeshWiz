@@ -1,6 +1,10 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using MeshWiz.Collections;
 using MeshWiz.RefLinq;
 using MeshWiz.Utility;
@@ -9,51 +13,75 @@ namespace MeshWiz.Math;
 
 public static partial class Bvh
 {
-    public class Mesh<TNum> : IMesh<TNum>, IHierarchy<Triangle3<TNum>, Vec3<TNum>, TNum>
+    [JsonConverter(typeof(MeshWizJsonConverter))]
+    public sealed class Mesh<TNum> : IMesh<TNum>, IHierarchy<Triangle3<TNum>, Vec3<TNum>, TNum>, IEquatable<Mesh<TNum>>, IJsonConverterSelfProvider
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
+
+        [JsonPropertyName("triangles"), JsonRequired]
         internal readonly Triangle3<TNum>[] _triangles;
+
+        [JsonPropertyName("nodes"), JsonRequired]
         internal readonly Node<Vec3<TNum>, TNum>[] _nodes;
+
+        [JsonPropertyName("depth"), JsonRequired]
+        public int Depth { get; }
+        [JsonIgnore]
         public IReadOnlyList<Node<Vec3<TNum>, TNum>> Nodes => _nodes;
 
         /// <inheritdoc />
+        [JsonIgnore]
         IReadOnlyList<Triangle3<TNum>> IHierarchy<Triangle3<TNum>, Vec3<TNum>, TNum>.Elements => _triangles;
 
+        [JsonIgnore]
         public ReadOnlySpan<Triangle3<TNum>> Triangles => _triangles;
 
         /// <inheritdoc />
+        [JsonIgnore]
         public int Count => _triangles.Length;
 
         /// <inheritdoc />
+        [JsonIgnore]
         public Triangle3<TNum> this[int index] => _triangles[index];
 
+        [JsonIgnore]
         private TNum? _surfaceArea;
 
         /// <inheritdoc />
+        [JsonIgnore]
         public TNum SurfaceArea => _surfaceArea ??= Mesh.Math.SurfaceArea(_triangles);
 
 
         /// <inheritdoc />
+        [JsonIgnore]
         public AABB<Vec3<TNum>> BBox => Count == 0 ? AABB<Vec3<TNum>>.Empty : _nodes[0].Bounds;
 
+        [JsonIgnore]
         private TNum? _volume;
 
         /// <inheritdoc />
+        [JsonIgnore]
         public TNum Volume => _volume ??= Mesh.Math.Volume(_triangles);
 
+        [JsonIgnore]
         private Vec3<TNum>? _vertCentroid;
 
         /// <inheritdoc />
+        [JsonIgnore]
         public Vec3<TNum> VertexCentroid => _vertCentroid ??= Mesh.Math.VertexCentroid(_triangles);
 
+        [JsonIgnore]
         private Vec3<TNum>? _surfaceCentroid;
 
         /// <inheritdoc />
+        [JsonIgnore]
         public Vec3<TNum> SurfaceCentroid => _surfaceCentroid ??= Mesh.Math.SurfaceCentroid(_triangles);
 
+        [JsonIgnore]
         private Vec3<TNum>? _volCentroid;
 
         /// <inheritdoc />
+        [JsonIgnore]
         public Vec3<TNum> VolumeCentroid => _volCentroid ??= Mesh.Math.VolumeCentroid(_triangles);
 
         /// <inheritdoc />
@@ -74,8 +102,7 @@ public static partial class Bvh
             _volCentroid = allInfo.VolumeCentroid;
         }
 
-        public int Depth { get; }
-
+        [JsonConstructor]
         public Mesh(IEnumerable<Triangle3<TNum>> triangles, IEnumerable<Node<Vec3<TNum>, TNum>> nodes, int depth) :
             this(triangles.Iterate().ToArray(), nodes.Iterate().ToArray(), depth) { }
 
@@ -145,21 +172,106 @@ public static partial class Bvh
             return buf;
         }
 
-        private readonly struct PlaneIntersecter(Plane<TNum> plane)
-            : ITraverser<Triangle3<TNum>, Line<Vec3<TNum>, TNum>, Vec3<TNum>, TNum>
+        /// <inheritdoc />
+        public bool Equals(Mesh<TNum>? other)
         {
-            /// <inheritdoc />
-            public bool DoIntersect(AABB<Vec3<TNum>> t) => plane.DoIntersect(t);
+            if (other is null) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return Triangles.SequenceEqual(other.Triangles) 
+                   && _nodes.SequenceEqual(other._nodes) 
+                   && Depth == other.Depth;
+        }
 
-            /// <inheritdoc />
-            public bool Intersect(Triangle3<TNum> element, out Line<Vec3<TNum>, TNum> intersection)
-                => plane.Intersect(element, out intersection);
+        /// <inheritdoc />
+        public override bool Equals(object? obj)
+        {
+            if (obj is null) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != GetType()) return false;
+            return Equals((Mesh<TNum>)obj);
+        }
 
-            /// <inheritdoc />
-            public HitReact AcceptHit(int index, Triangle3<TNum> element, Line<Vec3<TNum>, TNum> hit)
+        /// <inheritdoc />
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(_triangles, _nodes, Depth);
+        }
+
+        public static bool operator ==(Mesh<TNum>? left, Mesh<TNum>? right)
+        {
+            return Equals(left, right);
+        }
+
+        public static bool operator !=(Mesh<TNum>? left, Mesh<TNum>? right)
+        {
+            return !Equals(left, right);
+        }
+        
+        
+        private sealed class Converter:JsonConverter<Mesh<TNum>>
+        {
+            public override Mesh<TNum> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
-                throw new NotImplementedException();
+                if (reader.TokenType != JsonTokenType.StartObject)
+                    throw new JsonException();
+                
+                Triangle3<TNum>[]? triangles = null;
+                Node<Vec3<TNum>, TNum>[]? nodes = null;
+                int? depth = null;
+
+                while (reader.Read())
+                {
+                    if (reader.TokenType == JsonTokenType.EndObject)
+                        break;
+
+                    if (reader.TokenType != JsonTokenType.PropertyName)
+                        throw new JsonException();
+
+                    string propName = reader.GetString()!;
+                    reader.Read();
+
+                    switch (propName)
+                    {
+                        case "triangles":
+                            triangles = JsonSerializer.Deserialize<Triangle3<TNum>[]>(ref reader, options);
+                            break;
+
+                        case "nodes":
+                            nodes = JsonSerializer.Deserialize<Node<Vec3<TNum>, TNum>[]>(ref reader, options);
+                            break;
+
+                        case "depth":
+                            depth = reader.GetInt32();
+                            break;
+
+                        default:
+                            reader.Skip(); // important for forward compatibility
+                            break;
+                    }
+                }
+
+                if (triangles is null || nodes is null || depth is null)
+                    throw new JsonException("Missing required properties");
+
+                return new Mesh<TNum>(triangles, nodes, depth.Value);
+            }
+            /// <inheritdoc />
+            public override void Write(Utf8JsonWriter writer, Mesh<TNum> value, JsonSerializerOptions options)
+            {
+                writer.WriteStartObject();
+                writer.WritePropertyName("triangles");
+                JsonSerializer.Serialize(writer, value._triangles, options);
+                
+                writer.WritePropertyName("nodes");
+                JsonSerializer.Serialize(writer, value._nodes, options);
+                writer.WritePropertyName("depth");
+                writer.WriteNumberValue(value.Depth);
+                writer.WriteEndObject();
             }
         }
+
+        /// <inheritdoc />
+        static JsonConverter IJsonConverterSelfProvider.CreateConverter(JsonSerializerOptions options) => new Converter();
+
     }
 }

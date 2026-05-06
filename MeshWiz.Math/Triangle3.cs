@@ -1,6 +1,8 @@
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.Json.Serialization;
 using MeshWiz.Contracts;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
@@ -8,16 +10,18 @@ using MeshWiz.Utility.Extensions;
 namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-public readonly struct Triangle3<TNum> : ISurface<Vec3<TNum>, TNum>, IFlat<TNum>, IByteSize, IBounded<Vec3<TNum>>
+public readonly struct Triangle3<TNum> : ISurface<Vec3<TNum>, TNum>, IFlat<TNum>, IByteSize, IBounded<Vec3<TNum>>, IEquatable<Triangle3<TNum>>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
+    [JsonInclude]
     public readonly Vec3<TNum> A, B, C;
-    public Line<Vec3<TNum>, TNum> Ab => A.LineTo(B);
-    public Line<Vec3<TNum>, TNum> Bc => B.LineTo(C);
-    public Line<Vec3<TNum>, TNum> Ca => A.LineTo(B);
-    public Vec3<TNum> Normal => ((B - A).Cross(C - A)).Normalized();
-    public Plane<TNum> Plane => new(in this);
+    [JsonIgnore] public Line<Vec3<TNum>, TNum> Ab => A.LineTo(B);
+    [JsonIgnore] public Line<Vec3<TNum>, TNum> Bc => B.LineTo(C);
+    [JsonIgnore] public Line<Vec3<TNum>, TNum> Ca => A.LineTo(B);
+    [JsonIgnore] public Vec3<TNum> Normal => ((B - A).Cross(C - A)).Normalized();
+    [JsonIgnore] public Plane<TNum> Plane => new(in this);
 
+    [JsonConstructor]
     public Triangle3(Vec3<TNum> a, Vec3<TNum> b, Vec3<TNum> c)
     {
         A = a;
@@ -25,26 +29,27 @@ public readonly struct Triangle3<TNum> : ISurface<Vec3<TNum>, TNum>, IFlat<TNum>
         C = c;
     }
 
-    public ICurve<Vec3<TNum>, TNum> Bounds => new Polyline<Vec3<TNum>, TNum>([A, B, C]);
+    [JsonIgnore] public ICurve<Vec3<TNum>, TNum> Bounds => new Polyline<Vec3<TNum>, TNum>([A, B, C, A]);
 
 
-    public Vec3<TNum> Centroid => (A + B + C) / TNum.CreateTruncating(3);
+    [JsonIgnore] public Vec3<TNum> Centroid => (A + B + C) / TNum.CreateTruncating(3);
 
+    [JsonIgnore]
     public TNum SurfaceArea
     {
         get
         {
             var ab = B - A;
             var ac = C - A;
-            var abAcDot = ab.Dot(ac);
-            return TNum.Sqrt((ab.Dot(ab)) * (ac.Dot(ac)) - abAcDot * abAcDot) / TNum.CreateTruncating(2);
+            var abAcDot = Vec3<TNum>.Dot(ab,ac);
+            return TNum.Sqrt((ab.Dot(ab)) * (ac.Dot(ac)) - abAcDot * abAcDot) * Numbers<TNum>.Half;
         }
     }
 
     public static implicit operator Triangle3<TNum>(Triangle<Vec3<TNum>, TNum> dimensionless)
         => new(dimensionless.A, dimensionless.B, dimensionless.C);
 
-    public static int ByteSize => Vec3<TNum>.ByteSize * 3;
+    [JsonIgnore] public static int ByteSize => Vec3<TNum>.ByteSize * 3;
 
     public void Deconstruct(out Vec3<TNum> a, out Vec3<TNum> b, out Vec3<TNum> c)
     {
@@ -61,7 +66,7 @@ public readonly struct Triangle3<TNum> : ISurface<Vec3<TNum>, TNum>, IFlat<TNum>
         return (ab, bc, ca);
     }
 
-    public AABB<Vec3<TNum>> BBox => AABB<Vec3<TNum>>.From(A, B, C);
+    [JsonIgnore] public AABB<Vec3<TNum>> BBox => AABB<Vec3<TNum>>.From(A, B, C);
 
     [System.Diagnostics.Contracts.Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Triangle3<TOtherNum> To<TOtherNum>()
@@ -172,13 +177,13 @@ public readonly struct Triangle3<TNum> : ISurface<Vec3<TNum>, TNum>, IFlat<TNum>
         var nB = pB.Normal;
 
 
-        if (TNum.Abs(Vec3<TNum>.Dot(pA.Normal,pB.Normal)).IsApprox(TNum.One))
+        if (TNum.Abs(Vec3<TNum>.Dot(pA.Normal, pB.Normal)).IsApprox(TNum.One))
             return Plane<TNum>.AreCoplanar(pA, pB) && CoplanarTriangleTest(a, b, pA);
         if (!pB.DoIntersect(a)) return false;
         if (!pA.DoIntersect(b)) return false;
 
         var dir = Vec3<TNum>.Cross(nA, nB);
-        
+
         var ray = Vec3<TNum>.Zero.RayAlong(dir);
         var (minA, maxA) = ProjectOnto(a, ray);
         var (minB, maxB) = ProjectOnto(b, ray);
@@ -190,5 +195,33 @@ public readonly struct Triangle3<TNum> : ISurface<Vec3<TNum>, TNum>, IFlat<TNum>
     private static bool CoplanarTriangleTest(Triangle3<TNum> a, Triangle3<TNum> b, Plane<TNum> testPlane)
     {
         return Triangle2<TNum>.DoIntersect(testPlane.ProjectIntoLocal(a), testPlane.ProjectIntoLocal(b));
+    }
+
+    /// <inheritdoc />
+    public bool Equals(Triangle3<TNum> other)
+    {
+        return A.Equals(other.A) && B.Equals(other.B) && C.Equals(other.C);
+    }
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj)
+    {
+        return obj is Triangle3<TNum> other && Equals(other);
+    }
+
+    /// <inheritdoc />
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(A, B, C);
+    }
+
+    public static bool operator ==(Triangle3<TNum> left, Triangle3<TNum> right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(Triangle3<TNum> left, Triangle3<TNum> right)
+    {
+        return !left.Equals(right);
     }
 }

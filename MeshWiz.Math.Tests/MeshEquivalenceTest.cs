@@ -1,3 +1,6 @@
+using System;
+using System.Linq;
+
 namespace MeshWiz.Math.Tests;
 
 public class MeshEquivalenceTest

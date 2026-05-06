@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics.Contracts;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -11,6 +12,7 @@ using MeshWiz.Utility.Extensions;
 namespace MeshWiz.Math.Benchmark;
 
 // [MemoryDiagnoser]
+[Obsolete]
 public class BvhIntersect
 {
     private BvhMesh<float>? _bvh;

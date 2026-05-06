@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.Json.Serialization;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
@@ -11,9 +12,13 @@ namespace MeshWiz.Math;
 public readonly struct Arc2<TNum> : IContiguousDiscreteCurve<Vec2<TNum>, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
+    [JsonInclude]
     public readonly Vec2<TNum> CircumCenter;
+    [JsonInclude]
     public readonly TNum Radius, StartAngle, EndAngle;
+    [JsonIgnore]
     public bool IsCircle => AngleRangeSize.IsApprox(Numbers<TNum>.TwoPi);
+    [JsonIgnore]
     public bool IsAtLeastFullCircle => AngleRangeSize.IsApproxGreaterOrEqual(Numbers<TNum>.TwoPi);
 
     public Arc2(Circle2<TNum> c, TNum startAngle, TNum endAngle)
@@ -24,6 +29,7 @@ public readonly struct Arc2<TNum> : IContiguousDiscreteCurve<Vec2<TNum>, TNum>
         EndAngle = endAngle;
     }
 
+    [JsonConstructor]
     public Arc2(Vec2<TNum> circumCenter, TNum radius, TNum startAngle, TNum endAngle)
     {
         CircumCenter = circumCenter;
@@ -32,6 +38,7 @@ public readonly struct Arc2<TNum> : IContiguousDiscreteCurve<Vec2<TNum>, TNum>
         EndAngle = endAngle;
     }
 
+    [JsonIgnore]
     public Circle2<TNum> Underlying
     {
         get
@@ -41,10 +48,14 @@ public readonly struct Arc2<TNum> : IContiguousDiscreteCurve<Vec2<TNum>, TNum>
         }
     }
 
+    [JsonIgnore]
     public TNum AngleRangeSize => TNum.Abs(EndAngle - StartAngle);
+    [JsonIgnore]
     public TNum SignedAngleRange => EndAngle - StartAngle;
+    [JsonIgnore]
     public AABB<TNum> AngleBoundary => AABB.From(StartAngle, EndAngle);
 
+    [JsonIgnore]
     public TNum WindingDirection => (EndAngle - StartAngle).EpsilonTruncatingSign() switch
     {
         -1 => TNum.NegativeOne,
@@ -71,9 +82,11 @@ public readonly struct Arc2<TNum> : IContiguousDiscreteCurve<Vec2<TNum>, TNum>
 
 
     /// <inheritdoc />
+    [JsonIgnore]
     public Vec2<TNum> Start => Traverse(TNum.Zero);
 
     /// <inheritdoc />
+    [JsonIgnore]
     public Vec2<TNum> End => Traverse(TNum.One);
 
     /// <inheritdoc />
@@ -81,6 +94,7 @@ public readonly struct Arc2<TNum> : IContiguousDiscreteCurve<Vec2<TNum>, TNum>
         => Traverse(TNum.Clamp(t, TNum.Zero, TNum.One));
 
     /// <inheritdoc />
+    [JsonIgnore]
     public TNum Length => AngleRangeSize / Numbers<TNum>.TwoPi * Underlying.Circumference;
 
     /// <inheritdoc />
@@ -105,9 +119,11 @@ public readonly struct Arc2<TNum> : IContiguousDiscreteCurve<Vec2<TNum>, TNum>
     }
 
     /// <inheritdoc />
+    [JsonIgnore]
     public Vec2<TNum> EntryDirection => GetTangent(TNum.Zero);
 
     /// <inheritdoc />
+    [JsonIgnore]
     public Vec2<TNum> ExitDirection => GetTangent(TNum.One);
 
     [System.Diagnostics.Contracts.Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]

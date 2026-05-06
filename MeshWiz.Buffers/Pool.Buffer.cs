@@ -1,5 +1,7 @@
+using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace MeshWiz.Buffers;
 
@@ -7,12 +9,12 @@ public static partial class Pool
 {
     public readonly ref struct Buffer<T>
     {
-        private readonly UInt128[] _words;
+        private readonly Array _words;
         public readonly Span<T> Span;
         
         public Buffer()
         {
-            _words = [];
+            _words = Array.Empty<T>();
             Span = [];
         }
         internal Buffer(UInt128[] words)
@@ -20,11 +22,20 @@ public static partial class Pool
             _words = words;
             Span = Utilities.UnsafeCast<T>(words);
         }
+
+        internal Buffer(object[] references)
+        {
+            _words = references;
+            Span = Utilities.UnsafeCast<T>(references);
+        }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
         {
             if (_words.Length == 0) return;
-            ArrayPool<UInt128>.Shared.Return(_words, clearArray: false);
+            if (typeof(T).IsValueType)
+                ArrayPool<UInt128>.Shared.Return((UInt128[])_words, clearArray: false);
+            else
+                ArrayPool<object>.Shared.Return((object[])_words, true);
         }
     }
 }

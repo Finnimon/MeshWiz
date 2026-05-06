@@ -1,7 +1,9 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-using BenchmarkDotNet.Running;
 using MeshWiz.RefLinq.Benchmark;
 
-// var summaries = BenchmarkRunner.Run(typeof(Program).Assembly);
-BenchmarkRunner.Run<ArraySelectWhere>();
+SumBench obj = new() { N = 5 };
+obj.Setup();
+Console.WriteLine(obj.Linq());
+Console.WriteLine(obj.RefLinq());
+// BenchmarkRunner.Run<SumBench>();

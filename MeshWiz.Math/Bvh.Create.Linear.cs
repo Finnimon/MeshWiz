@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Numerics;
 using MeshWiz.RefLinq;
 using MeshWiz.Utility.Extensions;

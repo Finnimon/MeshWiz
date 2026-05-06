@@ -1,9 +1,13 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.RefLinq;
 using MeshWiz.Utility;
@@ -14,7 +18,7 @@ namespace MeshWiz.Math;
 [StructLayout(LayoutKind.Sequential)]
 [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
 // ReSharper disable once InconsistentNaming
-public readonly struct Mat3x3<TNum> : IMat<Mat3x3<TNum>, Vec3<TNum>, Vec3<TNum>, TNum>, ISpatialTransform<Vec3<TNum>>
+public readonly struct Mat3x3<TNum> : IMat<Mat3x3<TNum>, Vec3<TNum>, Vec3<TNum>, TNum>, ISpatialTransform<Vec3<TNum>>, IJsonConverterSelfProvider
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     /// <inheritdoc />
@@ -339,4 +343,8 @@ public readonly struct Mat3x3<TNum> : IMat<Mat3x3<TNum>, Vec3<TNum>, Vec3<TNum>,
         Mat3x3<TNum> mat = default;
         return Mat<TNum>.WithDiagonal(mat, Vec3<TNum>.Create(scalar));
     }
+    /// <inheritdoc />
+    static JsonConverter IJsonConverterSelfProvider.CreateConverter(JsonSerializerOptions options) 
+        => new IMat<Mat3x3<TNum>,Vec3<TNum>,Vec3<TNum>,TNum>.Converter();
+
 }

@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -119,8 +121,7 @@ public static partial class Bvh
         where TVec : unmanaged, IVec<TVec, TNum>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
-        using var rented = RentedArray<int>.Rent(int.Max(1, depth));
-        Span<int> stack = rented.GetCompleteArray();
+        Span<int> stack = stackalloc int[int.Max(1,depth)];
         stack[0] = 0;
         var stackSize = 1;
         var didHit = false;
@@ -165,16 +166,29 @@ public static partial class Bvh
         return didHit;
     }
 
-    public static bool TraverseAgainst<TElement, TVec, TNum>(
-        IHierarchy<TElement, TVec, TNum> left,
-        IHierarchy<TElement, TVec, TNum> right,
+
+    public static bool TraverseAgainst<TLeft, TRight, TVec, TNum>(
+        IHierarchy<TLeft, TVec, TNum> left,
+        IHierarchy<TRight, TVec, TNum> right,
         bool ignoreTouching,
-        Func<TElement, TElement, bool> elemTest)
+        Func<TLeft, TRight, bool> elemTest)
         where TVec : unmanaged, IVec<TVec, TNum>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         if (left.Elements.Count == 0 || right.Elements.Count == 0) return false;
-        if (!left.IsTransforming && right.IsTransforming) (left, right) = (right, left);
+        if (left.IsTransforming || !right.IsTransforming)
+            return TraverseAgainstImp(left, right, ignoreTouching, elemTest);
+        if (typeof(TLeft) != typeof(TRight))
+            return TraverseAgainstImp(right, left, ignoreTouching, (a, b) => elemTest(b, a));
+        return TraverseAgainstImp((IHierarchy<TLeft, TVec, TNum>)right, left, ignoreTouching,
+            (Func<TLeft, TLeft, bool>)(object)elemTest);
+    }
+
+    private static bool TraverseAgainstImp<TLeft, TRight, TVec, TNum>(IHierarchy<TLeft, TVec, TNum> left,
+        IHierarchy<TRight, TVec, TNum> right,
+        bool ignoreTouching, Func<TLeft, TRight, bool> elemTest) where TVec : unmanaged, IVec<TVec, TNum>
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+    {
         using var leftRentedArr = RentedArray<int>.Rent(left.Depth + right.Depth);
         var leftStack = leftRentedArr.GetCompleteArray().AsSpan();
         using var rightRentedArr = RentedArray<int>.Rent(left.Depth + right.Depth);
@@ -242,13 +256,13 @@ public static partial class Bvh
             // @formatter:off
             for (var leftElem = 0; leftElem < leftNode.Length; leftElem++)
             {
-            var leftElement = leftElems[leftElem + leftNode.Start];
-            for (var rightElem = 0; rightElem < rightNode.Length; rightElem++)
-            {
-                var rightElement = rightElems[rightElem + rightNode.Start];
-                var hit = elemTest(leftElement, rightElement);
-                if (hit) return true;
-            }
+                var leftElement = leftElems[leftElem + leftNode.Start];
+                for (var rightElem = 0; rightElem < rightNode.Length; rightElem++)
+                {
+                    var rightElement = rightElems[rightElem + rightNode.Start];
+                    var hit = elemTest(leftElement, rightElement);
+                    if (hit) return true;
+                }
             }
             // @formatter:on
         }

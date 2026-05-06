@@ -1,9 +1,12 @@
+using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Numerics;
 using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
 
+[Obsolete]
 public sealed class BoundedVolumeHierarchy<TNum>
     : IReadOnlyList<BoundedVolume<TNum>>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
@@ -69,4 +72,5 @@ public sealed class BoundedVolumeHierarchy<TNum>
         if (_nodes.Length == Count) return;
         Array.Resize(ref _nodes, Count);
     }
+
 }

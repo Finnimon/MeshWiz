@@ -1,3 +1,5 @@
+using System.IO;
+using System.Linq;
 using System.Numerics;
 using BenchmarkDotNet.Attributes;
 using MeshWiz.IO.Stl;

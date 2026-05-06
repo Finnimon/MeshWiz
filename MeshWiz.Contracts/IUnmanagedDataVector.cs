@@ -1,4 +1,6 @@
 
+using System;
+
 namespace MeshWiz.Contracts;
 
 public interface IUnmanagedDataVector<TValue> 

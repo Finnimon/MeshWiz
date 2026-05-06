@@ -3,6 +3,8 @@
 // Modifications:
 // Made sorting weak and mod Keys aswell as namespace moving and naming changes
 
+using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.Diagnostics;

@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using BenchmarkDotNet.Attributes;
 using MeshWiz.RefLinq;
@@ -9,7 +12,7 @@ public class ArrayBuilderBench
     private IEnumerable<string> _refWrapper = new EnumerableWrapper<string>([]);
     private IEnumerable<nint> _valWrapper = new EnumerableWrapper<nint>([]);
 
-    [Params(0, 1, 2, 8, 64, 4096,1_000_000,100_000_000,2_047_483_591)] public int N;
+    [Params(0, 1, 2, 8, 64, 4096,1_000_000,100_000_000)] public int N;
 
     [Params(nameof(IEnumerable<>) , nameof(Array), nameof(ICollection<>), nameof(IReadOnlyCollection<>))]
     public string Mode { get; set; } = nameof(IEnumerable<>);

@@ -1,8 +1,10 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.Json.Serialization;
 
 namespace MeshWiz.Math;
 
@@ -13,24 +15,32 @@ public static partial class Bvh
         where TVec : unmanaged, IVec<TVec, TNum>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
+        [JsonInclude]
         public readonly AABB<TVec> Bounds;
-        private readonly int _first;
-        private readonly int _second;
+        [JsonInclude]
+        internal readonly int first, second;
 
         [SuppressMessage("ReSharper", "ConvertToAutoPropertyWhenPossible")]
-        public int Start => _first;
+        [JsonIgnore]
+        public int Start => first;
 
-        public int Length => -_second;
-        public int FirstChild => _first;
-        public int SecondChild => _second;
-        public bool IsLeaf => _second <= 0; //the zeroeth node may never be a parent
-        public bool IsParent => _second > 0;
+        [JsonIgnore]
+        public int Length => -second;
+        [JsonIgnore]
+        public int FirstChild => first;
+        [JsonIgnore]
+        public int SecondChild => second;
+        [JsonIgnore]
+        public bool IsLeaf => second <= 0; //the zeroeth node may never be a parent
+        [JsonIgnore]
+        public bool IsParent => second > 0;
 
+        [JsonConstructor]
         private Node(AABB<TVec> bounds, int first, int second)
         {
             Bounds = bounds;
-            _first = first;
-            _second = second;
+            this.first = first;
+            this.second = second;
         }
 
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -46,15 +56,18 @@ public static partial class Bvh
             => MakeParent(Bounds, firstChild, secondChild);
 
 
+        [JsonIgnore]
         public TNum LeafCost => Bounds.Size.SquaredLength * TNum.CreateTruncating(Length);
+        [JsonIgnore]
         public int End => Start + Length;
+        [JsonIgnore]
         public Range LeafRange => Start..End;
 
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Node<TOtherVec, TOther> To<TOtherVec, TOther>()
             where TOtherVec : unmanaged, IVec<TOtherVec, TOther>
             where TOther : unmanaged, IFloatingPointIeee754<TOther>
-            => new(Bounds.To<TOtherVec>(), _first, _second);
+            => new(Bounds.To<TOtherVec>(), first, second);
 
         [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Node<TVec, TNum> WithBounds(AABB<TVec> bbox)
@@ -66,13 +79,13 @@ public static partial class Bvh
 
         /// <inheritdoc />
         public bool Equals(Node<TVec, TNum> other) =>
-            Bounds.Equals(other.Bounds) && _first == other._first && _second == other._second;
+            Bounds.Equals(other.Bounds) && first == other.first && second == other.second;
 
         /// <inheritdoc />
         public override bool Equals(object? obj) => obj is Node<TVec, TNum> other && Equals(other);
 
         /// <inheritdoc />
-        public override int GetHashCode() => HashCode.Combine(Bounds, _first, _second);
+        public override int GetHashCode() => HashCode.Combine(Bounds, first, second);
 
         public static bool operator ==(Node<TVec, TNum> left, Node<TVec, TNum> right) => left.Equals(right);
 

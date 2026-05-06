@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 using BenchmarkDotNet.Attributes;
 
@@ -18,7 +19,7 @@ where TNum:unmanaged, IFloatingPointIeee754<TNum>
         => _mesh= new Sphere<TNum>(Vec3<TNum>.Zero, TNum.One).Tessellate();
 
     [Benchmark]
-    [Obsolete("Obsolete")]
+    [Obsolete]
     public BoundedVolumeHierarchy<TNum> ObsoleteHierarchize()
     {
         var (indices, vertices) = Mesh.Indexing.Indicate(_mesh!);
@@ -26,6 +27,7 @@ where TNum:unmanaged, IFloatingPointIeee754<TNum>
     }
 
     [Benchmark]
+    [Obsolete]
     public (BoundedVolumeHierarchy<TNum> hierarchy, TriangleIndexer[] indices, Vec3<TNum>[] vertices, uint d) OptimizedHierarchize() 
         => Mesh.Bvh.HierarchizeSah(_mesh!, MaxDepth,SplitTests);
 }

@@ -1,3 +1,4 @@
+using System;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Utility.Tests.StructExtTest;

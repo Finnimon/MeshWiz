@@ -1,6 +1,9 @@
+using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
+using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
@@ -8,6 +11,7 @@ using MeshWiz.Collections;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 using MeshWiz.RefLinq;
+using Enumerable = System.Linq.Enumerable;
 
 namespace MeshWiz.Math;
 

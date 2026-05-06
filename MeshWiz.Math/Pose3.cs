@@ -1,14 +1,18 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
 
+[JsonConverter(typeof(MeshWizJsonConverter))]
 [StructLayout(LayoutKind.Sequential)]
-public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>
+public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>, IJsonConverterSelfProvider
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public static Pose3<TNum> Identity => new();
@@ -157,6 +161,7 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>
     /// <inheritdoc />
     public override int GetHashCode() => HashCode.Combine(Rotation, Origin);
 
+
     public static Ray3<TNum> FrontRay(Pose3<TNum> arg) => new(arg.Origin, arg.Front);
     public static Ray3<TNum> UpRay(Pose3<TNum> arg) => new(arg.Origin, arg.Up);
 
@@ -214,13 +219,74 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>
     }
 
     /// <inheritdoc />
-    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vec3<TNum> TransformPoint(Vec3<TNum> p) => Rotation.Rotate(p) + Origin;
 
     /// <inheritdoc />
-    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vec3<TNum> TransformDirection(Vec3<TNum> v) => Rotation.Rotate(v);
 
     /// <inheritdoc />
-    bool ISpatialTransform<Vec3<TNum>>.IsAffine => true;
+    public bool IsAffine => true;
+
+
+    /// <inheritdoc />
+    static JsonConverter IJsonConverterSelfProvider.CreateConverter(JsonSerializerOptions options)
+        => new Converter();
+
+    private sealed class Converter : JsonConverter<Pose3<TNum>>
+    {
+        /// <inheritdoc />
+        public override Pose3<TNum> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType != JsonTokenType.StartObject)
+                throw new JsonException();
+
+            Vec3<TNum>? origin = null;
+            Quaternion<TNum>? rotation = null;
+
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonTokenType.EndObject)
+                    break;
+
+                if (reader.TokenType != JsonTokenType.PropertyName)
+                    throw new JsonException();
+
+                string propName = reader.GetString()!;
+                reader.Read();
+
+                switch (propName)
+                {
+                    case nameof(origin):
+                        origin = JsonSerializer.Deserialize<Vec3<TNum>>(ref reader, options);
+                        break;
+
+                    case nameof(rotation):
+                        rotation = JsonSerializer.Deserialize<Quaternion<TNum>>(ref reader, options);
+                        break;
+
+                    default:
+                        reader.Skip(); // important for forward compatibility
+                        break;
+                }
+            }
+
+            if (origin is null || rotation is null)
+                throw new JsonException("Missing required properties");
+
+            return new Pose3<TNum>(rotation.Value, origin.Value);
+        }
+
+        /// <inheritdoc />
+        public override void Write(Utf8JsonWriter writer, Pose3<TNum> value, JsonSerializerOptions options)
+        {
+            writer.WriteStartObject();
+            writer.WritePropertyName("origin");
+            JsonSerializer.Serialize(writer, value.Origin, options);
+            writer.WritePropertyName("rotation");
+            JsonSerializer.Serialize(writer, value.Rotation, options);
+            writer.WriteEndObject();
+        }
+    }
 }

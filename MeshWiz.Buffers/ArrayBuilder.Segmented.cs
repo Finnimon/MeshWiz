@@ -2,7 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // Modifications: Replaced IEnumerable with IEnumerator and ReadOnlySpan, namings
 
+using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.Diagnostics;

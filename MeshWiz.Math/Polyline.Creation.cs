@@ -1,6 +1,11 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Numerics;
+using CommunityToolkit.Diagnostics;
 using MeshWiz.Collections;
+using MeshWiz.RefLinq;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
@@ -127,7 +132,82 @@ public static partial class Polyline
             return polyLines.ToArray();
         }
 
-        private static TNum CalculateMinimumEpsilon<TNum, TVec>(IReadOnlyList<Line<TVec, TNum>> segments)
+        public static Polyline<TVec, TNum>[] UnifyByDictionary<TVec, TNum>(Line<TVec, TNum>[] srcSegs,
+            TNum? epsilon = null)
+            where TVec : unmanaged, IVec<TVec, TNum> where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        {
+            var absEps = epsilon ?? Numbers<TNum>.ZeroEpsilon;
+            var sqEps = absEps * absEps;
+            var aliveSegs = srcSegs.Iterate().Where(l => l.SquaredLength > sqEps).ToArray();
+            if (aliveSegs.Length == 0) return [];
+            var digit = GetMaxDigit(absEps);
+            var comp = Equality.By<TVec>(v => TVec.Round(v, digit));
+            Dictionary<TVec, int> byStartPt = new(comp);
+            // Dictionary<TVec, int> byEndPt = new(comp);
+            for (var i = 0; i < aliveSegs.Length; i++)
+            {
+                var l = aliveSegs[i];
+                if (!byStartPt.TryAdd(l.Start, i))
+                {
+                    var oldIndex = byStartPt[l.Start];
+                    if (aliveSegs[oldIndex].SquaredLength < l.SquaredLength) byStartPt[l.Start] = i;
+                }
+                //
+                // if (!byEndPt.TryAdd(l.End, i))
+                // {
+                //     var oldIndex=byEndPt[l.End];
+                //     if(aliveSegs[oldIndex].SquaredLength<l.SquaredLength) byEndPt[l.End] = i;
+                // }
+            }
+
+            List<Polyline<TVec, TNum>> finished = [];
+            RollingList<TVec> current = [];
+            while (byStartPt.Count > 0)
+            {
+                if (current.Count == 0)
+                {
+                    var (v, firstElementIndex) = byStartPt.First();
+                    byStartPt.Remove(v);
+                    var l = aliveSegs[firstElementIndex];
+                    // byEndPt.Remove(l.End);
+                    current.Add(l.Start);
+                    current.Add(l.End);
+                    continue;
+                }
+
+                var tail = current[^1];
+                var exitDir = tail - current[^2];
+                var success = byStartPt.TryGetValue(tail, out var nIndex);
+                if (!success)
+                {
+                    finished.Add(Polyline<TVec, TNum>.Create(current));
+                    current.Clear();
+                    continue;
+                }
+
+                byStartPt.Remove(tail);
+                var nextLine = aliveSegs[nIndex];
+                var parallel = TVec.Dot(TVec.Normalize(exitDir), nextLine.Direction).IsApprox(TNum.One);
+                if (!parallel) current.PushBack(nextLine.End);
+                else current[^1] = nextLine.End;
+            }
+
+            return finished.ToArray();
+        }
+
+        private static int GetMaxDigit<TNum>(TNum num)
+            where TNum : IFloatingPointIeee754<TNum>
+        {
+            num = TNum.Abs(num);
+            if (num == TNum.Zero) ThrowHelper.ThrowArgumentOutOfRangeException();
+            int digit = 0;
+            var ten = TNum.CreateTruncating(10);
+            for (; num < TNum.One; num *= ten) ++digit;
+            return digit;
+        }
+
+        private static TNum CalculateMinimumEpsilon<TNum, TVec>(IReadOnlyList<Line<TVec, TNum>> segments,
+            int factor = 2)
             where TNum : unmanaged, IFloatingPointIeee754<TNum> where TVec : unmanaged, IVec<TVec, TNum>
         {
             var epsilon = TNum.CreateTruncating(float.MaxValue);
@@ -139,7 +219,7 @@ public static partial class Polyline
                 epsilon = sqLength;
             }
 
-            return epsilon * TNum.CreateTruncating(0.75);
+            return epsilon / TNum.CreateTruncating(factor);
         }
 
 
@@ -152,7 +232,7 @@ public static partial class Polyline
             if (connected.Count < 2) return;
 
             TryTrimTail<TVec, TNum>(connected);
-            
+
             var poly = new Polyline<TVec, TNum>(connected.ToArray());
             if (poly.Count < 1) return;
             var length = poly.Length;
@@ -161,12 +241,13 @@ public static partial class Polyline
             polyLines.Add(poly);
         }
 
-        private static void TryTrimTail<TVec, TNum>(RollingList<TVec> connected) where TVec : unmanaged, IVec<TVec, TNum>
+        private static void TryTrimTail<TVec, TNum>(RollingList<TVec> connected)
+            where TVec : unmanaged, IVec<TVec, TNum>
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             if (connected.Count <= 3 || !connected[0].IsApprox(connected[^1])) return;
-            var tailDir=connected[^1]-connected[^2];
-            var headDir=connected[0]-connected[1];
+            var tailDir = connected[^1] - connected[^2];
+            var headDir = connected[0] - connected[1];
             if (!tailDir.IsApprox(headDir)) return;
             connected.PopBack();
             connected[0] = connected.Tail;
@@ -196,7 +277,7 @@ public static partial class Polyline
                     continue;
                 }
 
-                if (checkedSinceLastAdd > segments.Count + 1 
+                if (checkedSinceLastAdd > segments.Count + 1
                     || connected.Count > 3 && connected[0].IsApprox(connected[^1], epsilon))
                 {
                     AddIfValid(polyLines, connected, epsilon);

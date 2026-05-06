@@ -1,15 +1,20 @@
+using System;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
+[JsonConverter(typeof(MeshWizJsonConverter))]
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
-    IEqualityOperators<Quaternion<TNum>, Quaternion<TNum>, bool>
+    IEqualityOperators<Quaternion<TNum>, Quaternion<TNum>, bool>,
+    IJsonConverterSelfProvider
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public static Quaternion<TNum> Identity => Vec4<TNum>.UnitW;
@@ -126,6 +131,7 @@ public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
 
     /// <inheritdoc />
     public override int GetHashCode() => HashCode.Combine(Xyz.X, Xyz.Y, Xyz.Z, W);
+
 
     /// <inheritdoc />
     public static bool operator ==(Quaternion<TNum> left, Quaternion<TNum> right) => left.Equals(right);
@@ -292,4 +298,18 @@ public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
     }
 
     public static Vec4<TNum> AsVec4(Quaternion<TNum> q) => Unsafe.BitCast<Quaternion<TNum>, Vec4<TNum>>(q);
+    
+    
+    /// <inheritdoc />
+    static JsonConverter IJsonConverterSelfProvider.CreateConverter(JsonSerializerOptions options) => new Converter();
+
+    private sealed class Converter : JsonConverter<Quaternion<TNum>>
+    {
+        public override Quaternion<TNum> Read(ref Utf8JsonReader reader, Type typeToConvert,
+            JsonSerializerOptions options) =>
+            JsonSerializer.Deserialize<Vec4<TNum>>(ref reader, options);
+
+        /// <inheritdoc />
+        public override void Write(Utf8JsonWriter writer, Quaternion<TNum> value, JsonSerializerOptions options) => JsonSerializer.Serialize(writer,AsVec4(value), options);
+    }
 }   

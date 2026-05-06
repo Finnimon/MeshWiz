@@ -1,7 +1,10 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Text;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Math;
+using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.IO.Stl;
@@ -11,7 +14,8 @@ public sealed class FastStlReader : IMeshReader<float>
 {
     private FastStlReader() { }
 
-    public static IMesh<float> Read(Stream stream, bool leaveOpen = false)
+    static IMesh<float> IMeshReader<float>.Read(Stream stream, bool leaveOpen)=>Read(stream,leaveOpen);
+    public static Mesh<float> Read(Stream stream, bool leaveOpen = false)
     {
         try
         {
@@ -25,11 +29,14 @@ public sealed class FastStlReader : IMeshReader<float>
 
     private static Mesh<float> ReadInternal(Stream stream)
     {
-        var solid=new  byte[5];
+        var solid = new byte[5];
+        var pos = stream.Position;
         stream.ReadExactly(solid);
         var isAscii = Encoding.ASCII.GetString(solid).Equals(nameof(solid), StringComparison.OrdinalIgnoreCase);
         stream.Seek(-solid.Length, SeekOrigin.Current);
-        return isAscii ? ReadAscii(stream) : ReadBinary(stream);
+        if (isAscii && Func.Try(ReadAscii, stream).TryGetValue(out var m)) return m;
+        stream.Seek(pos,SeekOrigin.Begin);
+        return ReadBinary(stream);
     }
 
     private const int Stride = 50;

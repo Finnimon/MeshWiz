@@ -1,4 +1,6 @@
+using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Globalization;
@@ -6,14 +8,16 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
-[StructLayout(LayoutKind.Sequential)]
-public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
+[StructLayout(LayoutKind.Sequential), JsonConverter(typeof(MeshWizJsonConverter))]
+public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>, IJsonConverterSelfProvider
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly TNum X, Y, Z, W;
@@ -94,7 +98,7 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec4<TNum> Create(Vec3<TNum> xyz)
-        => Create(xyz, TNum.Zero);
+        => Create(xyz, default);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec4<TNum> Create(TNum x, TNum y, TNum z, TNum w)
@@ -326,6 +330,7 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
         yield return X;
         yield return Y;
         yield return Z;
+        yield return W;
     }
 
     [SuppressMessage("ReSharper", "HeapView.BoxingAllocation")]
@@ -334,6 +339,7 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
         yield return X;
         yield return Y;
         yield return Z;
+        yield return W;
     }
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -875,4 +881,8 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
         Vec<TNum>.SetElement(in copy, index, elem);
         return copy;
     }
+
+    /// <inheritdoc />
+    static JsonConverter IJsonConverterSelfProvider.CreateConverter(JsonSerializerOptions options) =>
+        new IVec<Vec4<TNum>, TNum>.VecConverter();
 }

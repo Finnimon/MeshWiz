@@ -1,4 +1,7 @@
+using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
@@ -301,4 +304,19 @@ public ref struct SpanIterator<TItem>(ReadOnlySpan<TItem> source) : IRefIterator
     /// <inheritdoc />
     public TItem? MaxOrDefaultBy<T>(Func<TItem, T> bySel) where T : IComparable<T>
         => MaxOrDefault(Equality.CompareBy(bySel));
+
+    public int Count(Func<TItem, bool> t)
+    {
+        var c = 0;
+        foreach (var item in _source)
+            if (t(item))
+                c++;
+        return c;
+    }
+
+    public TNum Average<TNum>(Func<TItem, TNum> sel)
+        where TNum : struct, INumber<TNum> 
+        => Select(sel)
+            .Sum(default(TNum)) 
+           / TNum.CreateTruncating(Length);
 }

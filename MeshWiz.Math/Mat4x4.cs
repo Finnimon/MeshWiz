@@ -1,9 +1,11 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Xml.Serialization;
 using CommunityToolkit.Diagnostics;
@@ -13,8 +15,11 @@ using MeshWiz.Utility;
 namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
+[JsonConverter(typeof(MeshWizJsonConverter))]
 // ReSharper disable once InconsistentNaming
-public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>, TNum>
+public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>, TNum>,
+    IJsonConverterSelfProvider,
+    ISpatialTransform<Vec3<TNum>> 
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     static int IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>, TNum>.RowCount => RowCount;
@@ -22,8 +27,8 @@ public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>,
     public const int ColCount = 4;
     public const int RowCount = 4;
     public const int Count = ColCount * RowCount;
-    public bool IsIdentity => Mat<TNum>.IsIdentity<Mat4x4<TNum>, Vec4<TNum>>(this);
-    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
+    [JsonIgnore] public bool IsIdentity => Mat<TNum>.IsIdentity<Mat4x4<TNum>, Vec4<TNum>>(this);
+
     public static Mat4x4<TNum> Identity => Create(Vec4<TNum>.UnitX,
         Vec4<TNum>.UnitY,
         Vec4<TNum>.UnitZ,
@@ -51,14 +56,24 @@ public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>,
     [Pure]
     public Mat4x4<TNum> Normalized() => this / Det;
 
-    public readonly Vec4<TNum> X, Y, Z, W;
+    [JsonInclude] public readonly Vec4<TNum> X, Y, Z, W;
 
-// @formatter:off
-    public TNum M00 => X.X; public TNum M01 => X.Y; public TNum M02 => X.Z; public TNum M03 => X.W;
-    public TNum M10 => Y.X; public TNum M11 => Y.Y; public TNum M12 => Y.Z; public TNum M13 => Y.W;
-    public TNum M20 => Z.X; public TNum M21 => Z.Y; public TNum M22 => Z.Z; public TNum M23 => Z.W;
-    public TNum M30 => W.X; public TNum M31 => W.Y; public TNum M32 => W.Z; public TNum M33 => W.W;
-// @formatter:on
+    [JsonIgnore] public TNum M00 => X.X;
+    [JsonIgnore] public TNum M01 => X.Y;
+    [JsonIgnore] public TNum M02 => X.Z;
+    [JsonIgnore] public TNum M03 => X.W;
+    [JsonIgnore] public TNum M10 => Y.X;
+    [JsonIgnore] public TNum M11 => Y.Y;
+    [JsonIgnore] public TNum M12 => Y.Z;
+    [JsonIgnore] public TNum M13 => Y.W;
+    [JsonIgnore] public TNum M20 => Z.X;
+    [JsonIgnore] public TNum M21 => Z.Y;
+    [JsonIgnore] public TNum M22 => Z.Z;
+    [JsonIgnore] public TNum M23 => Z.W;
+    [JsonIgnore] public TNum M30 => W.X;
+    [JsonIgnore] public TNum M31 => W.Y;
+    [JsonIgnore] public TNum M32 => W.Z;
+    [JsonIgnore] public TNum M33 => W.W;
 
 
     /// <inheritdoc />
@@ -157,16 +172,20 @@ public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>,
 
     public static Vec3<TNum> MultiplyPoint(Mat4x4<TNum> m, Vec3<TNum> v)
     {
-        var v4 = Vec4<TNum>.Create(v,TNum.One);
+        var v4 = Vec4<TNum>.Create(v, TNum.One);
         v4 = m * v4;
         return v4.XYZ / v4.W;
     }
 
-    [Pure]
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vec3<TNum> MultiplyDirection(Vec3<TNum> v)
-        => Vec3<TNum>.Create(X.XYZ.Dot(v), Y.XYZ.Dot(v), Z.XYZ.Dot(v));
+        => MultiplyDirection(this,v);
 
-    [Pure]
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vec3<TNum> MultiplyDirection(Mat4x4<TNum> m, Vec3<TNum> v)
+        => m.AsMat3x3() * v;
+
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vec4<TNum> Multiply(Vec4<TNum> v)
         => this * v;
 
@@ -193,7 +212,7 @@ public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>,
     // Row/Column access via bitwise cast
     public Vec4<TNum> GetRow(int row)
         => RowCount > (uint)row
-            ? Unsafe.AddByteOffset(ref Unsafe.AsRef(in X), Vec3<TNum>.ByteSize * row)
+            ? Unsafe.Add(ref Unsafe.AsRef(in X), row)
             : ThrowHelper.ThrowArgumentOutOfRangeException<Vec4<TNum>>(nameof(row));
 
 
@@ -443,5 +462,20 @@ public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>,
         );
     }
 
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Mat3x3<TNum> AsMat3x3() => Mat3x3<TNum>.Create(X.XYZ, Y.XYZ, Z.XYZ);
+    /// <inheritdoc />
+    static JsonConverter IJsonConverterSelfProvider.CreateConverter(JsonSerializerOptions options) 
+        => new IMat<Mat4x4<TNum>,Vec4<TNum>,Vec4<TNum>,TNum>.Converter();
+
+    /// <inheritdoc />
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Vec3<TNum> TransformPoint(Vec3<TNum> p) => MultiplyPoint(this, p);
+
+    /// <inheritdoc />
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Vec3<TNum> TransformDirection(Vec3<TNum> v) => MultiplyDirection(this,v);
+
+    /// <inheritdoc />
+    bool ISpatialTransform<Vec3<TNum>>.IsAffine => AsMat3x3().IsAffine;
 }

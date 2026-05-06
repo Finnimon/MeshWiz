@@ -1,11 +1,20 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using JetBrains.Annotations;
 
 namespace MeshWiz.Buffers;
 
 public sealed partial class Freelist
 {
-    [field: ThreadStatic, AllowNull, MaybeNull]
-    public static Freelist Shared => field ??= new Freelist(Allocator.InitialSharedCapacity, false);
+    public static class Shared
+    {
+        [field: ThreadStatic, AllowNull, MaybeNull]
+        private static Freelist SharedFreeList => field ??= new Freelist(Allocator.InitialSharedCapacity, false);
+
+        [MustDisposeResource, MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Buffer<T> Rent<T>(int minimumLength) => SharedFreeList.Rent<T>(minimumLength);
+    }
     // public sealed partial class Shared
     // {
     //     [field: ThreadStatic, AllowNull, MaybeNull]

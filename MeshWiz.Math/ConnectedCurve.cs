@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Numerics;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility.Extensions;

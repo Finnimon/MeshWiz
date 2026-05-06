@@ -1,9 +1,12 @@
+using System;
+using System.Linq;
 using BenchmarkDotNet.Attributes;
 using MeshWiz.IO;
 using MeshWiz.IO.Stl;
 
 namespace MeshWiz.Math.Benchmark;
 
+[Obsolete]
 public class PolylineWindingOrderBench
 {
     private Polyline<Vec2<float>, float>? _basePl;

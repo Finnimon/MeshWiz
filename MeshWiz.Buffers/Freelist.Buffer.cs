@@ -1,3 +1,5 @@
+using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -5,25 +7,24 @@ namespace MeshWiz.Buffers;
 
 public sealed partial class Freelist
 {
+    [DebuggerDisplay("Alive = {Alive}, Size = {Span.Length}")]
     public ref struct Buffer<T>
-    where T:unmanaged
     {
         internal readonly Freelist _allocator;
-        internal readonly UInt128[] _src;
+        internal readonly object _src;
         public readonly Span<T> Span;
         internal readonly int _wordStart;
         internal readonly int _wordCount;
         internal bool _alive;
         public readonly bool Alive => _alive;
-        public readonly int WordCount => _wordCount;    
 
-        public readonly bool TryGetSpan(out Span<T> span)
+        public readonly bool TryGetAliveSpan(out Span<T> span)
         {
             span = Span;
             return _alive;
         }
         
-        internal Buffer(int wordStart, Span<T> span, Freelist allocator, UInt128[] src, int wordCount)
+        internal Buffer(int wordStart, Span<T> span, Freelist allocator, Array src, int wordCount)
         {
             _alive = true;
             _wordStart = wordStart;
@@ -33,7 +34,7 @@ public sealed partial class Freelist
             _wordCount = wordCount;
         }
 
-        internal Buffer(bool alive, int wordStart, Span<T> span, Freelist allocator, UInt128[] src,  int wordCount)
+        internal Buffer(bool alive, int wordStart, Span<T> span, Freelist allocator, Array src,  int wordCount)
         {
             _alive = alive;
             _wordStart = wordStart; 
@@ -43,20 +44,14 @@ public sealed partial class Freelist
             _wordCount = wordCount;
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
         {
             if (!_alive) return;
             _alive = false;
-            if(_wordCount!=0)_allocator.Release(this);
+            if(_wordCount!=0) _allocator.Release(this);
         }
-        // [MethodImpl(MethodImplOptions.AggressiveInlining),System.Diagnostics.Contracts.Pure]
-        // internal static Buffer<T> FromWordBuf(Buffer<UInt128> underlying, int length)
-        // {
-        //     var reinterpret = MemoryMarshal.CreateSpan(ref Unsafe.As<UInt128,T>(ref MemoryMarshal.GetReference(underlying.Span)),length);
-        //     var buf=Unsafe.As<Buffer<UInt128>,Buffer<T>>(ref underlying);
-        //     Unsafe.AsRef(in buf.Span)=reinterpret;
-        //     return buf;
-        // }
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining),System.Diagnostics.Contracts.Pure]
         internal static Buffer<T> FromWordBuf(Buffer<UInt128> underlying)
         {
@@ -65,5 +60,7 @@ public sealed partial class Freelist
             Unsafe.AsRef(in buf.Span)=reinterpret;
             return buf;
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining),System.Diagnostics.Contracts.Pure]
+        internal static Buffer<T> FromObjectBuf(Buffer<object> underlying) => Unsafe.As<Buffer<object>,Buffer<T>>(ref underlying);
     }
 }

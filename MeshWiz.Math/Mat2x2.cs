@@ -1,15 +1,18 @@
+using System;
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
 [SuppressMessage("ReSharper", "UnassignedReadonlyField")]
-public readonly struct Mat2x2<TNum> : IMat<Mat2x2<TNum>, Vec2<TNum>, Vec2<TNum>, TNum>, ISpatialTransform<Vec2<TNum>>
+public readonly struct Mat2x2<TNum> : IMat<Mat2x2<TNum>, Vec2<TNum>, Vec2<TNum>, TNum>, ISpatialTransform<Vec2<TNum>>, IJsonConverterSelfProvider
     where TNum : unmanaged, IFloatingPointIeee754<TNum>, ISpatialTransform<Vec2<TNum>>
 {
     public const int ColCount = 2, RowCount = 2, Count = 4, Dimensions = 2;
@@ -222,4 +225,8 @@ public readonly struct Mat2x2<TNum> : IMat<Mat2x2<TNum>, Vec2<TNum>, Vec2<TNum>,
 
     /// <inheritdoc />
     public bool IsAffine => Det.IsApprox(TNum.One);
+    
+    /// <inheritdoc />
+    static JsonConverter IJsonConverterSelfProvider.CreateConverter(JsonSerializerOptions options) 
+        => new IMat<Mat2x2<TNum>,Vec2<TNum>,Vec2<TNum>,TNum>.Converter();
 }

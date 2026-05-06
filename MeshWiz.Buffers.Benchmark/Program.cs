@@ -7,4 +7,4 @@ using MeshWiz.Utility.Extensions;
 
 // Console.WriteLine(Unsafe.SizeOf<SegmentedArrayBuilder<int>>());
 // Console.WriteLine(Unsafe.SizeOf<BufferedArrayBuilder<int>>());
-BenchmarkRunner.Run<ArrayBuilderBench>();
+BenchmarkRunner.Run<AllocatorBench<string>>();

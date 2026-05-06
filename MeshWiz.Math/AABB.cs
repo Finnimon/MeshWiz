@@ -1,6 +1,9 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Diagnostics.Tracing;
+using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -23,8 +26,10 @@ public readonly struct AABB<TNum>
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember]
     public static AABB<TNum> Empty => new(TNum.PositiveInfinity, TNum.NegativeInfinity);
 
+    [JsonInclude]
     public readonly TNum Min, Max;
 
+    [JsonConstructor]
     internal AABB(TNum min, TNum max)
     {
         Min = min;

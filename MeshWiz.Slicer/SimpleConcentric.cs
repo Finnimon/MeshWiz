@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using MeshWiz.Collections;
 using MeshWiz.Math;
@@ -5,6 +8,7 @@ using MeshWiz.Utility;
 
 namespace MeshWiz.Slicer;
 
+[Obsolete]
 public class SimpleConcentric
 {
     public static IEnumerable<Polyline<Vec2<TNum>, TNum>> GenPattern<TNum>(Polyline<Vec2<TNum>, TNum> outerBounds,

@@ -1,22 +1,30 @@
+using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Xml.Serialization;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Collections;
+using MeshWiz.RefLinq;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
+using Iterator = MeshWiz.RefLinq.Iterator;
 using SpanExt = MeshWiz.RefLinq.SpanExt;
 
 namespace MeshWiz.Math;
 
+[JsonConverter(typeof(MeshWizJsonConverter))]
 public sealed class Polyline<TVec, TNum>
     : IPolyline<Polyline<TVec, TNum>, Line<TVec, TNum>, TVec, TVec, TNum>,
-        IReadOnlyList<Line<TVec, TNum>>
+        IReadOnlyList<Line<TVec, TNum>>,
+        IJsonConverterSelfProvider,
+        IEquatable<Polyline<TVec, TNum>>
     where TVec : unmanaged, IVec<TVec, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
@@ -242,8 +250,8 @@ public sealed class Polyline<TVec, TNum>
     public static Polyline<TVec, TNum> FromSegmentCollection(IReadOnlyCollection<Line<TVec, TNum>> collection)
     {
         if (collection.Count == 0) return Empty;
-        var firstLine = collection.First();
-        if (collection.Count == 1) return new([firstLine.Start, firstLine.End]);
+        var firstLine = collection.Iterate().First();
+        if (collection.Count == 1) return new Polyline<TVec, TNum>([firstLine.Start, firstLine.End]);
 
         List<TVec> points = new(collection.Count + 1);
         var prevDirection = firstLine.Direction;
@@ -398,13 +406,14 @@ public sealed class Polyline<TVec, TNum>
     public Polyline<TVec, TNum> TransformedBy<TTransform>(TTransform transform)
         where TTransform : ISpatialTransform<TVec>
     {
-        var copy = CreateNonCopying(SpanExt.Iterate(this.Points).Select(transform.TransformPoint).ToArray());
+        var copy = CreateNonCopying(Iterator.Iterate(this.Points).Select(transform.TransformPoint).ToArray());
         if (!transform.IsAffine) return copy;
         copy._cumulativeDistances = _cumulativeDistances;
-        if (_bbox.TryGetValue(out var bbox))
-            copy._bbox = AABB.From(transform.TransformPoint(bbox.Min), transform.TransformPoint(bbox.Max));
-        if (_vertexCentroid.TryGetValue(out var vertCentroid))
-            copy._vertexCentroid = transform.TransformPoint(vertCentroid);
+        if (_bbox.HasValue)
+            copy._bbox = AABB.From(transform.TransformPoint(_bbox.Value.Min),
+                transform.TransformPoint(_bbox.Value.Max));
+        if (_vertexCentroid.HasValue)
+            copy._vertexCentroid = transform.TransformPoint(_vertexCentroid.Value);
         return copy;
     }
 
@@ -415,10 +424,51 @@ public sealed class Polyline<TVec, TNum>
         _ = CumulativeDistances;
     }
 
-    public Polyline<TVec,TNum> Reversed()
+    public Polyline<TVec, TNum> Reversed()
     {
-        var points = this._points.Reverse().ToArray();
+        var points = this._points.ToArray();
+        Array.Reverse(points);
         return new Polyline<TVec, TNum>(points) { _bbox = _bbox };
+    }
+
+    /// <inheritdoc />
+    static JsonConverter IJsonConverterSelfProvider.CreateConverter(JsonSerializerOptions _)
+        => MeshWizJsonConverter.Create<Polyline<TVec, TNum>, TVec[]>(pl => pl._points,
+            points => CreateNonCopying(points ?? []));
+
+
+    /// <inheritdoc />
+    public bool Equals(Polyline<TVec, TNum>? other)
+    {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return Points.SequenceEqual(other._points);
+    }
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj)
+    {
+        return ReferenceEquals(this, obj) || obj is Polyline<TVec, TNum> other && Equals(other);
+    }
+
+    /// <inheritdoc />
+    public override int GetHashCode()
+    {
+        var src=Points;
+        if (src.IsEmpty) return 0;
+        var first = src[0].GetHashCode();
+        return HashCode.Combine(first, src.Length);
+    
+    }
+
+    public static bool operator ==(Polyline<TVec, TNum>? left, Polyline<TVec, TNum>? right)
+    {
+        return Equals(left, right);
+    }
+
+    public static bool operator !=(Polyline<TVec, TNum>? left, Polyline<TVec, TNum>? right)
+    {
+        return !Equals(left, right);
     }
 }
 
