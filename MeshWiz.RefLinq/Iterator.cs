@@ -148,7 +148,7 @@ public static partial class Iterator
         while (iter.MoveNext()) seed += iter.Current;
         return seed;
     }
-
+    #nullable disable
     public static TNum Sum<TNum, TIn>(this SmartSelectIterator<TIn, TNum> iter, TNum seed)
         where TNum : struct, INumber<TNum>
     {
@@ -178,8 +178,8 @@ public static partial class Iterator
             sum += iter._sel(position);
         return sum;
     }
-
-    public static ConcatIterator<SpanIterator<T>, TOther, T> Concat<T, TOther>(this System.ReadOnlySpan<T> span,
+    #nullable enable
+    public static ConcatIterator<SpanIterator<T>, TOther, T> Concat<T, TOther>(this ReadOnlySpan<T> span,
         TOther other)
         where TOther : IRefIterator<TOther, T>, allows ref struct
         => new(span, other);
