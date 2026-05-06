@@ -1,71 +1,82 @@
+using System;
 using System.Buffers;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
-[StructLayout(LayoutKind.Sequential)]
-public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
+[StructLayout(LayoutKind.Sequential), JsonConverter(typeof(MeshWizJsonConverter))]
+public readonly struct Vec2<TNum> : IVec<Vec2<TNum>, TNum>,
+        IJsonConverterSelfProvider
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    public Vec2<TNum> Right() => new(Y, -X);
-    public Vec2<TNum> Left() => new(-Y, X);
-    public static Vec2<TNum> Zero => new(TNum.Zero, TNum.Zero);
+    public Vec2<TNum> Right() => Create(Y, -X);
+    public Vec2<TNum> Left() => Create(-Y, X);
+    public static Vec2<TNum> Zero => default;
 
-    public static Vec2<TNum> One => new(TNum.One, TNum.One);
+    public static Vec2<TNum> One => Create(TNum.One, TNum.One);
 
-    public static Vec2<TNum> NaN => new(TNum.NaN, TNum.NaN);
+    public static Vec2<TNum> NaN => Create(TNum.NaN, TNum.NaN);
 
-    public static Vec2<TNum> UnitX => new(TNum.One, TNum.Zero);
-    public static Vec2<TNum> UnitY => new(TNum.Zero, TNum.One);
-
-    /// <inheritdoc />
-    public static Vec2<TNum> NegativeInfinity => new(TNum.NegativeInfinity);
+    public static Vec2<TNum> UnitX => Create(TNum.One, TNum.Zero);
+    public static Vec2<TNum> UnitY => Create(TNum.Zero, TNum.One);
 
     /// <inheritdoc />
-    public static Vec2<TNum> NegativeZero => new(TNum.NegativeZero);
+    public static Vec2<TNum> NegativeInfinity => Create(TNum.NegativeInfinity);
 
     /// <inheritdoc />
-    public static Vec2<TNum> PositiveInfinity => new(TNum.PositiveInfinity);
+    public static Vec2<TNum> NegativeZero => Create(TNum.NegativeZero);
 
-    public Vec2<TNum> YX => new(Y, X);
+    /// <inheritdoc />
+    public static Vec2<TNum> PositiveInfinity => Create(TNum.PositiveInfinity);
+
+    public Vec2<TNum> YX => Create(Y, X);
 
     private Vec2(TNum radius, Angle<TNum> angle) : this(radius, angle.Radians) { }
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec2<TNum> CreatePolar(TNum radius, Angle<TNum> angle) => new(radius, angle);
+    public static Vec2<TNum> CreatePolar(TNum radius, Angle<TNum> angle) => Create(radius, angle);
 
     /// <inheritdoc />
     public static Vec2<TNum> operator /(TNum l, Vec2<TNum> r)
-        => new(l / r.X, l / r.Y);
+        => Create(l / r.X, l / r.Y);
 
     public TNum ComponentSum => X + Y;
 
     public Vec2<TOther> To<TOther>() where TOther : unmanaged, IFloatingPointIeee754<TOther>
-        => new(TOther.CreateTruncating(X), TOther.CreateTruncating(Y));
+        => Vec2<TOther>.Create(TOther.CreateTruncating(X), TOther.CreateTruncating(Y));
 
-    public readonly TNum X = x, Y = y;
+    public readonly TNum X, Y;
     public static unsafe int ByteSize => sizeof(TNum) * 2;
     public Vec2<TNum> Normalized() => this / Length;
     public TNum AlignedSquareVolume => X * Y;
 
     public static Vec2<TNum> FromComponents<TList>(TList components)
         where TList : IReadOnlyList<TNum>
-        => new(components[0], components[1]);
+        => Create(components[0], components[1]);
+    
+    public static Vec2<TNum> FromComponents(ReadOnlySpan<TNum> components)
+    {
+        if(components.Length<2) ThrowHelper.ThrowArgumentException(nameof(components));
+        return Unsafe.As<TNum, Vec2<TNum>>(ref Unsafe.AsRef(in MemoryMarshal.GetReference(components)));
+    }
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec2<TNum> FromComponents<TList, TOtherNum>(TList components)
         where TList : IReadOnlyList<TOtherNum>
         where TOtherNum : INumberBase<TOtherNum>
-        => new(TNum.CreateTruncating(components[0]), TNum.CreateTruncating(components[1]));
+        => Create(TNum.CreateTruncating(components[0]), TNum.CreateTruncating(components[1]));
 
     /// <inheritdoc />
     public static Vec2<TNum> FromComponentsConstrained<TList, TOtherNum>(TList components)
@@ -83,12 +94,12 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
     {
         var x = components.Count > 0 ? components[0] : TNum.Zero;
         var y = components.Count > 1 ? components[1] : TNum.Zero;
-        return new(x, y);
+        return Create(x, y);
     }
 
     /// <inheritdoc />
     public static Vec2<TNum> Create(TNum value)
-        => new(value);
+        => Create(value, value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
     public static Vec2<TNum> Create(TNum x, TNum y)
@@ -103,7 +114,9 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
     public static Vec2<TNum> Create<TOtherNum>(TOtherNum other) where TOtherNum : INumberBase<TOtherNum>
         => new(TNum.CreateTruncating(other));
 
-    public Vec2(TNum s) : this(s, s) { }
+    public Vec2(TNum s) => this = Create(s);
+
+    public Vec2(TNum x, TNum y) => this = Create(x, y);
 
 
     [Pure] static int IVecBase<Vec2<TNum>, TNum>.Dimensions => Dimensions;
@@ -113,7 +126,7 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
 
     [Pure]
     public TNum SquaredLength
-        => X * X + Y * Y;
+        => Dot(this,this);
 
 
     #region arithmetic
@@ -122,14 +135,14 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec2<TNum> operator +(Vec2<TNum> left, Vec2<TNum> right)
-        => new(left.X + right.X, left.Y + right.Y);
+        => Create(left.X + right.X, left.Y + right.Y);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec2<TNum> operator -(Vec2<TNum> left, Vec2<TNum> right)
-        => new(left.X - right.X, left.Y - right.Y);
+        => Create(left.X - right.X, left.Y - right.Y);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec2<TNum> operator -(Vec2<TNum> vec) => new(-vec.X, -vec.Y);
+    public static Vec2<TNum> operator -(Vec2<TNum> vec) => Create(-vec.X, -vec.Y);
 
     // [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     // public static TNum operator *(Vec2<TNum> left, Vec2<TNum> right)
@@ -137,11 +150,11 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec2<TNum> operator *(Vec2<TNum> vec, TNum scalar)
-        => new(x: vec.X * scalar, y: vec.Y * scalar);
+        => Create(x: vec.X * scalar, y: vec.Y * scalar);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec2<TNum> operator *(TNum scalar, Vec2<TNum> vec)
-        => new(vec.X * scalar, vec.Y * scalar);
+        => Create(vec.X * scalar, vec.Y * scalar);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec2<TNum> operator /(Vec2<TNum> vec, TNum divisor)
@@ -335,20 +348,20 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
 
     /// <inheritdoc />
     public static Vec2<TNum> operator %(Vec2<TNum> l, Vec2<TNum> r)
-        => new(l.X % r.X, l.Y % r.Y);
+        => Create(l.X % r.X, l.Y % r.Y);
 
     /// <inheritdoc />
     public static Vec2<TNum> operator +(Vec2<TNum> v)
-        => new(+v.X, +v.Y);
+        => Create(+v.X, +v.Y);
 
     /// <inheritdoc />
     public static Vec2<TNum> Pow(Vec2<TNum> x, Vec2<TNum> y)
-        => new(TNum.Pow(x.X, y.X), TNum.Pow(x.Y, y.Y));
+        => Create(TNum.Pow(x.X, y.X), TNum.Pow(x.Y, y.Y));
 
     /// <inheritdoc />
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec2<TNum> Abs(Vec2<TNum> v)
-        => new(TNum.Abs(v.X), TNum.Abs(v.Y));
+        => Create(TNum.Abs(v.X), TNum.Abs(v.Y));
 
     /// <inheritdoc />
     public static bool IsCanonical(Vec2<TNum> value)
@@ -406,7 +419,7 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
 
     /// <inheritdoc />
     public static Vec2<TNum> operator /(Vec2<TNum> l, Vec2<TNum> r)
-        => new(l.X / r.X, l.Y / r.Y);
+        => Create(l.X / r.X, l.Y / r.Y);
 
     /// <inheritdoc />
     public static Vec2<TNum> operator ++(Vec2<TNum> v)
@@ -416,143 +429,143 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
     public static Vec2<TNum> MultiplicativeIdentity => One;
 
     /// <inheritdoc />
-    public static Vec2<TNum> E => new(TNum.E);
+    public static Vec2<TNum> E => Create(TNum.E);
 
     /// <inheritdoc />
-    public static Vec2<TNum> Pi => new(TNum.Pi);
+    public static Vec2<TNum> Pi => Create(TNum.Pi);
 
     /// <inheritdoc />
-    public static Vec2<TNum> Tau => new(TNum.Tau);
+    public static Vec2<TNum> Tau => Create(TNum.Tau);
 
     /// <inheritdoc />
-    public static Vec2<TNum> Epsilon => new(TNum.Epsilon);
+    public static Vec2<TNum> Epsilon => Create(TNum.Epsilon);
 
     /// <inheritdoc />
     public static Vec2<TNum> Exp(Vec2<TNum> v)
-        => new(TNum.Exp(v.X), TNum.Exp(v.Y));
+        => Create(TNum.Exp(v.X), TNum.Exp(v.Y));
 
     /// <inheritdoc />
     public static Vec2<TNum> Exp10(Vec2<TNum> v)
-        => new(TNum.Exp10(v.X), TNum.Exp10(v.Y));
+        => Create(TNum.Exp10(v.X), TNum.Exp10(v.Y));
 
     /// <inheritdoc />
     public static Vec2<TNum> Exp2(Vec2<TNum> v)
-        => new(TNum.Exp2(v.X), TNum.Exp2(v.Y));
+        => Create(TNum.Exp2(v.X), TNum.Exp2(v.Y));
 
 
     /// <inheritdoc />
-    public static Vec2<TNum> NegativeOne => new(TNum.NegativeOne);
+    public static Vec2<TNum> NegativeOne => Create(TNum.NegativeOne);
 
 
     /// <inheritdoc />
     public static Vec2<TNum> Round(Vec2<TNum> vec, int digits, MidpointRounding mode)
-        => new(TNum.Round(vec.X, digits, mode),
+        => Create(TNum.Round(vec.X, digits, mode),
             TNum.Round(vec.Y, digits, mode));
 
 
     /// <inheritdoc />
     public static Vec2<TNum> Acosh(Vec2<TNum> vec)
-        => new(TNum.Acosh(vec.X), TNum.Acosh(vec.Y));
+        => Create(TNum.Acosh(vec.X), TNum.Acosh(vec.Y));
 
     /// <inheritdoc />
     public static Vec2<TNum> Asinh(Vec2<TNum> vec)
-        => new(TNum.Asinh(vec.X), TNum.Asinh(vec.Y));
+        => Create(TNum.Asinh(vec.X), TNum.Asinh(vec.Y));
 
     /// <inheritdoc />
     public static Vec2<TNum> Atanh(Vec2<TNum> vec)
-        => new(TNum.Atanh(vec.X), TNum.Atanh(vec.Y));
+        => Create(TNum.Atanh(vec.X), TNum.Atanh(vec.Y));
 
     /// <inheritdoc />
     public static Vec2<TNum> Cosh(Vec2<TNum> vec)
-        => new(TNum.Cosh(vec.X), TNum.Cosh(vec.Y));
+        => Create(TNum.Cosh(vec.X), TNum.Cosh(vec.Y));
 
 
     /// <inheritdoc />
     public static Vec2<TNum> Sinh(Vec2<TNum> vec)
-        => new(TNum.Sinh(vec.X), TNum.Sinh(vec.Y));
+        => Create(TNum.Sinh(vec.X), TNum.Sinh(vec.Y));
 
 
     /// <inheritdoc />
     public static Vec2<TNum> Tanh(Vec2<TNum> vec)
-        => new(TNum.Tanh(vec.X), TNum.Tanh(vec.Y));
+        => Create(TNum.Tanh(vec.X), TNum.Tanh(vec.Y));
 
     /// <inheritdoc />
     public static Vec2<TNum> Log(Vec2<TNum> vec)
-        => new(TNum.Log(vec.X), TNum.Log(vec.Y));
+        => Create(TNum.Log(vec.X), TNum.Log(vec.Y));
 
     /// <inheritdoc />
     public static Vec2<TNum> Log(Vec2<TNum> vec, Vec2<TNum> newBase)
-        => new(TNum.Log(vec.X, newBase.X),
+        => Create(TNum.Log(vec.X, newBase.X),
             TNum.Log(vec.Y, newBase.Y));
 
     /// <inheritdoc />
     public static Vec2<TNum> Log10(Vec2<TNum> vec)
-        => new(TNum.Log10(vec.X), TNum.Log10(vec.Y));
+        => Create(TNum.Log10(vec.X), TNum.Log10(vec.Y));
 
     /// <inheritdoc />
     public static Vec2<TNum> Log2(Vec2<TNum> vec)
-        => new(TNum.Log2(vec.X), TNum.Log2(vec.Y));
+        => Create(TNum.Log2(vec.X), TNum.Log2(vec.Y));
 
 
     /// <inheritdoc />
     public static Vec2<TNum> Cbrt(Vec2<TNum> vec)
-        => new(TNum.Cbrt(vec.X), TNum.Cbrt(vec.Y));
+        => Create(TNum.Cbrt(vec.X), TNum.Cbrt(vec.Y));
 
     /// <inheritdoc />
     public static Vec2<TNum> Hypot(Vec2<TNum> x, Vec2<TNum> y)
-        => new(TNum.Hypot(x.X, y.X), TNum.Hypot(x.Y, y.Y));
+        => Create(TNum.Hypot(x.X, y.X), TNum.Hypot(x.Y, y.Y));
 
 
     /// <inheritdoc />
     public static Vec2<TNum> RootN(Vec2<TNum> vec, int n)
-        => new(TNum.RootN(vec.X, n), TNum.RootN(vec.Y, n));
+        => Create(TNum.RootN(vec.X, n), TNum.RootN(vec.Y, n));
 
 
     /// <inheritdoc />
     public static Vec2<TNum> Sqrt(Vec2<TNum> vec)
-        => new(TNum.Sqrt(vec.X), TNum.Sqrt(vec.Y));
+        => Create(TNum.Sqrt(vec.X), TNum.Sqrt(vec.Y));
 
 
     /// <inheritdoc />
     public static Vec2<TNum> Acos(Vec2<TNum> vec)
-        => new(TNum.Acos(vec.X), TNum.Acos(vec.Y));
+        => Create(TNum.Acos(vec.X), TNum.Acos(vec.Y));
 
     /// <inheritdoc />
     public static Vec2<TNum> AcosPi(Vec2<TNum> vec)
-        => new(TNum.AcosPi(vec.X), TNum.AcosPi(vec.Y));
+        => Create(TNum.AcosPi(vec.X), TNum.AcosPi(vec.Y));
 
 
     /// <inheritdoc />
     public static Vec2<TNum> Asin(Vec2<TNum> vec)
-        => new(TNum.Asin(vec.X), TNum.Asin(vec.Y));
+        => Create(TNum.Asin(vec.X), TNum.Asin(vec.Y));
 
 
     /// <inheritdoc />
     public static Vec2<TNum> AsinPi(Vec2<TNum> vec)
-        => new(TNum.AsinPi(vec.X), TNum.AsinPi(vec.Y));
+        => Create(TNum.AsinPi(vec.X), TNum.AsinPi(vec.Y));
 
 
     /// <inheritdoc />
     public static Vec2<TNum> Atan(Vec2<TNum> vec)
-        => new(TNum.Atan(vec.X), TNum.Atan(vec.Y));
+        => Create(TNum.Atan(vec.X), TNum.Atan(vec.Y));
 
 
     /// <inheritdoc />
     public static Vec2<TNum> AtanPi(Vec2<TNum> vec)
-        => new(TNum.AtanPi(vec.X), TNum.AtanPi(vec.Y));
+        => Create(TNum.AtanPi(vec.X), TNum.AtanPi(vec.Y));
 
 
     /// <inheritdoc />
     public static Vec2<TNum> Cos(Vec2<TNum> vec)
-        => new(TNum.Cos(vec.X), TNum.Cos(vec.Y));
+        => Create(TNum.Cos(vec.X), TNum.Cos(vec.Y));
 
     /// <inheritdoc />
     public static Vec2<TNum> CosPi(Vec2<TNum> vec)
-        => new(TNum.CosPi(vec.X), TNum.CosPi(vec.Y));
+        => Create(TNum.CosPi(vec.X), TNum.CosPi(vec.Y));
 
     /// <inheritdoc />
     public static Vec2<TNum> Sin(Vec2<TNum> vec)
-        => new(TNum.Sin(vec.X), TNum.Sin(vec.Y));
+        => Create(TNum.Sin(vec.X), TNum.Sin(vec.Y));
 
     /// <inheritdoc />
     public static (Vec2<TNum> Sin, Vec2<TNum> Cos) SinCos(Vec2<TNum> vec)
@@ -564,15 +577,15 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
 
     /// <inheritdoc />
     public static Vec2<TNum> SinPi(Vec2<TNum> vec)
-        => new(TNum.SinPi(vec.X), TNum.SinPi(vec.Y));
+        => Create(TNum.SinPi(vec.X), TNum.SinPi(vec.Y));
 
     /// <inheritdoc />
     public static Vec2<TNum> Tan(Vec2<TNum> vec)
-        => new(TNum.Tan(vec.X), TNum.Tan(vec.Y));
+        => Create(TNum.Tan(vec.X), TNum.Tan(vec.Y));
 
     /// <inheritdoc />
     public static Vec2<TNum> TanPi(Vec2<TNum> vec)
-        => new(TNum.TanPi(vec.X), TNum.TanPi(vec.Y));
+        => Create(TNum.TanPi(vec.X), TNum.TanPi(vec.Y));
 
     /// <inheritdoc />
     public static bool IsNegative(Vec2<TNum> value)
@@ -654,29 +667,29 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
 
     /// <inheritdoc />
     public static Vec2<TNum> Atan2(Vec2<TNum> y, Vec2<TNum> x)
-        => new(TNum.Atan2(y.X, x.X), TNum.Atan2(y.Y, x.Y));
+        => Create(TNum.Atan2(y.X, x.X), TNum.Atan2(y.Y, x.Y));
 
     /// <inheritdoc />
     public static Vec2<TNum> Atan2Pi(Vec2<TNum> y, Vec2<TNum> x)
-        => new(TNum.Atan2Pi(y.X, x.X), TNum.Atan2Pi(y.Y, x.Y));
+        => Create(TNum.Atan2Pi(y.X, x.X), TNum.Atan2Pi(y.Y, x.Y));
 
 
     /// <inheritdoc />
     public static Vec2<TNum> BitDecrement(Vec2<TNum> x)
-        => new(TNum.BitDecrement(x.X), TNum.BitDecrement(x.Y));
+        => Create(TNum.BitDecrement(x.X), TNum.BitDecrement(x.Y));
 
     /// <inheritdoc />
     public static Vec2<TNum> BitIncrement(Vec2<TNum> x)
-        => new(TNum.BitIncrement(x.X), TNum.BitIncrement(x.Y));
+        => Create(TNum.BitIncrement(x.X), TNum.BitIncrement(x.Y));
 
     /// <inheritdoc />
     public static Vec2<TNum> FusedMultiplyAdd(Vec2<TNum> l, Vec2<TNum> r, Vec2<TNum> addend)
-        => new(TNum.FusedMultiplyAdd(l.X, r.X, addend.X),
+        => Create(TNum.FusedMultiplyAdd(l.X, r.X, addend.X),
             TNum.FusedMultiplyAdd(l.Y, r.Y, addend.Y));
 
     /// <inheritdoc />
     public static Vec2<TNum> Ieee754Remainder(Vec2<TNum> left, Vec2<TNum> right)
-        => new(TNum.Ieee754Remainder(left.X, right.X),
+        => Create(TNum.Ieee754Remainder(left.X, right.X),
             TNum.Ieee754Remainder(left.Y, right.Y));
 
     /// <inheritdoc />
@@ -712,7 +725,7 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
     public static bool TryParse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider,
         out Vec2<TNum> result)
     {
-        var buf = new TNum[Dimensions];
+        Span<TNum> buf = stackalloc TNum[Dimensions];
         var success = ArrayParser.TryParse(s, style, provider, buf);
         if (!success)
         {
@@ -882,4 +895,8 @@ public readonly struct Vec2<TNum>(TNum x, TNum y) : IVec2<Vec2<TNum>, TNum>
         Vec<TNum>.SetElement(in copy, index, elem);
         return copy;
     }
+
+    /// <inheritdoc />
+    static JsonConverter IJsonConverterSelfProvider.CreateConverter(JsonSerializerOptions options) =>
+        new IVec<Vec2<TNum>, TNum>.VecConverter();
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -117,7 +118,7 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
     public Ray3<TNum> GetRay(Angle<TNum> angle)
     {
         var (sin, cos) = TNum.SinCos(angle);
-        var (u, v) = Plane.Basis; // assumed orthonormal basis
+        var (u, v) = Basis; // assumed orthonormal basis
         var p= Center + u * (cos * Radius) + v * (sin * Radius);
 
         var tangent = (-u * sin + v * cos) * Radius;
@@ -151,12 +152,10 @@ public readonly struct Circle3<TNum> : IFlat<TNum>, IContiguousDiscreteCurve<Vec
 
     public Vec3<TNum> GetTangentAtAngle(TNum angle)
     {
-        var (u, v) = Plane.Basis; // assumed orthonormal basis
+        var (u, v) = Basis; // assumed orthonormal basis
         var (sin, cos) = TNum.SinCos(angle);
-
-        var tangent = (-u * sin + v * cos) * Radius;
-
-        return tangent.Normalized();
+        var tangent = (-u * sin + v * cos);
+        return tangent;
     }
 
 

@@ -1,3 +1,5 @@
+using System;
+
 namespace MeshWiz.OpenGL;
 
 public sealed record VertexArrayObject(int Handle):IDisposable

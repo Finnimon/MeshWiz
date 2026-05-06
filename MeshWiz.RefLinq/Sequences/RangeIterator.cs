@@ -1,4 +1,6 @@
+using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -27,6 +29,7 @@ public struct RangeIterator<T> : IReadOnlyList<T>, IList<T>, IEnumerator<T>, IRe
 
     public readonly T Current => _pos;
     public bool MoveNext() => ++_pos < _end;
+
     public void Reset() => _pos = _start - T.One;
 
     /// <inheritdoc />

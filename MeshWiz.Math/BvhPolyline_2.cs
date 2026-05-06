@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using MeshWiz.Collections;
@@ -14,7 +17,7 @@ public sealed class BvhPolyline<TVec, TNum>
     public readonly Polyline<TVec, TNum> Underlying;
     private readonly Bvh.Node<TVec, TNum>[] _nodes;
     IReadOnlyList<Line<TVec, TNum>> Bvh.IHierarchy<Line<TVec, TNum>, TVec, TNum>.Elements => Underlying;
-    public ReadOnlySpan<Bvh.Node<TVec, TNum>> Nodes => _nodes.AsSpan();
+    public IReadOnlyList<Bvh.Node<TVec, TNum>> Nodes => _nodes;
     public int Depth { get; }
 
 

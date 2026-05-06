@@ -1,4 +1,9 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
+using System.Runtime.CompilerServices;
+using MeshWiz.Math;
 using MeshWiz.UpToDate;
 using OpenTK.Mathematics;
 
@@ -78,6 +83,7 @@ public sealed record ShaderProgram(int Handle) : IUpToDate
         GL.UniformMatrix4(loc, false, ref matrix);
         return this;
     }
+    public ShaderProgram SetUniform(string name, ref Mat4x4<float> matrix) => SetUniform(name,ref Unsafe.As<Mat4x4<float>,Matrix4>(ref matrix));
 
     public ShaderProgram SetUniform(string name, ref Matrix3 matrix)
     {

@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -165,12 +168,12 @@ public readonly struct Helix<TNum> : IDiscretePoseCurve<Pose3<TNum>,Vec3<TNum>, 
     /// <inheritdoc />
     public Polyline<Vec3<TNum>, TNum> ToPolyline() =>
         ToPolyline(new PolylineTessellationParameter<TNum>
-            { MaxAngularDeviation = Numbers<TNum>.TwoPi * Numbers<TNum>.Eps3 });
+            { MaxAngularDeviation = Numbers<TNum>.TwoPi * Numbers<TNum>.Eps4 });
 
     /// <inheritdoc />
     public PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum> ToPosePolyline()
         => ToPosePolyline(new PolylineTessellationParameter<TNum>
-            { MaxAngularDeviation = Numbers<TNum>.TwoPi * Numbers<TNum>.Eps3 });
+            { MaxAngularDeviation = Numbers<TNum>.TwoPi * Numbers<TNum>.Eps4 });
     /// <inheritdoc />
     public PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum> ToPosePolyline(PolylineTessellationParameter<TNum> tessellationParameter)
     {

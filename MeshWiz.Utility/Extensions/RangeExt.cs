@@ -1,3 +1,5 @@
+using System;
+
 namespace MeshWiz.Utility.Extensions;
 
 public static class RangeExt

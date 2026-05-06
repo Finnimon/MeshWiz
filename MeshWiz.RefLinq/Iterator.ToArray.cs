@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Generic;
 using System.Collections;
+using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.Diagnostics;
@@ -8,11 +11,11 @@ namespace MeshWiz.RefLinq;
 
 public static partial class Iterator
 {
-    public static T[] ToArray<T>(IEnumerable<T> enumerable) =>
+    public static T[] ToArray<T>(this IEnumerable<T> enumerable) =>
         enumerable switch
         {
             T[] arr => arr.AsSpan().ToArray(),
-            List<T> l => CollectionsMarshal.AsSpan(l).ToArray(),
+            System.Collections.Generic.List<T> l => CollectionsMarshal.AsSpan(l).ToArray(),
             ICollection<T> c => IColToArray(c),
             ICollection c2 => IColToArray<T>(c2),
             _ => ArrayBuilder.Helper<T>.ToArray(enumerable)
@@ -45,17 +48,17 @@ public static partial class Iterator
         return arr;
     }
 
-    public static List<T> ToList<T>(this IEnumerable<T> enumerable) =>
+    public static System.Collections.Generic.List<T> ToList<T>(this IEnumerable<T> enumerable) =>
         enumerable switch
         {
             T[] arr => arr.AsSpan().ToList(),
-            List<T> l => CollectionsMarshal.AsSpan(l).ToList(),
+            System.Collections.Generic.List<T> l => CollectionsMarshal.AsSpan(l).ToList(),
             _ => ArrayBuilder.Helper<T>.ToList(enumerable)
         };
 
-    internal static List<T> KnownCountToList<T>(IEnumerable<T> enumerable, int count)
+    internal static System.Collections.Generic.List<T> KnownCountToList<T>(IEnumerable<T> enumerable, int count)
     {
-        List<T> l = new(count);
+        System.Collections.Generic.List<T> l = new(count);
         CollectionsMarshal.SetCount(l, count);
         var lSpan = CollectionsMarshal.AsSpan(l);
         var pos = -1;
@@ -65,9 +68,9 @@ public static partial class Iterator
 
 
 
-    public static List<T> ToList<T>(this ReadOnlySpan<T> span)
+    public static System.Collections.Generic.List<T> ToList<T>(this ReadOnlySpan<T> span)
     {
-        List<T> l = new(span.Length);
+        System.Collections.Generic.List<T> l = new(span.Length);
         CollectionsMarshal.SetCount(l, span.Length);
         span.CopyTo(CollectionsMarshal.AsSpan(l));
         return l;
@@ -78,32 +81,49 @@ public static partial class Iterator
         where TIter : IRefIterator<TIter, TItem>, allows ref struct
     {
         // ReSharper disable once InvertIf - fast path
-        if (iter.TryGetNonEnumeratedCount(out var fastCount))
+        using var iterCopy=iter.GetEnumerator();
+        if (iterCopy.TryGetNonEnumeratedCount(out var fastCount))
         {
             if (fastCount == 0) return [];
             var array = GC.AllocateUninitializedArray<TItem>(fastCount);
-            iter.CopyTo(array);
+            iterCopy.CopyTo(array);
             return array;
         }
 
-        return ArrayBuilder.Helper<TItem>.ToArray(iter);
+        return ArrayBuilder.Helper<TItem>.ToArray(iterCopy);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static List<TItem> ToList<TIter, TItem>(TIter iter)
+    internal static System.Collections.Generic.List<TItem> ToList<TIter, TItem>(TIter iter)
         where TIter : IRefIterator<TIter, TItem>, allows ref struct
     {
         // ReSharper disable once InvertIf - fast path
-        if (iter.TryGetNonEnumeratedCount(out var fastCount))
+        using var iterCopy=iter.GetEnumerator();
+        if (iterCopy.TryGetNonEnumeratedCount(out var fastCount))
         {
             if (fastCount == 0)
                 return [];
-            var l = new List<TItem>(fastCount);
+            var l = new System.Collections.Generic.List<TItem>(fastCount);
             CollectionsMarshal.SetCount(l, fastCount);
-            iter.CopyTo(CollectionsMarshal.AsSpan(l));
+            iterCopy.CopyTo(CollectionsMarshal.AsSpan(l));
             return l;
         }
 
-        return ArrayBuilder.Helper<TItem>.ToList(iter);
+        return ArrayBuilder.Helper<TItem>.ToList(iterCopy);
     }
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T? GetOrDefault<T>(this ReadOnlySpan<T> span, int index)
+        => span.Length > (uint)index ? span[index] : default;
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static SpanIterator<T> Iterate<T>(this ReadOnlySpan<T> span) => span;
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static WhereIterator<SpanIterator<T>, T> Where<T>(this Span<T> span, Func<T, bool> predicate)
+        => new(span, predicate);
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Span<T> AsSpan<TInline, T>(this ref TInline array)
+        where TInline : struct => array.AsSpan<TInline, T>(Unsafe.SizeOf<TInline>() / Unsafe.SizeOf<T>());
 }

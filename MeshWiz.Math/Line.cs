@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -38,7 +39,7 @@ public readonly struct Line<TVec, TNum>(TVec start, TVec end)
     public TVec AxisVector => End - Start;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public TVec Direction => AxisVector.Normalized();
+    public TVec Direction => TVec.Normalize(End - Start);
 
     [Pure]
     public Line<TVec, TNum> Reversed() => new(End, Start);
@@ -200,6 +201,9 @@ public readonly struct Line<TVec, TNum>(TVec start, TVec end)
 
     public static bool operator !=(Line<TVec, TNum> left, Line<TVec, TNum> right) =>
         left.Start != right.Start || left.End != right.End;
+
+    /// <inheritdoc />
+    public override string ToString() => FormattableString.Invariant($"Line {{ Start = {Start}, End = {End} }}");
 }
 
 public static class Line

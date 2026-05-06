@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -13,9 +15,6 @@ public readonly struct TriangleIndexer(int a, int b, int c) : IEquatable<Triangl
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
         => new(vertices[A], vertices[B], vertices[C]);
     public Triangle3<TNum> Extract<TNum>(ReadOnlySpan<Vec3<TNum>> vertices)
-        where TNum : unmanaged, IFloatingPointIeee754<TNum>
-        => new(vertices[A], vertices[B], vertices[C]);
-    public Triangle3<TNum> Extract<TNum>(Span<Vec3<TNum>> vertices)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
         => new(vertices[A], vertices[B], vertices[C]);
 

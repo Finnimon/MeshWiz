@@ -1,8 +1,14 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Globalization;
+using System.Linq;
 using System.Numerics;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using CommunityToolkit.Diagnostics;
+using MeshWiz.RefLinq;
 using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
@@ -39,19 +45,19 @@ public interface IVec<TSelf, TNum>
         {
             result = value switch
             {
-                IEnumerable<byte> e => TSelf.FromComponentsConstrained<byte[], byte>(e.ToArray()),
-                IEnumerable<sbyte> e => TSelf.FromComponentsConstrained<sbyte[], sbyte>(e.ToArray()),
-                IEnumerable<ushort> e => TSelf.FromComponentsConstrained<ushort[], ushort>(e.ToArray()),
-                IEnumerable<short> e => TSelf.FromComponentsConstrained<short[], short>(e.ToArray()),
-                IEnumerable<uint> e => TSelf.FromComponentsConstrained<uint[], uint>(e.ToArray()),
-                IEnumerable<int> e => TSelf.FromComponentsConstrained<int[], int>(e.ToArray()),
-                IEnumerable<ulong> e => TSelf.FromComponentsConstrained<ulong[], ulong>(e.ToArray()),
-                IEnumerable<long> e => TSelf.FromComponentsConstrained<long[], long>(e.ToArray()),
-                IEnumerable<Half> e => TSelf.FromComponentsConstrained<Half[], Half>(e.ToArray()),
-                IEnumerable<float> e => TSelf.FromComponentsConstrained<float[], float>(e.ToArray()),
-                IEnumerable<double> e => TSelf.FromComponentsConstrained<double[], double>(e.ToArray()),
-                IEnumerable<BigInteger> e => TSelf.FromComponentsConstrained<BigInteger[], BigInteger>(e.ToArray()),
-                IEnumerable<decimal> e => TSelf.FromComponentsConstrained<decimal[], decimal>(e.ToArray()),
+                IEnumerable<byte> e => TSelf.FromComponentsConstrained<byte[], byte>(Enumerable.ToArray(e)),
+                IEnumerable<sbyte> e => TSelf.FromComponentsConstrained<sbyte[], sbyte>(Enumerable.ToArray(e)),
+                IEnumerable<ushort> e => TSelf.FromComponentsConstrained<ushort[], ushort>(Enumerable.ToArray(e)),
+                IEnumerable<short> e => TSelf.FromComponentsConstrained<short[], short>(Enumerable.ToArray(e)),
+                IEnumerable<uint> e => TSelf.FromComponentsConstrained<uint[], uint>(Enumerable.ToArray(e)),
+                IEnumerable<int> e => TSelf.FromComponentsConstrained<int[], int>(Enumerable.ToArray(e)),
+                IEnumerable<ulong> e => TSelf.FromComponentsConstrained<ulong[], ulong>(Enumerable.ToArray(e)),
+                IEnumerable<long> e => TSelf.FromComponentsConstrained<long[], long>(Enumerable.ToArray(e)),
+                IEnumerable<Half> e => TSelf.FromComponentsConstrained<Half[], Half>(Enumerable.ToArray(e)),
+                IEnumerable<float> e => TSelf.FromComponentsConstrained<float[], float>(Enumerable.ToArray(e)),
+                IEnumerable<double> e => TSelf.FromComponentsConstrained<double[], double>(Enumerable.ToArray(e)),
+                IEnumerable<BigInteger> e => TSelf.FromComponentsConstrained<BigInteger[], BigInteger>(Enumerable.ToArray(e)),
+                IEnumerable<decimal> e => TSelf.FromComponentsConstrained<decimal[], decimal>(Enumerable.ToArray(e)),
                 _ => ThrowHelper.ThrowArgumentOutOfRangeException<TSelf>(nameof(value), value, null)
             };
             return true;
@@ -91,19 +97,19 @@ public interface IVec<TSelf, TNum>
         {
             result = value switch
             {
-                IEnumerable<byte> e => TSelf.FromComponentsConstrained<byte[], byte>(e.ToArray()),
-                IEnumerable<sbyte> e => TSelf.FromComponentsConstrained<sbyte[], sbyte>(e.ToArray()),
-                IEnumerable<ushort> e => TSelf.FromComponentsConstrained<ushort[], ushort>(e.ToArray()),
-                IEnumerable<short> e => TSelf.FromComponentsConstrained<short[], short>(e.ToArray()),
-                IEnumerable<uint> e => TSelf.FromComponentsConstrained<uint[], uint>(e.ToArray()),
-                IEnumerable<int> e => TSelf.FromComponentsConstrained<int[], int>(e.ToArray()),
-                IEnumerable<ulong> e => TSelf.FromComponentsConstrained<ulong[], ulong>(e.ToArray()),
-                IEnumerable<long> e => TSelf.FromComponentsConstrained<long[], long>(e.ToArray()),
-                IEnumerable<Half> e => TSelf.FromComponentsConstrained<Half[], Half>(e.ToArray()),
-                IEnumerable<float> e => TSelf.FromComponentsConstrained<float[], float>(e.ToArray()),
-                IEnumerable<double> e => TSelf.FromComponentsConstrained<double[], double>(e.ToArray()),
-                IEnumerable<BigInteger> e => TSelf.FromComponentsConstrained<BigInteger[], BigInteger>(e.ToArray()),
-                IEnumerable<decimal> e => TSelf.FromComponentsConstrained<decimal[], decimal>(e.ToArray()),
+                IEnumerable<byte> e => TSelf.FromComponentsConstrained<byte[], byte>(Enumerable.ToArray(e)),
+                IEnumerable<sbyte> e => TSelf.FromComponentsConstrained<sbyte[], sbyte>(Enumerable.ToArray(e)),
+                IEnumerable<ushort> e => TSelf.FromComponentsConstrained<ushort[], ushort>(Enumerable.ToArray(e)),
+                IEnumerable<short> e => TSelf.FromComponentsConstrained<short[], short>(Enumerable.ToArray(e)),
+                IEnumerable<uint> e => TSelf.FromComponentsConstrained<uint[], uint>(Enumerable.ToArray(e)),
+                IEnumerable<int> e => TSelf.FromComponentsConstrained<int[], int>(Enumerable.ToArray(e)),
+                IEnumerable<ulong> e => TSelf.FromComponentsConstrained<ulong[], ulong>(Enumerable.ToArray(e)),
+                IEnumerable<long> e => TSelf.FromComponentsConstrained<long[], long>(Enumerable.ToArray(e)),
+                IEnumerable<Half> e => TSelf.FromComponentsConstrained<Half[], Half>(Enumerable.ToArray(e)),
+                IEnumerable<float> e => TSelf.FromComponentsConstrained<float[], float>(Enumerable.ToArray(e)),
+                IEnumerable<double> e => TSelf.FromComponentsConstrained<double[], double>(Enumerable.ToArray(e)),
+                IEnumerable<BigInteger> e => TSelf.FromComponentsConstrained<BigInteger[], BigInteger>(Enumerable.ToArray(e)),
+                IEnumerable<decimal> e => TSelf.FromComponentsConstrained<decimal[], decimal>(Enumerable.ToArray(e)),
                 _ => ThrowHelper.ThrowArgumentOutOfRangeException<TSelf>(nameof(value), value, null)
             };
             return true;
@@ -143,19 +149,19 @@ public interface IVec<TSelf, TNum>
         {
             result = value switch
             {
-                IEnumerable<byte> e => TSelf.FromComponentsConstrained<byte[], byte>(e.ToArray()),
-                IEnumerable<sbyte> e => TSelf.FromComponentsConstrained<sbyte[], sbyte>(e.ToArray()),
-                IEnumerable<ushort> e => TSelf.FromComponentsConstrained<ushort[], ushort>(e.ToArray()),
-                IEnumerable<short> e => TSelf.FromComponentsConstrained<short[], short>(e.ToArray()),
-                IEnumerable<uint> e => TSelf.FromComponentsConstrained<uint[], uint>(e.ToArray()),
-                IEnumerable<int> e => TSelf.FromComponentsConstrained<int[], int>(e.ToArray()),
-                IEnumerable<ulong> e => TSelf.FromComponentsConstrained<ulong[], ulong>(e.ToArray()),
-                IEnumerable<long> e => TSelf.FromComponentsConstrained<long[], long>(e.ToArray()),
-                IEnumerable<Half> e => TSelf.FromComponentsConstrained<Half[], Half>(e.ToArray()),
-                IEnumerable<float> e => TSelf.FromComponentsConstrained<float[], float>(e.ToArray()),
-                IEnumerable<double> e => TSelf.FromComponentsConstrained<double[], double>(e.ToArray()),
-                IEnumerable<BigInteger> e => TSelf.FromComponentsConstrained<BigInteger[], BigInteger>(e.ToArray()),
-                IEnumerable<decimal> e => TSelf.FromComponentsConstrained<decimal[], decimal>(e.ToArray()),
+                IEnumerable<byte> e => TSelf.FromComponentsConstrained<byte[], byte>(Enumerable.ToArray(e)),
+                IEnumerable<sbyte> e => TSelf.FromComponentsConstrained<sbyte[], sbyte>(Enumerable.ToArray(e)),
+                IEnumerable<ushort> e => TSelf.FromComponentsConstrained<ushort[], ushort>(Enumerable.ToArray(e)),
+                IEnumerable<short> e => TSelf.FromComponentsConstrained<short[], short>(Enumerable.ToArray(e)),
+                IEnumerable<uint> e => TSelf.FromComponentsConstrained<uint[], uint>(Enumerable.ToArray(e)),
+                IEnumerable<int> e => TSelf.FromComponentsConstrained<int[], int>(Enumerable.ToArray(e)),
+                IEnumerable<ulong> e => TSelf.FromComponentsConstrained<ulong[], ulong>(Enumerable.ToArray(e)),
+                IEnumerable<long> e => TSelf.FromComponentsConstrained<long[], long>(Enumerable.ToArray(e)),
+                IEnumerable<Half> e => TSelf.FromComponentsConstrained<Half[], Half>(Enumerable.ToArray(e)),
+                IEnumerable<float> e => TSelf.FromComponentsConstrained<float[], float>(Enumerable.ToArray(e)),
+                IEnumerable<double> e => TSelf.FromComponentsConstrained<double[], double>(Enumerable.ToArray(e)),
+                IEnumerable<BigInteger> e => TSelf.FromComponentsConstrained<BigInteger[], BigInteger>(Enumerable.ToArray(e)),
+                IEnumerable<decimal> e => TSelf.FromComponentsConstrained<decimal[], decimal>(Enumerable.ToArray(e)),
                 _ => ThrowHelper.ThrowArgumentOutOfRangeException<TSelf>(nameof(value), value, null)
             };
             return true;
@@ -321,4 +327,20 @@ public interface IVec<TSelf, TNum>
         return ThrowHelper.ThrowNotSupportedException<bool>();
     }
 
+
+    private protected sealed class VecConverter : JsonConverter<TSelf>
+    {
+        public override TSelf Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            var dat=JsonSerializer.Deserialize<TNum[]>(ref reader, options)??Iterator.Repeat(TNum.Zero,TSelf.Dimensions).ToArray();
+            return TSelf.FromComponents(dat);
+        }
+
+        /// <inheritdoc />
+        public override void Write(Utf8JsonWriter writer, TSelf value, JsonSerializerOptions options)
+        {
+            JsonSerializer.Serialize<IReadOnlyList<TNum>>(writer, value, options);
+        }
+    }
 }
+

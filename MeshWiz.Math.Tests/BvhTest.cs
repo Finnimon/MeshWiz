@@ -1,7 +1,10 @@
+using System;
+using System.Collections.Generic;
 using MeshWiz.RefLinq;
 
 namespace MeshWiz.Math.Tests;
 
+[Obsolete]
 public class BvhTest
 {
     private readonly BvhMesh<float>  _bvh;
@@ -31,7 +34,7 @@ public class BvhTest
         Array.Sort(orderBvhHits);
         var orderGenericHits = traverser.Hits.Skip(0).Select(f => float.Round(f, 2)).Distinct().ToArray();
         Array.Sort(orderGenericHits);
-        Assert.That(orderBvhHits, Is.EqualTo(orderGenericHits));
+        Assert.That(orderBvhHits, Is.EquivalentTo(orderGenericHits));
         Console.WriteLine(string.Join(" ",orderBvhHits));
     }
     private class TestTraverser(Ray3<float> ray) 

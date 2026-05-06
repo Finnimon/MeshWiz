@@ -1,23 +1,30 @@
+using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 using MeshWiz.RefLinq;
 
 namespace MeshWiz.Math;
 
-public sealed class PosePolyline<TPose, TVec, TNum> 
+[JsonConverter(typeof(MeshWizJsonConverter))]
+public sealed class PosePolyline<TPose, TVec, TNum>
     : IDiscretePoseCurve<TPose, TVec, TNum>,
         IReadOnlyList<PoseLine<TPose, TVec, TNum>>,
-        IBounded<TVec>
+        IBounded<TVec>, IJsonConverterSelfProvider,
+        IEquatable<PosePolyline<TPose,TVec,TNum>> 
     where TVec : unmanaged, IVec<TVec, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
     where TPose : IPose<TPose, TVec, TNum>
 {
     private readonly TPose[] _poses;
-    public PosePolyline(IEnumerable<TPose> poses) => _poses = poses.ToArray();
+    public PosePolyline(IEnumerable<TPose> poses) => _poses = poses.Iterate().ToArray();
     public PosePolyline(params ReadOnlySpan<TPose> poses) => _poses = poses.ToArray();
     private PosePolyline(TPose[] poses) => _poses = poses;
     internal static PosePolyline<TPose, TVec, TNum> CreateNonCopying(TPose[] poses) => new(poses);
@@ -65,7 +72,7 @@ public sealed class PosePolyline<TPose, TVec, TNum>
     }
 
     public static PosePolyline<TPose, TVec, TNum> CreateCulled(IEnumerable<TPose> poses) =>
-        CreateCulledNonCopying(poses.ToArray());
+        CreateCulledNonCopying(poses.Iterate().ToArray());
 
     public ReadOnlySpan<TPose> Poses => _poses;
     public int Count => int.Max(0, _poses.Length - 1);
@@ -159,6 +166,35 @@ public sealed class PosePolyline<TPose, TVec, TNum>
 
     /// <inheritdoc />
     public AABB<TVec> BBox => _bbox ??= AABB.From<TPose, TVec, TNum>(Poses);
+
+    /// <inheritdoc />
+    static JsonConverter IJsonConverterSelfProvider.CreateConverter(JsonSerializerOptions options) =>
+        MeshWizJsonConverter.Create<PosePolyline<TPose, TVec, TNum>, TPose[]>(pl => pl._poses,
+            poses => CreateNonCopying(poses ?? []));
+
+    /// <inheritdoc />
+    public bool Equals(PosePolyline<TPose, TVec, TNum>? other)
+    {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return Poses.SequenceEqual(other._poses);
+    }
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => ReferenceEquals(this, obj) || obj is PosePolyline<TPose, TVec, TNum> other && Equals(other);
+
+    /// <inheritdoc />
+    public override int GetHashCode()
+    {
+        var src=Poses;
+        if (src.IsEmpty) return 0;
+        var first = src[0].GetHashCode();
+        return HashCode.Combine(first, src.Length);
+    }
+
+    public static bool operator ==(PosePolyline<TPose, TVec, TNum>? left, PosePolyline<TPose, TVec, TNum>? right) => Equals(left, right);
+
+    public static bool operator !=(PosePolyline<TPose, TVec, TNum>? left, PosePolyline<TPose, TVec, TNum>? right) => !Equals(left, right);
 }
 
 public static class PosePolyline

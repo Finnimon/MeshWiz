@@ -1,10 +1,13 @@
+using System;
+using System.Collections.Generic;
 using System.Numerics;
+using MeshWiz.RefLinq;
+using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
 
 public static partial class Mesh
 {
-
     public static class Math
     {
         public record Mesh3Info<TNum>(
@@ -37,7 +40,7 @@ public static partial class Mesh
                 volumeCentroid += currentCentroid * currentVolume;
                 volume += currentVolume;
                 surfaceArea += currentSurf;
-                box = box.CombineWith(triangle.A,triangle.B,triangle.C);
+                box = box.CombineWith(triangle.A, triangle.B, triangle.C);
             }
 
             vertexCentroid /= TNum.CreateTruncating(mesh.Count * 3);
@@ -62,6 +65,17 @@ public static partial class Mesh
             foreach (var tri in mesh) centroid += tri.A + tri.B + tri.C;
 
             return centroid / TNum.CreateTruncating(mesh.Count * 3);
+        }
+
+        public static Vec4<TNum> SurfaceCentroid<TNum>(ReadOnlySpan<Triangle3<TNum>> mesh)
+            where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        {
+            var res = mesh.Select(tri =>
+            {
+                var surf = tri.SurfaceArea;
+                return Vec4<TNum>.Create(surf * (tri.A + tri.B + tri.C), surf);
+            }).Sum(Vec4<TNum>.Zero);
+            return Vec4<TNum>.Create(res.XYZ / res.W * Numbers<TNum>.Third, TNum.Abs(res.W));
         }
 
         public static Vec4<TNum> SurfaceCentroid<TNum>(IReadOnlyList<Triangle3<TNum>> mesh)
@@ -97,14 +111,21 @@ public static partial class Mesh
                 TNum.Abs(centroid.W));
         }
 
+
+        public static TNum Volume<TNum>(ReadOnlySpan<Triangle3<TNum>> mesh)
+            where TNum : unmanaged, IFloatingPointIeee754<TNum>
+        {
+            return mesh.Select(tri => Tetrahedron<TNum>.CalculateSignedVolume(tri.A, tri.B, tri.C, default))
+                .Sum(TNum.Zero);
+        }
         public static TNum Volume<TNum>(IReadOnlyList<Triangle3<TNum>> mesh)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             var volume = TNum.Zero;
             foreach (var tri in mesh)
-                volume += new Tetrahedron<TNum>(tri).Volume;
+                volume += Tetrahedron<TNum>.CalculateSignedVolume(tri.A, tri.B, tri.C, default);
 
-            return volume;
+            return TNum.Abs(volume);
         }
 
 

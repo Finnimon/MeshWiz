@@ -1,5 +1,8 @@
+using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using MeshWiz.Utility;
@@ -83,4 +86,18 @@ public static partial class Iterator
         finalCheck:
         return l == r;
     }
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T? GetOrDefault<T>(this ReadOnlySpan<T> span, Index index)
+    {
+        var idx = index.IsFromEnd ? span.Length - index.Value : index.Value;
+        return span.GetOrDefault(idx);
+    }
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static SpanIterator<T> Iterate<T>(this Span<T> span) => span;
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static OfTypeIterator<SpanIterator<TIn>, TIn, TOut> OfType<TIn, TOut>(this ReadOnlySpan<TIn> sp)
+        => new(sp);
 }

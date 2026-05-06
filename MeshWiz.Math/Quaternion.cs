@@ -1,15 +1,20 @@
+using System;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
+[JsonConverter(typeof(MeshWizJsonConverter))]
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
-    IEqualityOperators<Quaternion<TNum>, Quaternion<TNum>, bool>
+    IEqualityOperators<Quaternion<TNum>, Quaternion<TNum>, bool>,
+    IJsonConverterSelfProvider
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public static Quaternion<TNum> Identity => Vec4<TNum>.UnitW;
@@ -35,12 +40,9 @@ public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
         rotationX *= Numbers<TNum>.Half;
         rotationY *= Numbers<TNum>.Half;
         rotationZ *= Numbers<TNum>.Half;
-        var num1 = TNum.Cos(rotationX);
-        var num2 = TNum.Cos(rotationY);
-        var num3 = TNum.Cos(rotationZ);
-        var num4 = TNum.Sin(rotationX);
-        var num5 = TNum.Sin(rotationY);
-        var num6 = TNum.Sin(rotationZ);
+        var (num4, num1) = TNum.SinCos(rotationX);
+        var (num5, num2) = TNum.SinCos(rotationY);
+        var (num6, num3) = TNum.SinCos(rotationZ);
         var w = num1 * num2 * num3 - num4 * num5 * num6;
         var x = num4 * num2 * num3 + num1 * num5 * num6;
         var y = num1 * num5 * num3 - num4 * num2 * num6;
@@ -48,11 +50,26 @@ public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
         return new Quaternion<TNum>(x, y, z, w);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Quaternion<TNum> CreateFromAxisAngle(Vec3<TNum> axis, TNum angle)
+    public static Quaternion<TNum> CreateFromAxisAngle(
+        Vec3<TNum> axis, 
+        Angle<TNum> angle)
     {
-        var (sin, num) = TNum.SinCos(angle * Numbers<TNum>.Half);
-        return new Vec4<TNum>(axis, TNum.One) * new Vec4<TNum>(Vec3<TNum>.Create(sin), num);
+        var half = angle.Radians * Numbers<TNum>.Half;
+        var (sin, cos) = TNum.SinCos(half);
+
+        axis = axis.Normalized();
+        var v = axis * sin;
+        return new Quaternion<TNum>(v, cos);
+    }
+    public static Quaternion<TNum> CreateFromAxisAngle(
+        Ray3<TNum> axis, 
+        Angle<TNum> angle)
+    {
+        var half = angle.Radians * Numbers<TNum>.Half;
+        var (sin, cos) = TNum.SinCos(half);
+
+        var v = axis.Direction * sin;
+        return new Quaternion<TNum>(v, cos);
     }
     public (Vec3<TNum> Y, Vec3<TNum> Z) Yz()
     {
@@ -115,6 +132,7 @@ public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
     /// <inheritdoc />
     public override int GetHashCode() => HashCode.Combine(Xyz.X, Xyz.Y, Xyz.Z, W);
 
+
     /// <inheritdoc />
     public static bool operator ==(Quaternion<TNum> left, Quaternion<TNum> right) => left.Equals(right);
 
@@ -130,7 +148,7 @@ public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
     public static implicit operator Quaternion<TNum>(in Vec4<TNum> q) =>
         Unsafe.As<Vec4<TNum>, Quaternion<TNum>>(ref Unsafe.AsRef(in q));
 
-    public Vec3<TNum> Rotate(Vec3<TNum> dir) => AsMatrix3x3() * dir;
+    public Vec3<TNum> Rotate(Vec3<TNum> dir) => AsMat3x3() * dir;
 
     // ReSharper disable once InconsistentNaming
     [Pure]
@@ -159,7 +177,7 @@ public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
 
     // ReSharper disable once InconsistentNaming
     [Pure]
-    public Mat3x3<TNum> AsMatrix3x3()
+    public Mat3x3<TNum> AsMat3x3()
     {
         var num1 = X * X;
         var num2 = Y * Y;
@@ -170,8 +188,8 @@ public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
         var num7 = Y * W;
         var num8 = Y * Z;
         var num9 = X * W;
-        var two = Numbers<TNum>.Two;
         var one = TNum.One;
+        var two = one + one;
         var x = Vec3<TNum>.Create((one - two * (num2 + num3)), (two * (num4 + num5)),
             (two * (num6 - num7)));
         var y = Vec3<TNum>.Create((two * (num4 - num5)), (one - two * (num3 + num1)),
@@ -208,7 +226,7 @@ public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
     }
     
     [Pure]
-    internal static Quaternion<TNum> CreateUnsafe(in Mat3x3<TNum> matrix)
+    internal static Quaternion<TNum> CreateUnsafe(Mat3x3<TNum> matrix)
     {
         var num1 = matrix.M00 + matrix.M11 + matrix.M22;
         TNum x, y, z, w;
@@ -257,4 +275,41 @@ public readonly struct Quaternion<TNum> : IEquatable<Quaternion<TNum>>,
         Vec4<TNum> vec4 = this;
         return vec4.To<TOtherNum>();
     }
-}
+
+
+    public static Quaternion<TNum> Create(TNum x, TNum y, TNum z, TNum w) => Vec4<TNum>.Create(x, y, z, w);
+
+    public static Quaternion<TNum> operator *(
+        Quaternion<TNum> a,
+        Quaternion<TNum> b)
+    {
+        Vec4<TNum> vA = a;
+        Vec4<TNum> vB = b;
+        var av = vA.XYZ;
+        var bv = vB.XYZ;
+
+        var v = Vec3<TNum>.Cross(av, bv)
+                + (vA.W * bv)
+                + (vB.W * av);
+
+        var w = vA.W * vB.W - Vec3<TNum>.Dot(av, bv);
+
+        return Create(v.X, v.Y, v.Z, w);
+    }
+
+    public static Vec4<TNum> AsVec4(Quaternion<TNum> q) => Unsafe.BitCast<Quaternion<TNum>, Vec4<TNum>>(q);
+    
+    
+    /// <inheritdoc />
+    static JsonConverter IJsonConverterSelfProvider.CreateConverter(JsonSerializerOptions options) => new Converter();
+
+    private sealed class Converter : JsonConverter<Quaternion<TNum>>
+    {
+        public override Quaternion<TNum> Read(ref Utf8JsonReader reader, Type typeToConvert,
+            JsonSerializerOptions options) =>
+            JsonSerializer.Deserialize<Vec4<TNum>>(ref reader, options);
+
+        /// <inheritdoc />
+        public override void Write(Utf8JsonWriter writer, Quaternion<TNum> value, JsonSerializerOptions options) => JsonSerializer.Serialize(writer,AsVec4(value), options);
+    }
+}   

@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Drawing;
 using MeshWiz.Math;
 using OpenTK.Mathematics;
@@ -72,10 +74,12 @@ public class IndexedLineView : IOpenGLControl
         if (_newLine) UploadLine();
         UpdateShader(aspect);
     }
+    public Mat4x4<float> Model { get; set; } = Mat4x4<float>.Identity;
 
     private void UpdateShader(float aspect)
     {
-        var (model, view, projection) = Camera.CreateRenderMatrices(aspect);
+        var model = Model;
+        var (view, projection) = Camera.CreateRenderMatrices(aspect);
         var objectColor = Color;
         const float depthOffset = 0.000001f;
         _shader!.ConsumeOutOfDate();
@@ -96,14 +100,10 @@ public class IndexedLineView : IOpenGLControl
     {
         _newLine = false;
         _vao!.Bind();
-        _vbo?.Unbind();
-        _vbo?.Dispose();
-        _ibo?.Unbind();
-        _ibo?.Dispose();
         var (indices,vertices) = Polyline.Indexing.Indicate(Lines);
-        _vbo=new BufferObject(BufferTarget.ArrayBuffer);
+        _vbo??=new BufferObject(BufferTarget.ArrayBuffer);
         _vbo.BindAnd().BufferData(vertices,BufferUsageHint.StaticDraw);
-        _ibo=new BufferObject(BufferTarget.ElementArrayBuffer);
+        _ibo??=new BufferObject(BufferTarget.ElementArrayBuffer);
         _ibo.BindAnd().BufferData(indices,BufferUsageHint.StaticDraw);
         _uploadedVertexCount=indices.Length*2;
         _shader!.Bind();

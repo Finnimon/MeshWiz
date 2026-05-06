@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 
@@ -105,6 +106,19 @@ public readonly struct ExceptionResult<T> : IValueResult<ExceptionResult<T>, Exc
 
     /// <inheritdoc />
     public override int GetHashCode() => HashCode.Combine(_value, IsSuccess);
+    
+    public bool TryGetValue([NotNullWhen(true)]out T? value)
+    {
+        if (this.HasValue)
+        {
+            value = this.Value!;
+            return true;
+        }
+
+        value = default;
+        return false;
+    }
+
 }
 
 internal sealed class NoException : Exception

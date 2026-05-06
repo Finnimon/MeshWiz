@@ -1,6 +1,9 @@
+using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
@@ -102,8 +105,8 @@ public sealed class RollingList<T> : IVersionedList<T>, IReadOnlyList<T>
     }
 
 
-    public T Head => this[0];
-    public T Tail => this[Count - 1];
+    public T Head => PeekFront();
+    public T Tail => PeekBack();
 
     public void PushFront(T item)
     {
@@ -215,6 +218,20 @@ public sealed class RollingList<T> : IVersionedList<T>, IReadOnlyList<T>
         return PopFrontUnchecked();
     }
 
+    public T PeekFront()
+    {
+        if(Count == 0) ThrowHelper.ThrowInvalidOperationException();
+        var head = _items[_headIndex];
+        return head;
+    }
+    
+    public T PeekBack()
+    {
+        if(Count == 0) ThrowHelper.ThrowInvalidOperationException();
+        var tail = _items[_postTailIndex-1];
+        return tail;
+    }
+    
     private T PopFrontUnchecked()
     {
         _version++;
@@ -280,8 +297,9 @@ public sealed class RollingList<T> : IVersionedList<T>, IReadOnlyList<T>
 
     public void Clear()
     {
+        if(Count==0) return;
         _version++;
-        if (Count!=0&&RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+        if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
         {
             GetSpans(out var lower, out var upper);
             lower.Clear();

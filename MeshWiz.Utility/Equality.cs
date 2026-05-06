@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
 namespace MeshWiz.Utility;
@@ -35,7 +37,12 @@ public static class Equality
     }
 
     public static ByEqComparer<T, TKey> By<T, TKey>(Func<T, TKey> keySelector) where TKey : notnull => new(keySelector);
+    
+    public static ByEqComparer<T, T> By<T>(Func<T, T> keySelector) where T : notnull => new(keySelector);
 
     public static ByComparer<T, TKey> CompareBy<T, TKey>(Func<T, TKey> keySelector) 
         where TKey : IComparable<TKey> => new(keySelector);
+    
+    public static ByComparer<T, T> CompareBy<T>(Func<T, T> keySelector) 
+        where T : IComparable<T> => new(keySelector);
 }

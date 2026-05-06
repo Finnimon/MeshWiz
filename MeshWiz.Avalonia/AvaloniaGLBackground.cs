@@ -22,6 +22,9 @@ public class AvaloniaGLBackground : IOpenGLControl
     {
         if(!Show) return;
         GL.ClearColor(GLColor);
+        var id=Matrix3.Identity;
+        var v = Vector3.One;
+        var v2= v * id;
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
     }
 

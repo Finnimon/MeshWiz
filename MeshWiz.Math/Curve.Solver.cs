@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 using MeshWiz.Math.Signals;
 using MeshWiz.Utility;
@@ -17,7 +18,25 @@ public static partial class Curve
             where TCurve : ICurve<Vec3<TNum>, TNum> 
             => Intersection(curve, 
                 plane, 
-                (sig, searchRange) => Signal.Analysis.BestFitNewton(sig, searchRange));
+                Signal.Analysis.BestFitNewton,
+                search);
+
+        public static Result<Arithmetics, TNum> MinDist<TCurve, TVec, TNum>(
+            TCurve curve,
+            TVec target,
+            AABB<TNum> search = default)
+            where TNum : unmanaged, IFloatingPointIeee754<TNum>
+            where TCurve : ICurve<TVec, TNum>
+            where TVec : unmanaged, IVec<TVec, TNum>
+        {
+            if(search==default) search=AABB<TNum>.Saturate;
+            FSignal<TNum, TVec> curveSignal = new(curve.Traverse);
+            FSignal<TVec, TNum> distanceSignal = new(target.DistanceTo);
+
+            var chain = curveSignal.ChainWith(distanceSignal);
+            return Signal.Analysis.BestFitNewton(chain, search).OutPut;
+        }
+
 
         public static Result<Arithmetics, TNum> Intersection<TCurve, TNum>(
             TCurve curve,

@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -36,13 +38,14 @@ public static partial class Bvh
             maxDepth = int.Max(1, maxDepth);
             minNodeSize = int.Max(1, minNodeSize);
             var perItemBounds = source
+                .Iterate()
                 .Select(item => item.BBox)
                 .ToArray();
             var perItemPosition = perItemBounds
                 .Select(b => b.Center)
                 .ToArray();
             var n = perItemBounds.Length;
-            var indexShuffle = Enumerable.Range(0, n).ToArray();
+            var indexShuffle = Iterator.Range(0, n).ToArray();
             var shuffledIndexSpan = indexShuffle.AsSpan();
             var shuffledBounds = shuffledIndexSpan
                 .Select(i => perItemBounds[i]);
@@ -120,7 +123,7 @@ public static partial class Bvh
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             minNodeSize = int.Max(1, minNodeSize);
-            var perItemBounds = source
+            var perItemBounds = source.Iterate()
                 .Select(item => item.BBox)
                 .ToArray();
             var boundsSpan = perItemBounds.AsSpan();
@@ -174,7 +177,7 @@ public static Info<TVec, TNum> BinaryBalancedNonReordering<TBounded, TVec, TNum>
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
             minNodeSize = int.Max(1, minNodeSize);
-            var perItemBounds = source
+            var perItemBounds = source.Iterate()
                 .Select(item => item.BBox)
                 .ToArray();
             var boundsSpan = perItemBounds.AsSpan();

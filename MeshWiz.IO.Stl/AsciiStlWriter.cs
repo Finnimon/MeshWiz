@@ -1,5 +1,7 @@
+using System.IO;
 using System.Numerics;
 using MeshWiz.Math;
+using System.Collections.Generic;
 
 namespace MeshWiz.IO.Stl;
 

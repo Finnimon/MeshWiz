@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using System.Numerics;
 using BenchmarkDotNet.Attributes;
 
@@ -35,6 +37,7 @@ where TNum:unmanaged,IFloatingPointIeee754<TNum>
     // public void GenericFast()=>Bvh.Create.LinearNonReordering<Triangle3<TNum>, Vec3<TNum>, TNum>(_mesh!, MaxDepth, SplitTests);
     //
     [Benchmark]
+    [Obsolete]
     public (BoundedVolumeHierarchy<TNum> hierarchy, TriangleIndexer[] indices, Vec3<TNum>[] vertices, uint d) SahSpecified() 
         => Mesh.Bvh.HierarchizeSah(_mesh!, (uint)MaxDepth,(uint)SplitTests);
 }

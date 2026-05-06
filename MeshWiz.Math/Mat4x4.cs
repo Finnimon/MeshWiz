@@ -1,9 +1,11 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Xml.Serialization;
 using CommunityToolkit.Diagnostics;
@@ -13,47 +15,34 @@ using MeshWiz.Utility;
 namespace MeshWiz.Math;
 
 [StructLayout(LayoutKind.Sequential)]
+[JsonConverter(typeof(MeshWizJsonConverter))]
 // ReSharper disable once InconsistentNaming
-public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>, TNum>
+public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>, TNum>,
+    IJsonConverterSelfProvider,
+    ISpatialTransform<Vec3<TNum>> 
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     static int IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>, TNum>.RowCount => RowCount;
     static int IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>, TNum>.ColCount => ColCount;
     public const int ColCount = 4;
     public const int RowCount = 4;
+    public const int Count = ColCount * RowCount;
+    [JsonIgnore] public bool IsIdentity => Mat<TNum>.IsIdentity<Mat4x4<TNum>, Vec4<TNum>>(this);
 
-    [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public static Mat4x4<TNum> Identity
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-    } =
-        new(Vec4<TNum>.UnitX,
-            Vec4<TNum>.UnitY,
-            Vec4<TNum>.UnitZ,
-            Vec4<TNum>.UnitW);
+    public static Mat4x4<TNum> Identity => Create(Vec4<TNum>.UnitX,
+        Vec4<TNum>.UnitY,
+        Vec4<TNum>.UnitZ,
+        Vec4<TNum>.UnitW);
 
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public static Mat4x4<TNum> Zero
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-    } = new(TNum.Zero);
+    public static Mat4x4<TNum> Zero => default;
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public static Mat4x4<TNum> One
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-    } = new(TNum.One);
+    public static Mat4x4<TNum> One => Create(TNum.One);
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public static Mat4x4<TNum> NaN
-    {
-        [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-    } = new(TNum.NaN);
+    public static Mat4x4<TNum> NaN => Create(TNum.NaN);
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public TNum Det => Determinant();
@@ -62,19 +51,29 @@ public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>,
     public Vec4<TNum> Diagonal => new(M00, M11, M22, M33);
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
-    public TNum Trace => M00 + M11 + M22 + M33;
+    public TNum Trace => Vec4<TNum>.Sum(Diagonal);
 
     [Pure]
     public Mat4x4<TNum> Normalized() => this / Det;
 
-    public readonly Vec4<TNum> X, Y, Z, W;
+    [JsonInclude] public readonly Vec4<TNum> X, Y, Z, W;
 
-// @formatter:off
-    public TNum M00 => X.X; public TNum M01 => X.Y; public TNum M02 => X.Z; public TNum M03 => X.W;
-    public TNum M10 => Y.X; public TNum M11 => Y.Y; public TNum M12 => Y.Z; public TNum M13 => Y.W;
-    public TNum M20 => Z.X; public TNum M21 => Z.Y; public TNum M22 => Z.Z; public TNum M23 => Z.W;
-    public TNum M30 => W.X; public TNum M31 => W.Y; public TNum M32 => W.Z; public TNum M33 => W.W;
-// @formatter:on
+    [JsonIgnore] public TNum M00 => X.X;
+    [JsonIgnore] public TNum M01 => X.Y;
+    [JsonIgnore] public TNum M02 => X.Z;
+    [JsonIgnore] public TNum M03 => X.W;
+    [JsonIgnore] public TNum M10 => Y.X;
+    [JsonIgnore] public TNum M11 => Y.Y;
+    [JsonIgnore] public TNum M12 => Y.Z;
+    [JsonIgnore] public TNum M13 => Y.W;
+    [JsonIgnore] public TNum M20 => Z.X;
+    [JsonIgnore] public TNum M21 => Z.Y;
+    [JsonIgnore] public TNum M22 => Z.Z;
+    [JsonIgnore] public TNum M23 => Z.W;
+    [JsonIgnore] public TNum M30 => W.X;
+    [JsonIgnore] public TNum M31 => W.Y;
+    [JsonIgnore] public TNum M32 => W.Z;
+    [JsonIgnore] public TNum M33 => W.W;
 
 
     /// <inheritdoc />
@@ -106,10 +105,14 @@ public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>,
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Mat4x4<TNum> Create(TNum v)
     {
-        var vec = Vec4<TNum>.Create(v);
-        return Create(vec,vec,vec,vec);
+        Unsafe.SkipInit(out Mat4x4<TNum> m);
+        AsSpanUnsafe(ref m).Fill(v);
+        return m;
     }
-    
+
+    private static Span<TNum> AsSpanUnsafe(ref Mat4x4<TNum> m) =>
+        MemoryMarshal.CreateSpan(ref Unsafe.AsRef(in m.X.X), Count);
+
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Mat4x4<TNum> Create(Vec4<TNum> x, Vec4<TNum> y, Vec4<TNum> z, Vec4<TNum> w)
     {
@@ -123,7 +126,8 @@ public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>,
 
 
     private static readonly int NumSize = Unsafe.SizeOf<TNum>();
-    public  TNum this[int row, int col]
+
+    public TNum this[int row, int col]
     {
         get
         {
@@ -145,16 +149,16 @@ public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>,
         return result;
     }
 
-    public static unsafe ReadOnlySpan<TNum> AsSpan(in Mat4x4<TNum> matrix) 
-        => MemoryMarshal.CreateReadOnlySpan(in matrix.X.X,ColCount*RowCount);
+    public static unsafe ReadOnlySpan<TNum> AsSpan(in Mat4x4<TNum> matrix)
+        => MemoryMarshal.CreateReadOnlySpan(in matrix.X.X, Count);
 
-    public Mat4x4<TNum> Transpose() => FromColumns(X, Y, Z, W);
+    public Mat4x4<TNum> Transpose() => Transpose(this);
 
-    public static Mat4x4<TNum> Transpose(Mat4x4<TNum> m) => m.Transpose();
+    public static Mat4x4<TNum> Transpose(Mat4x4<TNum> m) => FromColumns(m.X, m.Y, m.Z, m.W);
 
     public static Mat4x4<TNum> operator *(Mat4x4<TNum> a, Mat4x4<TNum> b)
     {
-        b = b.Transpose();
+        b = Transpose(b);
         return new Mat4x4<TNum>(
             a.X.Dot(b.X), a.X.Dot(b.Y), a.X.Dot(b.Z), a.X.Dot(b.W),
             a.Y.Dot(b.X), a.Y.Dot(b.Y), a.Y.Dot(b.Z), a.Y.Dot(b.W),
@@ -164,22 +168,30 @@ public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>,
     }
 
 
-    public Vec3<TNum> MultiplyPoint(Vec3<TNum> v)
+    public Vec3<TNum> MultiplyPoint(Vec3<TNum> v) => MultiplyPoint(this, v);
+
+    public static Vec3<TNum> MultiplyPoint(Mat4x4<TNum> m, Vec3<TNum> v)
     {
-        var v4 = new Vec4<TNum>(v, TNum.One);
-        v4 = Multiply(v4);
+        var v4 = Vec4<TNum>.Create(v, TNum.One);
+        v4 = m * v4;
         return v4.XYZ / v4.W;
     }
 
-    [Pure]
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vec3<TNum> MultiplyDirection(Vec3<TNum> v)
-        => Vec3<TNum>.Create(X.XYZ.Dot(v), Y.XYZ.Dot(v), Z.XYZ.Dot(v));
+        => MultiplyDirection(this,v);
 
-    [Pure]
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vec3<TNum> MultiplyDirection(Mat4x4<TNum> m, Vec3<TNum> v)
+        => m.AsMat3x3() * v;
+
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vec4<TNum> Multiply(Vec4<TNum> v)
-        => new(X.Dot(v), Y.Dot(v), Z.Dot(v), W.Dot(v));
+        => this * v;
 
-    public static Vec4<TNum> operator *(Mat4x4<TNum> m, Vec4<TNum> v) => m.Multiply(v);
+    public static Vec4<TNum> operator *(Mat4x4<TNum> m, Vec4<TNum> v) => m.X * v.X + m.Y * v.Y + m.Z * v.Z + m.W * v.W;
+
+    public static Vec4<TNum> operator *(Vec4<TNum> v, Mat4x4<TNum> m) => Transpose(m) * v;
     public static Vec3<TNum> operator *(Mat4x4<TNum> m, Vec3<TNum> v) => m.MultiplyPoint(v);
 
     public static Mat4x4<TNum> operator *(Mat4x4<TNum> m, TNum scalar) =>
@@ -198,9 +210,9 @@ public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>,
 
 
     // Row/Column access via bitwise cast
-    public Vec4<TNum> GetRow(int row) 
+    public Vec4<TNum> GetRow(int row)
         => RowCount > (uint)row
-            ? Unsafe.AddByteOffset(ref Unsafe.AsRef(in X), Vec3<TNum>.ByteSize * row)
+            ? Unsafe.Add(ref Unsafe.AsRef(in X), row)
             : ThrowHelper.ThrowArgumentOutOfRangeException<Vec4<TNum>>(nameof(row));
 
 
@@ -271,8 +283,8 @@ public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>,
     public static Mat4x4<TNum> CreateViewAt(Vec3<TNum> eye, Vec3<TNum> target, Vec3<TNum> up)
     {
         var z = (eye - target).Normalized();
-        var x = Vec3<TNum>.Cross(up , z).Normalized();
-        var y = Vec3<TNum>.Cross(z , x).Normalized();
+        var x = Vec3<TNum>.Cross(up, z).Normalized();
+        var y = Vec3<TNum>.Cross(z, x).Normalized();
         var w = Vec4<TNum>.Create(
             -(x.Dot(eye)),
             -(y.Dot(eye)),
@@ -321,7 +333,7 @@ public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>,
     private Vec4<Vec4<TNum>> Nested()
         => this;
 
-    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec4<Vec4<TNum>> AsNested(Mat4x4<TNum> m) => m;
 
     public TNum Determinant()
@@ -396,16 +408,74 @@ public readonly struct Mat4x4<TNum> : IMat<Mat4x4<TNum>, Vec4<TNum>, Vec4<TNum>,
         result = n;
         return success;
     }
-    
-    
+
+
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Mat4x4<TOther> To<TOther>()
         where TOther : unmanaged, IFloatingPointIeee754<TOther>
     {
         Unsafe.SkipInit(out Mat4x4<TOther> res);
         var newNums = AsSpan().Select(TOther.CreateTruncating);
-        var resSpan = MemoryMarshal.CreateSpan(ref Unsafe.AsRef(in res.X.X),ColCount*RowCount);
+        var resSpan = MemoryMarshal.CreateSpan(ref Unsafe.AsRef(in res.X.X), ColCount * RowCount);
         newNums.CopyTo(resSpan);
         return res;
     }
+
+    public static Mat4x4<TNum> CreatePerspectiveFov(TNum fovy, TNum aspect, TNum depthNear, TNum depthFar)
+    {
+        if (fovy <= TNum.Zero || fovy > TNum.Pi) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(fovy), fovy, null);
+        if (aspect <= TNum.Zero) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(aspect), aspect, null);
+        if (depthNear <= TNum.Zero) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(depthNear), depthNear, null);
+        if (depthFar <= TNum.Zero) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(depthFar), depthFar, null);
+
+        var maxY = depthNear * TNum.Tan(Numbers<TNum>.Half * fovy);
+        var minY = -maxY;
+        var minX = minY * aspect;
+        var maxX = maxY * aspect;
+
+        return CreatePerspectiveOffCenter(minX, maxX, minY, maxY, depthNear, depthFar);
+    }
+
+    public static Mat4x4<TNum> CreatePerspectiveOffCenter(
+        TNum left,
+        TNum right,
+        TNum bottom,
+        TNum top,
+        TNum depthNear,
+        TNum depthFar)
+    {
+        if (depthNear <= TNum.Zero) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(depthNear), depthNear, null);
+        if (depthFar <= TNum.Zero) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(depthFar), depthFar, null);
+        if (depthNear >= depthFar) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(depthNear));
+        var two = Numbers<TNum>.Two;
+        var x = two * depthNear / (right - left);
+        var y = two * depthNear / (top - bottom);
+        var a = (right + left) / (right - left);
+        var b = (top + bottom) / (top - bottom);
+        var c = -(depthFar + depthNear) / (depthFar - depthNear);
+        var d = -(two * depthFar * depthNear) / (depthFar - depthNear);
+        return Create(
+            Vec4<TNum>.Zero.WithElement(0, x),
+            Vec4<TNum>.Zero.WithElement(1, y),
+            Vec4<TNum>.Create(a, b, c, TNum.NegativeOne),
+            Vec4<TNum>.Zero.WithElement(2, d)
+        );
+    }
+
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Mat3x3<TNum> AsMat3x3() => Mat3x3<TNum>.Create(X.XYZ, Y.XYZ, Z.XYZ);
+    /// <inheritdoc />
+    static JsonConverter IJsonConverterSelfProvider.CreateConverter(JsonSerializerOptions options) 
+        => new IMat<Mat4x4<TNum>,Vec4<TNum>,Vec4<TNum>,TNum>.Converter();
+
+    /// <inheritdoc />
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Vec3<TNum> TransformPoint(Vec3<TNum> p) => MultiplyPoint(this, p);
+
+    /// <inheritdoc />
+    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Vec3<TNum> TransformDirection(Vec3<TNum> v) => MultiplyDirection(this,v);
+
+    /// <inheritdoc />
+    bool ISpatialTransform<Vec3<TNum>>.IsAffine => AsMat3x3().IsAffine;
 }

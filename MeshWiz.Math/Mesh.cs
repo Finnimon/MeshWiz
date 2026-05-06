@@ -1,13 +1,18 @@
 using System.Numerics;
+using System.Threading.Tasks;
+using MeshWiz.RefLinq;
 
 namespace MeshWiz.Math;
 
 public sealed record Mesh<TNum>(Triangle3<TNum>[] TessellatedSurface) : IMesh<TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
-    
-    TNum ISurface<Vec3<TNum>,TNum>.SurfaceArea => SurfaceArea;
-    public Vec3<TNum> VertexCentroid => _vertexCentroid ??= Mesh.Math.VertexCentroid(TessellatedSurface);
+    TNum ISurface<Vec3<TNum>, TNum>.SurfaceArea => SurfaceArea;
+
+    public Vec3<TNum> VertexCentroid => _vertexCentroid ??=
+        TessellatedSurface.Iterate().Select(tri => tri.A + tri.B + tri.C).Sum(Vec3<TNum>.Zero) /
+        Vec3<TNum>.Create(TNum.CreateTruncating(TessellatedSurface.Length * 3));
+
     public Vec3<TNum> SurfaceCentroid => _surfaceCentroid ??= Mesh.Math.SurfaceCentroid(TessellatedSurface).XYZ;
     public Vec3<TNum> VolumeCentroid => _volumeCentroid ??= Mesh.Math.VolumeCentroid(TessellatedSurface).XYZ;
     public TNum Volume => _volume ??= Mesh.Math.Volume(TessellatedSurface);
@@ -16,7 +21,7 @@ public sealed record Mesh<TNum>(Triangle3<TNum>[] TessellatedSurface) : IMesh<TN
     public TNum SurfaceArea => _surfaceArea ??= Mesh.Math.SurfaceArea(TessellatedSurface);
 
     public ISurface<Vec3<TNum>, TNum> Surface => this;
-    public AABB<Vec3<TNum>> BBox =>_bBox??=Mesh.Math.BBox(TessellatedSurface);
+    public AABB<Vec3<TNum>> BBox => _bBox ??= Mesh.Math.BBox(TessellatedSurface);
 
     private TNum? _surfaceArea;
     private TNum? _volume;
@@ -25,8 +30,8 @@ public sealed record Mesh<TNum>(Triangle3<TNum>[] TessellatedSurface) : IMesh<TN
     private Vec3<TNum>? _volumeCentroid;
     private AABB<Vec3<TNum>>? _bBox;
 
-    public IndexedMesh<TNum> Indexed()=>new(this);
-    
+    public IndexedMesh<TNum> Indexed() => new(this);
+
 
     public void InitializeLazies()
     {
@@ -44,4 +49,11 @@ public sealed record Mesh<TNum>(Triangle3<TNum>[] TessellatedSurface) : IMesh<TN
     public int Count => TessellatedSurface.Length;
 
     public Triangle3<TNum> this[int index] => TessellatedSurface[index];
+
+    public Mesh<TOther> To<TOther>()
+        where TOther : unmanaged, IFloatingPointIeee754<TOther>
+    {
+        if (typeof(TOther) == typeof(TNum)) return (Mesh<TOther>)(object)this;
+        return new Mesh<TOther>(TessellatedSurface.Iterate().Select(t => t.To<TOther>()).ToArray());
+    }
 }

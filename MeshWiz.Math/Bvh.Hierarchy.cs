@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -13,7 +15,8 @@ public static partial class Bvh
         /// must be ordered correctly!
         /// </summary>
         IReadOnlyList<TElement> Elements { get; }
-        ReadOnlySpan<Node<TVec,TNum>> Nodes { get; }
+        IReadOnlyList<Node<TVec,TNum>> Nodes { get; }
+        bool IsTransforming => false;
         int Depth { get; }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

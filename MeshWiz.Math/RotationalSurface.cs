@@ -1,6 +1,9 @@
+using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
+using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
@@ -8,6 +11,7 @@ using MeshWiz.Collections;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 using MeshWiz.RefLinq;
+using Enumerable = System.Linq.Enumerable;
 
 namespace MeshWiz.Math;
 
@@ -54,7 +58,7 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vec2<TNum>
     }
 
     [field: AllowNull, MaybeNull]
-    private ChildSurface[] ChildSurfaces => field ??= Enumerable.Range(0, Count).Select(CreateChildSurface2).ToArray();
+    private ChildSurface[] ChildSurfaces => field ??= Iterator.Range(0, Count).Select(CreateChildSurface2).ToArray();
 
     private ChildSurface CreateChildSurface2(int index) =>
         GetIncompleteChildSurfaceType(index) switch
@@ -424,10 +428,10 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vec2<TNum>
                                      && Vec3<TNum>.IsRealNumber(previousNormal);
             if (normalCalcPossible && !newNormal.IsParallelTo(previousNormal))
             {
-                var about = previousNormal.Cross(newNormal);
+                var about = Vec3<TNum>.Zero.RayAlong(previousNormal.Cross(newNormal));
                 var transformAngle = Vec3<TNum>.SignedAngleBetween(previousNormal, newNormal, about);
-                var rotation = Mat4x4<TNum>.CreateRotation(about, transformAngle);
-                var rotatedDir = rotation.MultiplyDirection(previousDir);
+                var rotation = Mat3x3<TNum>.CreateRotation(about, transformAngle);
+                var rotatedDir = rotation*previousDir;
                 previousDir = rotatedDir;
             }
 
@@ -493,7 +497,7 @@ public sealed partial record RotationalSurface<TNum>(Ray3<TNum> Axis, Vec2<TNum>
         int childSurfaceCount)
     {
         var segments = TraceGeodesics(p, dir, i => i < childSurfaceCount)
-            .ToArray(); //execute entirely to improve function caching
+            .Iterate().ToArray(); //execute entirely to improve function caching
         if (segments.Length == 0)
             return new PosePolyline<Pose3<TNum>, Vec3<TNum>, TNum>();
         if (segments.Length == 1)

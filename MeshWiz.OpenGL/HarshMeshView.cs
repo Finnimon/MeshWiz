@@ -24,6 +24,7 @@ public class HarshMeshView : IOpenGLControl
         set => _wireframeColor.Value = value;
     }
 
+    public Mat4x4<float> Model { get; set; } = Mat4x4<float>.Identity;
     private readonly EquatableScopedProperty<Color4> _solidColor;
 
     public Color4 SolidColor
@@ -119,7 +120,8 @@ public class HarshMeshView : IOpenGLControl
 
     private void UpdateShaders(float aspectRatio)
     {
-        var (model, view, projection) = Camera.CreateRenderMatrices(aspectRatio);
+        var ( view, projection) = Camera.CreateRenderMatrices(aspectRatio);
+        var model = Model;
         const string colorUniformName = "objectColor";
         _solidColorShader!.ConsumeOutOfDate();
         _blinnPhongShader!.ConsumeOutOfDate();

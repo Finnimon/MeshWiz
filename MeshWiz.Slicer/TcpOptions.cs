@@ -1,4 +1,6 @@
-﻿namespace MeshWiz.Slicer;
+﻿using System;
+
+namespace MeshWiz.Slicer;
 
 [Flags]
 public enum TcpOptions: uint

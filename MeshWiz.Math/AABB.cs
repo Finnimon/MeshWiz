@@ -1,5 +1,9 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
+using System.Diagnostics.Tracing;
+using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -22,9 +26,11 @@ public readonly struct AABB<TNum>
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember]
     public static AABB<TNum> Empty => new(TNum.PositiveInfinity, TNum.NegativeInfinity);
 
+    [JsonInclude]
     public readonly TNum Min, Max;
 
-    private AABB(TNum min, TNum max)
+    [JsonConstructor]
+    internal AABB(TNum min, TNum max)
     {
         Min = min;
         Max = max;
@@ -35,6 +41,7 @@ public readonly struct AABB<TNum>
 
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public bool IsEmpty => Size <= TNum.Zero;
+
     [JsonIgnore, XmlIgnore, SoapIgnore, IgnoreDataMember, Pure]
     public bool IsNegativeSpace => Size < TNum.NegativeZero;
 
@@ -60,6 +67,15 @@ public readonly struct AABB<TNum>
         var max = TNum.Max(p1, Max);
         max = TNum.Max(p2, max);
         return new AABB<TNum>(min, max);
+    }
+
+    [Pure]
+    public TNum OverlapVector(AABB<TNum> other)
+    {
+        var min = TNum.Max(Min, other.Min);
+        var max = TNum.Min(Max, other.Max);
+        var overlap = max - min;
+        return TNum.IsPositive(overlap) ? overlap : default;
     }
 
     [Pure]
@@ -101,7 +117,7 @@ public readonly struct AABB<TNum>
 
     [Pure]
     public static AABB<TNum> Combine(AABB<TNum> a, AABB<TNum> b)
-        => new(TNum.Min(a.Min,b.Min),TNum.Max(a.Max,b.Max));
+        => new(TNum.Min(a.Min, b.Min), TNum.Max(a.Max, b.Max));
 
     [Pure]
     public static AABB<TNum> Combine(AABB<TNum> a, AABB<TNum> b, AABB<TNum> c)
@@ -126,9 +142,9 @@ public readonly struct AABB<TNum>
     [Pure]
     public static AABB<TNum> Combine(params ReadOnlySpan<AABB<TNum>> pts)
     {
-        if(pts.Length==0)
+        if (pts.Length == 0)
             return Empty;
-        var (min,max) = pts[0];
+        var (min, max) = pts[0];
         for (var i = 1; i < pts.Length; i++)
         {
             var cur = pts[i];
@@ -143,6 +159,7 @@ public readonly struct AABB<TNum>
     [Pure]
     public static AABB<TNum> From(TNum p)
         => new(p);
+
 
     [Pure]
     public static AABB<TNum> From(TNum p1, TNum p2)
@@ -199,7 +216,7 @@ public readonly struct AABB<TNum>
     public static AABB<TNum> From(IEnumerable<TNum> pts)
     {
         var min = TNum.PositiveInfinity;
-        var max= TNum.NegativeInfinity;
+        var max = TNum.NegativeInfinity;
         foreach (var pt in pts)
         {
             min = TNum.Min(pt, min);
@@ -209,17 +226,17 @@ public readonly struct AABB<TNum>
         return new AABB<TNum>(min, max);
     }
 
-    
-    
+
     private static AABB<TNum> FromNotEmptyArray(ReadOnlySpan<TNum> pts)
     {
         var min = pts[0];
-        var max = pts[0];
+        var max = min;
 
         for (var i = 1; i < pts.Length; i++)
         {
-            min = TNum.Min(min, pts[i]);
-            max = TNum.Max(max, pts[i]);
+            var pt = pts[i];
+            min = TNum.Min(min, pt);
+            max = TNum.Max(max, pt);
         }
 
         return new AABB<TNum>(min, max);
@@ -266,23 +283,23 @@ public readonly struct AABB<TNum>
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [Pure]
-    public TNum Clamp(TNum value) => TNum.Max(Min,TNum.Min(value, Max));
+    public TNum Clamp(TNum value) => TNum.Max(Min, TNum.Min(value, Max));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [Pure]
     public TNum ClampToBounds(TNum value)
     {
-        var minDiff=TNum.Abs(value - Min);
-        var maxDiff=TNum.Abs(value - Max);
+        var minDiff = TNum.Abs(value - Min);
+        var maxDiff = TNum.Abs(value - Max);
         return minDiff < maxDiff ? minDiff : maxDiff;
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [Pure]
-    public AABB<TNum> Clamp(AABB<TNum> value) => new(Clamp(value.Min),Clamp(value.Max));
+    public AABB<TNum> Clamp(AABB<TNum> value) => new(Clamp(value.Min), Clamp(value.Max));
 
-    public AABB<TOther> To<TOther>() where TOther : unmanaged, IFloatingPointIeee754<TOther> 
+    public AABB<TOther> To<TOther>() where TOther : unmanaged, IFloatingPointIeee754<TOther>
         => new(TOther.CreateTruncating(Min), TOther.CreateTruncating(Max));
 
     public static AABB<TNum> Combine(IEnumerable<AABB<TNum>> select)
@@ -300,14 +317,15 @@ public readonly struct AABB<TNum>
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TNum Lerp(TNum t) => TNum.Lerp(Min, Max, t);
-    public static AABB<TNum> operator +(AABB<TNum> l, TNum r)=>new(l.Min+r,l.Max+r); 
-    public static AABB<TNum> operator +(TNum l, AABB<TNum> r)=>r+l;
+
+    public static AABB<TNum> operator +(AABB<TNum> l, TNum r) => new(l.Min + r, l.Max + r);
+    public static AABB<TNum> operator +(TNum l, AABB<TNum> r) => r + l;
     public static AABB<TNum> operator |(AABB<TNum> l, AABB<TNum> r) => l.CombineWith(r);
 
     public static AABB<TNum> operator &(AABB<TNum> l, AABB<TNum> r)
     {
         if (r.Max < l.Max) (l, r) = (r, l);
-        var rcl= r.Clamp(l.Max);
+        var rcl = r.Clamp(l.Max);
         if (!l.Contains(rcl)) return Empty;
         return new AABB<TNum>(l.Clamp(r.Min), rcl);
     }
@@ -322,14 +340,18 @@ public readonly struct AABB<TNum>
 
     public static AABB<TNum> Saturate => new(TNum.Zero, TNum.One);
 
-    public static AABB<TNum> Combine<TBounded>(IReadOnlyList<TBounded> select) 
-        where TBounded:IBounded<TNum>
+    public static AABB<TNum> Combine<TBounded>(IReadOnlyList<TBounded> select)
+        where TBounded : IBounded<TNum>
     {
         if (select.Count == 0)
             return Empty;
         var first = select[0].BBox;
         return select.Aggregate(first, (current, bounded) => Combine(current, bounded.BBox));
     }
+
+    /// <inheritdoc />
+    public override string ToString()
+        => $"{{ Min {Min}; Max {Max} }}";
 }
 
 public static class AABB
@@ -358,12 +380,12 @@ public static class AABB
     public static AABB<TNum> From<TNum>(params ReadOnlySpan<TNum> pts)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
         => AABB<TNum>.From(pts);
-    
-    
+
+
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static AABB<TVector> From<TPose,TVector,TIgnore>(params ReadOnlySpan<TPose> pts)
-        where TPose:IPosition<TPose,TVector,TIgnore>
-        where TVector : unmanaged,IVec<TVector, TIgnore> 
+    public static AABB<TVector> From<TPose, TVector, TIgnore>(params ReadOnlySpan<TPose> pts)
+        where TPose : IPosition<TPose, TVector, TIgnore>
+        where TVector : unmanaged, IVec<TVector, TIgnore>
         where TIgnore : unmanaged, IFloatingPointIeee754<TIgnore>
         => pts.Length switch
         {
@@ -374,11 +396,11 @@ public static class AABB
             4 => From(pts[0].Position, pts[1].Position, pts[2].Position, pts[3].Position),
             _ => FromNotEmptyArray<TVector, TPose, TIgnore>(pts)
         };
-    
 
-    private static AABB<TVector> FromNotEmptyArray<TVector, TPose,TNum>(ReadOnlySpan<TPose> pts) 
-        where TPose:IPosition<TPose,TVector,TNum>
-        where TVector : unmanaged,IVec<TVector, TNum> 
+
+    private static AABB<TVector> FromNotEmptyArray<TVector, TPose, TNum>(ReadOnlySpan<TPose> pts)
+        where TPose : IPosition<TPose, TVector, TNum>
+        where TVector : unmanaged, IVec<TVector, TNum>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         var min = pts[0].Position;
@@ -386,21 +408,23 @@ public static class AABB
         for (var i = 1; i < pts.Length; i++)
         {
             var p = pts[i].Position;
-            min=TVector.Min(min, p);
-            max=TVector.Max(max, p);
+            min = TVector.Min(min, p);
+            max = TVector.Max(max, p);
         }
-        return From(min,max);
+
+        return From(min, max);
     }
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static AABB<TNum> Around<TNum>(TNum center, TNum size)
         where TNum : unmanaged, IFloatingPointIeee754<TNum> =>
         AABB<TNum>.Around(center, size);
+
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static AABB<TNum> Combine<TNum>(IEnumerable<AABB<TNum>> select) 
+    public static AABB<TNum> Combine<TNum>(IEnumerable<AABB<TNum>> select)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
-    =>AABB<TNum>.Combine(select);
-    
+        => AABB<TNum>.Combine(select);
+
 
     [Pure]
     public static TNum GetArea<TNum>(this AABB<Vec2<TNum>> aabb)
@@ -436,13 +460,13 @@ public static class AABB
     public static AABB<TNum> Combine<TNum>(params ReadOnlySpan<AABB<TNum>> src)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
         => AABB<TNum>.Combine(src);
-    
-    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static AABB<TNum> Combine<TNum>(AABB<TNum> a, TNum p1, TNum p2, TNum p3) 
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static AABB<TNum> Combine<TNum>(AABB<TNum> a, TNum p1, TNum p2, TNum p3)
         where TNum : unmanaged, IFloatingPointIeee754<TNum> => a.CombineWith(p1, p2, p3);
-    
-    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static AABB<TNum> Combine<TNum>(AABB<TNum> a, TNum p1, TNum p2, TNum p3, TNum p4) 
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static AABB<TNum> Combine<TNum>(AABB<TNum> a, TNum p1, TNum p2, TNum p3, TNum p4)
         where TNum : unmanaged, IFloatingPointIeee754<TNum> => a.CombineWith(p1, p2, p3, p4);
 
     [Pure]
@@ -486,9 +510,39 @@ public static class AABB
     public static Vec2<TNum> LowerRight<TNum>(AABB<Vec2<TNum>> bbox)
         where TNum : unmanaged, IFloatingPointIeee754<TNum> =>
         bbox.Min.WithElement(1, bbox.Max[1]);
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
     public static Vec2<TNum> UpperLeft<TNum>(AABB<Vec2<TNum>> bbox)
         where TNum : unmanaged, IFloatingPointIeee754<TNum> =>
         bbox.Min.WithElement(0, bbox.Max[0]);
+
+
+    public static AABB<Vec3<TNum>> Transform<TNum>(Mat4x4<TNum> m, AABB<Vec3<TNum>> src)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+    {
+        var diag = src.Size*Numbers<TNum>.Half;
+        var mid = src.Min + diag;
+        diag= Vec3<TNum>.Abs(m.MultiplyDirection(diag));
+        mid = Mat4x4<TNum>.MultiplyPoint(m, mid);
+        return new(mid - diag, mid + diag);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static AABB<TNum> GetDim<TVec, TNum>(this AABB<TVec> bbox, int index)
+        where TVec : unmanaged, IVec<TVec, TNum>
+        where TNum : unmanaged, IFloatingPointIeee754<TNum> =>
+        new(bbox.Min[index],bbox.Max[index]);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static AABB<TNum> GetDim<TNum>(this AABB<Vec3<TNum>> bbox, int index)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum> => bbox.GetDim<Vec3<TNum>, TNum>(index);
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static AABB<TNum> GetDim<TNum>(this AABB<Vec2<TNum>> bbox, int index)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum> => bbox.GetDim<Vec2<TNum>, TNum>(index);
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static AABB<TNum> GetDim<TNum>(this AABB<Vec4<TNum>> bbox, int index)
+        where TNum : unmanaged, IFloatingPointIeee754<TNum> => bbox.GetDim<Vec4<TNum>, TNum>(index);
+
 }

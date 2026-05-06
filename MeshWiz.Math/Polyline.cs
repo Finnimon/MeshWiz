@@ -1,21 +1,30 @@
+using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Xml.Serialization;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Collections;
+using MeshWiz.RefLinq;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
+using Iterator = MeshWiz.RefLinq.Iterator;
+using SpanExt = MeshWiz.RefLinq.SpanExt;
 
 namespace MeshWiz.Math;
 
+[JsonConverter(typeof(MeshWizJsonConverter))]
 public sealed class Polyline<TVec, TNum>
-    : IPolyline<Polyline<TVec, TNum>, Line<TVec, TNum>, TVec, TVec, TNum>, 
-        IReadOnlyList<Line<TVec, TNum>>
+    : IPolyline<Polyline<TVec, TNum>, Line<TVec, TNum>, TVec, TVec, TNum>,
+        IReadOnlyList<Line<TVec, TNum>>,
+        IJsonConverterSelfProvider,
+        IEquatable<Polyline<TVec, TNum>>
     where TVec : unmanaged, IVec<TVec, TNum>
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
@@ -121,8 +130,11 @@ public sealed class Polyline<TVec, TNum>
 
     [field: AllowNull, MaybeNull]
     // ReSharper disable once InconsistentNaming
-    internal TNum[] _cumulativeDistances =>
-        field ??= Polyline.CalculateCumulativeDistances<TVec, TNum>(verts: _points);
+    internal TNum[] _cumulativeDistances
+    {
+        get { return field ??= Polyline.CalculateCumulativeDistances<TVec, TNum>(verts: _points); }
+        private set;
+    }
 
     public ReadOnlySpan<TNum> CumulativeDistances => _cumulativeDistances;
 
@@ -238,8 +250,8 @@ public sealed class Polyline<TVec, TNum>
     public static Polyline<TVec, TNum> FromSegmentCollection(IReadOnlyCollection<Line<TVec, TNum>> collection)
     {
         if (collection.Count == 0) return Empty;
-        var firstLine = collection.First();
-        if (collection.Count == 1) return new([firstLine.Start, firstLine.End]);
+        var firstLine = collection.Iterate().First();
+        if (collection.Count == 1) return new Polyline<TVec, TNum>([firstLine.Start, firstLine.End]);
 
         List<TVec> points = new(collection.Count + 1);
         var prevDirection = firstLine.Direction;
@@ -389,6 +401,75 @@ public sealed class Polyline<TVec, TNum>
     /// <inheritdoc />
     public static Polyline<TVec, TNum> CreateCulled(IEnumerable<TVec> source)
         => CreateNonCopying(Polyline.Cull<TVec, TNum>(source));
+
+    [Pure]
+    public Polyline<TVec, TNum> TransformedBy<TTransform>(TTransform transform)
+        where TTransform : ISpatialTransform<TVec>
+    {
+        var copy = CreateNonCopying(Iterator.Iterate(this.Points).Select(transform.TransformPoint).ToArray());
+        if (!transform.IsAffine) return copy;
+        copy._cumulativeDistances = _cumulativeDistances;
+        if (_bbox.HasValue)
+            copy._bbox = AABB.From(transform.TransformPoint(_bbox.Value.Min),
+                transform.TransformPoint(_bbox.Value.Max));
+        if (_vertexCentroid.HasValue)
+            copy._vertexCentroid = transform.TransformPoint(_vertexCentroid.Value);
+        return copy;
+    }
+
+    public void InitializeLazies()
+    {
+        _ = BBox;
+        _ = VertexCentroid;
+        _ = CumulativeDistances;
+    }
+
+    public Polyline<TVec, TNum> Reversed()
+    {
+        var points = this._points.ToArray();
+        Array.Reverse(points);
+        return new Polyline<TVec, TNum>(points) { _bbox = _bbox };
+    }
+
+    /// <inheritdoc />
+    static JsonConverter IJsonConverterSelfProvider.CreateConverter(JsonSerializerOptions _)
+        => MeshWizJsonConverter.Create<Polyline<TVec, TNum>, TVec[]>(pl => pl._points,
+            points => CreateNonCopying(points ?? []));
+
+
+    /// <inheritdoc />
+    public bool Equals(Polyline<TVec, TNum>? other)
+    {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return Points.SequenceEqual(other._points);
+    }
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj)
+    {
+        return ReferenceEquals(this, obj) || obj is Polyline<TVec, TNum> other && Equals(other);
+    }
+
+    /// <inheritdoc />
+    public override int GetHashCode()
+    {
+        var src=Points;
+        if (src.IsEmpty) return 0;
+        var first = src[0].GetHashCode();
+        return HashCode.Combine(first, src.Length);
+    
+    }
+
+    public static bool operator ==(Polyline<TVec, TNum>? left, Polyline<TVec, TNum>? right)
+    {
+        return Equals(left, right);
+    }
+
+    public static bool operator !=(Polyline<TVec, TNum>? left, Polyline<TVec, TNum>? right)
+    {
+        return !Equals(left, right);
+    }
 }
 
 public static partial class Polyline
@@ -400,7 +481,7 @@ public static partial class Polyline
         => (isClosed || (TNum.Zero <= distance && distance <= TNum.One))
             ? TraverseOnCurve(distance, cumulativeDistances, isClosed, verts)
             : TraverseFromEnds(distance, cumulativeDistances, verts);
-    
+
     public static TLerp Traverse<TLerp, TNum>(TNum distance, IReadOnlyList<TNum> cumulativeDistances, bool isClosed,
         IReadOnlyList<TLerp> verts)
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
@@ -436,7 +517,7 @@ public static partial class Polyline
 
         return TLerp.ExactLerp(p1, p2, distance);
     }
-    
+
     private static TLerp TraverseFromEnds<TLerp, TNum>(TNum by, IReadOnlyList<TNum> cumulateDistances,
         IReadOnlyList<TLerp> verts)
         where TLerp : ILerp<TLerp, TNum> where TNum : unmanaged, IFloatingPointIeee754<TNum>
@@ -491,6 +572,7 @@ public static partial class Polyline
         var pEnd = verts[segment + 1];
         return TLerp.ExactLerp(pStart, pEnd, remainder);
     }
+
     public static TLerp TraverseOnCurve<TLerp, TNum>(TNum t,
         ReadOnlySpan<TNum> cumulativeDistances,
         bool isClosed,
@@ -597,7 +679,7 @@ public static partial class Polyline
         seg = posBefore;
         return true;
     }
-    
+
     [Pure]
     public static bool TryFindContainingSegmentExactly<TPos, TNum>(bool isClosed,
         IReadOnlyList<TNum> cumulativeDistances,

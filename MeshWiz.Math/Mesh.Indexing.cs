@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Numerics;
 
 namespace MeshWiz.Math;
@@ -77,10 +78,9 @@ public static partial class Mesh
         public static IndexedMesh<TNum>[] Split<TNum>(IIndexedMesh<TNum> mesh)
             where TNum : unmanaged, IFloatingPointIeee754<TNum>
         {
-            var triangleCount = mesh.Indices.Length;
+            var triangleCount = mesh.Indices.Count;
             var visited = new bool[triangleCount];
 
-            // Step 1: Build a mapping from vertex index -> triangle indices that use it
             var vertexToTriangles = new Dictionary<int, List<int>>();
             for (int triIndex = 0; triIndex < triangleCount; triIndex++)
             {

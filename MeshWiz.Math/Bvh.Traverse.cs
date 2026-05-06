@@ -1,6 +1,10 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using MeshWiz.Utility;
+using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
@@ -35,8 +39,8 @@ public static partial class Bvh
             _elementIntersect = elementIntersect;
             _acceptHitReact = acceptHitReact;
         }
-        
-        
+
+
         /// <inheritdoc />
         public bool Intersect(TElement test, out TIntersection result)
         {
@@ -74,11 +78,11 @@ public static partial class Bvh
             bBoxDoIntersect,
             elementIntersect,
             acceptHitReact);
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool Traverse<TElement, TIntersection, TVec, TNum>(
         IReadOnlyList<TElement> elements,
-        ReadOnlySpan<Node<TVec, TNum>> nodes,
+        IReadOnlyList<Node<TVec, TNum>> nodes,
         int depth,
         Func<AABB<TVec>, bool> bBoxDoIntersect,
         Func<TElement, (TIntersection, bool)> elementIntersect,
@@ -89,10 +93,11 @@ public static partial class Bvh
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
         FTraverser<TElement, TIntersection, TVec, TNum> traverser = new(
-                bBoxDoIntersect,
-                elementIntersect,
-                acceptHitReact);
-        return Traverse<FTraverser<TElement, TIntersection, TVec, TNum>, TElement, TIntersection, TVec, TNum>(elements, nodes, traverser, depth);
+            bBoxDoIntersect,
+            elementIntersect,
+            acceptHitReact);
+        return Traverse<FTraverser<TElement, TIntersection, TVec, TNum>, TElement, TIntersection, TVec, TNum>(elements,
+            nodes, traverser, depth);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -103,11 +108,12 @@ public static partial class Bvh
         where TTraverser : ITraverser<TElement, TIntersection, TVec, TNum>, allows ref struct
         where TVec : unmanaged, IVec<TVec, TNum>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
-        => Traverse<TTraverser, TElement, TIntersection, TVec, TNum>(hierarchy.Elements, hierarchy.Nodes, traverser, hierarchy.Depth);
+        => Traverse<TTraverser, TElement, TIntersection, TVec, TNum>(hierarchy.Elements, hierarchy.Nodes, traverser,
+            hierarchy.Depth);
 
     public static bool Traverse<TTraverser, TElement, TIntersection, TVec, TNum>(
         IReadOnlyList<TElement> elements,
-        ReadOnlySpan<Node<TVec, TNum>> nodes,
+        IReadOnlyList<Node<TVec, TNum>> nodes,
         TTraverser traverser,
         int depth
     )
@@ -115,16 +121,15 @@ public static partial class Bvh
         where TVec : unmanaged, IVec<TVec, TNum>
         where TNum : unmanaged, IFloatingPointIeee754<TNum>
     {
-        using var rented = RentedArray<int>.Rent(int.Max(1,depth));
-        Span<int> stack = rented.GetCompleteArray();
+        Span<int> stack = stackalloc int[int.Max(1,depth)];
         stack[0] = 0;
         var stackSize = 1;
         var didHit = false;
         while (0 < stackSize)
         {
             var nIndex = stack[--stackSize];
-            nextNode:            
-            ref readonly var n =ref nodes[nIndex];
+            nextNode:
+            var n = nodes[nIndex];
 
             var isHit = traverser.DoIntersect(n.Bounds);
             if (!isHit) continue;
@@ -160,4 +165,152 @@ public static partial class Bvh
 
         return didHit;
     }
+
+
+    public static bool TraverseAgainst<TLeft, TRight, TVec, TNum>(
+        IHierarchy<TLeft, TVec, TNum> left,
+        IHierarchy<TRight, TVec, TNum> right,
+        bool ignoreTouching,
+        Func<TLeft, TRight, bool> elemTest)
+        where TVec : unmanaged, IVec<TVec, TNum>
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+    {
+        if (left.Elements.Count == 0 || right.Elements.Count == 0) return false;
+        if (left.IsTransforming || !right.IsTransforming)
+            return TraverseAgainstImp(left, right, ignoreTouching, elemTest);
+        if (typeof(TLeft) != typeof(TRight))
+            return TraverseAgainstImp(right, left, ignoreTouching, (a, b) => elemTest(b, a));
+        return TraverseAgainstImp((IHierarchy<TLeft, TVec, TNum>)right, left, ignoreTouching,
+            (Func<TLeft, TLeft, bool>)(object)elemTest);
+    }
+
+    private static bool TraverseAgainstImp<TLeft, TRight, TVec, TNum>(IHierarchy<TLeft, TVec, TNum> left,
+        IHierarchy<TRight, TVec, TNum> right,
+        bool ignoreTouching, Func<TLeft, TRight, bool> elemTest) where TVec : unmanaged, IVec<TVec, TNum>
+        where TNum : unmanaged, IFloatingPointIeee754<TNum>
+    {
+        using var leftRentedArr = RentedArray<int>.Rent(left.Depth + right.Depth);
+        var leftStack = leftRentedArr.GetCompleteArray().AsSpan();
+        using var rightRentedArr = RentedArray<int>.Rent(left.Depth + right.Depth);
+        var rightStack = rightRentedArr.GetCompleteArray().AsSpan();
+        leftStack[0] = 0;
+        rightStack[0] = 0;
+        var stackSize = 1;
+
+        var leftElems = left.Elements;
+        var rightElems = right.Elements;
+        var leftNodes = left.Nodes;
+        var rightNodes = right.Nodes;
+        while (0 < stackSize)
+        {
+            var leftPos = leftStack[--stackSize];
+            var rightPos = rightStack[stackSize];
+            var leftNode = leftNodes[leftPos];
+            var rightNode = rightNodes[rightPos];
+
+            afterNodePop:
+            var separated = false;
+            var touching = false;
+
+            for (var i = 0; i < TVec.Dimensions; i++)
+            {
+                var dimA = leftNode.Bounds.GetDim<TVec, TNum>(i);
+                var dimB = rightNode.Bounds.GetDim<TVec, TNum>(i);
+
+                if (!dimA.Max.IsApproxGreaterOrEqual(dimB.Min) || !dimB.Max.IsApproxGreaterOrEqual(dimA.Min))
+                {
+                    separated = true;
+                    break;
+                }
+
+                if (dimA.Max.IsApprox(dimB.Min) || dimB.Max.IsApprox(dimA.Min))
+                    touching = true;
+            }
+
+            if (separated)
+                continue;
+
+            if (ignoreTouching && touching)
+                continue;
+
+
+            var leftLen = leftNode.Bounds.Size.SquaredLength;
+            var rightLen = rightNode.Bounds.Size.SquaredLength;
+            if (leftNode.IsParent && (rightNode.IsLeaf || rightLen <= leftLen))
+            {
+                leftStack[stackSize] = leftNode.SecondChild;
+                rightStack[stackSize++] = rightPos;
+                leftNode = leftNodes[(leftPos = leftNode.FirstChild)];
+
+                goto afterNodePop;
+            }
+
+            if (rightNode.IsParent)
+            {
+                leftStack[stackSize] = leftPos;
+                rightStack[stackSize++] = rightNode.SecondChild;
+                rightNode = rightNodes[(rightPos = rightNode.FirstChild)];
+                goto afterNodePop;
+            }
+
+            // @formatter:off
+            for (var leftElem = 0; leftElem < leftNode.Length; leftElem++)
+            {
+                var leftElement = leftElems[leftElem + leftNode.Start];
+                for (var rightElem = 0; rightElem < rightNode.Length; rightElem++)
+                {
+                    var rightElement = rightElems[rightElem + rightNode.Start];
+                    var hit = elemTest(leftElement, rightElement);
+                    if (hit) return true;
+                }
+            }
+            // @formatter:on
+        }
+
+        return false;
+    }
+
+    //{
+    //     Span<(BVHNode<T> A, BVHNode<T> B)> stack =
+    //         stackalloc (BVHNode<T>, BVHNode<T>)[maxDepthA + maxDepthB];
+    // 
+    //     int sp = 0;
+    //     stack[sp++] = (rootA, rootB);
+    // 
+    //     while (sp > 0)
+    //     {
+    //         var (a, b) = stack[--sp];
+    // 
+    //         if (!IntersectsOrTouches(a.Bounds, b.Bounds))
+    //             continue;
+    // 
+    //         if (a.IsLeaf && b.IsLeaf)
+    //         {
+    //             foreach (var triA in a.Triangles)
+    //             foreach (var triB in b.Triangles)
+    //                 if (TriangleIntersects(triA, triB))
+    //                     return true;
+    // 
+    //             continue;
+    //         }
+    // 
+    //         // Decide which side to split
+    //         bool splitA =
+    //             !a.IsLeaf &&
+    //             (b.IsLeaf || a.Bounds.Volume >= b.Bounds.Volume);
+    // 
+    //         if (splitA)
+    //         {
+    //             stack[sp++] = (a.Left, b);
+    //             stack[sp++] = (a.Right, b);
+    //         }
+    //         else
+    //         {
+    //             stack[sp++] = (a, b.Left);
+    //             stack[sp++] = (a, b.Right);
+    //         }
+    //     }
+    // 
+    //     return false;
+    // }
 }

@@ -1,8 +1,11 @@
+using System;
+using System.Linq;
 using System.Numerics;
 using BenchmarkDotNet.Attributes;
 
 namespace MeshWiz.Math.Benchmark;
 
+[Obsolete]
 public class Ray3Bench<TNum> 
     where TNum: unmanaged, IFloatingPointIeee754<TNum>
 {

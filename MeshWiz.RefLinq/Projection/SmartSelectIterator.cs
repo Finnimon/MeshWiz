@@ -1,4 +1,6 @@
+using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
@@ -8,7 +10,7 @@ namespace MeshWiz.RefLinq;
 public ref struct SmartSelectIterator<TIn, TOut>(ReadOnlySpan<TIn> source,Func<TIn,TOut> sel):IRefIterator<SmartSelectIterator<TIn,TOut>,TOut>
 {
     public readonly ReadOnlySpan<TIn> Source=source;
-    private readonly Func<TIn, TOut> _sel=sel;
+    internal readonly Func<TIn, TOut> _sel=sel;
     private int _index=-1;
     public readonly int Length => Source.Length;
 

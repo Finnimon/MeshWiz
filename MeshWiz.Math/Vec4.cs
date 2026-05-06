@@ -1,4 +1,6 @@
+using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Globalization;
@@ -6,19 +8,39 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using CommunityToolkit.Diagnostics;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
-[StructLayout(LayoutKind.Sequential)]
-public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
+[StructLayout(LayoutKind.Sequential), JsonConverter(typeof(MeshWizJsonConverter))]
+public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>, IJsonConverterSelfProvider
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public readonly TNum X, Y, Z, W;
 
-    public static int ByteSize { get; } = Unsafe.SizeOf<TNum>() * 4;
+    public static int ByteSize => Unsafe.SizeOf<TNum>() * 4;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining), Pure]
+    public static TNum Sum(Vec4<TNum> v) => v.X + v.Y + v.Z + v.W;
+
+    public static Vec4<TNum> Index
+    {
+        get
+        {
+            var three = TNum.Zero;
+            var zero = three++;
+            var one = three++;
+            var two = three++;
+            return Create(zero, one, two, three);
+        }
+    }
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Vec4<TNum> Reverse() => Create(W, Z, Y, X);
 
     [Pure] static int IVecBase<Vec4<TNum>, TNum>.Dimensions => Dimensions;
     int IReadOnlyCollection<TNum>.Count => Dimensions;
@@ -39,7 +61,7 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
         => X * X + Y * Y + Z * Z + W * W;
 
     public Vec3<TNum> XYZ => this;
-    public static implicit operator Vec3<TNum>(Vec4<TNum> v)=>Unsafe.As<Vec4<TNum>,Vec3<TNum>>(ref v);
+    public static implicit operator Vec3<TNum>(Vec4<TNum> v) => Unsafe.As<Vec4<TNum>, Vec3<TNum>>(ref v);
     public Vec4(TNum x, TNum y, TNum z, TNum w) => this = Create(x, y, z, w);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -59,14 +81,24 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
     public static Vec4<TNum> Create(Vec3<TNum> xyz, TNum w)
     {
         Unsafe.SkipInit(out Vec4<TNum> v);
-        Unsafe.As<Vec4<TNum>,Vec3<TNum>>(ref v) = xyz;
+        Unsafe.As<Vec4<TNum>, Vec3<TNum>>(ref v) = xyz;
         Unsafe.AsRef(in v.W) = w;
         return v;
     }
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vec4<TNum> Create(Vec2<TNum> xy, Vec2<TNum> zw)
+    {
+        Unsafe.SkipInit(out Vec4<TNum> v);
+        ref var pin = ref Unsafe.As<Vec4<TNum>, Vec2<TNum>>(ref v);
+        pin = xy;
+        Unsafe.Add(ref pin, 1) = zw;
+        return v;
+    }
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec4<TNum> Create(Vec3<TNum> xyz)
-        => Create(xyz, TNum.Zero);
+        => Create(xyz, default);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec4<TNum> Create(TNum x, TNum y, TNum z, TNum w)
@@ -97,14 +129,17 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
     /// <inheritdoc />
     public static Vec4<TNum> FromComponentsConstrained<TList, TOtherNum>(TList components)
         where TList : IReadOnlyList<TOtherNum> where TOtherNum : INumberBase<TOtherNum>
-    =>components.Count switch
-    {
-        0 => Zero,
-        1 => Create(TNum.CreateTruncating(components[0]), TNum.Zero, TNum.Zero,TNum.Zero),
-        2 => Create(TNum.CreateTruncating(components[0]), TNum.CreateTruncating(components[1]), TNum.Zero,TNum.Zero),
-        3 => Create(TNum.CreateTruncating(components[0]), TNum.CreateTruncating(components[1]), TNum.CreateTruncating(components[2]),TNum.Zero),
-        _ => Create(TNum.CreateTruncating(components[0]), TNum.CreateTruncating(components[1]), TNum.CreateTruncating(components[2]),TNum.CreateTruncating(components[3]))
-    };
+        => components.Count switch
+        {
+            0 => Zero,
+            1 => Create(TNum.CreateTruncating(components[0]), TNum.Zero, TNum.Zero, TNum.Zero),
+            2 => Create(TNum.CreateTruncating(components[0]), TNum.CreateTruncating(components[1]), TNum.Zero,
+                TNum.Zero),
+            3 => Create(TNum.CreateTruncating(components[0]), TNum.CreateTruncating(components[1]),
+                TNum.CreateTruncating(components[2]), TNum.Zero),
+            _ => Create(TNum.CreateTruncating(components[0]), TNum.CreateTruncating(components[1]),
+                TNum.CreateTruncating(components[2]), TNum.CreateTruncating(components[3]))
+        };
 
     /// <inheritdoc />
     public static Vec4<TNum> FromComponentsConstrained<TList>(TList components) where TList : IReadOnlyList<TNum>
@@ -223,7 +258,7 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TNum Dot(Vec4<TNum> other)
-        => Dot(this,other);
+        => Dot(this, other);
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TNum Dot(Vec4<TNum> a, Vec4<TNum> b) => a.X * b.X + a.Y * b.Y + a.Z * b.Z + a.W * b.W;
@@ -295,6 +330,7 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
         yield return X;
         yield return Y;
         yield return Z;
+        yield return W;
     }
 
     [SuppressMessage("ReSharper", "HeapView.BoxingAllocation")]
@@ -303,6 +339,7 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
         yield return X;
         yield return Y;
         yield return Z;
+        yield return W;
     }
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -780,7 +817,9 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
 
     /// <inheritdoc />
     public static Vec4<TNum> Parse(string s, IFormatProvider? provider = null)
-        => TryParse(s, NumberStyles.Any, provider, out var result) ? result : ThrowHelper.ThrowFormatException<Vec4<TNum>>();
+        => TryParse(s, NumberStyles.Any, provider, out var result)
+            ? result
+            : ThrowHelper.ThrowFormatException<Vec4<TNum>>();
 
     /// <inheritdoc />
     public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, out Vec4<TNum> result)
@@ -788,7 +827,9 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
 
     /// <inheritdoc />
     public static Vec4<TNum> Parse(ReadOnlySpan<char> s, IFormatProvider? provider = null)
-        => TryParse(s, NumberStyles.Any, provider, out var result) ? result : ThrowHelper.ThrowFormatException<Vec4<TNum>>();
+        => TryParse(s, NumberStyles.Any, provider, out var result)
+            ? result
+            : ThrowHelper.ThrowFormatException<Vec4<TNum>>();
 
     /// <inheritdoc />
     public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out Vec4<TNum> result)
@@ -817,6 +858,7 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
 
     [Pure]
     public TNum AngleTo(Vec4<TNum> other) => AngleBetween(this, other);
+
     [Pure]
     public static TNum AngleBetween(Vec4<TNum> a, Vec4<TNum> b)
     {
@@ -825,17 +867,22 @@ public readonly struct Vec4<TNum> : IVec<Vec4<TNum>, TNum>
         var dot = a.Dot(b);
         return TNum.Acos(dot);
     }
-    [Pure,MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec4<TNum> Normalize(Vec4<TNum> vec) => vec/vec.Length;
-    
-    
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vec4<TNum> Normalize(Vec4<TNum> vec) => vec / vec.Length;
+
+
     [Pure]
     public Vec4<TNum> WithElement(int index, TNum elem)
     {
-        if(3u<(uint)index)
+        if (3u < (uint)index)
             IndexThrowHelper.Throw();
         var copy = this;
-        Vec<TNum>.SetElement(in copy, index,elem);
+        Vec<TNum>.SetElement(in copy, index, elem);
         return copy;
     }
+
+    /// <inheritdoc />
+    static JsonConverter IJsonConverterSelfProvider.CreateConverter(JsonSerializerOptions options) =>
+        new IVec<Vec4<TNum>, TNum>.VecConverter();
 }

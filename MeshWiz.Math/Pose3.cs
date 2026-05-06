@@ -1,20 +1,27 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
 
+[JsonConverter(typeof(MeshWizJsonConverter))]
 [StructLayout(LayoutKind.Sequential)]
-public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>
+public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>, IJsonConverterSelfProvider
     where TNum : unmanaged, IFloatingPointIeee754<TNum>
 {
     public static Pose3<TNum> Identity => new();
     public readonly Quaternion<TNum> Rotation;
     public readonly Vec3<TNum> Origin; //quaternion first for better layout ie 32*4+32*3
     public Vec3<TNum> Position => Origin;
+    public Vec3<TNum> X => Rotation.UnitX();
+    public Vec3<TNum> Y => Rotation.UnitY();
+    public Vec3<TNum> Z => Rotation.UnitZ();
     public Vec3<TNum> Front => Rotation.UnitY();
     public Vec3<TNum> Up => Rotation.UnitZ();
     public Vec3<TNum> Right => Rotation.UnitX();
@@ -27,7 +34,7 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            var mat = Rotation.AsMatrix3x3();
+            var mat = Rotation.AsMat3x3();
             return (mat.Y, mat.Z, mat.X);
         }
     }
@@ -61,7 +68,7 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>
         if (!z.IsNormalized || !y.IsNormalized)
             return Result<Arithmetics, Pose3<TNum>>.Failure(Arithmetics.NormalizationImpossible);
         var mat = Mat3x3<TNum>.Create(x, y, z);
-        var rot = Quaternion<TNum>.CreateUnsafe(in mat);
+        var rot = Quaternion<TNum>.CreateUnsafe(mat);
         return new Pose3<TNum>(rot, origin);
     }
 
@@ -78,7 +85,7 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>
         z = z.Normalized();
         var x = Vec3<TNum>.Cross(y, z).Normalized();
         var mat = Mat3x3<TNum>.Create(x, y, z);
-        var rot = Quaternion<TNum>.CreateUnsafe(in mat);
+        var rot = Quaternion<TNum>.CreateUnsafe(mat);
         return new Pose3<TNum>(rot, origin);
     }
 
@@ -86,9 +93,11 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>
     public static Pose3<TNum> CreateUnsafe(Vec3<TNum> origin, Vec3<TNum> x, Vec3<TNum> y, Vec3<TNum> z)
     {
         var mat = Mat3x3<TNum>.Create(x, y, z);
-        var rot = Quaternion<TNum>.CreateUnsafe(in mat);
+        var rot = Quaternion<TNum>.CreateUnsafe(mat).Normalized();
         return new Pose3<TNum>(rot, origin);
     }
+
+    public PoseLine<Pose3<TNum>, Vec3<TNum>, TNum> LineTo(Pose3<TNum> other) => new(this, other);
 
 
     /// <inheritdoc />
@@ -118,11 +127,13 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>
     }
 
     /// <inheritdoc />
-    public Vec3<TNum> Transform(Vec3<TNum> src)
+    public Vec3<TNum> Transform(Vec3<TNum> pt)
     {
-        var translated = src - Origin;
-        return Rotation.Rotate(translated);
+        var translated = pt - Origin;
+        return Rotation.Rotate(translated) + Origin;
     }
+
+    public Vec3<TNum> TransformDir(Vec3<TNum> dir) => Rotation.Rotate(dir);
 
 
     public Pose3<TOtherNum> To<TOtherNum>()
@@ -150,22 +161,132 @@ public readonly struct Pose3<TNum> : IPose<Pose3<TNum>, Vec3<TNum>, TNum>
     /// <inheritdoc />
     public override int GetHashCode() => HashCode.Combine(Rotation, Origin);
 
+
     public static Ray3<TNum> FrontRay(Pose3<TNum> arg) => new(arg.Origin, arg.Front);
     public static Ray3<TNum> UpRay(Pose3<TNum> arg) => new(arg.Origin, arg.Up);
-    
-    public PosedPlane<TNum> ToPosedPlane()=>PosedPlane<TNum>.Create(this);
 
-    public Plane<TNum> Xy() => Plane<TNum>.CreateUnsafe(Rotation.UnitZ(),Origin);
+    public PosedPlane<TNum> ToPosedPlane() => PosedPlane<TNum>.Create(this);
 
-    public Mat4x4<TNum> ToMatrix4x4()
+    public Plane<TNum> Xy() => Plane<TNum>.CreateUnsafe(Rotation.UnitZ(), Origin);
+
+    public Mat4x4<TNum> AsMat4x4()
     {
-        var rot= Rotation.AsMatrix3x3();
+        var rot = Rotation.AsMat3x3();
         return Mat4x4<TNum>.Create(
-            Vec4<TNum>.Create(rot.X,Origin.X),
-            Vec4<TNum>.Create(rot.Y,Origin.Y),
-            Vec4<TNum>.Create(rot.Z,Origin.Z),
+            Vec4<TNum>.Create(rot.X, Origin.X),
+            Vec4<TNum>.Create(rot.Y, Origin.Y),
+            Vec4<TNum>.Create(rot.Z, Origin.Z),
             Vec4<TNum>.UnitW
         );
     }
-    
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Pose3<TNum> RotateAbout(Ray3<TNum> about, Angle<TNum> target)
+    {
+        var rot = Quaternion<TNum>.CreateFromAxisAngle(about, target);
+        Pose3<TNum> p = new(rot, about.Origin);
+        return p * this;
+    }
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal Pose3<TNum> TransformBy(Mat3x3<TNum> mat)
+    {
+        var origin = mat * Origin;
+        var rot = Rotation.AsMat3x3();
+        return CreateUnsafe(origin, mat * rot.X, mat * rot.Y, mat * rot.Z);
+    }
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Pose3<TNum> TranslateBy(Vec3<TNum> direction) => new(Rotation, Origin + direction);
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Pose3<TNum> ToWorld(Pose3<TNum> local) => this * local;
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Pose3<TNum> operator *(Pose3<TNum> a, Pose3<TNum> b)
+    {
+        var rot = a.Rotation * b.Rotation;
+        rot = rot.Normalized();
+        var origin = a.TransformPoint(b.Origin);
+        return new Pose3<TNum>(rot, origin);
+    }
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool IsApprox(Pose3<TNum> pose, TNum eps = default)
+    {
+        if (eps == default) eps = Numbers<TNum>.ZeroEpsilon;
+        return Origin.IsApprox(pose.Origin, eps) && Quaternion<TNum>.AsVec4(Rotation).IsApprox(pose.Rotation);
+    }
+
+    /// <inheritdoc />
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Vec3<TNum> TransformPoint(Vec3<TNum> p) => Rotation.Rotate(p) + Origin;
+
+    /// <inheritdoc />
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Vec3<TNum> TransformDirection(Vec3<TNum> v) => Rotation.Rotate(v);
+
+    /// <inheritdoc />
+    public bool IsAffine => true;
+
+
+    /// <inheritdoc />
+    static JsonConverter IJsonConverterSelfProvider.CreateConverter(JsonSerializerOptions options)
+        => new Converter();
+
+    private sealed class Converter : JsonConverter<Pose3<TNum>>
+    {
+        /// <inheritdoc />
+        public override Pose3<TNum> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType != JsonTokenType.StartObject)
+                throw new JsonException();
+
+            Vec3<TNum>? origin = null;
+            Quaternion<TNum>? rotation = null;
+
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonTokenType.EndObject)
+                    break;
+
+                if (reader.TokenType != JsonTokenType.PropertyName)
+                    throw new JsonException();
+
+                string propName = reader.GetString()!;
+                reader.Read();
+
+                switch (propName)
+                {
+                    case nameof(origin):
+                        origin = JsonSerializer.Deserialize<Vec3<TNum>>(ref reader, options);
+                        break;
+
+                    case nameof(rotation):
+                        rotation = JsonSerializer.Deserialize<Quaternion<TNum>>(ref reader, options);
+                        break;
+
+                    default:
+                        reader.Skip(); // important for forward compatibility
+                        break;
+                }
+            }
+
+            if (origin is null || rotation is null)
+                throw new JsonException("Missing required properties");
+
+            return new Pose3<TNum>(rotation.Value, origin.Value);
+        }
+
+        /// <inheritdoc />
+        public override void Write(Utf8JsonWriter writer, Pose3<TNum> value, JsonSerializerOptions options)
+        {
+            writer.WriteStartObject();
+            writer.WritePropertyName("origin");
+            JsonSerializer.Serialize(writer, value.Origin, options);
+            writer.WritePropertyName("rotation");
+            JsonSerializer.Serialize(writer, value.Rotation, options);
+            writer.WriteEndObject();
+        }
+    }
 }

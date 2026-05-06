@@ -7,9 +7,8 @@ namespace MeshWiz.Buffers.Benchmark;
 [ThreadingDiagnoser] // optional but useful
 [DisassemblyDiagnoser(maxDepth: 2)] // later, when optimizing
 public class AllocatorBench<T>
-    where T: unmanaged
 {
-    public const int LinearRentStep = 1_000, MaxLinearRentSize = 128;
+    public const int LinearRentStep = 1_000, MaxLinearRentSize = 32_000;
     private Freelist _allocator = new Freelist(MaxLinearRentSize, false);
 
     [GlobalCleanup]
@@ -23,7 +22,9 @@ public class AllocatorBench<T>
     public void LinearArrayPool()
     {
         var rent = ArrayPool<T>.Shared.Rent(MaxLinearRentSize);
+        var rent2 = ArrayPool<T>.Shared.Rent(MaxLinearRentSize);
         ArrayPool<T>.Shared.Return(rent);
+        ArrayPool<T>.Shared.Return(rent2);
     }
     // //
     // [Benchmark]
@@ -35,7 +36,8 @@ public class AllocatorBench<T>
     [Benchmark]
     public void Freelist()
     {
-        using var rent = Buffers.Freelist.Shared.Rent<T>(MaxLinearRentSize);
+        using var rent = _allocator.Rent<T>(MaxLinearRentSize);
+        using var rent2 = _allocator.Rent<T>(MaxLinearRentSize);
     }
 
     // [Benchmark]

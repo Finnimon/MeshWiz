@@ -1,15 +1,19 @@
+using System;
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using JetBrains.Annotations;
+using MeshWiz.Utility.Extensions;
 
 namespace MeshWiz.Math;
 
 [SuppressMessage("ReSharper", "UnassignedReadonlyField")]
-public readonly struct Mat2x2<TNum> : IMat<Mat2x2<TNum>, Vec2<TNum>, Vec2<TNum>, TNum>
-    where TNum : unmanaged, IFloatingPointIeee754<TNum>
+public readonly struct Mat2x2<TNum> : IMat<Mat2x2<TNum>, Vec2<TNum>, Vec2<TNum>, TNum>, ISpatialTransform<Vec2<TNum>>, IJsonConverterSelfProvider
+    where TNum : unmanaged, IFloatingPointIeee754<TNum>, ISpatialTransform<Vec2<TNum>>
 {
     public const int ColCount = 2, RowCount = 2, Count = 4, Dimensions = 2;
     public static Mat2x2<TNum> Identity => Create(Vec2<TNum>.UnitX, Vec2<TNum>.UnitY);
@@ -203,9 +207,26 @@ public readonly struct Mat2x2<TNum> : IMat<Mat2x2<TNum>, Vec2<TNum>, Vec2<TNum>,
     }
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vec2<TNum> operator *(Mat2x2<TNum> l, Vec2<TNum> r) => l.X * r.X + l.Y * r.Y;
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vec2<TNum> operator *(Vec2<TNum> vec, Mat2x2<TNum> m) => Transpose(m) * vec;
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override bool Equals(object? obj) => obj is Mat2x2<TNum> other && this == other;
 
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    /// <inheritdoc />
     public override int GetHashCode() => AsNested(this).GetHashCode();
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Vec2<TNum> TransformPoint(Vec2<TNum> p) => this * p;
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Vec2<TNum> TransformDirection(Vec2<TNum> p) => this * p;
+
+    /// <inheritdoc />
+    public bool IsAffine => Det.IsApprox(TNum.One);
+    
+    /// <inheritdoc />
+    static JsonConverter IJsonConverterSelfProvider.CreateConverter(JsonSerializerOptions options) 
+        => new IMat<Mat2x2<TNum>,Vec2<TNum>,Vec2<TNum>,TNum>.Converter();
 }

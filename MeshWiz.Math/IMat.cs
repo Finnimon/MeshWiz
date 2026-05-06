@@ -1,13 +1,17 @@
+using System;
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Xml.Serialization;
 using MeshWiz.Contracts;
 
 namespace MeshWiz.Math;
 
-public interface IMat<TSelf, out TRow, out TCol, TNum>
+public interface IMat<TSelf, TRow, TCol, TNum>
     : IEquatable<TSelf>,
         IUnmanagedDataVector<TNum>,
         IAdditionOperators<TSelf, TSelf, TSelf>,
@@ -35,4 +39,24 @@ public interface IMat<TSelf, out TRow, out TCol, TNum>
     static abstract TSelf operator *(TSelf l,TNum r);
     public static abstract bool operator ==(TSelf left, TSelf right);
     static abstract bool operator !=(TSelf left, TSelf right);
+
+
+    private protected sealed class Converter: JsonConverter<TSelf>
+    {
+        /// <inheritdoc />
+        public override TSelf? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            var asArr= JsonSerializer.Deserialize<TRow[]>(ref reader, options);
+            if (asArr is null || asArr.Length != TSelf.RowCount) throw new JsonException();
+            return Unsafe.ReadUnaligned<TSelf>(in Unsafe.As<TRow,byte>(ref MemoryMarshal.GetArrayDataReference(asArr)));
+        }
+
+        /// <inheritdoc />
+        public override void Write(Utf8JsonWriter writer, TSelf value, JsonSerializerOptions options)
+        {
+            var arr=new TRow[TSelf.RowCount];
+            for (var i = 0; i < arr.Length; i++) arr[i] = value.GetRow(i);
+            JsonSerializer.Serialize(writer, arr, options);
+        }
+    }
 }

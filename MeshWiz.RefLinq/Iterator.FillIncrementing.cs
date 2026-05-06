@@ -1,3 +1,5 @@
+using System;
+using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -56,4 +58,26 @@ public static partial class Iterator
         for (; Unsafe.IsAddressLessThan(ref local1, ref local2); local1 = ref Unsafe.Add(ref local1, 1))
             local1 = (value += step);
     }
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryGet<T>(this ReadOnlySpan<T> span, int index, out T? value)
+    {
+        if (span.Length > (uint)index)
+        {
+            value = span[index];
+            return true;
+        }
+
+        value = default;
+        return false;
+    }
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static SmartSelectIterator<TIn, TOut> Select<TIn, TOut>(this ReadOnlySpan<TIn> span, Func<TIn, TOut> sel)
+        => new(span, sel);
+
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static unsafe Span<T> AsSpan<TInline, T>(this ref TInline array, int size)
+        where TInline : struct =>
+        new(Unsafe.AsPointer(ref array), size);
 }

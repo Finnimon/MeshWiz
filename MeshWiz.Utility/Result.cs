@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -238,18 +239,6 @@ public static class Result
         return true;
     }
 
-    public static bool TryGetValue<T>(this T? nullable, out T value)
-        where T : struct
-    {
-        if (nullable.HasValue)
-        {
-            value = nullable.Value!;
-            return true;
-        }
-
-        value = default;
-        return false;
-    }
 
     public static TValue ThrowIllegalValueAccess<TInfo, TValue>(TInfo info)
         => ThrowHelper.ThrowInvalidOperationException<TValue>($"Illegal result access on {info}.");

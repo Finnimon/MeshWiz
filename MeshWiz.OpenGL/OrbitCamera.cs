@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.CompilerServices;
 using MeshWiz.Math;
 using MeshWiz.Utility.Extensions;
@@ -65,15 +66,14 @@ public class OrbitCamera(float fovRad, Vec3<float> orbitAround, float distance, 
     public void MoveForwards(float signedMovementScale) => Distance = float.Max(Distance - signedMovementScale, 0.01f);
 
 
-    public (Matrix4 model, Matrix4 view, Matrix4 projection) CreateRenderMatrices(float aspect)
+    public (Mat4x4<float> view, Mat4x4<float> projection) CreateRenderMatrices(float aspect)
     {
-        var model = Matrix4.Identity;
         var view = Mat4x4<float>.CreateViewAt(GetPosition(), LookAt, UnitUp);
-        var projection = Matrix4.CreatePerspectiveFieldOfView(FovRad, aspect, 0.001f, float.Max(100000,Distance * 1000));
-        return (model,Unsafe.As<Mat4x4<float>,Matrix4>(ref view), projection);
+        var projection= Mat4x4<float>.CreatePerspectiveFov(FovRad, aspect, 0.001f,float.Max(1e5f,Distance * 1000));
+        return (view, projection);
     }
 
-    public static ICamera Default()
-        =>    new OrbitCamera(float.Pi / 4, Vec3<float>.Zero, 1, 0, 0);
+    
+    public static OrbitCamera Default() => new(float.Pi / 4, Vec3<float>.Zero, 1, 0, 0);
 
 }

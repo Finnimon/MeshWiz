@@ -1,8 +1,11 @@
+using System;
 using System.Diagnostics.Contracts;
+using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.Diagnostics;
+using MeshWiz.RefLinq;
 using MeshWiz.Utility;
 using MeshWiz.Utility.Extensions;
 
@@ -125,11 +128,11 @@ public readonly struct ConeSection<TNum>
         var indices = new TriangleIndexer[edgeCount * 4];
         baseMesh.Indices.CopyTo(indices);
         topMesh.Indices.CopyTo(indices, edgeCount);
-        for (var i = 0; i < topMesh.Indices.Length; i++)
+        for (var i = 0; i < topMesh.Indices.Count; i++)
         {
             //adjust top
             var topIndex = edgeCount + i;
-            var topIndexer = (indices[topIndex] += baseMesh.Vertices.Length);
+            var topIndexer = (indices[topIndex] += baseMesh.Vertices.Count);
             var baseIndexer = indices[i];
             //flip base
             indices[i] = (baseIndexer = new(baseIndexer.A, baseIndexer.C, baseIndexer.B));

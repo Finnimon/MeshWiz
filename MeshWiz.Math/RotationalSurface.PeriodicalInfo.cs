@@ -1,4 +1,7 @@
+using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
+using System.Threading.Tasks;
 using MeshWiz.Utility;
 
 namespace MeshWiz.Math;
@@ -41,8 +44,7 @@ public sealed partial record RotationalSurface<TNum>
         {
             if (_finalizedPath is not null)
                 return _finalizedPath.Value;
-            if (_finalizedPoses.TryGetValue(out var posesResult)
-                && posesResult.TryGetValue(out var poses))
+            if (_finalizedPoses.HasValue && _finalizedPoses.Value.TryGetValue(out var poses))
                 return poses.ToPolyline();
             if (!TraceResult.TryGetValue(out var trace))
                 return TraceResult.Info;
@@ -160,7 +162,8 @@ public sealed partial record RotationalSurface<TNum>
 
 
         [Pure]
-        private static TNum CalculateCircumferentialWidth(TNum width, Angle<TNum> entry) => TNum.Abs(width / TNum.Cos(entry));
+        private static TNum CalculateCircumferentialWidth(TNum width, Angle<TNum> entry) =>
+            TNum.Abs(width / TNum.Cos(entry));
 
         private Result<PeriodicalGeodesics, Angle<TNum>> CalculateEntryAngle()
         {

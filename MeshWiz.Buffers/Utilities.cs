@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -47,6 +48,11 @@ internal static class Utilities
         return MemoryMarshal.CreateSpan(ref Unsafe.As<UInt128, TTo>(ref MemoryMarshal.GetArrayDataReference(span)),
             length2);
     }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Span<TTo> UnsafeCast<TTo>(object[] span) =>
+        MemoryMarshal.CreateSpan(ref Unsafe.As<object, TTo>(ref MemoryMarshal.GetArrayDataReference(span)),
+            span.Length);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static Span<TTo> UnsafeCast<TTo>(Span<UInt128> span)
